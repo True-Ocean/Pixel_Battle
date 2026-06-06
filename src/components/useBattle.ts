@@ -245,23 +245,25 @@ export function useBattle(
         );
         if (fronts.length === 0) return;
 
-        if (pendingPromoteFrom === position) {
-          const next = promoteUnit(state, 'player', position, fronts[0]!);
-          setState(next);
-          setPendingPromoteFrom(null);
-          setUiPhase(
-            getPendingPromotionFronts(next.player).length > 0
-              ? 'promoteUnit'
-              : 'pickMain',
-          );
-          return;
-        }
-
         setPendingPromoteFrom(position);
+        setUiPhase('promoteSlot');
         return;
       }
 
       if (effectivePhase === 'promoteSlot' && pendingPromoteFrom) {
+        const promotableBacks = getPendingPromotionFronts(state.player).flatMap(
+          (front) => getPromotableBackPositions(state.player, front),
+        );
+        if (promotableBacks.includes(position)) {
+          if (position === pendingPromoteFrom) {
+            setPendingPromoteFrom(null);
+            setUiPhase('promoteUnit');
+            return;
+          }
+          setPendingPromoteFrom(position);
+          return;
+        }
+
         const fronts = getPendingPromotionFronts(state.player).filter((front) =>
           getPromotableBackPositions(state.player, front).includes(
             pendingPromoteFrom,
@@ -451,13 +453,11 @@ export function useBattle(
     if (effectivePhase === 'pickTarget') return '攻撃対象を選択';
     if (effectivePhase === 'pickShield') return '盾対象を選択';
     if (effectivePhase === 'promoteUnit') {
-      return pendingPromoteFrom
-        ? 'もう一度タップで確定'
-        : '前衛に移動する後衛カードを選択';
+      return '前衛に移動する後衛カードを選択';
     }
-    if (effectivePhase === 'promoteSlot') return '移動先を選択';
+    if (effectivePhase === 'promoteSlot') return '移動先の前衛スロットを選択';
     return 'カードを選択';
-  }, [effectivePhase, playback, pendingAction, pendingPromoteFrom]);
+  }, [effectivePhase, playback, pendingAction]);
 
   const turnLabel = effectivePhase === 'opening' ? null : `TURN ${state.turn + 1}`;
 

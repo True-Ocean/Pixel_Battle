@@ -572,12 +572,8 @@ function FormationDamageLayer({
 
 function BattleBoard({
   battle,
-  playerIdentity,
-  opponentIdentity,
 }: {
   battle: ReturnType<typeof useBattle>;
-  playerIdentity?: BattleZoneIdentity;
-  opponentIdentity: BattleZoneIdentity;
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
   const slotRefs = useRef<Partial<Record<SlotKey, HTMLButtonElement>>>({});
@@ -677,7 +673,6 @@ function BattleBoard({
         />
 
         <div className="formation-field formation-field-cpu">
-          <FormationZoneBanner identity={opponentIdentity} side="cpu" />
           <div className="formation-grave formation-grave-cpu">
             {cpuDefeated.map((unit) => {
               const card = battle.cpuCards.find((c) => c.id === unit.cardId);
@@ -757,9 +752,6 @@ function BattleBoard({
           {showOutcome && (
             <FormationZoneOutcome battleResult={result} side="player" />
           )}
-          {playerIdentity && (
-            <FormationZoneBanner identity={playerIdentity} side="player" />
-          )}
         </div>
       </div>
     </div>
@@ -769,15 +761,11 @@ function BattleBoard({
 function BattleSession({
   playerCards,
   cpuCards,
-  playerIdentity,
-  opponentIdentity,
   onFinish,
   onEndedChange,
 }: {
   playerCards: Card[];
   cpuCards: Card[];
-  playerIdentity?: BattleZoneIdentity;
-  opponentIdentity: BattleZoneIdentity;
   onFinish: BattleSetupScreenProps['onFinish'];
   onEndedChange?: (ended: boolean) => void;
 }) {
@@ -792,13 +780,7 @@ function BattleSession({
     onEndedChange?.(ended);
   }, [ended, onEndedChange]);
 
-  return (
-    <BattleBoard
-      battle={battle}
-      playerIdentity={playerIdentity}
-      opponentIdentity={opponentIdentity}
-    />
-  );
+  return <BattleBoard battle={battle} />;
 }
 
 export function BattleSetupScreen({
@@ -1050,13 +1032,15 @@ export function BattleSetupScreen({
       className={`screen setup-reveal formation-screen${phase === 'battle' ? ' is-battle-active' : ''}${battleEnded ? ' has-end-actions' : ''}`}
     >
       <div className="formation-battle-shell">
+        <FormationZoneBanner
+          identity={resolvedOpponentIdentity}
+          side="cpu"
+        />
         <div className="formation-battle-body">
           {phase === 'battle' ? (
             <BattleSession
               playerCards={battleCards.player}
               cpuCards={battleCards.cpu}
-              playerIdentity={resolvedPlayerIdentity}
-              opponentIdentity={resolvedOpponentIdentity}
               onFinish={onFinish}
               onEndedChange={setBattleEnded}
             />
@@ -1064,10 +1048,6 @@ export function BattleSetupScreen({
             <div className="formation-battle">
               <div className="formation-board">
                 <div className="formation-field formation-field-cpu">
-                  <FormationZoneBanner
-                    identity={resolvedOpponentIdentity}
-                    side="cpu"
-                  />
                   <div
                     className="formation-grave formation-hand formation-hand-cpu"
                     aria-label="敵の手札"
@@ -1172,17 +1152,18 @@ export function BattleSetupScreen({
                       />
                     ))}
                   </div>
-                  {resolvedPlayerIdentity && (
-                    <FormationZoneBanner
-                      identity={resolvedPlayerIdentity}
-                      side="player"
-                    />
-                  )}
                 </div>
               </div>
             </div>
           )}
         </div>
+
+        {resolvedPlayerIdentity && (
+          <FormationZoneBanner
+            identity={resolvedPlayerIdentity}
+            side="player"
+          />
+        )}
 
         {phase === 'setup' && (
           <div className="actions setup-actions formation-actions">
