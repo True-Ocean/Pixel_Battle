@@ -1,0 +1,187 @@
+import type { Card } from '../types';
+import type {
+  BattleResult,
+  BattleSide,
+  BattleState,
+  BattleUnit,
+  BoardPosition,
+} from '../types/battle';
+
+export const BOARD_POSITIONS = [
+  'frontLeft',
+  'frontRight',
+  'backLeft',
+  'backCenter',
+  'backRight',
+] as const satisfies readonly BoardPosition[];
+
+export const FRONT_POSITIONS = [
+  'frontLeft',
+  'frontRight',
+] as const satisfies readonly BoardPosition[];
+
+export const BACK_POSITIONS = [
+  'backLeft',
+  'backCenter',
+  'backRight',
+] as const satisfies readonly BoardPosition[];
+
+export function cardToBattleUnit(
+  card: Card,
+  position: BoardPosition = 'frontLeft',
+): BattleUnit {
+  return {
+    cardId: card.id,
+    name: card.name,
+    attribute: card.attribute,
+    maxHp: card.hp,
+    currentHp: card.hp,
+    position,
+    defenseShieldUsed: false,
+    hasShield: card.attribute === 'defense',
+  };
+}
+
+export function createBattleState(playerCards: Card[], cpuCards: Card[]): BattleState {
+  return {
+    player: playerCards.map((card, i) =>
+      cardToBattleUnit(card, BOARD_POSITIONS[i] ?? 'backRight'),
+    ),
+    cpu: cpuCards.map((card, i) =>
+      cardToBattleUnit(card, BOARD_POSITIONS[i] ?? 'backRight'),
+    ),
+    turn: 0,
+    log: ['戦闘開始'],
+    events: [],
+  };
+}
+
+export function isAlive(unit: BattleUnit): boolean {
+  return unit.currentHp > 0 && unit.position !== 'defeated';
+}
+
+/** 防御カードとして、まだ盾付与能力を使えるか */
+export function canGrantDefenseShields(unit: BattleUnit): boolean {
+  return (
+    unit.attribute === 'defense' && isAlive(unit) && !unit.defenseShieldUsed
+  );
+}
+
+export function isFrontPosition(position: BoardPosition): boolean {
+  return (FRONT_POSITIONS as readonly BoardPosition[]).includes(position);
+}
+
+export function isBackPosition(position: BoardPosition): boolean {
+  return (BACK_POSITIONS as readonly BoardPosition[]).includes(position);
+}
+
+export function getAliveIndices(field: BattleUnit[]): number[] {
+  return field.map((u, i) => (isAlive(u) ? i : -1)).filter((i) => i >= 0);
+}
+
+export function getUnitAt(
+  field: BattleUnit[],
+  position: BoardPosition,
+): BattleUnit | undefined {
+  return field.find((u) => u.position === position && isAlive(u));
+}
+
+export function getUnitIndexAt(
+  field: BattleUnit[],
+  position: BoardPosition,
+): number {
+  return field.findIndex((u) => u.position === position && isAlive(u));
+}
+
+export function getDefeated(field: BattleUnit[]): BattleUnit[] {
+  return field.filter((u) => u.position === 'defeated');
+}
+
+export function getField(state: BattleState, side: BattleSide): BattleUnit[] {
+  return side === 'player' ? state.player : state.cpu;
+}
+
+export function getBattleResult(state: BattleState): BattleResult {
+  const playerAlive = state.player.some(isAlive);
+  const cpuAlive = state.cpu.some(isAlive);
+  if (!cpuAlive && playerAlive) return 'player';
+  if (!playerAlive && cpuAlive) return 'cpu';
+  if (!playerAlive && !cpuAlive) return 'cpu';
+  return null;
+}
+
+export function appendLog(state: BattleState, line: string): BattleState {
+  return { ...state, log: [...state.log, line] };
+}
+
+export function getShieldTargets(field: BattleUnit[]): BoardPosition[] {
+  return field
+    .filter((u) => isAlive(u) && !u.hasShield)
+    .map((u) => u.position)
+    .filter((p): p is BoardPosition => p !== 'defeated');
+}
+
+/** 盾付与の対象（自分自身は除く） */
+export function getShieldTargetsForActor(
+  field: BattleUnit[],
+  actorPosition: BoardPosition,
+): BoardPosition[] {
+  return getShieldTargets(field).filter((position) => position !== actorPosition);
+}
+
+export function canUseShieldAction(
+  field: BattleUnit[],
+  position: BoardPosition,
+): boolean {
+  const unit = getUnitAt(field, position);
+  return (
+    !!unit &&
+    canGrantDefenseShields(unit) &&
+    getShieldTargetsForActor(field, position).length > 0
+  );
+}
+
+export function getMeleeTargets(enemyField: BattleUnit[]): BoardPosition[] {
+  return FRONT_POSITIONS.filter((position) => !!getUnitAt(enemyField, position));
+}
+
+export function getActionTypesForUnit(
+  ownField: BattleUnit[],
+  enemyField: BattleUnit[],
+  position: BoardPosition,
+): ('meleeAttack' | 'grantShield')[] {
+  const unit = getUnitAt(ownField, position);
+  if (!unit) return [];
+
+  const actions: ('meleeAttack' | 'grantShield')[] = [];
+  if (isFrontPosition(position) && getMeleeTargets(enemyField).length > 0) {
+    actions.push('meleeAttack');
+  }
+  if (unit.attribute === 'defense' && canUseShieldAction(ownField, position)) {
+    actions.push('grantShield');
+  }
+  return actions;
+}
+
+export function getPromotableBackPositions(
+  field: BattleUnit[],
+  frontPosition: BoardPosition,
+): BoardPosition[] {
+  const candidates =
+    frontPosition === 'frontLeft'
+      ? (['backLeft', 'backCenter'] as const)
+      : frontPosition === 'frontRight'
+        ? (['backCenter', 'backRight'] as const)
+        : ([] as const);
+  return candidates.filter((position) => !!getUnitAt(field, position));
+}
+
+export function getEmptyFrontPositions(field: BattleUnit[]): BoardPosition[] {
+  return FRONT_POSITIONS.filter((position) => !getUnitAt(field, position));
+}
+
+export function getPendingPromotionFronts(field: BattleUnit[]): BoardPosition[] {
+  return getEmptyFrontPositions(field).filter(
+    (position) => getPromotableBackPositions(field, position).length > 0,
+  );
+}

@@ -1,0 +1,42 @@
+:root {
+  font-family: system-ui, -apple-system, 'Hiragino Sans', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #1a1a2e;
+  background-color: #dfe3ec;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  /** スマホ縦持ち想定のシェル幅（実機では 100vw に張り付く） */
+  --phone-shell-w: 26.5rem;
+  --phone-shell-battle-w: 22rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+}
+
+button {
+  font: inherit;
+  touch-action: manipulation;
+}

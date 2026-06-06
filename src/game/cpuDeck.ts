@@ -1,0 +1,260 @@
+import { createEmptyGrid } from '../canvas';
+import { createCardFromDrawing } from '../card';
+import { DECK_MAX, FIELD_SIZE } from '../config/balance';
+import type { Card } from '../types';
+import { pickCpuPattern, type PatternBias } from './cpuPatterns';
+
+function fillGrid(color: string) {
+  return createEmptyGrid().map((row) => row.map(() => color));
+}
+
+/** 強敵になる確率（このバトルは CPU 平均 HP を高めに生成） */
+export const STRONG_ENEMY_CHANCE = 0.28;
+
+const MAX_DECK_ATTEMPTS = 56;
+const ATTR_TOLERANCE = 1;
+
+const CPU_NAME_PREFIXES = [
+  'なぞ',
+  'ふし',
+  'かげ',
+  'ほの',
+  'くろ',
+  'しろ',
+  'あか',
+  'よわ',
+  'つよ',
+  'わく',
+] as const;
+
+const CPU_NAME_SUFFIXES = [
+  'ぶき',
+  'たて',
+  'まもの',
+  'ひと',
+  'かみ',
+  'けもの',
+  'たま',
+  'いし',
+] as const;
+
+export type CpuDifficulty = 'even' | 'strong';
+
+interface DeckSummary {
+  avgHp: number;
+  attacks: number;
+  defenses: number;
+}
+
+interface DeckTargets {
+  avgHpMin: number;
+  avgHpMax: number;
+  attackCount: number;
+  defenseCount: number;
+}
+
+function pickRandom<T>(items: readonly T[], random: () => number): T {
+  const idx = Math.min(
+    Math.floor(random() * items.length),
+    items.length - 1,
+  );
+  return items[idx]!;
+}
+
+export function randomCpuName(random: () => number = Math.random): string {
+  return `${pickRandom(CPU_NAME_PREFIXES, random)}の${pickRandom(CPU_NAME_SUFFIXES, random)}`;
+}
+
+function summarizeDeck(deck: Card[]): DeckSummary {
+  if (deck.length === 0) {
+    return { avgHp: 80, attacks: 2, defenses: 3 };
+  }
+  const attacks = deck.filter((c) => c.attribute === 'attack').length;
+  return {
+    avgHp: deck.reduce((s, c) => s + c.hp, 0) / deck.length,
+    attacks,
+    defenses: deck.length - attacks,
+  };
+}
+
+export function rollCpuDifficulty(
+  random: () => number = Math.random,
+): CpuDifficulty {
+  return random() < STRONG_ENEMY_CHANCE ? 'strong' : 'even';
+}
+
+export function buildDeckTargets(
+  playerDeck: Card[],
+  difficulty: CpuDifficulty,
+): DeckTargets {
+  const player = summarizeDeck(playerDeck);
+  const hpScale =
+    difficulty === 'strong'
+      ? { min: 1.05, max: 1.28 }
+      : { min: 0.9, max: 1.1 };
+
+  let attackCount = player.attacks;
+  let defenseCount = player.defenses;
+  if (difficulty === 'strong') {
+    attackCount = Math.min(4, player.attacks + 1);
+    defenseCount = DECK_MAX - attackCount;
+  }
+
+  return {
+    avgHpMin: player.avgHp * hpScale.min,
+    avgHpMax: player.avgHp * hpScale.max,
+    attackCount,
+    defenseCount,
+  };
+}
+
+function deckMatchesTargets(deck: Card[], targets: DeckTargets): boolean {
+  const cpu = summarizeDeck(deck);
+  if (cpu.avgHp < targets.avgHpMin || cpu.avgHp > targets.avgHpMax) {
+    return false;
+  }
+  if (Math.abs(cpu.attacks - targets.attackCount) > ATTR_TOLERANCE) {
+    return false;
+  }
+  return true;
+}
+
+function uniqueName(used: Set<string>, random: () => number): string {
+  let name = randomCpuName(random);
+  let attempt = 0;
+  while (used.has(name) && attempt < 16) {
+    name = randomCpuName(random);
+    attempt++;
+  }
+  used.add(name);
+  return name;
+}
+
+function buildOneCpuCard(
+  prefer: PatternBias,
+  usedNames: Set<string>,
+  random: () => number,
+): Card {
+  const name = uniqueName(usedNames, random);
+  const pattern = pickCpuPattern(prefer, random);
+  return createCardFromDrawing(name, pattern.build(random));
+}
+
+function buildCandidateDeck(
+  targets: DeckTargets,
+  random: () => number,
+): Card[] {
+  const usedNames = new Set<string>();
+  const cards: Card[] = [];
+  const biases: PatternBias[] = [];
+
+  for (let i = 0; i < targets.attackCount; i++) biases.push('attack');
+  for (let i = 0; i < targets.defenseCount; i++) biases.push('defense');
+  while (biases.length < DECK_MAX) biases.push('neutral');
+
+  for (let i = biases.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [biases[i], biases[j]] = [biases[j]!, biases[i]!];
+  }
+
+  for (const prefer of biases) {
+    cards.push(buildOneCpuCard(prefer, usedNames, random));
+  }
+
+  return cards;
+}
+
+/**
+ * プレイヤーデッキに対して拮抗しつつ、たまに強敵になる CPU 5枚を生成する。
+ */
+export function buildBalancedCpuDeck(
+  playerDeck: Card[],
+  random: () => number = Math.random,
+): Card[] {
+  const difficulty = rollCpuDifficulty(random);
+  const targets = buildDeckTargets(playerDeck, difficulty);
+
+  let lastAttempt = buildCandidateDeck(targets, random);
+  for (let attempt = 0; attempt < MAX_DECK_ATTEMPTS; attempt++) {
+    const candidate = buildCandidateDeck(targets, random);
+    lastAttempt = candidate;
+    if (deckMatchesTargets(candidate, targets)) return candidate;
+  }
+
+  return lastAttempt;
+}
+
+/** @deprecated テスト互換。playerDeck なしのとき用 */
+export function buildRandomCpuDeck(
+  random: () => number = Math.random,
+): Card[] {
+  return buildBalancedCpuDeck([], random);
+}
+
+function combinations3of5(deck: Card[]): Card[][] {
+  const out: Card[][] = [];
+  for (let a = 0; a < deck.length; a++) {
+    for (let b = a + 1; b < deck.length; b++) {
+      for (let c = b + 1; c < deck.length; c++) {
+        out.push([deck[a]!, deck[b]!, deck[c]!]);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * CPU 5枚から3枚。プレイヤー5枚の平均 HP に近い組み合わせを選ぶ。
+ */
+export function pickCpuBattleLineup(
+  cpuDeck: Card[],
+  playerDeck?: Card[],
+  random: () => number = Math.random,
+): Card[] {
+  if (cpuDeck.length <= FIELD_SIZE) return [...cpuDeck];
+
+  if (!playerDeck?.length) {
+    const arr = [...cpuDeck];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j]!, arr[i]!];
+    }
+    return arr.slice(0, FIELD_SIZE);
+  }
+
+  const playerAvg = summarizeDeck(playerDeck).avgHp;
+  const cpuAvg = summarizeDeck(cpuDeck).avgHp;
+  const targetHp =
+    cpuAvg > playerAvg * 1.03 ? playerAvg * 1.1 : playerAvg * 0.98;
+
+  const combos = combinations3of5(cpuDeck);
+  let best = combos[0]!;
+  let bestScore = Infinity;
+
+  for (const combo of combos) {
+    const avg = combo.reduce((s, c) => s + c.hp, 0) / combo.length;
+    const score = Math.abs(avg - targetHp) + random() * 1.5;
+    if (score < bestScore) {
+      bestScore = score;
+      best = combo;
+    }
+  }
+
+  return best;
+}
+
+/** 固定5枚（テスト・参照用） */
+export function buildCpuFullDeck(): Card[] {
+  return [
+    createCardFromDrawing('赤鬼', fillGrid('#ff0000')),
+    createCardFromDrawing('白盾', fillGrid('#ffffff')),
+    createCardFromDrawing('黒影', fillGrid('#000000')),
+    createCardFromDrawing('赤刃', fillGrid('#ff0000')),
+    createCardFromDrawing('堅壁', fillGrid('#ffffff')),
+  ];
+}
+
+/** @deprecated 旧3枚のみ */
+export function buildCpuStarterCards(): Card[] {
+  return pickCpuBattleLineup(buildCpuFullDeck());
+}
