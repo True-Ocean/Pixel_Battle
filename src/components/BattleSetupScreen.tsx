@@ -6,7 +6,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { DECK_MAX, SETUP_TIME_LIMIT_SEC } from '../config/balance';
+import { CPU_OPPONENT_LEVEL, DECK_MAX, SETUP_TIME_LIMIT_SEC } from '../config/balance';
+import { computeDeckPower } from '../card';
 import type { Card } from '../types';
 import type { BoardPosition } from '../types/battle';
 import {
@@ -73,12 +74,42 @@ interface DamageMarker {
   label: string;
 }
 
+function FormationZoneBanner({
+  identity,
+  side,
+}: {
+  identity: BattleZoneIdentity;
+  side: 'cpu' | 'player';
+}) {
+  return (
+    <div className={`formation-zone-banner formation-zone-banner-${side}`}>
+      <span className="formation-zone-banner-name">{identity.name}</span>
+      <span className="formation-zone-banner-level">Lv.{identity.level}</span>
+      <span className="formation-zone-banner-power">戦力 {identity.power}</span>
+    </div>
+  );
+}
+
+interface BattleZoneProfile {
+  name: string;
+  level: number;
+}
+
+interface BattleZoneIdentity extends BattleZoneProfile {
+  power: number;
+}
+
 interface BattleSetupScreenProps {
   playerDeck: Card[];
   cpuDeck: Card[];
+  playerIdentity?: BattleZoneProfile;
+  opponentIdentity?: BattleZoneProfile;
   onFinish: (outcome: {
     winner: 'player' | 'cpu';
     playerCardIds: string[];
+    cpuDefeatedCount: number;
+    playerDeckPower: number;
+    opponentDeckPower: number;
     fauxLostCardId: string | null;
   }) => void;
   onGoToDeck: () => void;
@@ -541,8 +572,12 @@ function FormationDamageLayer({
 
 function BattleBoard({
   battle,
+  playerIdentity,
+  opponentIdentity,
 }: {
   battle: ReturnType<typeof useBattle>;
+  playerIdentity?: BattleZoneIdentity;
+  opponentIdentity: BattleZoneIdentity;
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
   const slotRefs = useRef<Partial<Record<SlotKey, HTMLButtonElement>>>({});
@@ -642,6 +677,7 @@ function BattleBoard({
         />
 
         <div className="formation-field formation-field-cpu">
+          <FormationZoneBanner identity={opponentIdentity} side="cpu" />
           <div className="formation-grave formation-grave-cpu">
             {cpuDefeated.map((unit) => {
               const card = battle.cpuCards.find((c) => c.id === unit.cardId);
@@ -721,6 +757,9 @@ function BattleBoard({
           {showOutcome && (
             <FormationZoneOutcome battleResult={result} side="player" />
           )}
+          {playerIdentity && (
+            <FormationZoneBanner identity={playerIdentity} side="player" />
+          )}
         </div>
       </div>
     </div>
@@ -730,15 +769,17 @@ function BattleBoard({
 function BattleSession({
   playerCards,
   cpuCards,
+  playerIdentity,
+  opponentIdentity,
   onFinish,
-  onGoToDeck,
-  onNewBattle,
+  onEndedChange,
 }: {
   playerCards: Card[];
   cpuCards: Card[];
+  playerIdentity?: BattleZoneIdentity;
+  opponentIdentity: BattleZoneIdentity;
   onFinish: BattleSetupScreenProps['onFinish'];
-  onGoToDeck: () => void;
-  onNewBattle: () => void;
+  onEndedChange?: (ended: boolean) => void;
 }) {
   const battle = useBattle(playerCards, cpuCards, onFinish);
   const ended = battle.effectivePhase === 'ended' && battle.result != null;
@@ -747,32 +788,24 @@ function BattleSession({
     if (ended) battle.handleEnd();
   }, [ended, battle]);
 
+  useEffect(() => {
+    onEndedChange?.(ended);
+  }, [ended, onEndedChange]);
+
   return (
-    <div
-      className={
-        ended ? 'formation-battle-shell has-end-actions' : 'formation-battle-shell'
-      }
-    >
-      <div className="formation-battle-body">
-        <BattleBoard battle={battle} />
-      </div>
-      {ended && (
-        <div className="actions deck-actions setup-battle-end-actions">
-          <button type="button" onClick={onGoToDeck}>
-            デッキ
-          </button>
-          <button type="button" className="primary" onClick={onNewBattle}>
-            新規バトル
-          </button>
-        </div>
-      )}
-    </div>
+    <BattleBoard
+      battle={battle}
+      playerIdentity={playerIdentity}
+      opponentIdentity={opponentIdentity}
+    />
   );
 }
 
 export function BattleSetupScreen({
   playerDeck,
   cpuDeck,
+  playerIdentity,
+  opponentIdentity = { name: 'CPU', level: CPU_OPPONENT_LEVEL },
   onFinish,
   onGoToDeck,
   onNewBattle,
@@ -816,6 +849,7 @@ export function BattleSetupScreen({
   const [cpuDeployCooldown, setCpuDeployCooldown] = useState(false);
   const [cpuMeasureTick, setCpuMeasureTick] = useState(0);
   const [selected, setSelected] = useState<SelectedSetupCard | null>(null);
+  const [battleEnded, setBattleEnded] = useState(false);
 
   const formationScreenRef = useRef<HTMLElement>(null);
   const cpuHandRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -840,6 +874,22 @@ export function BattleSetupScreen({
       cpu: orderedCards(cpuFormation),
     }),
     [playerSlots, cpuFormation],
+  );
+
+  const resolvedPlayerIdentity = useMemo(
+    (): BattleZoneIdentity | undefined =>
+      playerIdentity
+        ? { ...playerIdentity, power: computeDeckPower(playerDeck) }
+        : undefined,
+    [playerIdentity, playerDeck],
+  );
+
+  const resolvedOpponentIdentity = useMemo(
+    (): BattleZoneIdentity => ({
+      ...opponentIdentity,
+      power: computeDeckPower(cpuDeck),
+    }),
+    [opponentIdentity, cpuDeck],
   );
 
   const handleCpuFlightComplete = useCallback(() => {
@@ -980,6 +1030,7 @@ export function BattleSetupScreen({
       randomFill();
       return;
     }
+    setBattleEnded(false);
     setPhase('battle');
   };
 
@@ -996,138 +1047,179 @@ export function BattleSetupScreen({
   return (
     <section
       ref={formationScreenRef}
-      className={`screen setup-reveal formation-screen${phase === 'battle' ? ' is-battle-active' : ''}`}
+      className={`screen setup-reveal formation-screen${phase === 'battle' ? ' is-battle-active' : ''}${battleEnded ? ' has-end-actions' : ''}`}
     >
-      {phase === 'battle' ? (
-        <BattleSession
-          playerCards={battleCards.player}
-          cpuCards={battleCards.cpu}
-          onFinish={onFinish}
-          onGoToDeck={onGoToDeck}
-          onNewBattle={onNewBattle}
-        />
-      ) : (
-        <>
-          <div className="formation-setup-body">
-            <div className="formation-hand formation-hand-cpu" aria-label="敵の手札">
-              {cpuHand.map((card) => (
-                <TinyCard
-                  key={card.id}
-                  card={card}
-                  side="cpu"
-                  faceDown
-                  hidden={cpuFlyingCardId === card.id}
-                  cardRef={(el) => {
-                    if (el) cpuHandRefs.current[card.id] = el;
-                    else delete cpuHandRefs.current[card.id];
-                  }}
-                />
-              ))}
-            </div>
+      <div className="formation-battle-shell">
+        <div className="formation-battle-body">
+          {phase === 'battle' ? (
+            <BattleSession
+              playerCards={battleCards.player}
+              cpuCards={battleCards.cpu}
+              playerIdentity={resolvedPlayerIdentity}
+              opponentIdentity={resolvedOpponentIdentity}
+              onFinish={onFinish}
+              onEndedChange={setBattleEnded}
+            />
+          ) : (
+            <div className="formation-battle">
+              <div className="formation-board">
+                <div className="formation-field formation-field-cpu">
+                  <FormationZoneBanner
+                    identity={resolvedOpponentIdentity}
+                    side="cpu"
+                  />
+                  <div
+                    className="formation-grave formation-hand formation-hand-cpu"
+                    aria-label="敵の手札"
+                  >
+                    {cpuHand.map((card) => (
+                      <TinyCard
+                        key={card.id}
+                        card={card}
+                        side="cpu"
+                        faceDown
+                        hidden={cpuFlyingCardId === card.id}
+                        cardRef={(el) => {
+                          if (el) cpuHandRefs.current[card.id] = el;
+                          else delete cpuHandRefs.current[card.id];
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="formation-row formation-row-back">
+                    {BACK_POSITIONS.map((position) => (
+                      <SetupSlot
+                        key={`cpu-${position}`}
+                        card={cpuSlots[position]}
+                        position={position}
+                        side="cpu"
+                        hideFrame={bothDeployed}
+                        faceDown
+                        slotRef={(el) => {
+                          cpuSlotRefs.current[position] = el;
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="formation-row formation-row-front">
+                    {FRONT_POSITIONS.map((position) => (
+                      <SetupSlot
+                        key={`cpu-${position}`}
+                        card={cpuSlots[position]}
+                        position={position}
+                        side="cpu"
+                        hideFrame={bothDeployed}
+                        faceDown
+                        slotRef={(el) => {
+                          cpuSlotRefs.current[position] = el;
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
 
-          <div className="formation-board formation-board-setup">
-            <div className="formation-row formation-row-back">
-              {BACK_POSITIONS.map((position) => (
-                <SetupSlot
-                  key={`cpu-${position}`}
-                  card={cpuSlots[position]}
-                  position={position}
-                  side="cpu"
-                  hideFrame={bothDeployed}
-                  faceDown
-                  slotRef={(el) => {
-                    cpuSlotRefs.current[position] = el;
-                  }}
-                />
-              ))}
-            </div>
-            <div className="formation-row formation-row-front">
-              {FRONT_POSITIONS.map((position) => (
-                <SetupSlot
-                  key={`cpu-${position}`}
-                  card={cpuSlots[position]}
-                  position={position}
-                  side="cpu"
-                  hideFrame={bothDeployed}
-                  faceDown
-                  slotRef={(el) => {
-                    cpuSlotRefs.current[position] = el;
-                  }}
-                />
-              ))}
-            </div>
+                <div className="formation-guide">
+                  <div className="formation-hint formation-guide-line">
+                    バトル準備：カードを配置してください（残り {timeLeft} 秒）
+                  </div>
+                </div>
 
-            <div className="formation-guide">
-              <div className="formation-hint formation-guide-line">
-                バトル準備：カードを配置してください（残り {timeLeft} 秒）
+                <div className="formation-field formation-field-player">
+                  <div className="formation-row formation-row-front">
+                    {FRONT_POSITIONS.map((position) => (
+                      <SetupSlot
+                        key={`player-${position}`}
+                        card={playerSlots[position]}
+                        position={position}
+                        side="player"
+                        hideFrame={bothDeployed}
+                        selected={
+                          selected?.source === 'slot' &&
+                          selected.position === position
+                        }
+                        valid={!!selected}
+                        onClick={() => handleSlotClick(position)}
+                      />
+                    ))}
+                  </div>
+                  <div className="formation-row formation-row-back">
+                    {BACK_POSITIONS.map((position) => (
+                      <SetupSlot
+                        key={`player-${position}`}
+                        card={playerSlots[position]}
+                        position={position}
+                        side="player"
+                        hideFrame={bothDeployed}
+                        selected={
+                          selected?.source === 'slot' &&
+                          selected.position === position
+                        }
+                        valid={!!selected}
+                        onClick={() => handleSlotClick(position)}
+                      />
+                    ))}
+                  </div>
+                  <div className="formation-grave formation-hand formation-hand-player">
+                    {playerHand.map((card, index) => (
+                      <TinyCard
+                        key={card.id}
+                        card={card}
+                        side="player"
+                        selected={
+                          selected?.source === 'hand' && selected.index === index
+                        }
+                        onClick={() => handleHandClick(index)}
+                      />
+                    ))}
+                  </div>
+                  {resolvedPlayerIdentity && (
+                    <FormationZoneBanner
+                      identity={resolvedPlayerIdentity}
+                      side="player"
+                    />
+                  )}
+                </div>
               </div>
             </div>
+          )}
+        </div>
 
-            <div className="formation-row formation-row-front">
-              {FRONT_POSITIONS.map((position) => (
-                <SetupSlot
-                  key={`player-${position}`}
-                  card={playerSlots[position]}
-                  position={position}
-                  side="player"
-                  hideFrame={bothDeployed}
-                  selected={
-                    selected?.source === 'slot' && selected.position === position
-                  }
-                  valid={!!selected}
-                  onClick={() => handleSlotClick(position)}
-                />
-              ))}
-            </div>
-            <div className="formation-row formation-row-back">
-              {BACK_POSITIONS.map((position) => (
-                <SetupSlot
-                  key={`player-${position}`}
-                  card={playerSlots[position]}
-                  position={position}
-                  side="player"
-                  hideFrame={bothDeployed}
-                  selected={
-                    selected?.source === 'slot' && selected.position === position
-                  }
-                  valid={!!selected}
-                  onClick={() => handleSlotClick(position)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="formation-hand formation-hand-player">
-            {playerHand.map((card, index) => (
-              <TinyCard
-                key={card.id}
-                card={card}
-                side="player"
-                selected={selected?.source === 'hand' && selected.index === index}
-                onClick={() => handleHandClick(index)}
-              />
-            ))}
-          </div>
-          </div>
-
+        {phase === 'setup' && (
           <div className="actions setup-actions formation-actions">
             <button type="button" className="primary" onClick={handleMainButton}>
               {ready ? '準備完了' : 'ランダム配置'}
             </button>
           </div>
+        )}
+        {phase === 'battle' && battleEnded && (
+          <div className="actions deck-actions setup-battle-end-actions">
+            <button type="button" onClick={onGoToDeck}>
+              デッキ
+            </button>
+            <button type="button" className="primary" onClick={onNewBattle}>
+              新規バトル
+            </button>
+          </div>
+        )}
+        {phase === 'battle' && !battleEnded && (
+          <div className="actions setup-actions formation-actions formation-footer-reserve" aria-hidden="true">
+            <button type="button" className="primary" tabIndex={-1} disabled>
+              準備完了
+            </button>
+          </div>
+        )}
+      </div>
 
-          {cpuFlight && (
-            <SetupFlightLayer
-              key={`${cpuFlight.card.id}-${cpuFlight.position}`}
-              card={cpuFlight.card}
-              from={cpuFlight.from}
-              to={cpuFlight.to}
-              faceDown
-              side="cpu"
-              onComplete={handleCpuFlightComplete}
-            />
-          )}
-        </>
+      {phase === 'setup' && cpuFlight && (
+        <SetupFlightLayer
+          key={`${cpuFlight.card.id}-${cpuFlight.position}`}
+          card={cpuFlight.card}
+          from={cpuFlight.from}
+          to={cpuFlight.to}
+          faceDown
+          side="cpu"
+          onComplete={handleCpuFlightComplete}
+        />
       )}
     </section>
   );

@@ -60,3 +60,30 @@ export const HP_RANGE: Record<'attack' | 'defense', { min: number; max: number }
   attack: { min: 70, max: 100 },
   defense: { min: 55, max: 85 },
 };
+
+/** カード戦力: HP × hpWeight + flatBonus（属性ごと） */
+export const ATTRIBUTE_POWER = {
+  attack: { hpWeight: 1, flatBonus: 0 },
+  defense: { hpWeight: 1, flatBonus: 20 },
+} as const satisfies Record<
+  'attack' | 'defense',
+  { hpWeight: number; flatBonus: number }
+>;
+
+/** 初回セットアップ・ユーザープロフィール */
+export const USER_INITIAL_LEVEL = 1;
+export const USER_INITIAL_EXP = 0;
+export const USERNAME_MAX_LENGTH = 16;
+export const MAX_USER_LEVEL = 30;
+
+/** レベル L → L+1 に必要な EXP = EXP_LEVEL_BASE + L */
+export const EXP_LEVEL_BASE = 10;
+
+/** プロトタイプ CPU 対戦時の表示レベル */
+export const CPU_OPPONENT_LEVEL = 1;
+
+/** 上振れ勝利 EXP（相手デッキ戦力が高いとき・勝利時のみ） */
+export const EXP_UPSET_RATIO_TIER1 = 1.1;
+export const EXP_UPSET_RATIO_TIER2 = 1.2;
+export const EXP_UPSET_RATIO_TIER3 = 1.3;
+export const EXP_UPSET_BONUS_MAX = 3;

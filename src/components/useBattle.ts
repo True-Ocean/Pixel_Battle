@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PROTOTYPE_FAKE_LOSS } from '../config/balance';
+import { computeDeckPower } from '../card';
 import {
   autoPromoteCpu,
   BOARD_POSITIONS,
   createBattleState,
   getActionTypesForUnit,
   getBattleResult,
+  getDefeated,
   getMeleeTargets,
   getPendingPromotionFronts,
   getPromotableBackPositions,
@@ -49,6 +51,9 @@ export function useBattle(
   onFinish: (outcome: {
     winner: 'player' | 'cpu';
     playerCardIds: string[];
+    cpuDefeatedCount: number;
+    playerDeckPower: number;
+    opponentDeckPower: number;
     fauxLostCardId: string | null;
   }) => void,
 ) {
@@ -426,9 +431,12 @@ export function useBattle(
     onFinish({
       winner: result,
       playerCardIds: playerCards.map((c) => c.id),
+      cpuDefeatedCount: getDefeated(state.cpu).length,
+      playerDeckPower: computeDeckPower(playerCards),
+      opponentDeckPower: computeDeckPower(cpuCards),
       fauxLostCardId,
     });
-  }, [outcomeSaved, result, playerCards, onFinish]);
+  }, [outcomeSaved, result, playerCards, state.cpu, onFinish]);
 
   const hint = useMemo(() => {
     if (effectivePhase === 'ended') return null;

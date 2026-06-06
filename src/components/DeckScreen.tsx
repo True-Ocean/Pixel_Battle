@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { computeDeckPower } from '../card';
 import { DECK_MAX } from '../config/balance';
 import type { Card } from '../types';
 import { CardPreview } from './CardPreview';
@@ -95,6 +96,7 @@ export function DeckScreen({
           <h1>マイデッキ</h1>
           <p className="muted deck-screen-subtitle">
             最大5枚 · {deck.length} / 5
+            {deck.length > 0 && <> · 戦力 {computeDeckPower(deck)}</>}
             {fauxLostCardId && (
               <> · 仮ロスト演出中（データは保存済み）</>
             )}

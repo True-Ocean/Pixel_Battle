@@ -8,6 +8,9 @@ interface BattleScreenProps {
   onFinish: (result: {
     winner: 'player' | 'cpu';
     playerCardIds: string[];
+    cpuDefeatedCount: number;
+    playerDeckPower: number;
+    opponentDeckPower: number;
     fauxLostCardId: string | null;
   }) => void;
 }

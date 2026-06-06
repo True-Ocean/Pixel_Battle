@@ -18,12 +18,20 @@ export interface Card {
   createdAt: string;
 }
 
+/** ユーザープロフィール（localStorage 永続化） */
+export interface UserProfile {
+  username: string;
+  level: number;
+  exp: number;
+}
+
 export interface SaveData {
+  user: UserProfile | null;
   deck: Card[];
 }
 
 /** アプリ画面（ルーターなし・state で切替） */
-export type ScreenId = 'deck' | 'editor' | 'battleSetup' | 'battle';
+export type ScreenId = 'setup' | 'deck' | 'editor' | 'battleSetup' | 'battle';
 
 export interface NavigationState {
   screen: ScreenId;
