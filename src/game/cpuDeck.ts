@@ -8,7 +8,7 @@ function fillGrid(color: string) {
   return createEmptyGrid().map((row) => row.map(() => color));
 }
 
-/** 強敵になる確率（このバトルは CPU 平均 HP を高めに生成） */
+/** 強敵になる確率（このバトルは CPU 平均 BP を高めに生成） */
 export const STRONG_ENEMY_CHANCE = 0.28;
 
 const MAX_DECK_ATTEMPTS = 56;
@@ -41,14 +41,14 @@ const CPU_NAME_SUFFIXES = [
 export type CpuDifficulty = 'even' | 'strong';
 
 interface DeckSummary {
-  avgHp: number;
+  avgBp: number;
   attacks: number;
   defenses: number;
 }
 
 interface DeckTargets {
-  avgHpMin: number;
-  avgHpMax: number;
+  avgBpMin: number;
+  avgBpMax: number;
   attackCount: number;
   defenseCount: number;
 }
@@ -67,11 +67,11 @@ export function randomCpuName(random: () => number = Math.random): string {
 
 function summarizeDeck(deck: Card[]): DeckSummary {
   if (deck.length === 0) {
-    return { avgHp: 80, attacks: 2, defenses: 3 };
+    return { avgBp: 80, attacks: 2, defenses: 3 };
   }
   const attacks = deck.filter((c) => c.attribute === 'attack').length;
   return {
-    avgHp: deck.reduce((s, c) => s + c.hp, 0) / deck.length,
+    avgBp: deck.reduce((s, c) => s + c.bp, 0) / deck.length,
     attacks,
     defenses: deck.length - attacks,
   };
@@ -88,7 +88,7 @@ export function buildDeckTargets(
   difficulty: CpuDifficulty,
 ): DeckTargets {
   const player = summarizeDeck(playerDeck);
-  const hpScale =
+  const bpScale =
     difficulty === 'strong'
       ? { min: 1.05, max: 1.28 }
       : { min: 0.9, max: 1.1 };
@@ -101,8 +101,8 @@ export function buildDeckTargets(
   }
 
   return {
-    avgHpMin: player.avgHp * hpScale.min,
-    avgHpMax: player.avgHp * hpScale.max,
+    avgBpMin: player.avgBp * bpScale.min,
+    avgBpMax: player.avgBp * bpScale.max,
     attackCount,
     defenseCount,
   };
@@ -110,7 +110,7 @@ export function buildDeckTargets(
 
 function deckMatchesTargets(deck: Card[], targets: DeckTargets): boolean {
   const cpu = summarizeDeck(deck);
-  if (cpu.avgHp < targets.avgHpMin || cpu.avgHp > targets.avgHpMax) {
+  if (cpu.avgBp < targets.avgBpMin || cpu.avgBp > targets.avgBpMax) {
     return false;
   }
   if (Math.abs(cpu.attacks - targets.attackCount) > ATTR_TOLERANCE) {
@@ -204,7 +204,7 @@ function combinations3of5(deck: Card[]): Card[][] {
 }
 
 /**
- * CPU 5枚から3枚。プレイヤー5枚の平均 HP に近い組み合わせを選ぶ。
+ * CPU 5枚から3枚。プレイヤー5枚の平均 BP に近い組み合わせを選ぶ。
  */
 export function pickCpuBattleLineup(
   cpuDeck: Card[],
@@ -222,9 +222,9 @@ export function pickCpuBattleLineup(
     return arr.slice(0, FIELD_SIZE);
   }
 
-  const playerAvg = summarizeDeck(playerDeck).avgHp;
-  const cpuAvg = summarizeDeck(cpuDeck).avgHp;
-  const targetHp =
+  const playerAvg = summarizeDeck(playerDeck).avgBp;
+  const cpuAvg = summarizeDeck(cpuDeck).avgBp;
+  const targetBp =
     cpuAvg > playerAvg * 1.03 ? playerAvg * 1.1 : playerAvg * 0.98;
 
   const combos = combinations3of5(cpuDeck);
@@ -232,8 +232,8 @@ export function pickCpuBattleLineup(
   let bestScore = Infinity;
 
   for (const combo of combos) {
-    const avg = combo.reduce((s, c) => s + c.hp, 0) / combo.length;
-    const score = Math.abs(avg - targetHp) + random() * 1.5;
+    const avg = combo.reduce((s, c) => s + c.bp, 0) / combo.length;
+    const score = Math.abs(avg - targetBp) + random() * 1.5;
     if (score < bestScore) {
       bestScore = score;
       best = combo;

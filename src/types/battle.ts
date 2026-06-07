@@ -15,8 +15,8 @@ export interface BattleUnit {
   cardId: string;
   name: string;
   attribute: Attribute;
-  maxHp: number;
-  currentHp: number;
+  maxBp: number;
+  currentBp: number;
   position: UnitPosition;
   /**
    * 防御カードが「自分＋味方1枚」に盾を付与する能力を、この戦闘で既に使ったか。

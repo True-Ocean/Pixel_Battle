@@ -1,6 +1,6 @@
 import { getAttributeMeta } from '../config/attributes';
 import type { Attribute, PixelGrid } from '../types';
-import { AnimatedHp } from './AnimatedHp';
+import { AnimatedBp } from './AnimatedBp';
 import { AttributeBadge } from './AttributeBadge';
 import { CardBack } from './CardBack';
 import { CardPreview } from './CardPreview';
@@ -12,8 +12,8 @@ export interface BattleCardProps {
   name: string;
   pixels: PixelGrid;
   attribute: Attribute;
-  currentHp: number;
-  maxHp?: number;
+  currentBp: number;
+  maxBp?: number;
   variant?: BattleCardVariant;
   focused?: boolean;
   cpuTurnFocus?: boolean;
@@ -25,11 +25,11 @@ export interface BattleCardProps {
   onClick?: () => void;
   slotLabel?: string;
   clashAnim?: ClashAnimRole;
-  hideHp?: boolean;
+  hideBp?: boolean;
   dimmed?: boolean;
   inClash?: boolean;
   arenaSize?: boolean;
-  animatedHp?: { from: number; to: number; active: boolean };
+  animatedBp?: { from: number; to: number; active: boolean };
   /** 裏向き表示 */
   faceDown?: boolean;
   /** 表裏フリップ用（対戦準備の相手手札など） */
@@ -50,7 +50,7 @@ export function BattleCard({
   name,
   pixels,
   attribute,
-  currentHp,
+  currentBp,
   variant = 'board',
   focused = false,
   cpuTurnFocus = false,
@@ -62,11 +62,11 @@ export function BattleCard({
   onClick,
   slotLabel,
   clashAnim,
-  hideHp = false,
+  hideBp = false,
   dimmed = false,
   inClash = false,
   arenaSize = false,
-  animatedHp,
+  animatedBp,
   faceDown = false,
   flipEnabled: _flipEnabled = false,
   justPlaced = false,
@@ -104,17 +104,17 @@ export function BattleCard({
   const front = (
     <>
       {slotLabel && <span className="battle-card-slot">{slotLabel}</span>}
-      {animatedHp?.active ? (
-        <AnimatedHp
-          from={animatedHp.from}
-          to={animatedHp.to}
+      {animatedBp?.active ? (
+        <AnimatedBp
+          from={animatedBp.from}
+          to={animatedBp.to}
           active
-          className="battle-card-hp"
+          className="battle-card-bp"
         />
       ) : (
-        !hideHp && (
-          <span className="battle-card-hp" aria-label={`HP ${currentHp}`}>
-            {currentHp}
+        !hideBp && (
+          <span className="battle-card-bp" aria-label={`BP ${currentBp}`}>
+            {currentBp}
           </span>
         )
       )}
@@ -150,7 +150,7 @@ export function BattleCard({
 
   const ariaLabel = faceDown
     ? '裏向きのカード'
-    : `${name} ${attrMeta.ariaName} HP${currentHp}${shieldLabel}`;
+    : `${name} ${attrMeta.ariaName} BP${currentBp}${shieldLabel}`;
 
   // 裏向きは CardBack を直接描画（iOS Safari で rotateY フリップが反転表示になるため）
   const content = faceDown ? (

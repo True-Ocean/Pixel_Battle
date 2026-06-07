@@ -41,12 +41,12 @@ export interface AttackPlayback {
   /** 防御側が受けるダメージ */
   damage: number;
   blocked: boolean;
-  hpFrom: number;
-  hpTo: number;
+  bpFrom: number;
+  bpTo: number;
   /** 攻撃側が受けるダメージ */
   attackerDamage: number;
-  attackerHpFrom: number;
-  attackerHpTo: number;
+  attackerBpFrom: number;
+  attackerBpTo: number;
   stateAfter: BattleState;
 }
 
@@ -135,7 +135,7 @@ export function resolveTurn(
         action,
         attacker,
         target,
-        damage: attacker.currentHp,
+        damage: attacker.currentBp,
       };
     })
     .filter((a): a is NonNullable<typeof a> => a != null);
@@ -157,59 +157,28 @@ export function resolveTurn(
     }
   }
 
-  const participantCounts = new Map<string, number>();
-  const participantKey = (side: BattleSide, position: BoardPosition) =>
-    `${side}:${position}`;
-  const battleParticipants = (battle: BattleResolution) => [
-    participantKey(battle.side, battle.action.actorPosition),
-    participantKey(battle.targetSide, battle.action.targetPosition),
-  ];
-
-  for (const battle of battles.values()) {
-    for (const key of battleParticipants(battle)) {
-      participantCounts.set(key, (participantCounts.get(key) ?? 0) + 1);
-    }
-  }
-
-  const weakerOpponentRank = (battle: BattleResolution) => {
-    const actorKey = participantKey(battle.side, battle.action.actorPosition);
-    const targetKey = participantKey(battle.targetSide, battle.action.targetPosition);
-    const opponentHps: number[] = [];
-    if ((participantCounts.get(actorKey) ?? 0) > 1) {
-      opponentHps.push(battle.target.currentHp);
-    }
-    if ((participantCounts.get(targetKey) ?? 0) > 1) {
-      opponentHps.push(battle.attacker.currentHp);
-    }
-    return opponentHps.length > 0 ? Math.min(...opponentHps) : null;
-  };
-
   const orderedBattles = [...battles.values()].sort((a, b) => {
-    const weakerA = weakerOpponentRank(a);
-    const weakerB = weakerOpponentRank(b);
-    if (weakerA != null || weakerB != null) {
-      if (weakerA == null) return 1;
-      if (weakerB == null) return -1;
-      if (weakerA !== weakerB) return weakerA - weakerB;
-    }
+    const attackerBpA = a.attacker.currentBp;
+    const attackerBpB = b.attacker.currentBp;
+    if (attackerBpA !== attackerBpB) return attackerBpB - attackerBpA;
 
-    const maxA = Math.max(a.attacker.currentHp, a.target.currentHp);
-    const maxB = Math.max(b.attacker.currentHp, b.target.currentHp);
+    const maxA = Math.max(a.attacker.currentBp, a.target.currentBp);
+    const maxB = Math.max(b.attacker.currentBp, b.target.currentBp);
     if (maxA !== maxB) return maxB - maxA;
-    return b.target.currentHp - a.target.currentHp;
+    return b.target.currentBp - a.target.currentBp;
   });
 
   for (const attack of orderedBattles) {
     if (!isAlive(attack.attacker) || !isAlive(attack.target)) continue;
 
-    const attackerHpFrom = attack.attacker.currentHp;
-    const hpFrom = attack.target.currentHp;
+    const attackerBpFrom = attack.attacker.currentBp;
+    const bpFrom = attack.target.currentBp;
     const attackerShieldConsumed = attack.attacker.hasShield;
     const targetShieldConsumed = attack.target.hasShield;
     const blocked = targetShieldConsumed;
 
-    let damageToTarget = attackerHpFrom;
-    let damageToAttacker = hpFrom;
+    let damageToTarget = attackerBpFrom;
+    let damageToAttacker = bpFrom;
 
     if (attackerShieldConsumed) {
       damageToAttacker = 0;
@@ -231,11 +200,11 @@ export function resolveTurn(
         targetId: attack.target.cardId,
       });
     }
-    attack.attacker.currentHp = Math.max(
+    attack.attacker.currentBp = Math.max(
       0,
-      attack.attacker.currentHp - damageToAttacker,
+      attack.attacker.currentBp - damageToAttacker,
     );
-    attack.target.currentHp = Math.max(0, attack.target.currentHp - damageToTarget);
+    attack.target.currentBp = Math.max(0, attack.target.currentBp - damageToTarget);
     attacks.push({
       fromSide: attack.side,
       fromPosition: attack.action.actorPosition,
@@ -244,16 +213,16 @@ export function resolveTurn(
       bidirectional: attack.bidirectional,
       damage: damageToTarget,
       blocked,
-      hpFrom,
-      hpTo: attack.target.currentHp,
+      bpFrom,
+      bpTo: attack.target.currentBp,
       attackerDamage: damageToAttacker,
-      attackerHpFrom,
-      attackerHpTo: attack.attacker.currentHp,
+      attackerBpFrom,
+      attackerBpTo: attack.attacker.currentBp,
       stateAfter: cloneBattleState(next),
     });
     next = appendLog(
       next,
-      `${attack.attacker.name} ↔ ${attack.target.name}: ${attackerHpFrom}→${attack.attacker.currentHp}, ${hpFrom}→${attack.target.currentHp}`,
+      `${attack.attacker.name} ↔ ${attack.target.name}: ${attackerBpFrom}→${attack.attacker.currentBp}, ${bpFrom}→${attack.target.currentBp}`,
     );
     next.events.push({
       type: 'attack',
@@ -266,7 +235,7 @@ export function resolveTurn(
 
   for (const field of [player, cpu]) {
     for (const unit of field) {
-      if (unit.position !== 'defeated' && unit.currentHp <= 0) {
+      if (unit.position !== 'defeated' && unit.currentBp <= 0) {
         unit.position = 'defeated';
         unit.hasShield = false;
         next = appendLog(next, `${unit.name} は撃破された`);

@@ -160,13 +160,13 @@ function getAttackSlotFx(
   const isTarget = attack.toSide === side && attack.toPosition === position;
   if (!isAttacker && !isTarget) return null;
 
-  const hpFrom = isAttacker ? attack.attackerHpFrom : attack.hpFrom;
-  const hpTo = isAttacker ? attack.attackerHpTo : attack.hpTo;
+  const bpFrom = isAttacker ? attack.attackerBpFrom : attack.bpFrom;
+  const bpTo = isAttacker ? attack.attackerBpTo : attack.bpTo;
 
   return {
-    animatedHp:
-      playback.attackSubPhase === 'hp'
-        ? { from: hpFrom, to: hpTo, active: true as const }
+    animatedBp:
+      playback.attackSubPhase === 'bp'
+        ? { from: bpFrom, to: bpTo, active: true as const }
         : undefined,
   };
 }
@@ -205,13 +205,13 @@ function TinyCard({
         name={card.name}
         pixels={card.pixels}
         attribute={card.attribute}
-        currentHp={card.hp}
+        currentBp={card.bp}
         variant="compact"
         fixedSize
         flipEnabled
         side={side}
         faceDown={faceDown}
-        hideHp={faceDown}
+        hideBp={faceDown}
         dead={defeated}
       />
     </button>
@@ -256,13 +256,13 @@ function SetupSlot({
           name={card.name}
           pixels={card.pixels}
           attribute={card.attribute}
-          currentHp={card.hp}
+          currentBp={card.bp}
           variant="compact"
           fixedSize
           side={side}
           faceDown={faceDown}
           flipEnabled
-          hideHp={faceDown}
+          hideBp={faceDown}
         />
       ) : (
         <span className="formation-empty-label">
@@ -345,7 +345,7 @@ function BattleUnitSlot({
           name={unit.name}
           pixels={card.pixels}
           attribute={unit.attribute}
-          currentHp={unit.currentHp}
+          currentBp={unit.currentBp}
           variant="compact"
           fixedSize
           side={side}
@@ -353,9 +353,9 @@ function BattleUnitSlot({
           defenseShieldUsed={unit.defenseShieldUsed}
           faceDown={faceDown}
           flipEnabled
-          hideHp={faceDown}
+          hideBp={faceDown}
           selected={selected}
-          animatedHp={attackFx?.animatedHp}
+          animatedBp={attackFx?.animatedBp}
         />
       ) : (
         <span className="formation-empty-label">

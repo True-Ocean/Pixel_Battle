@@ -117,10 +117,10 @@ export function BattleBoard({
         cpuCard={cpuCards[clash.cpuMain]}
         playerUnit={arenaPlayerUnit}
         cpuUnit={arenaCpuUnit}
-        hpFromPlayer={clash.hpFromPlayer}
-        hpFromCpu={clash.hpFromCpu}
-        hpToPlayer={clash.hpToPlayer}
-        hpToCpu={clash.hpToCpu}
+        bpFromPlayer={clash.bpFromPlayer}
+        bpFromCpu={clash.bpFromCpu}
+        bpToPlayer={clash.bpToPlayer}
+        bpToCpu={clash.bpToCpu}
       />
     ) : null;
 
@@ -157,10 +157,10 @@ export function BattleBoard({
         name={unit.name}
         pixels={card?.pixels ?? playerCards[0].pixels}
         attribute={unit.attribute}
-        currentHp={unit.currentHp}
+        currentBp={unit.currentBp}
         variant={embedded ? 'compact' : 'board'}
         fixedSize={embedded}
-        dead={unit.currentHp <= 0}
+        dead={unit.currentBp <= 0}
         hasShield={unit.hasShield}
         defenseShieldUsed={unit.defenseShieldUsed}
         slotLabel={`${unitIndex + 1}`}
@@ -168,7 +168,7 @@ export function BattleBoard({
         inClash={inClash && clash!.cpuMain === unitIndex}
         flipEnabled={false}
         faceDown={false}
-        hideHp={false}
+        hideBp={false}
         side="cpu"
       />
     );
@@ -186,10 +186,10 @@ export function BattleBoard({
         name={unit.name}
         pixels={playerCards[unitIndex].pixels}
         attribute={unit.attribute}
-        currentHp={unit.currentHp}
+        currentBp={unit.currentBp}
         variant={embedded ? 'compact' : 'board'}
         fixedSize={embedded}
-        dead={unit.currentHp <= 0}
+        dead={unit.currentBp <= 0}
         focused={focused}
         hasShield={unit.hasShield}
         defenseShieldUsed={unit.defenseShieldUsed}

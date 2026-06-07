@@ -171,7 +171,7 @@ export function DeckScreen({
                 <div className="deck-card-body">
                   <span className="deck-card-name">{card.name}</span>
                   <div className="deck-card-meta">
-                    <span className="deck-card-hp">{card.hp}</span>
+                    <span className="deck-card-bp">{card.bp}</span>
                     <AttributeBadge
                       attribute={card.attribute}
                       className="deck-card-attribute"

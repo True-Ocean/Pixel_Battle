@@ -1,4 +1,4 @@
-import type { SaveData } from '../types';
+import type { Card, SaveData } from '../types';
 import { DECK_MAX } from '../config/balance';
 import { normalizeUserProfile } from '../user';
 
@@ -6,6 +6,35 @@ const STORAGE_KEY = 'dot5-battle-save-v1';
 
 function emptySave(): SaveData {
   return { user: null, deck: [] };
+}
+
+function migrateCard(raw: Record<string, unknown>): Card | null {
+  if (typeof raw.id !== 'string' || typeof raw.name !== 'string') return null;
+  if (!Array.isArray(raw.pixels)) return null;
+  const bp =
+    typeof raw.bp === 'number'
+      ? raw.bp
+      : typeof raw.hp === 'number'
+        ? raw.hp
+        : null;
+  if (bp == null) return null;
+
+  const { hp: _legacyHp, ...rest } = raw;
+  return {
+    ...(rest as Omit<Card, 'bp'>),
+    bp,
+  };
+}
+
+function migrateDeck(deck: unknown[]): Card[] {
+  return deck
+    .map((item) =>
+      item && typeof item === 'object'
+        ? migrateCard(item as Record<string, unknown>)
+        : null,
+    )
+    .filter((card): card is Card => card != null)
+    .slice(0, DECK_MAX);
 }
 
 export function loadSave(): SaveData {
@@ -16,7 +45,7 @@ export function loadSave(): SaveData {
     if (!Array.isArray(parsed.deck)) return emptySave();
     return {
       user: normalizeUserProfile(parsed.user),
-      deck: parsed.deck.slice(0, DECK_MAX),
+      deck: migrateDeck(parsed.deck),
     };
   } catch {
     return emptySave();

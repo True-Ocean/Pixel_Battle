@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-interface AnimatedHpProps {
+interface AnimatedBpProps {
   from: number;
   to: number;
   /** true のとき from→to をアニメーション */
@@ -9,13 +9,13 @@ interface AnimatedHpProps {
   onComplete?: () => void;
 }
 
-export function AnimatedHp({
+export function AnimatedBp({
   from,
   to,
   active,
   className = '',
   onComplete,
-}: AnimatedHpProps) {
+}: AnimatedBpProps) {
   const [display, setDisplay] = useState(active ? from : to);
 
   useEffect(() => {
@@ -48,8 +48,8 @@ export function AnimatedHp({
 
   return (
     <span
-      className={`battle-card-hp ${damage ? 'hp-damage' : ''} ${className}`.trim()}
-      aria-label={`HP ${display}`}
+      className={`battle-card-bp ${damage ? 'bp-damage' : ''} ${className}`.trim()}
+      aria-label={`BP ${display}`}
     >
       {display}
     </span>

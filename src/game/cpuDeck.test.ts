@@ -16,7 +16,7 @@ function stubPlayerDeck(): Card[] {
       name: 'テストA',
       pixels: [],
       attribute: 'attack',
-      hp: 85,
+      bp: 85,
       wins: 0,
       losses: 0,
       reviveCount: 0,
@@ -27,7 +27,7 @@ function stubPlayerDeck(): Card[] {
       name: 'テストB',
       pixels: [],
       attribute: 'attack',
-      hp: 90,
+      bp: 90,
       wins: 0,
       losses: 0,
       reviveCount: 0,
@@ -38,7 +38,7 @@ function stubPlayerDeck(): Card[] {
       name: 'テストC',
       pixels: [],
       attribute: 'defense',
-      hp: 70,
+      bp: 70,
       wins: 0,
       losses: 0,
       reviveCount: 0,
@@ -49,7 +49,7 @@ function stubPlayerDeck(): Card[] {
       name: 'テストD',
       pixels: [],
       attribute: 'defense',
-      hp: 75,
+      bp: 75,
       wins: 0,
       losses: 0,
       reviveCount: 0,
@@ -60,7 +60,7 @@ function stubPlayerDeck(): Card[] {
       name: 'テストE',
       pixels: [],
       attribute: 'defense',
-      hp: 80,
+      bp: 80,
       wins: 0,
       losses: 0,
       reviveCount: 0,
@@ -76,28 +76,28 @@ describe('buildBalancedCpuDeck', () => {
     expect(cpu).toHaveLength(DECK_MAX);
     for (const card of cpu) {
       expect(card.name.length).toBeGreaterThan(0);
-      expect(card.hp).toBeGreaterThan(0);
+      expect(card.bp).toBeGreaterThan(0);
       const painted = card.pixels.flat().filter((c) => c != null).length;
       expect(painted).toBeGreaterThan(8);
     }
   });
 
-  it('プレイヤー平均 HP の近傍に収まる（互角）', () => {
+  it('プレイヤー平均 BP の近傍に収まる（互角）', () => {
     const player = stubPlayerDeck();
-    const playerAvg = player.reduce((s, c) => s + c.hp, 0) / player.length;
+    const playerAvg = player.reduce((s, c) => s + c.bp, 0) / player.length;
     const targets = buildDeckTargets(player, 'even');
     const cpu = buildBalancedCpuDeck(player, () => 0.33);
-    const cpuAvg = cpu.reduce((s, c) => s + c.hp, 0) / cpu.length;
-    expect(cpuAvg).toBeGreaterThanOrEqual(targets.avgHpMin - 8);
-    expect(cpuAvg).toBeLessThanOrEqual(targets.avgHpMax + 8);
+    const cpuAvg = cpu.reduce((s, c) => s + c.bp, 0) / cpu.length;
+    expect(cpuAvg).toBeGreaterThanOrEqual(targets.avgBpMin - 8);
+    expect(cpuAvg).toBeLessThanOrEqual(targets.avgBpMax + 8);
     expect(Math.abs(cpuAvg - playerAvg)).toBeLessThan(25);
   });
 
-  it('強敵は平均 HP ターゲットが高い', () => {
+  it('強敵は平均 BP ターゲットが高い', () => {
     const player = stubPlayerDeck();
     const even = buildDeckTargets(player, 'even');
     const strong = buildDeckTargets(player, 'strong');
-    expect(strong.avgHpMin).toBeGreaterThan(even.avgHpMin);
+    expect(strong.avgBpMin).toBeGreaterThan(even.avgBpMin);
   });
 });
 

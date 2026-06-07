@@ -84,13 +84,13 @@ export function SetupHand({
                   name={card.name}
                   pixels={card.pixels}
                   attribute={card.attribute}
-                  currentHp={card.hp}
+                  currentBp={card.bp}
                   variant="compact"
                   handSize
                   side={side}
                   flipEnabled={useFlip}
                   faceDown={faceDown}
-                  hideHp={faceDown}
+                  hideBp={faceDown}
                   interactive={interactive && !faceDown}
                   onClick={
                     interactive && !faceDown && onCardClick

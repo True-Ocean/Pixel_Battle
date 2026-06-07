@@ -1,8 +1,8 @@
 import type { BattleState } from '../types/battle';
 import type { ShieldGrants } from '../game/resolveTurn';
 
-/** enter: スロット→中央 / impact+hp: 中央で戦闘 / exit: 中央→スロット */
-export type ClashAnimPhase = 'enter' | 'impact' | 'hp' | 'exit';
+/** enter: スロット→中央 / impact+bp: 中央で戦闘 / exit: 中央→スロット */
+export type ClashAnimPhase = 'enter' | 'impact' | 'bp' | 'exit';
 
 export interface ClashPlayback {
   playerMain: number;
@@ -11,17 +11,17 @@ export interface ClashPlayback {
   pendingNext: BattleState;
   /** このターンの防御で付与された盾（戦闘消費前） */
   shieldGrants: ShieldGrants;
-  hpFromPlayer: number;
-  hpFromCpu: number;
-  hpToPlayer: number;
-  hpToCpu: number;
+  bpFromPlayer: number;
+  bpFromCpu: number;
+  bpToPlayer: number;
+  bpToCpu: number;
 }
 
 export const CLASH_MS = {
   enter: 450,
   impact: 320,
   damage: 420,
-  hp: 520,
+  bp: 520,
   exit: 450,
 } as const;
 

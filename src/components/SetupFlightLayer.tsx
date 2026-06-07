@@ -78,13 +78,13 @@ export function SetupFlightLayer({
           name={card.name}
           pixels={card.pixels}
           attribute={card.attribute}
-          currentHp={card.hp}
+          currentBp={card.bp}
           variant="compact"
           fixedSize
           side={side}
           flipEnabled={showFaceDown || flipReveal}
           faceDown={showFaceDown}
-          hideHp={showFaceDown}
+          hideBp={showFaceDown}
         />
       </div>
     </div>

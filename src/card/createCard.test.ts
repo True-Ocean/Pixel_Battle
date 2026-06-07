@@ -32,23 +32,23 @@ describe('deriveCardStats', () => {
     expect(attribute).toBe('defense');
   });
 
-  it('同じ名前と絵なら同じ属性・HP', () => {
+  it('同じ名前と絵なら同じ属性・BP', () => {
     const grid = fillGrid('#ff0000');
     const a = deriveCardStats('固定', grid);
     const b = deriveCardStats('固定', grid);
     expect(a.attribute).toBe(b.attribute);
-    expect(a.hp).toBe(b.hp);
+    expect(a.bp).toBe(b.bp);
   });
 
-  it('HPはレンジ内', () => {
+  it('BPはレンジ内', () => {
     const grid = fillGrid('#000000');
-    const { hp, attribute } = deriveCardStats('kuro', grid);
+    const { bp, attribute } = deriveCardStats('kuro', grid);
     if (attribute === 'attack') {
-      expect(hp).toBeGreaterThanOrEqual(70);
-      expect(hp).toBeLessThanOrEqual(100);
+      expect(bp).toBeGreaterThanOrEqual(70);
+      expect(bp).toBeLessThanOrEqual(100);
     } else {
-      expect(hp).toBeGreaterThanOrEqual(55);
-      expect(hp).toBeLessThanOrEqual(85);
+      expect(bp).toBeGreaterThanOrEqual(55);
+      expect(bp).toBeLessThanOrEqual(85);
     }
   });
 });

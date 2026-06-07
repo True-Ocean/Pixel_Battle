@@ -11,7 +11,7 @@ export interface Card {
   name: string;
   pixels: PixelGrid;
   attribute: Attribute;
-  hp: number;
+  bp: number;
   wins: number;
   losses: number;
   reviveCount: number;

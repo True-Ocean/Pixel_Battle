@@ -1,14 +1,14 @@
 import { ATTRIBUTE_POWER } from '../config/balance';
 import type { Attribute, Card } from '../types';
 
-/** 1枚の戦力 = round(HP × hpWeight + flatBonus) */
-export function computeCardPower(card: Pick<Card, 'attribute' | 'hp'>): number {
+/** 1枚の戦力 = round(BP × bpWeight + flatBonus) */
+export function computeCardPower(card: Pick<Card, 'attribute' | 'bp'>): number {
   const config = ATTRIBUTE_POWER[card.attribute];
-  return Math.round(card.hp * config.hpWeight + config.flatBonus);
+  return Math.round(card.bp * config.bpWeight + config.flatBonus);
 }
 
 /** デッキ戦力 = 5枚（または所持枚数）のカード戦力合計 */
-export function computeDeckPower(deck: readonly Pick<Card, 'attribute' | 'hp'>[]): number {
+export function computeDeckPower(deck: readonly Pick<Card, 'attribute' | 'bp'>[]): number {
   return deck.reduce((sum, card) => sum + computeCardPower(card), 0);
 }
 

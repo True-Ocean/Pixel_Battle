@@ -56,18 +56,18 @@ export const PALETTE_LV0 = [
   PALETTE_16[2],
 ] as const;
 
-export const HP_RANGE: Record<'attack' | 'defense', { min: number; max: number }> = {
+export const BP_RANGE: Record<'attack' | 'defense', { min: number; max: number }> = {
   attack: { min: 70, max: 100 },
   defense: { min: 55, max: 85 },
 };
 
-/** カード戦力: HP × hpWeight + flatBonus（属性ごと） */
+/** カード戦力: BP × bpWeight + flatBonus（属性ごと） */
 export const ATTRIBUTE_POWER = {
-  attack: { hpWeight: 1, flatBonus: 0 },
-  defense: { hpWeight: 1, flatBonus: 20 },
+  attack: { bpWeight: 1, flatBonus: 0 },
+  defense: { bpWeight: 1, flatBonus: 20 },
 } as const satisfies Record<
   'attack' | 'defense',
-  { hpWeight: number; flatBonus: number }
+  { bpWeight: number; flatBonus: number }
 >;
 
 /** 初回セットアップ・ユーザープロフィール */

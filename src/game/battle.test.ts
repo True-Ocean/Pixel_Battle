@@ -10,12 +10,12 @@ import {
 import { promoteUnit, resolveTurn } from './resolveTurn';
 import { pickCpuAction } from './cpu';
 
-function stubCard(name: string, attr: 'attack' | 'defense', hp: number): Card {
+function stubCard(name: string, attr: 'attack' | 'defense', bp: number): Card {
   const grid = createEmptyGrid().map((row, i) =>
     row.map(() => (i === 0 ? '#ff0000' : null)),
   );
   const c = createCardFromDrawing(name, grid);
-  return { ...c, attribute: attr, hp };
+  return { ...c, attribute: attr, bp };
 }
 
 function cards(prefix: string): Card[] {
@@ -44,14 +44,14 @@ describe('battle', () => {
       },
     }).state;
 
-    expect(state.player[0].currentHp).toBe(0);
-    expect(state.cpu[0].currentHp).toBe(0);
+    expect(state.player[0].currentBp).toBe(0);
+    expect(state.cpu[0].currentBp).toBe(0);
     expect(state.player[0].position).toBe('defeated');
     expect(state.cpu[0].position).toBe('defeated');
     expect(getBattleResult(state)).toBe(null);
   });
 
-  it('近接バトルでは仕掛けた側も相手HP分だけ減る', () => {
+  it('近接バトルでは仕掛けた側も相手BP分だけ減る', () => {
     let state = createBattleState(
       [
         stubCard('P90', 'attack', 90),
@@ -75,11 +75,11 @@ describe('battle', () => {
       },
     }).state;
 
-    expect(state.player[0].currentHp).toBe(4);
-    expect(state.cpu[0].currentHp).toBe(0);
+    expect(state.player[0].currentBp).toBe(4);
+    expect(state.cpu[0].currentBp).toBe(0);
   });
 
-  it('盾あり防御カードとの近接バトルでは盾側のHPは減らない', () => {
+  it('盾あり防御カードとの近接バトルでは盾側のBPは減らない', () => {
     let state = createBattleState(
       [
         stubCard('P90', 'attack', 90),
@@ -105,12 +105,12 @@ describe('battle', () => {
       },
     }).state;
 
-    expect(state.player[0].currentHp).toBe(4);
-    expect(state.cpu[0].currentHp).toBe(86);
+    expect(state.player[0].currentBp).toBe(4);
+    expect(state.cpu[0].currentBp).toBe(86);
     expect(state.cpu[0].hasShield).toBe(false);
   });
 
-  it('1枚が複数体と戦う場合は相手HPが低い順に処理する', () => {
+  it('複数攻撃は攻撃側BPが高い順に処理する', () => {
     let state = createBattleState(
       [
         stubCard('A90', 'attack', 90),
@@ -136,9 +136,40 @@ describe('battle', () => {
       },
     }).state;
 
-    expect(state.player[0].currentHp).toBe(0);
-    expect(state.cpu[0].currentHp).toBe(0);
-    expect(state.cpu[1].currentHp).toBe(30);
+    expect(state.player[0].currentBp).toBe(0);
+    expect(state.cpu[0].currentBp).toBe(0);
+    expect(state.cpu[1].currentBp).toBe(30);
+  });
+
+  it('攻撃側BPが高い順により生存カードが変わる', () => {
+    let state = createBattleState(
+      [
+        stubCard('A90', 'attack', 90),
+        ...cards('P').slice(1),
+      ],
+      [
+        stubCard('X88', 'attack', 88),
+        stubCard('Y87', 'attack', 87),
+        ...cards('C').slice(2),
+      ],
+    );
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontRight',
+        targetPosition: 'frontLeft',
+      },
+    }).state;
+
+    expect(state.player[0].currentBp).toBe(0);
+    expect(state.cpu[0].currentBp).toBe(0);
+    expect(state.cpu[1].currentBp).toBe(85);
   });
 
   it('防御カードは開始時から盾を持つ', () => {
@@ -164,7 +195,7 @@ describe('battle', () => {
       },
     }).state;
 
-    expect(state.player[0].currentHp).toBe(80);
+    expect(state.player[0].currentBp).toBe(80);
     expect(state.player[0].hasShield).toBe(false);
     expect(state.player[3].defenseShieldUsed).toBe(true);
   });
@@ -235,10 +266,10 @@ describe('battle', () => {
     }).state;
 
     expect(state.player[0].hasShield).toBe(false);
-    expect(state.cpu[0].currentHp).toBe(0);
+    expect(state.cpu[0].currentBp).toBe(0);
   });
 
-  it('盾同士の戦いでは両方の盾が消え、盾持ち側のHPは減らない', () => {
+  it('盾同士の戦いでは両方の盾が消え、盾持ち側のBPは減らない', () => {
     let state = createBattleState(cards('P'), cards('C'));
     state.player[0].attribute = 'defense';
     state.cpu[0].attribute = 'defense';
@@ -260,8 +291,8 @@ describe('battle', () => {
 
     expect(state.player[0].hasShield).toBe(false);
     expect(state.cpu[0].hasShield).toBe(false);
-    expect(state.player[0].currentHp).toBe(80);
-    expect(state.cpu[0].currentHp).toBe(80);
+    expect(state.player[0].currentBp).toBe(80);
+    expect(state.cpu[0].currentBp).toBe(80);
   });
 
   it('補充候補は左右の対応ルールに従う', () => {
@@ -279,7 +310,7 @@ describe('battle', () => {
   it('後衛を対応する空き前衛へ補充できる', () => {
     let state = createBattleState(cards('P'), cards('C'));
     state.player[0].position = 'defeated';
-    state.player[0].currentHp = 0;
+    state.player[0].currentBp = 0;
 
     state = promoteUnit(state, 'player', 'backLeft', 'frontLeft');
     expect(state.player[2].position).toBe('frontLeft');

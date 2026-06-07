@@ -70,13 +70,13 @@ export function SetupDeployLayer({
               name={f.card.name}
               pixels={f.card.pixels}
               attribute={f.card.attribute}
-              currentHp={f.card.hp}
+              currentBp={f.card.bp}
               variant="compact"
               fixedSize
               side={f.side}
               flipEnabled={f.faceDown}
               faceDown={f.faceDown}
-              hideHp={f.faceDown}
+              hideBp={f.faceDown}
             />
           </div>
         );

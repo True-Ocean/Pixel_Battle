@@ -64,13 +64,13 @@ export function SetupSlots({
                 name={card.name}
                 pixels={card.pixels}
                 attribute={card.attribute}
-                currentHp={card.hp}
+                currentBp={card.bp}
                 variant="compact"
                 fixedSize
                 side={side}
                 flipEnabled={faceDown}
                 faceDown={faceDown}
-                hideHp={faceDown}
+                hideBp={faceDown}
                 slotLabel={`${i + 1}`}
                 justPlaced={lastPlacedIndex === i}
               />

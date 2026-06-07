@@ -3,7 +3,7 @@ import {
   CANVAS_SIZE,
   COLOR_WEIGHT,
   HASH_WEIGHT,
-  HP_RANGE,
+  BP_RANGE,
 } from '../config/balance';
 import type { Attribute, Card, PixelGrid } from '../types';
 import { computeColorRatios, normalizePixelColor } from './colors';
@@ -11,7 +11,7 @@ import { buildCardSeed, hashToUnit } from './hash';
 
 export interface CardDraft {
   attribute: Attribute;
-  hp: number;
+  bp: number;
   ratios: NonNullable<ReturnType<typeof computeColorRatios>>;
 }
 
@@ -52,12 +52,13 @@ export function deriveCardStats(
   const attribute: Attribute =
     finalAttack >= finalDefense ? 'attack' : 'defense';
 
-  const hashHp = hashToUnit(seed, 'hp');
-  const hpBlend = ratios.density * 0.55 + hashHp * 0.45;
-  const { min, max } = HP_RANGE[attribute];
-  const hp = Math.round(min + (max - min) * hpBlend);
+  // hash domain label（変更すると同一絵のBPが変わる）
+  const hashBp = hashToUnit(seed, 'hp');
+  const bpBlend = ratios.density * 0.55 + hashBp * 0.45;
+  const { min, max } = BP_RANGE[attribute];
+  const bp = Math.round(min + (max - min) * bpBlend);
 
-  return { attribute, hp, ratios };
+  return { attribute, bp, ratios };
 }
 
 function normalizeGrid(pixels: PixelGrid): PixelGrid {
@@ -74,14 +75,14 @@ function createCardId(): string {
 
 export function createCardFromDrawing(name: string, pixels: PixelGrid): Card {
   const normalized = normalizeGrid(pixels);
-  const { attribute, hp } = deriveCardStats(name, normalized);
+  const { attribute, bp } = deriveCardStats(name, normalized);
 
   return {
     id: createCardId(),
     name: name.trim(),
     pixels: normalized,
     attribute,
-    hp,
+    bp,
     wins: 0,
     losses: 0,
     reviveCount: 0,
@@ -96,13 +97,13 @@ export function updateCardFromDrawing(
   pixels: PixelGrid,
 ): Card {
   const normalized = normalizeGrid(pixels);
-  const { attribute, hp } = deriveCardStats(name, normalized);
+  const { attribute, bp } = deriveCardStats(name, normalized);
 
   return {
     ...existing,
     name: name.trim(),
     pixels: normalized,
     attribute,
-    hp,
+    bp,
   };
 }

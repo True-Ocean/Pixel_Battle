@@ -34,8 +34,8 @@ export function cardToBattleUnit(
     cardId: card.id,
     name: card.name,
     attribute: card.attribute,
-    maxHp: card.hp,
-    currentHp: card.hp,
+    maxBp: card.bp,
+    currentBp: card.bp,
     position,
     defenseShieldUsed: false,
     hasShield: card.attribute === 'defense',
@@ -57,7 +57,7 @@ export function createBattleState(playerCards: Card[], cpuCards: Card[]): Battle
 }
 
 export function isAlive(unit: BattleUnit): boolean {
-  return unit.currentHp > 0 && unit.position !== 'defeated';
+  return unit.currentBp > 0 && unit.position !== 'defeated';
 }
 
 /** 防御カードとして、まだ盾付与能力を使えるか */

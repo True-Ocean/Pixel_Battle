@@ -14,10 +14,10 @@ interface CardFlightLayerProps {
   cpuCard: Card;
   playerUnit: BattleUnit;
   cpuUnit: BattleUnit;
-  hpFromPlayer: number;
-  hpFromCpu: number;
-  hpToPlayer: number;
-  hpToCpu: number;
+  bpFromPlayer: number;
+  bpFromCpu: number;
+  bpToPlayer: number;
+  bpToCpu: number;
 }
 
 function rectForPhase(
@@ -43,10 +43,10 @@ export function CardFlightLayer({
   cpuCard,
   playerUnit,
   cpuUnit,
-  hpFromPlayer,
-  hpFromCpu,
-  hpToPlayer,
-  hpToCpu,
+  bpFromPlayer,
+  bpFromCpu,
+  bpToPlayer,
+  bpToCpu,
 }: CardFlightLayerProps) {
   const [motion, setMotion] = useState<FlightMotion>('atSlot');
   const [impact, setImpact] = useState(false);
@@ -67,7 +67,7 @@ export function CardFlightLayer({
       return;
     }
 
-    if (phase === 'hp') {
+    if (phase === 'bp') {
       setMotion('atCenter');
       setImpact(false);
       return;
@@ -83,7 +83,7 @@ export function CardFlightLayer({
     }
   }, [phase]);
 
-  const showHpAnim = phase === 'hp';
+  const showBpAnim = phase === 'bp';
   const cpuRect = rectForPhase(rects, 'cpu', motion);
   const playerRect = rectForPhase(rects, 'player', motion);
 
@@ -110,9 +110,9 @@ export function CardFlightLayer({
         rect={cpuRect}
         card={cpuCard}
         unit={cpuUnit}
-        hpFrom={hpFromCpu}
-        hpTo={hpToCpu}
-        showHpAnim={showHpAnim}
+        bpFrom={bpFromCpu}
+        bpTo={bpToCpu}
+        showBpAnim={showBpAnim}
         side="cpu"
         hasShield={cpuUnit.hasShield}
         phase={phase}
@@ -121,9 +121,9 @@ export function CardFlightLayer({
         rect={playerRect}
         card={playerCard}
         unit={playerUnit}
-        hpFrom={hpFromPlayer}
-        hpTo={hpToPlayer}
-        showHpAnim={showHpAnim}
+        bpFrom={bpFromPlayer}
+        bpTo={bpToPlayer}
+        showBpAnim={showBpAnim}
         side="player"
         hasShield={playerUnit.hasShield}
         phase={phase}
@@ -143,9 +143,9 @@ function FlyingCard({
   rect,
   card,
   unit,
-  hpFrom,
-  hpTo,
-  showHpAnim,
+  bpFrom,
+  bpTo,
+  showBpAnim,
   side,
   hasShield,
   phase,
@@ -153,14 +153,14 @@ function FlyingCard({
   rect: LayoutRect;
   card: Card;
   unit: BattleUnit;
-  hpFrom: number;
-  hpTo: number;
-  showHpAnim: boolean;
+  bpFrom: number;
+  bpTo: number;
+  showBpAnim: boolean;
   side: 'player' | 'cpu';
   hasShield: boolean;
   phase: ClashAnimPhase;
 }) {
-  const displayHp = phase === 'exit' ? hpTo : hpFrom;
+  const displayBp = phase === 'exit' ? bpTo : bpFrom;
   return (
     <div
       className={`flight-card flight-card-${side}`}
@@ -174,13 +174,13 @@ function FlyingCard({
         name={unit.name}
         pixels={card.pixels}
         attribute={unit.attribute}
-        currentHp={displayHp}
+        currentBp={displayBp}
         variant="board"
         side={side}
         hasShield={hasShield}
         defenseShieldUsed={unit.defenseShieldUsed}
-        animatedHp={
-          showHpAnim ? { from: hpFrom, to: hpTo, active: true } : undefined
+        animatedBp={
+          showBpAnim ? { from: bpFrom, to: bpTo, active: true } : undefined
         }
       />
     </div>

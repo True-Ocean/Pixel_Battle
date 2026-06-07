@@ -41,7 +41,7 @@ export interface BattlePlayback {
   shields: ReturnType<typeof resolveTurn>['shields'];
   pendingNext: BattleState;
   attackIndex: number;
-  attackSubPhase: 'damage' | 'hp';
+  attackSubPhase: 'damage' | 'bp';
   phase: 'shield' | 'attack' | 'done';
 }
 
@@ -75,7 +75,7 @@ export function useBattle(
   const result = getBattleResult(state);
   const effectivePhase: BattleUiPhase = result && !playback ? 'ended' : uiPhase;
   const playerAlive = state.player
-    .map((u, i) => (u.currentHp > 0 && u.position !== 'defeated' ? i : -1))
+    .map((u, i) => (u.currentBp > 0 && u.position !== 'defeated' ? i : -1))
     .filter((i) => i >= 0);
 
   useEffect(() => {
@@ -159,7 +159,7 @@ export function useBattle(
             setPlayback((p) => (p ? { ...p, phase: 'done' } : null));
           }
         },
-        CLASH_MS.hp,
+        CLASH_MS.bp,
       );
       return () => window.clearTimeout(t);
     }
@@ -173,7 +173,7 @@ export function useBattle(
         const t = window.setTimeout(
           () =>
             setPlayback((p) =>
-              p ? { ...p, attackSubPhase: 'hp' } : null,
+              p ? { ...p, attackSubPhase: 'bp' } : null,
             ),
           CLASH_MS.damage,
         );
@@ -198,7 +198,7 @@ export function useBattle(
             setPlayback((p) => (p ? { ...p, phase: 'done' } : null));
           }
         },
-        CLASH_MS.hp,
+        CLASH_MS.bp,
       );
       return () => window.clearTimeout(t);
     }
