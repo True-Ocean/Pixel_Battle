@@ -162,6 +162,20 @@
   font-variant-numeric: tabular-nums;
 }
 
+.user-profile-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.user-profile-battle-record {
+  font-weight: 600;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .user-profile-progress {
   position: relative;
   width: 100%;

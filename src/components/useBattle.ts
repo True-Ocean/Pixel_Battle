@@ -17,7 +17,7 @@ import {
   pickCpuAction,
   resolveTurn,
 } from '../game';
-import type { Card } from '../types';
+import type { Card, BattleOutcome } from '../types';
 import type {
   BattleActionChoice,
   BattleActionType,
@@ -48,14 +48,7 @@ export interface BattlePlayback {
 export function useBattle(
   playerCards: Card[],
   cpuCards: Card[],
-  onFinish: (outcome: {
-    winner: 'player' | 'cpu';
-    playerCardIds: string[];
-    cpuDefeatedCount: number;
-    playerDeckPower: number;
-    opponentDeckPower: number;
-    fauxLostCardId: string | null;
-  }) => void,
+  onFinish: (outcome: BattleOutcome) => void,
 ) {
   const [state, setState] = useState<BattleState>(() =>
     createBattleState(playerCards, cpuCards),
@@ -433,12 +426,13 @@ export function useBattle(
     onFinish({
       winner: result,
       playerCardIds: playerCards.map((c) => c.id),
+      defeatedPlayerCardIds: getDefeated(state.player).map((unit) => unit.cardId),
       cpuDefeatedCount: getDefeated(state.cpu).length,
       playerDeckPower: computeDeckPower(playerCards),
       opponentDeckPower: computeDeckPower(cpuCards),
       fauxLostCardId,
     });
-  }, [outcomeSaved, result, playerCards, state.cpu, onFinish]);
+  }, [outcomeSaved, result, playerCards, state.cpu, state.player, onFinish]);
 
   const hint = useMemo(() => {
     if (effectivePhase === 'ended') return null;

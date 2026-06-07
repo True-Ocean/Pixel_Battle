@@ -3,6 +3,7 @@ export {
   grantBattleExp,
   isProfileComplete,
   normalizeUserProfile,
+  recordUserBattleOutcome,
   validateUsername,
 } from './profile';
 export {

@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { CPU_OPPONENT_LEVEL, DECK_MAX, SETUP_TIME_LIMIT_SEC } from '../config/balance';
 import { computeDeckPower } from '../card';
-import type { Card } from '../types';
+import type { Card, BattleOutcome } from '../types';
 import type { BoardPosition } from '../types/battle';
 import {
   BACK_POSITIONS,
@@ -104,14 +104,7 @@ interface BattleSetupScreenProps {
   cpuDeck: Card[];
   playerIdentity?: BattleZoneProfile;
   opponentIdentity?: BattleZoneProfile;
-  onFinish: (outcome: {
-    winner: 'player' | 'cpu';
-    playerCardIds: string[];
-    cpuDefeatedCount: number;
-    playerDeckPower: number;
-    opponentDeckPower: number;
-    fauxLostCardId: string | null;
-  }) => void;
+  onFinish: (outcome: BattleOutcome) => void;
   onGoToDeck: () => void;
   onNewBattle: () => void;
 }

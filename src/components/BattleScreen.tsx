@@ -1,18 +1,11 @@
-import type { Card } from '../types';
+import type { Card, BattleOutcome } from '../types';
 import { BattleBoard } from './BattleBoard';
 import { useBattle } from './useBattle';
 
 interface BattleScreenProps {
   playerCards: Card[];
   cpuCards: Card[];
-  onFinish: (result: {
-    winner: 'player' | 'cpu';
-    playerCardIds: string[];
-    cpuDefeatedCount: number;
-    playerDeckPower: number;
-    opponentDeckPower: number;
-    fauxLostCardId: string | null;
-  }) => void;
+  onFinish: (result: BattleOutcome) => void;
 }
 
 /** 準備を経由しない直接戦闘用（通常は SetupBattleSession を使用） */

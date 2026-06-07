@@ -31,6 +31,23 @@ export interface UserProfile {
   username: string;
   level: number;
   exp: number;
+  /** ユーザーとしてのバトル勝利数 */
+  battleWins: number;
+  /** ユーザーとしてのバトル敗北数 */
+  battleLosses: number;
+}
+
+/** バトル終了時に永続化へ渡す結果 */
+export interface BattleOutcome {
+  winner: 'player' | 'cpu';
+  /** その戦に出撃した自軍カード ID */
+  playerCardIds: string[];
+  /** その戦で墓地へ送られた自軍カード ID */
+  defeatedPlayerCardIds: string[];
+  cpuDefeatedCount: number;
+  playerDeckPower: number;
+  opponentDeckPower: number;
+  fauxLostCardId: string | null;
 }
 
 export interface SaveData {

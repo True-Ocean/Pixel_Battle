@@ -35,6 +35,8 @@ export function createInitialProfile(username: string): UserProfile {
     username: trimmed,
     level: USER_INITIAL_LEVEL,
     exp: USER_INITIAL_EXP,
+    battleWins: 0,
+    battleLosses: 0,
   };
 }
 
@@ -50,8 +52,16 @@ export function normalizeUserProfile(raw: unknown): UserProfile | null {
       ? Math.floor(candidate.exp)
       : USER_INITIAL_EXP;
   const level = levelFromTotalExp(exp);
+  const battleWins =
+    typeof candidate.battleWins === 'number' && candidate.battleWins >= 0
+      ? Math.floor(candidate.battleWins)
+      : 0;
+  const battleLosses =
+    typeof candidate.battleLosses === 'number' && candidate.battleLosses >= 0
+      ? Math.floor(candidate.battleLosses)
+      : 0;
 
-  return { username, level, exp };
+  return { username, level, exp, battleWins, battleLosses };
 }
 
 export interface BattleExpInput {
@@ -78,4 +88,16 @@ export function grantBattleExp(
   const exp = user.exp + gained;
   const level = levelFromTotalExp(exp);
   return { ...user, exp, level };
+}
+
+export function recordUserBattleOutcome(
+  user: UserProfile,
+  input: BattleExpInput,
+): UserProfile {
+  const withExp = grantBattleExp(user, input);
+  return {
+    ...withExp,
+    battleWins: withExp.battleWins + (input.winner === 'player' ? 1 : 0),
+    battleLosses: withExp.battleLosses + (input.winner === 'cpu' ? 1 : 0),
+  };
 }

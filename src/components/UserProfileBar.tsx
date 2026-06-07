@@ -13,7 +13,12 @@ export function UserProfileBar({ user }: UserProfileBarProps) {
     <div className="user-profile-bar" aria-label="ユーザープロフィール">
       <div className="user-profile-row">
         <span className="user-profile-name">{user.username}</span>
-        <span className="user-profile-level">Lv.{user.level}</span>
+        <div className="user-profile-stats">
+          <span className="user-profile-level">Lv.{user.level}</span>
+          <span className="user-profile-battle-record">
+            {user.battleWins}勝{user.battleLosses}敗
+          </span>
+        </div>
       </div>
       <div
         className={`user-profile-progress${isMaxLevel ? ' is-max' : ''}`}

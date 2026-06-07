@@ -8,6 +8,7 @@ import {
   grantBattleExp,
   isProfileComplete,
   normalizeUserProfile,
+  recordUserBattleOutcome,
   validateUsername,
 } from './profile';
 import { totalExpForLevel } from './level';
@@ -26,6 +27,8 @@ describe('createInitialProfile', () => {
       username: 'ピクセル太郎',
       level: USER_INITIAL_LEVEL,
       exp: USER_INITIAL_EXP,
+      battleWins: 0,
+      battleLosses: 0,
     });
   });
 });
@@ -41,6 +44,8 @@ describe('normalizeUserProfile', () => {
       username: 'a',
       level: 3,
       exp: totalExpForLevel(3),
+      battleWins: 0,
+      battleLosses: 0,
     });
   });
 });
@@ -53,6 +58,8 @@ describe('isProfileComplete', () => {
         username: 'test',
         level: 1,
         exp: 0,
+        battleWins: 0,
+        battleLosses: 0,
       }),
     ).toBe(true);
   });
@@ -63,6 +70,8 @@ describe('grantBattleExp', () => {
     username: 'test',
     level: 1,
     exp: 5,
+    battleWins: 0,
+    battleLosses: 0,
   };
 
   it('adds level plus defeated count', () => {
@@ -88,5 +97,42 @@ describe('grantBattleExp', () => {
       opponentDeckPower: 500,
     });
     expect(result.exp).toBeGreaterThan(base.exp + 1);
+  });
+});
+
+describe('recordUserBattleOutcome', () => {
+  const base = {
+    username: 'test',
+    level: 1,
+    exp: 5,
+    battleWins: 2,
+    battleLosses: 1,
+  };
+
+  it('records battle wins and losses alongside exp', () => {
+    expect(
+      recordUserBattleOutcome(base, {
+        cpuDefeatedCount: 2,
+        winner: 'player',
+        playerDeckPower: 400,
+        opponentDeckPower: 400,
+      }),
+    ).toEqual({
+      ...base,
+      exp: 5 + 1 + 2,
+      battleWins: 3,
+      battleLosses: 1,
+    });
+  });
+
+  it('increments battle losses on defeat', () => {
+    expect(
+      recordUserBattleOutcome(base, {
+        cpuDefeatedCount: 0,
+        winner: 'cpu',
+        playerDeckPower: 400,
+        opponentDeckPower: 400,
+      }).battleLosses,
+    ).toBe(2);
   });
 });

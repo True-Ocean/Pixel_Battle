@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react';
-import type { Card, ScreenId, UserProfile } from './types';
+import type { Card, ScreenId, UserProfile, BattleOutcome } from './types';
 import { DECK_MAX } from './config/balance';
+import { applyCardSurvivalRecords } from './card';
 import { buildBalancedCpuDeck } from './game/cpuDeck';
 import { loadSave, saveSave } from './storage';
 import {
   createInitialProfile,
-  grantBattleExp,
   isProfileComplete,
+  recordUserBattleOutcome,
 } from './user';
 import { DeckScreen } from './components/DeckScreen';
 import { EditorScreen } from './components/EditorScreen';
@@ -102,42 +103,29 @@ function App() {
     [persistSave],
   );
 
-  const applyBattleOutcome = useCallback(
-    (outcome: {
-      winner: 'player' | 'cpu';
-      playerCardIds: string[];
-      cpuDefeatedCount: number;
-      playerDeckPower: number;
-      opponentDeckPower: number;
-      fauxLostCardId: string | null;
-    }) => {
-      setFauxLostCardId(outcome.fauxLostCardId);
-      setUser((prevUser) => {
-        const nextUser = isProfileComplete(prevUser)
-          ? grantBattleExp(prevUser, {
-              cpuDefeatedCount: outcome.cpuDefeatedCount,
-              winner: outcome.winner,
-              playerDeckPower: outcome.playerDeckPower,
-              opponentDeckPower: outcome.opponentDeckPower,
-            })
-          : prevUser;
-        setDeck((prevDeck) => {
-          const nextDeck = prevDeck.map((c) => {
-            if (!outcome.playerCardIds.includes(c.id)) return c;
-            return {
-              ...c,
-              wins: outcome.winner === 'player' ? c.wins + 1 : c.wins,
-              losses: outcome.winner === 'cpu' ? c.losses + 1 : c.losses,
-            };
-          });
-          saveSave({ user: nextUser, deck: nextDeck });
-          return nextDeck;
-        });
-        return nextUser;
+  const applyBattleOutcome = useCallback((outcome: BattleOutcome) => {
+    setFauxLostCardId(outcome.fauxLostCardId);
+    setUser((prevUser) => {
+      const nextUser = isProfileComplete(prevUser)
+        ? recordUserBattleOutcome(prevUser, {
+            cpuDefeatedCount: outcome.cpuDefeatedCount,
+            winner: outcome.winner,
+            playerDeckPower: outcome.playerDeckPower,
+            opponentDeckPower: outcome.opponentDeckPower,
+          })
+        : prevUser;
+      setDeck((prevDeck) => {
+        const nextDeck = applyCardSurvivalRecords(
+          prevDeck,
+          outcome.playerCardIds,
+          outcome.defeatedPlayerCardIds,
+        );
+        saveSave({ user: nextUser, deck: nextDeck });
+        return nextDeck;
       });
-    },
-    [],
-  );
+      return nextUser;
+    });
+  }, []);
 
   const goToDeck = useCallback(() => setScreen('deck'), []);
 
