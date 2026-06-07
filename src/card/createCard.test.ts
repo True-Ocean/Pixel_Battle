@@ -74,6 +74,16 @@ describe('createCardFromDrawing', () => {
       random: () => 0.9,
     });
     expect(card.rarity).toBe('SR');
+    expect(card.bp).toBeGreaterThanOrEqual(90);
+  });
+
+  it('同じ絵でも R/SR は N より BP が高くなる', () => {
+    const grid = fillGrid('#ff0000');
+    const nCard = createCardFromDrawing('same', grid, { random: () => 0.1 });
+    const srCard = createCardFromDrawing('same', grid, { random: () => 0.99 });
+    expect(nCard.rarity).toBe('N');
+    expect(srCard.rarity).toBe('SR');
+    expect(srCard.bp).toBeGreaterThan(nCard.bp);
   });
 });
 

@@ -4,6 +4,7 @@ import {
   COLOR_WEIGHT,
   HASH_WEIGHT,
   BP_RANGE,
+  applyRarityToBp,
 } from '../config/balance';
 import type { Attribute, Card, PixelGrid } from '../types';
 import { computeColorRatios, normalizePixelColor } from './colors';
@@ -93,13 +94,14 @@ export function createCardFromDrawing(
     unlockedPaletteCount,
     options.random,
   );
+  const finalBp = applyRarityToBp(bp, attribute, rarity);
 
   return {
     id: createCardId(),
     name: name.trim(),
     pixels: normalized,
     attribute,
-    bp,
+    bp: finalBp,
     wins: 0,
     losses: 0,
     reviveCount: 0,
@@ -116,7 +118,8 @@ export function updateCardFromDrawing(
   pixels: PixelGrid,
 ): Card {
   const normalized = normalizeGrid(pixels);
-  const { attribute, bp } = deriveCardStats(name, normalized);
+  const { attribute, bp: baseBp } = deriveCardStats(name, normalized);
+  const bp = applyRarityToBp(baseBp, attribute, existing.rarity);
 
   return {
     ...existing,

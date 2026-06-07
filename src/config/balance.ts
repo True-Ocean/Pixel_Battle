@@ -2,6 +2,8 @@
  * プロトタイプ調整パラメータ（単一参照: docs/PROTOTYPE_DEVELOPMENT_SPEC.md §13）
  */
 
+import type { Attribute, CardRarity } from '../types';
+
 export const CANVAS_SIZE = 16;
 export const DECK_MAX = 5;
 export const FRONT_SIZE = 2;
@@ -60,6 +62,35 @@ export const BP_RANGE: Record<'attack' | 'defense', { min: number; max: number }
   attack: { min: 70, max: 100 },
   defense: { min: 55, max: 85 },
 };
+
+/** 新規作成時: 基礎 BP に乗算（ECONOMY_SPEC §9.4） */
+export const RARITY_BP_MULTIPLIER: Record<CardRarity, number> = {
+  N: 1,
+  R: 1.08,
+  SR: 1.15,
+  UR: 1.22,
+  L: 1.3,
+};
+
+/** レア度ごとの BP 下限（同レア帯内で N より低く見えないよう補正） */
+export const RARITY_BP_MIN: Record<CardRarity, Record<Attribute, number>> = {
+  N: { attack: BP_RANGE.attack.min, defense: BP_RANGE.defense.min },
+  R: { attack: 78, defense: 62 },
+  SR: { attack: 90, defense: 78 },
+  UR: { attack: 95, defense: 81 },
+  L: { attack: 98, defense: 83 },
+};
+
+export function applyRarityToBp(
+  baseBp: number,
+  attribute: Attribute,
+  rarity: CardRarity,
+): number {
+  const scaled = Math.round(baseBp * RARITY_BP_MULTIPLIER[rarity]);
+  const min = RARITY_BP_MIN[rarity][attribute];
+  const max = BP_RANGE[attribute].max;
+  return Math.min(max, Math.max(min, scaled));
+}
 
 /** カード戦力: BP × bpWeight + flatBonus（属性ごと） */
 export const ATTRIBUTE_POWER = {
