@@ -394,29 +394,81 @@
 }
 
 .deck-card-row-editing {
-  padding-left: 0.45rem;
+  align-items: center;
   touch-action: none;
 }
 
-.deck-card-row-dragging {
-  opacity: 0.72;
-  border-color: #646cff !important;
-  box-shadow: 0 4px 14px #646cff33 !important;
+.card-list-dragging .deck-card-row {
+  transition: transform 0.2s ease;
+}
+
+.deck-card-row-drag-source {
+  pointer-events: none;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.deck-card-slot {
+  flex: 1;
+  min-width: 0;
+  border-radius: 10px;
+}
+
+.deck-card-row-shift-up {
+  transform: translateY(calc(-1 * var(--deck-row-shift, 5rem)));
+}
+
+.deck-card-row-shift-down {
+  transform: translateY(var(--deck-row-shift, 5rem));
+}
+
+.deck-drag-ghost {
+  position: fixed;
+  z-index: 1200;
+  pointer-events: none;
+  margin: 0;
+  padding: 0.26rem 0.3rem;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-style: solid;
+  border-radius: 10px;
+  box-shadow:
+    0 10px 28px #00000024,
+    0 2px 8px #646cff33;
+  transform: scale(1.02) rotate(-0.4deg);
+  opacity: 0.96;
+}
+
+.deck-drag-ghost-inner {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 4.5rem;
+}
+
+.deck-drag-ghost-spacer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.screen-deck-dragging {
+  user-select: none;
+}
+
+.screen-deck-dragging .card-list {
+  overflow: hidden;
 }
 
 .deck-card-row-over {
   border-color: #646cff !important;
 }
 
-.deck-card-edit-controls {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
-  flex-shrink: 0;
-}
-
 .deck-card-delete {
+  flex-shrink: 0;
+  align-self: center;
   width: 1.65rem;
   height: 1.65rem;
   padding: 0;
@@ -431,15 +483,24 @@
 }
 
 .deck-card-drag-handle {
+  flex-shrink: 0;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.65rem;
   color: #999;
   font-size: 1.1rem;
   line-height: 1;
   cursor: grab;
   user-select: none;
+  touch-action: none;
+  padding: 0.35rem 0.1rem;
 }
 
-.deck-card-row-dragging .deck-card-drag-handle {
+.deck-card-drag-handle-active {
   cursor: grabbing;
+  color: #646cff;
 }
 
 .deck-card-main {
@@ -461,34 +522,8 @@
   cursor: default;
 }
 
-.deck-card-move-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  flex-shrink: 0;
-}
-
-.deck-card-move {
-  width: 1.85rem;
-  height: 1.85rem;
-  padding: 0;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: #fff;
-  color: #444;
-  font: inherit;
-  font-size: 0.95rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.deck-card-move:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
 .card-list-editing .deck-card-row {
-  cursor: grab;
+  cursor: default;
 }
 
 .confirm-dialog-backdrop {
