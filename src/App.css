@@ -571,7 +571,6 @@
   white-space: nowrap;
 }
 
-.deck-card-attribute,
 .deck-card-record {
   font-size: 1rem;
   line-height: 1.35;
@@ -586,10 +585,6 @@
   white-space: nowrap;
   margin: 0;
   padding: 0;
-}
-
-.deck-card-attribute {
-  color: #444;
 }
 
 .deck-card-record {
@@ -653,7 +648,6 @@
   font-size: 1.25rem;
 }
 
-.screen-deck .deck-card-attribute,
 .screen-deck .deck-card-record {
   font-size: 0.88rem;
 }
@@ -1905,9 +1899,11 @@
 }
 
 .battle-card.setup-hand-card .battle-card-attr {
-  font-size: 0.62rem;
   bottom: 1.35rem;
   left: 0.28rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  font-size: 0.62rem;
 }
 
 .battle-card.setup-hand-card .battle-card-slot {
@@ -1977,8 +1973,10 @@
 .battle-card.setup-card-fixed .battle-card-attr {
   left: 0.16rem;
   bottom: 0.78rem;
+  width: 0.95rem;
+  height: 0.95rem;
   font-size: 0.5rem;
-  padding: 0.04rem 0.22rem;
+  border-width: 1.5px;
 }
 
 .battle-card.setup-card-fixed .battle-card-name {
@@ -2258,16 +2256,32 @@ button.battle-card {
   animation: hp-shake 0.42s ease-out;
 }
 
+.attr-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  font-weight: 800;
+  font-size: 0.72rem;
+  line-height: 1;
+  border-radius: 4px;
+  border: 2px solid;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+}
+
+.attr-badge--deck {
+  width: 1.45rem;
+  height: 1.45rem;
+  font-size: 0.88rem;
+}
+
 .battle-card-attr {
   position: absolute;
   left: 0.35rem;
   bottom: 1.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #fff;
-  background: rgba(40, 40, 60, 0.75);
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
   z-index: 2;
 }
 
@@ -2905,11 +2919,13 @@ button.battle-card {
 }
 
 .formation-tiny-card .battle-card-attr {
-  display: inline-block;
+  display: inline-grid;
   left: 0.16rem;
   bottom: 0.78rem;
+  width: 0.95rem;
+  height: 0.95rem;
   font-size: 0.5rem;
-  padding: 0.04rem 0.22rem;
+  border-width: 1.5px;
 }
 
 .formation-tiny-card .battle-card-hp {
@@ -3185,9 +3201,12 @@ button.battle-card {
 }
 
 .formation-slot .battle-card-attr {
-  font-size: 0.52rem;
   bottom: 1.15rem;
   left: 0.2rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  font-size: 0.52rem;
+  border-width: 1.5px;
 }
 
 .formation-slot .battle-card-hp {

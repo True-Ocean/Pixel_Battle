@@ -1,5 +1,7 @@
+import { getAttributeMeta } from '../config/attributes';
 import type { Attribute, PixelGrid } from '../types';
 import { AnimatedHp } from './AnimatedHp';
+import { AttributeBadge } from './AttributeBadge';
 import { CardBack } from './CardBack';
 import { CardPreview } from './CardPreview';
 
@@ -73,7 +75,7 @@ export function BattleCard({
   side,
   outcomeOverlay,
 }: BattleCardProps) {
-  const attrLabel = attribute === 'attack' ? '攻撃' : '防御';
+  const attrMeta = getAttributeMeta(attribute);
   const classNames = [
     'battle-card',
     variant,
@@ -132,7 +134,7 @@ export function BattleCard({
       <div className="battle-card-art">
         <CardPreview pixels={pixels} />
       </div>
-      <span className="battle-card-attr">{attrLabel}</span>
+      <AttributeBadge attribute={attribute} className="battle-card-attr" />
       {defenseShieldUsed && (
         <span className="battle-card-badge" title="盾付与済">
           付与済
@@ -148,7 +150,7 @@ export function BattleCard({
 
   const ariaLabel = faceDown
     ? '裏向きのカード'
-    : `${name} ${attrLabel} HP${currentHp}${shieldLabel}`;
+    : `${name} ${attrMeta.ariaName} HP${currentHp}${shieldLabel}`;
 
   // 裏向きは CardBack を直接描画（iOS Safari で rotateY フリップが反転表示になるため）
   const content = faceDown ? (

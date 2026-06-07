@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { computeDeckPower } from '../card';
 import { DECK_MAX } from '../config/balance';
 import type { Card } from '../types';
+import { AttributeBadge } from './AttributeBadge';
 import { CardPreview } from './CardPreview';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -171,10 +172,11 @@ export function DeckScreen({
                   <span className="deck-card-name">{card.name}</span>
                   <div className="deck-card-meta">
                     <span className="deck-card-hp">{card.hp}</span>
-                    <span className="deck-card-attribute">
-                      属性：
-                      {card.attribute === 'attack' ? '攻撃' : '防御'}
-                    </span>
+                    <AttributeBadge
+                      attribute={card.attribute}
+                      className="deck-card-attribute"
+                      size="deck"
+                    />
                     <span className="deck-card-record muted">
                       {card.wins}勝 {card.losses}敗
                     </span>
