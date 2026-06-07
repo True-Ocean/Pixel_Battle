@@ -8,12 +8,14 @@ import {
   createCardFromDrawing,
   updateCardFromDrawing,
 } from '../card';
+import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import type { Card, PixelGrid } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PalettePicker, PixelCanvas, type EditorTool } from './PixelCanvas';
 
 interface EditorScreenProps {
   deckCount: number;
+  userLevel?: number;
   editTarget?: Card | null;
   onBack: () => void;
   onCreated: (card: Card) => void;
@@ -37,6 +39,7 @@ function validateDrawing(name: string, pixels: PixelGrid): string | null {
 
 export function EditorScreen({
   deckCount,
+  userLevel = 1,
   editTarget = null,
   onBack,
   onCreated,
@@ -63,7 +66,9 @@ export function EditorScreen({
         const card = updateCardFromDrawing(editTarget, name, pixels);
         onUpdated?.(card);
       } else {
-        const card = createCardFromDrawing(name, pixels);
+        const card = createCardFromDrawing(name, pixels, {
+          unlockedPaletteCount: getUnlockedPaletteCount(userLevel),
+        });
         onCreated(card);
       }
       onBack();

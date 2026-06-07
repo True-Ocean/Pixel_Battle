@@ -20,6 +20,8 @@ function stubPlayerDeck(): Card[] {
       wins: 0,
       losses: 0,
       reviveCount: 0,
+      rarity: 'N',
+      stars: 0,
       createdAt: '',
     },
     {
@@ -31,6 +33,8 @@ function stubPlayerDeck(): Card[] {
       wins: 0,
       losses: 0,
       reviveCount: 0,
+      rarity: 'N',
+      stars: 0,
       createdAt: '',
     },
     {
@@ -42,6 +46,8 @@ function stubPlayerDeck(): Card[] {
       wins: 0,
       losses: 0,
       reviveCount: 0,
+      rarity: 'N',
+      stars: 0,
       createdAt: '',
     },
     {
@@ -53,6 +59,8 @@ function stubPlayerDeck(): Card[] {
       wins: 0,
       losses: 0,
       reviveCount: 0,
+      rarity: 'N',
+      stars: 0,
       createdAt: '',
     },
     {
@@ -64,6 +72,8 @@ function stubPlayerDeck(): Card[] {
       wins: 0,
       losses: 0,
       reviveCount: 0,
+      rarity: 'N',
+      stars: 0,
       createdAt: '',
     },
   ];

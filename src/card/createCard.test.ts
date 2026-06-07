@@ -60,6 +60,20 @@ describe('createCardFromDrawing', () => {
     expect(card.pixels[0]).toHaveLength(CANVAS_SIZE);
     expect(card.name).toBe('x');
     expect(card.wins).toBe(0);
+    expect(card.reviveCount).toBe(0);
+    expect(card.stars).toBe(0);
+    expect(['N', 'R', 'SR']).toContain(card.rarity);
+  });
+
+  it('創作ボーナス時は高レア抽選に従う', () => {
+    const grid = fillGrid('#ff0000');
+    grid[0][0] = '#ffffff';
+    grid[0][1] = '#000000';
+    const card = createCardFromDrawing('bonus', grid, {
+      unlockedPaletteCount: 3,
+      random: () => 0.9,
+    });
+    expect(card.rarity).toBe('SR');
   });
 });
 
@@ -81,5 +95,8 @@ describe('updateCardFromDrawing', () => {
     expect(updated.createdAt).toBe(original.createdAt);
     expect(updated.name).toBe('新名');
     expect(updated.attribute).toBe('defense');
+    expect(updated.rarity).toBe(original.rarity);
+    expect(updated.stars).toBe(original.stars);
+    expect(updated.reviveCount).toBe(original.reviveCount);
   });
 });

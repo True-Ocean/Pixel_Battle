@@ -1,8 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type CSSProperties } from 'react';
 import { computeDeckPower } from '../card';
 import { DECK_MAX } from '../config/balance';
 import type { Card } from '../types';
+import { getRarityMeta } from '../config/rarity';
 import { AttributeBadge } from './AttributeBadge';
+import { LimitBreakStars } from './LimitBreakStars';
+import { RarityBadge } from './RarityBadge';
 import { CardPreview } from './CardPreview';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -120,11 +123,14 @@ export function DeckScreen({
         {deck.length === 0 ? (
           <li className="empty">カードがありません</li>
         ) : (
-          deck.map((card, index) => (
+          deck.map((card, index) => {
+            const rarityMeta = getRarityMeta(card.rarity);
+            return (
             <li
               key={card.id}
               className={[
                 'deck-card-row',
+                `deck-card-row--${card.rarity}`,
                 card.id === fauxLostCardId ? 'faux-lost' : '',
                 editMode ? 'deck-card-row-editing' : '',
                 dragIndex === index ? 'deck-card-row-dragging' : '',
@@ -134,6 +140,14 @@ export function DeckScreen({
               ]
                 .filter(Boolean)
                 .join(' ')}
+              style={
+                {
+                  '--rarity-border': rarityMeta.rowBorder,
+                  '--rarity-bg': rarityMeta.rowBg,
+                  '--rarity-border-width': rarityMeta.rowBorderWidth,
+                  '--rarity-shadow': rarityMeta.rowBoxShadow ?? 'none',
+                } as CSSProperties
+              }
               draggable={editMode}
               onDragStart={() => handleDragStart(index)}
               onDragEnter={() => handleDragEnter(index)}
@@ -165,29 +179,37 @@ export function DeckScreen({
                 disabled={editMode}
                 onClick={() => onEditCard(card)}
               >
-                <div className="deck-card-art">
-                  <CardPreview pixels={card.pixels} />
-                </div>
-                <span className="deck-card-name">{card.name}</span>
-                <div className="deck-card-stats-primary">
-                  <span className="deck-card-bp">{card.bp}</span>
-                  <AttributeBadge
-                    attribute={card.attribute}
-                    className="deck-card-attribute"
-                    size="deck"
-                  />
-                </div>
-                <div className="deck-card-aside">
-                  <span className="deck-card-record muted">
-                    {card.wins}勝 {card.losses}敗
-                  </span>
-                  {card.reviveCount > 0 ? (
-                    <span className="deck-card-revive muted">
-                      復活{card.reviveCount}
-                    </span>
-                  ) : (
-                    <span className="deck-card-revive deck-card-revive-slot" aria-hidden />
-                  )}
+                <RarityBadge
+                  rarity={card.rarity}
+                  size="deck"
+                  className="deck-card-rarity-corner"
+                />
+                <LimitBreakStars
+                  stars={card.stars}
+                  rarity={card.rarity}
+                  className="deck-card-stars-corner"
+                />
+                <div className="deck-card-content">
+                  <div className="deck-card-art">
+                    <CardPreview pixels={card.pixels} />
+                  </div>
+                  <div className="deck-card-body">
+                    <span className="deck-card-name">{card.name}</span>
+                    <div className="deck-card-meta-row">
+                      <div className="deck-card-stats-primary">
+                        <span className="deck-card-bp">{card.bp}</span>
+                        <AttributeBadge
+                          attribute={card.attribute}
+                          className="deck-card-attribute"
+                          size="deck"
+                        />
+                      </div>
+                      <span className="deck-card-record muted">
+                        {card.wins}勝{card.losses}敗（復活：
+                        {card.reviveCount}）
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </button>
               {editMode && (
@@ -213,7 +235,8 @@ export function DeckScreen({
                 </div>
               )}
             </li>
-          ))
+            );
+          })
         )}
       </ul>
 

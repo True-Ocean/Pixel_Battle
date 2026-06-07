@@ -242,6 +242,7 @@ function App() {
           <EditorScreen
             key={editingCard?.id ?? 'new'}
             deckCount={deck.length}
+            userLevel={user?.level ?? 1}
             editTarget={editingCard}
             onBack={() => {
               setEditingCard(null);

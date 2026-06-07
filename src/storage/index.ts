@@ -1,4 +1,4 @@
-import type { Card, SaveData } from '../types';
+import type { Card, CardRarity, CardStars, SaveData } from '../types';
 import { DECK_MAX } from '../config/balance';
 import { normalizeUserProfile } from '../user';
 
@@ -6,6 +6,18 @@ const STORAGE_KEY = 'dot5-battle-save-v1';
 
 function emptySave(): SaveData {
   return { user: null, deck: [] };
+}
+
+function parseRarity(value: unknown): CardRarity {
+  if (value === 'R' || value === 'SR' || value === 'UR' || value === 'L') {
+    return value;
+  }
+  return 'N';
+}
+
+function parseStars(value: unknown): CardStars {
+  if (value === 1 || value === 2 || value === 3) return value;
+  return 0;
 }
 
 function migrateCard(raw: Record<string, unknown>): Card | null {
@@ -19,10 +31,29 @@ function migrateCard(raw: Record<string, unknown>): Card | null {
         : null;
   if (bp == null) return null;
 
-  const { hp: _legacyHp, ...rest } = raw;
+  const {
+    hp: _legacyHp,
+    wins,
+    losses,
+    reviveCount,
+    rarity,
+    stars,
+    createdAt,
+    ...rest
+  } = raw;
+
   return {
-    ...(rest as Omit<Card, 'bp'>),
+    ...(rest as Omit<
+      Card,
+      'bp' | 'wins' | 'losses' | 'reviveCount' | 'rarity' | 'stars' | 'createdAt'
+    >),
     bp,
+    wins: typeof wins === 'number' ? wins : 0,
+    losses: typeof losses === 'number' ? losses : 0,
+    reviveCount: typeof reviveCount === 'number' ? reviveCount : 0,
+    rarity: parseRarity(rarity),
+    stars: parseStars(stars),
+    createdAt: typeof createdAt === 'string' ? createdAt : new Date().toISOString(),
   };
 }
 

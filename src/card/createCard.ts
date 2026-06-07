@@ -8,11 +8,17 @@ import {
 import type { Attribute, Card, PixelGrid } from '../types';
 import { computeColorRatios, normalizePixelColor } from './colors';
 import { buildCardSeed, hashToUnit } from './hash';
+import { rollRarity } from './rarity';
 
 export interface CardDraft {
   attribute: Attribute;
   bp: number;
   ratios: NonNullable<ReturnType<typeof computeColorRatios>>;
+}
+
+export interface CreateCardOptions {
+  unlockedPaletteCount?: number;
+  random?: () => number;
 }
 
 export class CardCreationError extends Error {
@@ -73,9 +79,20 @@ function createCardId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
-export function createCardFromDrawing(name: string, pixels: PixelGrid): Card {
+export function createCardFromDrawing(
+  name: string,
+  pixels: PixelGrid,
+  options: CreateCardOptions = {},
+): Card {
   const normalized = normalizeGrid(pixels);
-  const { attribute, bp } = deriveCardStats(name, normalized);
+  const { attribute, bp, ratios } = deriveCardStats(name, normalized);
+  const unlockedPaletteCount = options.unlockedPaletteCount ?? 3;
+  const rarity = rollRarity(
+    ratios,
+    normalized,
+    unlockedPaletteCount,
+    options.random,
+  );
 
   return {
     id: createCardId(),
@@ -86,11 +103,13 @@ export function createCardFromDrawing(name: string, pixels: PixelGrid): Card {
     wins: 0,
     losses: 0,
     reviveCount: 0,
+    rarity,
+    stars: 0,
     createdAt: new Date().toISOString(),
   };
 }
 
-/** 既存カードの見た目・名前を更新（戦績・ID は維持） */
+/** 既存カードの見た目・名前を更新（戦績・ID・レア・★ は維持） */
 export function updateCardFromDrawing(
   existing: Card,
   name: string,

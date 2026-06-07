@@ -1,6 +1,12 @@
 /** Lv0 属性 */
 export type Attribute = 'attack' | 'defense';
 
+/** カードレア度（v1 抽選: N / R / SR、将来: UR / L） */
+export type CardRarity = 'N' | 'R' | 'SR' | 'UR' | 'L';
+
+/** 限界突破の★数（0〜3） */
+export type CardStars = 0 | 1 | 2 | 3;
+
 /** パレット色（#RRGGBB または null = 未塗り） */
 export type PixelColor = string | null;
 
@@ -15,6 +21,8 @@ export interface Card {
   wins: number;
   losses: number;
   reviveCount: number;
+  rarity: CardRarity;
+  stars: CardStars;
   createdAt: string;
 }
 
