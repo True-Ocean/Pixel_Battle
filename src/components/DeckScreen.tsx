@@ -168,19 +168,26 @@ export function DeckScreen({
                 <div className="deck-card-art">
                   <CardPreview pixels={card.pixels} />
                 </div>
-                <div className="deck-card-body">
-                  <span className="deck-card-name">{card.name}</span>
-                  <div className="deck-card-meta">
-                    <span className="deck-card-bp">{card.bp}</span>
-                    <AttributeBadge
-                      attribute={card.attribute}
-                      className="deck-card-attribute"
-                      size="deck"
-                    />
-                    <span className="deck-card-record muted">
-                      {card.wins}勝 {card.losses}敗
+                <span className="deck-card-name">{card.name}</span>
+                <div className="deck-card-stats-primary">
+                  <span className="deck-card-bp">{card.bp}</span>
+                  <AttributeBadge
+                    attribute={card.attribute}
+                    className="deck-card-attribute"
+                    size="deck"
+                  />
+                </div>
+                <div className="deck-card-aside">
+                  <span className="deck-card-record muted">
+                    {card.wins}勝 {card.losses}敗
+                  </span>
+                  {card.reviveCount > 0 ? (
+                    <span className="deck-card-revive muted">
+                      復活{card.reviveCount}
                     </span>
-                  </div>
+                  ) : (
+                    <span className="deck-card-revive deck-card-revive-slot" aria-hidden />
+                  )}
                 </div>
               </button>
               {editMode && (
