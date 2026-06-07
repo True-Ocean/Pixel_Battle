@@ -1,5 +1,5 @@
 import type { Card, CardRarity, CardStars, SaveData } from '../types';
-import { DECK_MAX } from '../config/balance';
+import { DECK_MAX, USER_INITIAL_EXP, USER_INITIAL_LEVEL } from '../config/balance';
 import { normalizeUserProfile } from '../user';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
@@ -91,6 +91,26 @@ export function saveSave(data: SaveData): void {
       deck: data.deck.slice(0, DECK_MAX),
     }),
   );
+}
+
+/** ユーザー戦績とカード勝敗のみ初期化（デッキ内容・ユーザー名は維持） */
+export function resetBattleRecords(data: SaveData): SaveData {
+  return {
+    user: data.user
+      ? {
+          ...data.user,
+          level: USER_INITIAL_LEVEL,
+          exp: USER_INITIAL_EXP,
+          battleWins: 0,
+          battleLosses: 0,
+        }
+      : null,
+    deck: data.deck.map((card) => ({
+      ...card,
+      wins: 0,
+      losses: 0,
+    })),
+  };
 }
 
 /** @deprecated saveSave を使用 */

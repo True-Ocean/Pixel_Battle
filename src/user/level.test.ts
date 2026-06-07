@@ -77,6 +77,8 @@ describe('getLevelProgress', () => {
       username: 'a',
       level: 1,
       exp: span / 2,
+      battleWins: 0,
+      battleLosses: 0,
     });
     expect(isMaxLevel).toBe(false);
     expect(progress).toBeCloseTo(0.5, 5);
