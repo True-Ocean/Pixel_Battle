@@ -8,6 +8,7 @@ import { LimitBreakStars } from './LimitBreakStars';
 import { RarityBadge } from './RarityBadge';
 import { CardPreview } from './CardPreview';
 import { ConfirmDialog } from './ConfirmDialog';
+import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
 import {
   findDeckDropIndex,
   getDeckRowShift,
@@ -21,6 +22,7 @@ interface DeckScreenProps {
   onStartBattle: () => void;
   onEditCard: (card: Card) => void;
   onDeleteCard: (id: string) => void;
+  onReviveFauxLost?: (id: string) => void;
   onReorderDeck: (deck: Card[]) => void;
 }
 
@@ -86,18 +88,24 @@ export function DeckScreen({
   onStartBattle,
   onEditCard,
   onDeleteCard,
+  onReviveFauxLost,
   onReorderDeck,
 }: DeckScreenProps) {
-  const [editMode, setEditMode] = useState(false);
+  const [reorderMode, setReorderMode] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const dragSessionRef = useRef<DeckDragState | null>(null);
 
-  const exitEditMode = useCallback(() => {
-    setEditMode(false);
+  const exitReorderMode = useCallback(() => {
+    setReorderMode(false);
     dragSessionRef.current = null;
     setDragState(null);
+  }, []);
+
+  const closeDetail = useCallback(() => {
+    setSelectedCard(null);
   }, []);
 
   const moveCard = useCallback(
@@ -108,22 +116,39 @@ export function DeckScreen({
     [deck, onReorderDeck],
   );
 
-  const handleDeleteRequest = useCallback((card: Card) => {
-    setPendingDelete(card);
-  }, []);
+  const handleDeleteRequest = useCallback(
+    (card: Card) => {
+      closeDetail();
+      setPendingDelete(card);
+    },
+    [closeDetail],
+  );
 
   const handleDeleteConfirm = useCallback(() => {
     if (!pendingDelete) return;
     onDeleteCard(pendingDelete.id);
     setPendingDelete(null);
     if (deck.length <= 1) {
-      exitEditMode();
+      exitReorderMode();
     }
-  }, [deck.length, exitEditMode, onDeleteCard, pendingDelete]);
+  }, [deck.length, exitReorderMode, onDeleteCard, pendingDelete]);
 
   const handleDeleteCancel = useCallback(() => {
     setPendingDelete(null);
   }, []);
+
+  const handleEditFromDetail = useCallback(() => {
+    if (!selectedCard) return;
+    const card = selectedCard;
+    closeDetail();
+    onEditCard(card);
+  }, [closeDetail, onEditCard, selectedCard]);
+
+  const handleReviveFromDetail = useCallback(() => {
+    if (!selectedCard || !onReviveFauxLost) return;
+    onReviveFauxLost(selectedCard.id);
+    closeDetail();
+  }, [closeDetail, onReviveFauxLost, selectedCard]);
 
   const finishDrag = useCallback(
     (state: DeckDragState) => {
@@ -138,7 +163,7 @@ export function DeckScreen({
 
   const handleHandlePointerDown = useCallback(
     (index: number, event: PointerEvent<HTMLSpanElement>) => {
-      if (!editMode || event.button !== 0 || dragSessionRef.current) return;
+      if (!reorderMode || event.button !== 0 || dragSessionRef.current) return;
       const row = event.currentTarget.closest<HTMLElement>('[data-deck-index]');
       if (!row || !listRef.current) return;
 
@@ -188,51 +213,63 @@ export function DeckScreen({
       window.addEventListener('pointerup', onPointerEnd);
       window.addEventListener('pointercancel', onPointerEnd);
     },
-    [deck, editMode, finishDrag],
+    [deck, finishDrag, reorderMode],
   );
 
-  const toggleEditMode = () => {
-    if (editMode) {
-      exitEditMode();
+  const toggleReorderMode = () => {
+    if (reorderMode) {
+      exitReorderMode();
       return;
     }
     if (deck.length === 0) return;
-    setEditMode(true);
+    closeDetail();
+    setReorderMode(true);
   };
 
   const draggedCard =
     dragState != null ? deck.find((card) => card.id === dragState.cardId) : null;
 
+  const selectedIsFauxLost =
+    selectedCard != null && selectedCard.id === fauxLostCardId;
+
   return (
     <section className={`screen screen-deck${dragState ? ' screen-deck-dragging' : ''}`}>
       <div className="deck-screen-header">
-        <div>
+        <div className="deck-screen-header-main">
           <h1>マイデッキ</h1>
-          <p className="muted deck-screen-subtitle">
-            最大5枚 · {deck.length} / 5
-            {deck.length > 0 && <> · 戦力 {computeDeckPower(deck)}</>}
-            {fauxLostCardId && (
-              <> · 仮ロスト演出中（データは保存済み）</>
-            )}
-            {!editMode && deck.length > 0 && <> · タップで編集</>}
-            {editMode && <> · 並べ替え・削除</>}
-          </p>
+          {deck.length > 0 && (
+            <p className="deck-screen-power" aria-label={`戦力 ${computeDeckPower(deck)}`}>
+              戦力{' '}
+              <span className="deck-screen-power-value">{computeDeckPower(deck)}</span>
+            </p>
+          )}
+          {fauxLostCardId && (
+            <p className="muted deck-screen-notice">仮ロスト演出中（データは保存済み）</p>
+          )}
+          {reorderMode && (
+            <p className="muted deck-screen-hint deck-screen-hint-left">ドラッグで並べ替え</p>
+          )}
         </div>
         {deck.length > 0 && (
-          <button
-            type="button"
-            className={`deck-edit-toggle${editMode ? ' active' : ''}`}
-            onClick={toggleEditMode}
-            disabled={dragState != null}
-          >
-            {editMode ? '完了' : '編集'}
-          </button>
+          <div className="deck-screen-header-actions">
+            <button
+              type="button"
+              className={`deck-reorder-toggle${reorderMode ? ' active' : ''}`}
+              onClick={toggleReorderMode}
+              disabled={dragState != null}
+            >
+              {reorderMode ? '完了' : '並べ替え'}
+            </button>
+            {!reorderMode && (
+              <p className="muted deck-screen-hint">タップで詳細</p>
+            )}
+          </div>
         )}
       </div>
 
       <ul
         ref={listRef}
-        className={`card-list${editMode ? ' card-list-editing' : ''}${
+        className={`card-list${reorderMode ? ' card-list-reordering' : ''}${
           dragState ? ' card-list-dragging' : ''
         }`}
       >
@@ -255,7 +292,7 @@ export function DeckScreen({
                   'deck-card-row',
                   `deck-card-row--${card.rarity}`,
                   card.id === fauxLostCardId ? 'faux-lost' : '',
-                  editMode ? 'deck-card-row-editing' : '',
+                  reorderMode ? 'deck-card-row-reordering' : '',
                   isDragSource ? 'deck-card-row-drag-source' : '',
                   shift === -1 ? 'deck-card-row-shift-up' : '',
                   shift === 1 ? 'deck-card-row-shift-down' : '',
@@ -266,15 +303,6 @@ export function DeckScreen({
               >
                 {isDragSource && dragState ? (
                   <>
-                    <button
-                      type="button"
-                      className="deck-card-delete deck-drag-ghost-spacer"
-                      tabIndex={-1}
-                      aria-hidden
-                      disabled
-                    >
-                      −
-                    </button>
                     <div
                       className="deck-card-slot"
                       style={{ minHeight: dragState.rowHeight }}
@@ -289,26 +317,15 @@ export function DeckScreen({
                   </>
                 ) : (
                   <>
-                    {editMode && (
-                      <button
-                        type="button"
-                        className="deck-card-delete"
-                        aria-label={`${card.name}を削除`}
-                        onClick={() => handleDeleteRequest(card)}
-                        disabled={dragState != null}
-                      >
-                        −
-                      </button>
-                    )}
                     <button
                       type="button"
                       className="deck-card-main"
-                      disabled={editMode}
-                      onClick={() => onEditCard(card)}
+                      disabled={reorderMode}
+                      onClick={() => setSelectedCard(card)}
                     >
                       <DeckCardRowBody card={card} />
                     </button>
-                    {editMode && (
+                    {reorderMode && (
                       <span
                         className="deck-card-drag-handle"
                         aria-label="ドラッグで並べ替え"
@@ -338,15 +355,6 @@ export function DeckScreen({
           }}
           aria-hidden
         >
-          <button
-            type="button"
-            className="deck-card-delete deck-drag-ghost-spacer"
-            tabIndex={-1}
-            aria-hidden
-            disabled
-          >
-            −
-          </button>
           <div className="deck-drag-ghost-inner deck-card-main">
             <DeckCardRowBody card={draggedCard} />
           </div>
@@ -360,22 +368,37 @@ export function DeckScreen({
         <button
           type="button"
           onClick={onCreateCard}
-          disabled={editMode || deck.length >= 5}
+          disabled={reorderMode || deck.length >= 5}
         >
           新規カード作成
         </button>
         <button
           type="button"
           onClick={onStartBattle}
-          disabled={editMode || deck.length < DECK_MAX}
+          disabled={reorderMode || deck.length < DECK_MAX}
         >
           バトル
         </button>
       </div>
-      {!editMode && deck.length > 0 && deck.length < DECK_MAX && (
+      {!reorderMode && deck.length > 0 && deck.length < DECK_MAX && (
         <p className="muted">
           戦闘にはあと {DECK_MAX - deck.length} 枚必要です（合計 {DECK_MAX} 枚）
         </p>
+      )}
+
+      {selectedCard && (
+        <DeckCardDetailOverlay
+          card={selectedCard}
+          isFauxLost={selectedIsFauxLost}
+          onClose={closeDetail}
+          onEdit={handleEditFromDetail}
+          onDelete={() => handleDeleteRequest(selectedCard)}
+          onRevive={
+            selectedIsFauxLost && onReviveFauxLost
+              ? handleReviveFromDetail
+              : undefined
+          }
+        />
       )}
 
       <ConfirmDialog

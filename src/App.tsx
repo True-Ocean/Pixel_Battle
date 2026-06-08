@@ -223,6 +223,9 @@ function App() {
               setScreen('editor');
             }}
             onDeleteCard={deleteCard}
+            onReviveFauxLost={(id) => {
+              setFauxLostCardId((prev) => (prev === id ? null : prev));
+            }}
             onReorderDeck={reorderDeck}
           />
         )}
