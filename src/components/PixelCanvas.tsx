@@ -174,16 +174,23 @@ export function PalettePicker({
         const label = PALETTE_COLOR_LABELS[index];
         const active = tool === 'paint' && brushColor === color;
 
+        const isLight = color === '#ffffff';
+
         return (
           <button
             key={color}
             type="button"
-            className={active ? 'palette-swatch active' : 'palette-swatch'}
+            className={[
+              'palette-swatch',
+              isLight ? 'palette-swatch-light' : '',
+              active ? 'active' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
             style={{
               gridRow: row,
               gridColumn: col,
               background: color,
-              outline: color === '#ffffff' ? '1px solid #666' : undefined,
             }}
             title={label}
             onClick={() => onSelectColor(color)}

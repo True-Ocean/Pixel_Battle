@@ -6,7 +6,10 @@ export function CardPreview({ pixels }: { pixels: PixelGrid }) {
   return (
     <div
       className="card-preview pixel-checkerboard"
-      style={{ gridTemplateColumns: `repeat(${CANVAS_SIZE}, 1fr)` }}
+      style={{
+        gridTemplateColumns: `repeat(${CANVAS_SIZE}, 1fr)`,
+        gridTemplateRows: `repeat(${CANVAS_SIZE}, 1fr)`,
+      }}
       aria-hidden
     >
       {pixels.map((row, ri) =>

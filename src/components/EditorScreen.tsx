@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { createEmptyGrid } from '../canvas';
 import { CANVAS_SIZE, DECK_MAX } from '../config/balance';
 import { PALETTE_16 } from '../config/palette';
@@ -10,6 +10,7 @@ import {
 } from '../card';
 import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import type { Card, PixelGrid } from '../types';
+import { CardPreview } from './CardPreview';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PalettePicker, PixelCanvas, type EditorTool } from './PixelCanvas';
 
@@ -54,6 +55,24 @@ export function EditorScreen({
   const [tool, setTool] = useState<EditorTool>('paint');
   const [error, setError] = useState<string | null>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
+  const paletteWrapRef = useRef<HTMLDivElement>(null);
+  const [previewSize, setPreviewSize] = useState(56);
+
+  useLayoutEffect(() => {
+    const node = paletteWrapRef.current;
+    if (!node) return;
+
+    const syncPreviewSize = () => {
+      const grid = node.querySelector<HTMLElement>('.palette-grid-2x8');
+      const height = grid?.offsetHeight ?? node.clientHeight - 8;
+      setPreviewSize(Math.max(32, Math.round(height)));
+    };
+
+    syncPreviewSize();
+    const observer = new ResizeObserver(syncPreviewSize);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const persistCard = () => {
     setError(null);
@@ -114,16 +133,27 @@ export function EditorScreen({
 
       <div className="editor-body">
         <div className="editor-image-area">
-          <PalettePicker
-            tool={tool}
-            brushColor={brushColor}
-            onSelectColor={(color) => {
-              setBrushColor(color);
-              setTool('paint');
-            }}
-            onSelectTool={setTool}
-            onClear={() => setPixels(createEmptyGrid())}
-          />
+          <div className="editor-toolbar-row">
+            <div ref={paletteWrapRef} className="editor-palette-wrap">
+              <PalettePicker
+                tool={tool}
+                brushColor={brushColor}
+                onSelectColor={(color) => {
+                  setBrushColor(color);
+                  setTool('paint');
+                }}
+                onSelectTool={setTool}
+                onClear={() => setPixels(createEmptyGrid())}
+              />
+            </div>
+            <div
+              className="editor-screen-mini-preview"
+              style={{ width: previewSize, height: previewSize }}
+              aria-hidden
+            >
+              <CardPreview pixels={pixels} />
+            </div>
+          </div>
 
           <div className="editor-canvas-wrap">
             <PixelCanvas
@@ -147,7 +177,7 @@ export function EditorScreen({
             />
           </label>
           <p className="muted editor-name-hint">
-            あなたが描いたイメージとカード名から、カードのステータスが自動生成されるよ
+            あなたが描いたイメージとカード名から、カードが自動生成されます
           </p>
         </div>
 
