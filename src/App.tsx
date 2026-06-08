@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import type { Card, ScreenId, UserProfile, BattleOutcome } from './types';
 import { DECK_MAX } from './config/balance';
-import { applyCardSurvivalRecords } from './card';
+import { applyCardSurvivalRecords, recordCardRevive } from './card';
 import { buildBalancedCpuDeck } from './game/cpuDeck';
 import { loadSave, saveSave } from './storage';
 import {
@@ -30,7 +30,11 @@ function App() {
   const [fauxLostCardId, setFauxLostCardId] = useState<string | null>(null);
 
   const [cpuDeck, setCpuDeck] = useState<Card[]>(() =>
-    buildBalancedCpuDeck(initialSave.deck),
+    buildBalancedCpuDeck(
+      initialSave.deck,
+      Math.random,
+      initialSave.user?.level ?? 1,
+    ),
   );
   const [battleSetupKey, setBattleSetupKey] = useState(0);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
@@ -61,10 +65,10 @@ function App() {
   );
 
   const goToBattleSetup = useCallback(() => {
-    setCpuDeck(buildBalancedCpuDeck(deck));
+    setCpuDeck(buildBalancedCpuDeck(deck, Math.random, user?.level ?? 1));
     setBattleSetupKey((k) => k + 1);
     setScreen('battleSetup');
-  }, [deck]);
+  }, [deck, user?.level]);
 
   const addCard = useCallback(
     (card: Card) => {
@@ -227,6 +231,11 @@ function App() {
             }}
             onDeleteCard={deleteCard}
             onReviveFauxLost={(id) => {
+              setDeck((prev) => {
+                const next = recordCardRevive(prev, id);
+                persistSave({ deck: next });
+                return next;
+              });
               setFauxLostCardId((prev) => (prev === id ? null : prev));
             }}
             onReorderDeck={reorderDeck}

@@ -17,3 +17,12 @@ export function applyCardSurvivalRecords(
     return { ...card, wins: card.wins + 1 };
   });
 }
+
+/** 復活処理時に reviveCount を +1 する */
+export function recordCardRevive(deck: Card[], cardId: string): Card[] {
+  return deck.map((card) =>
+    card.id === cardId
+      ? { ...card, reviveCount: card.reviveCount + 1 }
+      : card,
+  );
+}

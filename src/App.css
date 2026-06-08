@@ -824,7 +824,6 @@
 }
 
 .deck-card-detail-revive {
-  grid-column: 1 / -1;
   border-color: #2e7d32;
   background: #2e7d32;
   color: #fff;

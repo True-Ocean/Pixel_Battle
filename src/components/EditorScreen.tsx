@@ -63,10 +63,16 @@ export function EditorScreen({
     }
     try {
       if (isEditing && editTarget) {
-        const card = updateCardFromDrawing(editTarget, name, pixels);
+        const card = updateCardFromDrawing(
+          editTarget,
+          name,
+          pixels,
+          userLevel,
+        );
         onUpdated?.(card);
       } else {
         const card = createCardFromDrawing(name, pixels, {
+          userLevel,
           unlockedPaletteCount: getUnlockedPaletteCount(userLevel),
         });
         onCreated(card);

@@ -16,4 +16,4 @@ export {
 } from './limitBreak';
 export { buildCardSeed, hashToUnit } from './hash';
 export { computeCardPower, computeDeckPower, attributePowerConfig } from './power';
-export { applyCardSurvivalRecords } from './battleRecord';
+export { applyCardSurvivalRecords, recordCardRevive } from './battleRecord';

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CANVAS_SIZE } from '../config/balance';
+import {
+  CANVAS_SIZE,
+  getCardBaseBpRange,
+  getUserBaseBp,
+} from '../config/balance';
 import { createEmptyGrid } from '../canvas';
 import { createCardFromDrawing, deriveCardStats, updateCardFromDrawing } from './createCard';
 import { buildCardSeed, hashToUnit } from './hash';
@@ -34,22 +38,38 @@ describe('deriveCardStats', () => {
 
   it('同じ名前と絵なら同じ属性・BP', () => {
     const grid = fillGrid('#ff0000');
-    const a = deriveCardStats('固定', grid);
-    const b = deriveCardStats('固定', grid);
+    const a = deriveCardStats('固定', grid, 5);
+    const b = deriveCardStats('固定', grid, 5);
     expect(a.attribute).toBe(b.attribute);
     expect(a.bp).toBe(b.bp);
   });
 
-  it('BPはレンジ内', () => {
+  it('BPはユーザーレベル基準のレンジ内', () => {
     const grid = fillGrid('#000000');
-    const { bp, attribute } = deriveCardStats('kuro', grid);
-    if (attribute === 'attack') {
-      expect(bp).toBeGreaterThanOrEqual(70);
-      expect(bp).toBeLessThanOrEqual(100);
-    } else {
-      expect(bp).toBeGreaterThanOrEqual(55);
-      expect(bp).toBeLessThanOrEqual(85);
-    }
+    const userLevel = 10;
+    const { bp, attribute } = deriveCardStats('kuro', grid, userLevel);
+    const { min, max } = getCardBaseBpRange(userLevel, attribute);
+    expect(bp).toBeGreaterThanOrEqual(min);
+    expect(bp).toBeLessThanOrEqual(max);
+  });
+
+  it('レベルが上がるとBPレンジも上がる', () => {
+    const grid = fillGrid('#ff0000');
+    const low = deriveCardStats('固定', grid, 1);
+    const high = deriveCardStats('固定', grid, 10);
+    expect(high.bp).toBeGreaterThan(low.bp);
+    expect(getUserBaseBp(10, 'attack')).toBe(100);
+    expect(getUserBaseBp(1, 'attack')).toBe(10);
+  });
+
+  it('防御は攻撃より基本BPが低い', () => {
+    const grid = fillGrid('#ffffff');
+    const stats = deriveCardStats('しろ', grid, 10);
+    expect(stats.attribute).toBe('defense');
+    const { min, max } = getCardBaseBpRange(10, 'defense');
+    expect(stats.bp).toBeGreaterThanOrEqual(min);
+    expect(stats.bp).toBeLessThanOrEqual(max);
+    expect(getUserBaseBp(10, 'defense')).toBe(85);
   });
 });
 
@@ -70,17 +90,25 @@ describe('createCardFromDrawing', () => {
     grid[0][0] = '#ffffff';
     grid[0][1] = '#000000';
     const card = createCardFromDrawing('bonus', grid, {
+      userLevel: 10,
       unlockedPaletteCount: 3,
       random: () => 0.9,
     });
     expect(card.rarity).toBe('SR');
-    expect(card.bp).toBeGreaterThanOrEqual(90);
+    const { min } = getCardBaseBpRange(10, card.attribute);
+    expect(card.bp).toBeGreaterThanOrEqual(Math.round(min * 1.15));
   });
 
   it('同じ絵でも R/SR は N より BP が高くなる', () => {
     const grid = fillGrid('#ff0000');
-    const nCard = createCardFromDrawing('same', grid, { random: () => 0.1 });
-    const srCard = createCardFromDrawing('same', grid, { random: () => 0.99 });
+    const nCard = createCardFromDrawing('same', grid, {
+      userLevel: 10,
+      random: () => 0.1,
+    });
+    const srCard = createCardFromDrawing('same', grid, {
+      userLevel: 10,
+      random: () => 0.99,
+    });
     expect(nCard.rarity).toBe('N');
     expect(srCard.rarity).toBe('SR');
     expect(srCard.bp).toBeGreaterThan(nCard.bp);
@@ -88,8 +116,10 @@ describe('createCardFromDrawing', () => {
 });
 
 describe('updateCardFromDrawing', () => {
-  it('IDと戦績を維持して見た目を更新', () => {
-    const original = createCardFromDrawing('旧名', fillGrid('#ff0000'));
+  it('IDと戦績・属性・レアを維持してBPのみ再算出', () => {
+    const original = createCardFromDrawing('旧名', fillGrid('#ff0000'), {
+      userLevel: 1,
+    });
     original.wins = 3;
     original.losses = 1;
 
@@ -97,6 +127,7 @@ describe('updateCardFromDrawing', () => {
       original,
       '新名',
       fillGrid('#ffffff'),
+      10,
     );
 
     expect(updated.id).toBe(original.id);
@@ -104,9 +135,10 @@ describe('updateCardFromDrawing', () => {
     expect(updated.losses).toBe(1);
     expect(updated.createdAt).toBe(original.createdAt);
     expect(updated.name).toBe('新名');
-    expect(updated.attribute).toBe('defense');
+    expect(updated.attribute).toBe(original.attribute);
     expect(updated.rarity).toBe(original.rarity);
     expect(updated.stars).toBe(original.stars);
     expect(updated.reviveCount).toBe(original.reviveCount);
+    expect(updated.bp).toBeGreaterThan(original.bp);
   });
 });

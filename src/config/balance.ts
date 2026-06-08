@@ -58,6 +58,20 @@ export const PALETTE_LV0 = [
   PALETTE_16[2],
 ] as const;
 
+/** ユーザーレベルあたりの基本BP（攻撃）。防御は DEFENSE_BP_RATIO を乗算 */
+export const USER_BP_PER_LEVEL = 10;
+
+/** カード名・イメージ由来の BP 振れ幅（基本BPに対する ±割合） */
+export const CARD_BP_SPREAD = 0.15;
+
+/** 防御カードの基本BP係数（攻撃比） */
+export const DEFENSE_BP_RATIO = 0.85;
+
+/** 初回セットアップ・ユーザープロフィール */
+export const USER_INITIAL_LEVEL = 1;
+export const MAX_USER_LEVEL = 30;
+
+/** @deprecated レベル連動BP以前の固定レンジ（参照用） */
 export const BP_RANGE: Record<'attack' | 'defense', { min: number; max: number }> = {
   attack: { min: 70, max: 100 },
   defense: { min: 55, max: 85 },
@@ -72,24 +86,56 @@ export const RARITY_BP_MULTIPLIER: Record<CardRarity, number> = {
   L: 1.3,
 };
 
-/** レア度ごとの BP 下限（同レア帯内で N より低く見えないよう補正） */
-export const RARITY_BP_MIN: Record<CardRarity, Record<Attribute, number>> = {
-  N: { attack: BP_RANGE.attack.min, defense: BP_RANGE.defense.min },
-  R: { attack: 78, defense: 62 },
-  SR: { attack: 90, defense: 78 },
-  UR: { attack: 95, defense: 81 },
-  L: { attack: 98, defense: 83 },
-};
+function clampUserLevel(userLevel: number): number {
+  return Math.max(USER_INITIAL_LEVEL, Math.min(MAX_USER_LEVEL, userLevel));
+}
+
+/** 属性別のユーザーレベル基準BP（例: Lv10 攻撃=100, 防御=85） */
+export function getUserBaseBp(
+  userLevel: number,
+  attribute: Attribute,
+): number {
+  const level = clampUserLevel(userLevel);
+  const attackBase = level * USER_BP_PER_LEVEL;
+  if (attribute === 'attack') return attackBase;
+  return Math.round(attackBase * DEFENSE_BP_RATIO);
+}
+
+/** カード個別BP（レア適用前）のレンジ */
+export function getCardBaseBpRange(
+  userLevel: number,
+  attribute: Attribute,
+): { min: number; max: number } {
+  const center = getUserBaseBp(userLevel, attribute);
+  return {
+    min: Math.round(center * (1 - CARD_BP_SPREAD)),
+    max: Math.round(center * (1 + CARD_BP_SPREAD)),
+  };
+}
+
+/** bpBlend（0〜1）とユーザーレベルからカード基礎BPを算出 */
+export function computeCardBaseBp(
+  bpBlend: number,
+  userLevel: number,
+  attribute: Attribute,
+): number {
+  const blend = Math.min(1, Math.max(0, bpBlend));
+  const { min, max } = getCardBaseBpRange(userLevel, attribute);
+  return Math.round(min + (max - min) * blend);
+}
 
 export function applyRarityToBp(
   baseBp: number,
   attribute: Attribute,
   rarity: CardRarity,
+  userLevel: number = USER_INITIAL_LEVEL,
 ): number {
-  const scaled = Math.round(baseBp * RARITY_BP_MULTIPLIER[rarity]);
-  const min = RARITY_BP_MIN[rarity][attribute];
-  const max = BP_RANGE[attribute].max;
-  return Math.min(max, Math.max(min, scaled));
+  const { min, max } = getCardBaseBpRange(userLevel, attribute);
+  const mult = RARITY_BP_MULTIPLIER[rarity];
+  const scaled = Math.round(baseBp * mult);
+  const rarityMin = Math.round(min * mult);
+  const rarityMax = Math.round(max * mult);
+  return Math.min(rarityMax, Math.max(rarityMin, scaled));
 }
 
 /** カード戦力: BP × bpWeight + flatBonus（属性ごと） */
@@ -101,11 +147,8 @@ export const ATTRIBUTE_POWER = {
   { bpWeight: number; flatBonus: number }
 >;
 
-/** 初回セットアップ・ユーザープロフィール */
-export const USER_INITIAL_LEVEL = 1;
 export const USER_INITIAL_EXP = 0;
 export const USERNAME_MAX_LENGTH = 16;
-export const MAX_USER_LEVEL = 30;
 
 /** レベル L → L+1 に必要な EXP = EXP_LEVEL_BASE + L */
 export const EXP_LEVEL_BASE = 10;

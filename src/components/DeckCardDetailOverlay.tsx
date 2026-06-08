@@ -34,14 +34,15 @@ export function DeckCardDetailOverlay({
         <DeckCardDetailCard card={card} isFauxLost={isFauxLost} />
 
         <div className="deck-card-detail-actions">
-          {isFauxLost && onRevive && (
+          {isFauxLost && onRevive ? (
             <button type="button" className="deck-card-detail-revive" onClick={onRevive}>
               復活
             </button>
+          ) : (
+            <button type="button" className="deck-card-detail-edit" onClick={onEdit}>
+              編集
+            </button>
           )}
-          <button type="button" className="deck-card-detail-edit" onClick={onEdit}>
-            編集
-          </button>
           <button type="button" className="deck-card-detail-delete" onClick={onDelete}>
             削除
           </button>

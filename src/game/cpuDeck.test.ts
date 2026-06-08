@@ -82,7 +82,7 @@ function stubPlayerDeck(): Card[] {
 describe('buildBalancedCpuDeck', () => {
   it('5枚の Card を返しピクセルは模様テンプレート由来', () => {
     const player = stubPlayerDeck();
-    const cpu = buildBalancedCpuDeck(player, () => 0.42);
+    const cpu = buildBalancedCpuDeck(player, () => 0.42, 10);
     expect(cpu).toHaveLength(DECK_MAX);
     for (const card of cpu) {
       expect(card.name.length).toBeGreaterThan(0);
@@ -96,10 +96,10 @@ describe('buildBalancedCpuDeck', () => {
     const player = stubPlayerDeck();
     const playerAvg = player.reduce((s, c) => s + c.bp, 0) / player.length;
     const targets = buildDeckTargets(player, 'even');
-    const cpu = buildBalancedCpuDeck(player, () => 0.33);
+    const cpu = buildBalancedCpuDeck(player, () => 0.33, 10);
     const cpuAvg = cpu.reduce((s, c) => s + c.bp, 0) / cpu.length;
-    expect(cpuAvg).toBeGreaterThanOrEqual(targets.avgBpMin - 8);
-    expect(cpuAvg).toBeLessThanOrEqual(targets.avgBpMax + 8);
+    expect(cpuAvg).toBeGreaterThanOrEqual(targets.avgBpMin - 10);
+    expect(cpuAvg).toBeLessThanOrEqual(targets.avgBpMax + 10);
     expect(Math.abs(cpuAvg - playerAvg)).toBeLessThan(25);
   });
 
@@ -130,7 +130,7 @@ describe('pickCpuPattern', () => {
 describe('pickCpuBattleLineup', () => {
   it('5枚から3枚を返す', () => {
     const player = stubPlayerDeck();
-    const deck = buildBalancedCpuDeck(player, () => 0.5);
+    const deck = buildBalancedCpuDeck(player, () => 0.5, 10);
     const lineup = pickCpuBattleLineup(deck, player, () => 0.25);
     expect(lineup).toHaveLength(FIELD_SIZE);
     for (const card of lineup) {

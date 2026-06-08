@@ -3,11 +3,13 @@ import {
   CANVAS_SIZE,
   COLOR_WEIGHT,
   HASH_WEIGHT,
-  BP_RANGE,
+  USER_INITIAL_LEVEL,
   applyRarityToBp,
+  computeCardBaseBp,
 } from '../config/balance';
 import type { Attribute, Card, PixelGrid } from '../types';
 import { computeColorRatios, normalizePixelColor } from './colors';
+import type { ColorRatios } from './colors';
 import { buildCardSeed, hashToUnit } from './hash';
 import { rollRarity } from './rarity';
 
@@ -18,6 +20,7 @@ export interface CardDraft {
 }
 
 export interface CreateCardOptions {
+  userLevel?: number;
   unlockedPaletteCount?: number;
   random?: () => number;
 }
@@ -29,10 +32,10 @@ export class CardCreationError extends Error {
   }
 }
 
-export function deriveCardStats(
+function validateDrawingInput(
   name: string,
   pixels: PixelGrid,
-): CardDraft {
+): { trimmed: string; ratios: ColorRatios } {
   const trimmed = name.trim();
   if (!trimmed) {
     throw new CardCreationError('カード名を入力してください');
@@ -44,6 +47,24 @@ export function deriveCardStats(
     throw new CardCreationError('1マス以上塗ってください');
   }
 
+  return { trimmed, ratios };
+}
+
+function computeBpBlend(
+  trimmed: string,
+  pixels: PixelGrid,
+  ratios: ColorRatios,
+): number {
+  const seed = buildCardSeed(trimmed, pixels);
+  const hashBp = hashToUnit(seed, 'hp');
+  return ratios.density * 0.55 + hashBp * 0.45;
+}
+
+function deriveAttribute(
+  trimmed: string,
+  pixels: PixelGrid,
+  ratios: ColorRatios,
+): Attribute {
   const seed = buildCardSeed(trimmed, pixels);
   const hashAttack = hashToUnit(seed, 'attack');
   const hashDefense = hashToUnit(seed, 'defense');
@@ -56,14 +77,18 @@ export function deriveCardStats(
   const finalDefense =
     colorDefense * COLOR_WEIGHT + hashDefense * HASH_WEIGHT;
 
-  const attribute: Attribute =
-    finalAttack >= finalDefense ? 'attack' : 'defense';
+  return finalAttack >= finalDefense ? 'attack' : 'defense';
+}
 
-  // hash domain label（変更すると同一絵のBPが変わる）
-  const hashBp = hashToUnit(seed, 'hp');
-  const bpBlend = ratios.density * 0.55 + hashBp * 0.45;
-  const { min, max } = BP_RANGE[attribute];
-  const bp = Math.round(min + (max - min) * bpBlend);
+export function deriveCardStats(
+  name: string,
+  pixels: PixelGrid,
+  userLevel: number = USER_INITIAL_LEVEL,
+): CardDraft {
+  const { trimmed, ratios } = validateDrawingInput(name, pixels);
+  const attribute = deriveAttribute(trimmed, pixels, ratios);
+  const bpBlend = computeBpBlend(trimmed, pixels, ratios);
+  const bp = computeCardBaseBp(bpBlend, userLevel, attribute);
 
   return { attribute, bp, ratios };
 }
@@ -85,8 +110,9 @@ export function createCardFromDrawing(
   pixels: PixelGrid,
   options: CreateCardOptions = {},
 ): Card {
+  const userLevel = options.userLevel ?? USER_INITIAL_LEVEL;
   const normalized = normalizeGrid(pixels);
-  const { attribute, bp, ratios } = deriveCardStats(name, normalized);
+  const { attribute, bp, ratios } = deriveCardStats(name, normalized, userLevel);
   const unlockedPaletteCount = options.unlockedPaletteCount ?? 3;
   const rarity = rollRarity(
     ratios,
@@ -94,7 +120,7 @@ export function createCardFromDrawing(
     unlockedPaletteCount,
     options.random,
   );
-  const finalBp = applyRarityToBp(bp, attribute, rarity);
+  const finalBp = applyRarityToBp(bp, attribute, rarity, userLevel);
 
   return {
     id: createCardId(),
@@ -111,21 +137,28 @@ export function createCardFromDrawing(
   };
 }
 
-/** 既存カードの見た目・名前を更新（戦績・ID・レア・★ は維持） */
+/** 既存カードの見た目・名前を更新（属性・レア・戦績等は維持、BPのみ再算出） */
 export function updateCardFromDrawing(
   existing: Card,
   name: string,
   pixels: PixelGrid,
+  userLevel: number = USER_INITIAL_LEVEL,
 ): Card {
   const normalized = normalizeGrid(pixels);
-  const { attribute, bp: baseBp } = deriveCardStats(name, normalized);
-  const bp = applyRarityToBp(baseBp, attribute, existing.rarity);
+  const { trimmed, ratios } = validateDrawingInput(name, normalized);
+  const bpBlend = computeBpBlend(trimmed, normalized, ratios);
+  const baseBp = computeCardBaseBp(bpBlend, userLevel, existing.attribute);
+  const bp = applyRarityToBp(
+    baseBp,
+    existing.attribute,
+    existing.rarity,
+    userLevel,
+  );
 
   return {
     ...existing,
-    name: name.trim(),
+    name: trimmed,
     pixels: normalized,
-    attribute,
     bp,
   };
 }

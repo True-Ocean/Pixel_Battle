@@ -1,6 +1,12 @@
 import { createEmptyGrid } from '../canvas';
 import { createCardFromDrawing } from '../card';
-import { DECK_MAX, FIELD_SIZE } from '../config/balance';
+import {
+  DECK_MAX,
+  FIELD_SIZE,
+  USER_BP_PER_LEVEL,
+  USER_INITIAL_LEVEL,
+  MAX_USER_LEVEL,
+} from '../config/balance';
 import type { Card } from '../types';
 import { pickCpuPattern, type PatternBias } from './cpuPatterns';
 
@@ -130,19 +136,28 @@ function uniqueName(used: Set<string>, random: () => number): string {
   return name;
 }
 
+function inferUserLevelFromDeck(deck: Card[]): number {
+  if (deck.length === 0) return USER_INITIAL_LEVEL;
+  const avgBp = deck.reduce((s, c) => s + c.bp, 0) / deck.length;
+  const level = Math.round(avgBp / USER_BP_PER_LEVEL);
+  return Math.max(USER_INITIAL_LEVEL, Math.min(MAX_USER_LEVEL, level));
+}
+
 function buildOneCpuCard(
   prefer: PatternBias,
   usedNames: Set<string>,
   random: () => number,
+  userLevel: number,
 ): Card {
   const name = uniqueName(usedNames, random);
   const pattern = pickCpuPattern(prefer, random);
-  return createCardFromDrawing(name, pattern.build(random));
+  return createCardFromDrawing(name, pattern.build(random), { userLevel });
 }
 
 function buildCandidateDeck(
   targets: DeckTargets,
   random: () => number,
+  userLevel: number,
 ): Card[] {
   const usedNames = new Set<string>();
   const cards: Card[] = [];
@@ -158,7 +173,7 @@ function buildCandidateDeck(
   }
 
   for (const prefer of biases) {
-    cards.push(buildOneCpuCard(prefer, usedNames, random));
+    cards.push(buildOneCpuCard(prefer, usedNames, random, userLevel));
   }
 
   return cards;
@@ -170,13 +185,14 @@ function buildCandidateDeck(
 export function buildBalancedCpuDeck(
   playerDeck: Card[],
   random: () => number = Math.random,
+  userLevel: number = inferUserLevelFromDeck(playerDeck),
 ): Card[] {
   const difficulty = rollCpuDifficulty(random);
   const targets = buildDeckTargets(playerDeck, difficulty);
 
-  let lastAttempt = buildCandidateDeck(targets, random);
+  let lastAttempt = buildCandidateDeck(targets, random, userLevel);
   for (let attempt = 0; attempt < MAX_DECK_ATTEMPTS; attempt++) {
-    const candidate = buildCandidateDeck(targets, random);
+    const candidate = buildCandidateDeck(targets, random, userLevel);
     lastAttempt = candidate;
     if (deckMatchesTargets(candidate, targets)) return candidate;
   }
