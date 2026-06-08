@@ -1,6 +1,6 @@
 import type { Card } from '../types';
 
-/** 出撃カードの生存/撃破に応じて wins / losses を更新する */
+/** 出撃カードの生存/墓地送りに応じて wins（生存）/ losses（墓地）を更新する */
 export function applyCardSurvivalRecords(
   deck: Card[],
   playerCardIds: string[],

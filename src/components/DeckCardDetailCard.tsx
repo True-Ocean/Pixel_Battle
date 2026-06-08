@@ -3,6 +3,7 @@ import { getAttributeMeta } from '../config/attributes';
 import { getRarityMeta } from '../config/rarity';
 import type { Card } from '../types';
 import { AttributeBadge } from './AttributeBadge';
+import { CardBattleRecord } from './CardBattleRecord';
 import { CardPreview } from './CardPreview';
 import { LimitBreakStars } from './LimitBreakStars';
 import { RarityBadge } from './RarityBadge';
@@ -65,7 +66,11 @@ export function DeckCardDetailCard({ card, isFauxLost }: DeckCardDetailCardProps
       </div>
 
       <p className="deck-detail-card-record">
-        {card.wins}勝{card.losses}敗 · 復活 {card.reviveCount}回
+        <CardBattleRecord
+          wins={card.wins}
+          losses={card.losses}
+          reviveCount={card.reviveCount}
+        />
       </p>
 
       {isFauxLost && (

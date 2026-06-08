@@ -4,6 +4,7 @@ import { DECK_MAX } from '../config/balance';
 import type { Card } from '../types';
 import { getRarityMeta, type RarityMeta } from '../config/rarity';
 import { AttributeBadge } from './AttributeBadge';
+import { CardBattleRecord } from './CardBattleRecord';
 import { LimitBreakStars } from './LimitBreakStars';
 import { RarityBadge } from './RarityBadge';
 import { CardPreview } from './CardPreview';
@@ -70,10 +71,12 @@ function DeckCardRowBody({ card }: { card: Card }) {
                 size="deck"
               />
             </div>
-            <span className="deck-card-record muted">
-              {card.wins}勝{card.losses}敗（復活：
-              {card.reviveCount}）
-            </span>
+            <CardBattleRecord
+              className="deck-card-record muted"
+              wins={card.wins}
+              losses={card.losses}
+              reviveCount={card.reviveCount}
+            />
           </div>
         </div>
       </div>

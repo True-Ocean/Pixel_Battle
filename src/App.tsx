@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { Card, ScreenId, UserProfile, BattleOutcome } from './types';
 import { DECK_MAX } from './config/balance';
 import { applyCardSurvivalRecords } from './card';
@@ -34,6 +34,11 @@ function App() {
   );
   const [battleSetupKey, setBattleSetupKey] = useState(0);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
+
+  const userRef = useRef(user);
+  const deckRef = useRef(deck);
+  userRef.current = user;
+  deckRef.current = deck;
 
   const persistSave = useCallback(
     (next: { user?: UserProfile | null; deck?: Card[] }) => {
@@ -105,26 +110,24 @@ function App() {
 
   const applyBattleOutcome = useCallback((outcome: BattleOutcome) => {
     setFauxLostCardId(outcome.fauxLostCardId);
-    setUser((prevUser) => {
-      const nextUser = isProfileComplete(prevUser)
-        ? recordUserBattleOutcome(prevUser, {
-            cpuDefeatedCount: outcome.cpuDefeatedCount,
-            winner: outcome.winner,
-            playerDeckPower: outcome.playerDeckPower,
-            opponentDeckPower: outcome.opponentDeckPower,
-          })
-        : prevUser;
-      setDeck((prevDeck) => {
-        const nextDeck = applyCardSurvivalRecords(
-          prevDeck,
-          outcome.playerCardIds,
-          outcome.defeatedPlayerCardIds,
-        );
-        saveSave({ user: nextUser, deck: nextDeck });
-        return nextDeck;
-      });
-      return nextUser;
-    });
+    const prevUser = userRef.current;
+    const prevDeck = deckRef.current;
+    const nextUser = isProfileComplete(prevUser)
+      ? recordUserBattleOutcome(prevUser, {
+          cpuDefeatedCount: outcome.cpuDefeatedCount,
+          winner: outcome.winner,
+          playerDeckPower: outcome.playerDeckPower,
+          opponentDeckPower: outcome.opponentDeckPower,
+        })
+      : prevUser;
+    const nextDeck = applyCardSurvivalRecords(
+      prevDeck,
+      outcome.playerCardIds,
+      outcome.defeatedPlayerCardIds,
+    );
+    saveSave({ user: nextUser, deck: nextDeck });
+    setUser(nextUser);
+    setDeck(nextDeck);
   }, []);
 
   const goToDeck = useCallback(() => setScreen('deck'), []);

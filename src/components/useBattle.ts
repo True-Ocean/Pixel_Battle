@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PROTOTYPE_FAKE_LOSS } from '../config/balance';
 import { computeDeckPower } from '../card';
 import {
@@ -64,7 +64,7 @@ export function useBattle(
   const [pendingPromoteFrom, setPendingPromoteFrom] =
     useState<BoardPosition | null>(null);
   const [playback, setPlayback] = useState<BattlePlayback | null>(null);
-  const [outcomeSaved, setOutcomeSaved] = useState(false);
+  const outcomeSavedRef = useRef(false);
   const result = getBattleResult(state);
   const effectivePhase: BattleUiPhase = result && !playback ? 'ended' : uiPhase;
   const playerAlive = state.player
@@ -416,8 +416,8 @@ export function useBattle(
   );
 
   const handleEnd = useCallback(() => {
-    if (outcomeSaved || !result) return;
-    setOutcomeSaved(true);
+    if (outcomeSavedRef.current || !result) return;
+    outcomeSavedRef.current = true;
     let fauxLostCardId: string | null = null;
     if (result === 'cpu' && PROTOTYPE_FAKE_LOSS) {
       const idx = Math.floor(Math.random() * playerCards.length);
@@ -432,7 +432,7 @@ export function useBattle(
       opponentDeckPower: computeDeckPower(cpuCards),
       fauxLostCardId,
     });
-  }, [outcomeSaved, result, playerCards, state.cpu, state.player, onFinish]);
+  }, [result, playerCards, state.cpu, state.player, onFinish, cpuCards]);
 
   const hint = useMemo(() => {
     if (effectivePhase === 'ended') return null;

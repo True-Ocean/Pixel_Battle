@@ -767,7 +767,7 @@ function BattleSession({
 
   useEffect(() => {
     if (ended) battle.handleEnd();
-  }, [ended, battle]);
+  }, [ended, battle.handleEnd]);
 
   useEffect(() => {
     onEndedChange?.(ended);

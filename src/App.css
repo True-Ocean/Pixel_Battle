@@ -763,6 +763,13 @@
   white-space: pre-line;
 }
 
+.card-battle-record {
+  display: inline-flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  justify-content: inherit;
+}
+
 .deck-detail-card-record {
   margin: 0;
   text-align: center;
