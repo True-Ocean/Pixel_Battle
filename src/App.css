@@ -1508,6 +1508,77 @@
   font-size: 0.48rem;
 }
 
+.canvas-size-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin: 0.2rem 0 0.35rem;
+  flex-wrap: wrap;
+}
+
+.canvas-size-picker-label {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: #555;
+  font-weight: 600;
+}
+
+.canvas-size-picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.canvas-size-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  min-width: 2.1rem;
+  min-height: 1.75rem;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid #bbb;
+  border-radius: 5px;
+  background: #f4f4f8;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.canvas-size-chip.active {
+  border-color: #646cff;
+  background: #646cff;
+  color: #fff;
+}
+
+.canvas-size-chip.locked,
+.canvas-size-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #ececf0;
+}
+
+.canvas-size-chip-lock {
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.palette-swatch-locked {
+  background: #e8e8ee !important;
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.palette-swatch-lock {
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
 .editor-canvas-wrap {
   flex-shrink: 0;
   display: flex;
@@ -1608,6 +1679,7 @@
   border: 1px solid #333;
   border-radius: 4px;
   overflow: hidden;
+  image-rendering: pixelated;
 }
 
 .card-preview-cell {

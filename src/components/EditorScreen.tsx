@@ -1,7 +1,13 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { createEmptyGrid } from '../canvas';
-import { CANVAS_SIZE, DECK_MAX } from '../config/balance';
+import { cloneGrid, createEmptyGrid, gridSize, resizeGrid } from '../canvas';
+import { DECK_MAX } from '../config/balance';
 import { PALETTE_16 } from '../config/palette';
+import {
+  getDefaultCanvasSize,
+  getUnlockedCanvasSizes,
+  isCanvasSizeUnlocked,
+  type CanvasSize,
+} from '../config/canvasUnlock';
 import {
   CardCreationError,
   computeColorRatios,
@@ -10,6 +16,7 @@ import {
 } from '../card';
 import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import type { Card, PixelGrid } from '../types';
+import { CanvasSizePicker } from './CanvasSizePicker';
 import { CardPreview } from './CardPreview';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PalettePicker, PixelCanvas, type EditorTool } from './PixelCanvas';
@@ -23,15 +30,12 @@ interface EditorScreenProps {
   onUpdated?: (card: Card) => void;
 }
 
-function cloneGrid(pixels: Card['pixels']) {
-  return pixels.map((row) => [...row]);
-}
-
 function validateDrawing(name: string, pixels: PixelGrid): string | null {
   if (!name.trim()) {
     return 'カード名を入力してください';
   }
-  const ratios = computeColorRatios(pixels, CANVAS_SIZE * CANVAS_SIZE);
+  const size = gridSize(pixels);
+  const ratios = computeColorRatios(pixels, size * size);
   if (!ratios) {
     return '1マス以上塗ってください';
   }
@@ -47,9 +51,18 @@ export function EditorScreen({
   onUpdated,
 }: EditorScreenProps) {
   const isEditing = editTarget != null;
+  const unlockedCanvasSizes = getUnlockedCanvasSizes(userLevel);
+  const editCanvasSize = editTarget?.canvasSize ?? gridSize(editTarget?.pixels ?? []);
+
   const [name, setName] = useState(() => editTarget?.name ?? '');
+  const [canvasSize, setCanvasSize] = useState<CanvasSize>(() => {
+    if (isEditing && editTarget) {
+      return editCanvasSize as CanvasSize;
+    }
+    return getDefaultCanvasSize(userLevel);
+  });
   const [pixels, setPixels] = useState(() =>
-    editTarget ? cloneGrid(editTarget.pixels) : createEmptyGrid(),
+    editTarget ? cloneGrid(editTarget.pixels) : createEmptyGrid(canvasSize),
   );
   const [brushColor, setBrushColor] = useState<string>(PALETTE_16[0]);
   const [tool, setTool] = useState<EditorTool>('paint');
@@ -74,6 +87,13 @@ export function EditorScreen({
     return () => observer.disconnect();
   }, []);
 
+  const handleCanvasSizeChange = (nextSize: CanvasSize) => {
+    if (isEditing) return;
+    if (!isCanvasSizeUnlocked(nextSize, userLevel)) return;
+    setCanvasSize(nextSize);
+    setPixels((current) => resizeGrid(current, nextSize));
+  };
+
   const persistCard = () => {
     setError(null);
     if (!isEditing && deckCount >= DECK_MAX) {
@@ -93,6 +113,7 @@ export function EditorScreen({
         const card = createCardFromDrawing(name, pixels, {
           userLevel,
           unlockedPaletteCount: getUnlockedPaletteCount(userLevel),
+          canvasSize,
         });
         onCreated(card);
       }
@@ -138,12 +159,13 @@ export function EditorScreen({
               <PalettePicker
                 tool={tool}
                 brushColor={brushColor}
+                userLevel={userLevel}
                 onSelectColor={(color) => {
                   setBrushColor(color);
                   setTool('paint');
                 }}
                 onSelectTool={setTool}
-                onClear={() => setPixels(createEmptyGrid())}
+                onClear={() => setPixels(createEmptyGrid(canvasSize))}
               />
             </div>
             <div
@@ -154,6 +176,13 @@ export function EditorScreen({
               <CardPreview pixels={pixels} />
             </div>
           </div>
+
+          <CanvasSizePicker
+            selectedSize={canvasSize}
+            unlockedSizes={unlockedCanvasSizes}
+            onSelectSize={handleCanvasSizeChange}
+            disabled={isEditing}
+          />
 
           <div className="editor-canvas-wrap">
             <PixelCanvas

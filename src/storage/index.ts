@@ -1,6 +1,13 @@
 import type { Card, CardRarity, CardStars, SaveData } from '../types';
-import { DECK_MAX, USER_INITIAL_EXP, USER_INITIAL_LEVEL } from '../config/balance';
-import { normalizeUserProfile } from '../user';
+import {
+  CANVAS_SIZE_DEFAULT,
+  DEV_FORCE_MAX_USER_LEVEL,
+  DECK_MAX,
+  USER_INITIAL_EXP,
+  USER_INITIAL_LEVEL,
+} from '../config/balance';
+import { gridSize } from '../canvas';
+import { applyDevMaxUserLevel, normalizeUserProfile } from '../user';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
 
@@ -39,14 +46,31 @@ function migrateCard(raw: Record<string, unknown>): Card | null {
     rarity,
     stars,
     createdAt,
+    canvasSize,
     ...rest
   } = raw;
+
+  const pixels = (rest as { pixels?: unknown }).pixels;
+  const resolvedCanvasSize =
+    typeof canvasSize === 'number' && canvasSize > 0
+      ? canvasSize
+      : Array.isArray(pixels)
+        ? gridSize(pixels as Card['pixels'])
+        : CANVAS_SIZE_DEFAULT;
 
   return {
     ...(rest as Omit<
       Card,
-      'bp' | 'wins' | 'losses' | 'reviveCount' | 'rarity' | 'stars' | 'createdAt'
+      | 'bp'
+      | 'canvasSize'
+      | 'wins'
+      | 'losses'
+      | 'reviveCount'
+      | 'rarity'
+      | 'stars'
+      | 'createdAt'
     >),
+    canvasSize: resolvedCanvasSize,
     bp,
     wins: typeof wins === 'number' ? wins : 0,
     losses: typeof losses === 'number' ? losses : 0,
@@ -74,10 +98,16 @@ export function loadSave(): SaveData {
     if (!raw) return emptySave();
     const parsed = JSON.parse(raw) as Partial<SaveData>;
     if (!Array.isArray(parsed.deck)) return emptySave();
-    return {
-      user: normalizeUserProfile(parsed.user),
-      deck: migrateDeck(parsed.deck),
-    };
+    const user = normalizeUserProfile(parsed.user);
+    const deck = migrateDeck(parsed.deck);
+    if (user && DEV_FORCE_MAX_USER_LEVEL) {
+      const upgraded = applyDevMaxUserLevel(user);
+      if (upgraded.level !== user.level || upgraded.exp !== user.exp) {
+        saveSave({ user: upgraded, deck });
+      }
+      return { user: upgraded, deck };
+    }
+    return { user, deck };
   } catch {
     return emptySave();
   }

@@ -7,6 +7,7 @@ function makeCard(id: string): Card {
     id,
     name: id,
     pixels: [[null]],
+    canvasSize: 1,
     attribute: 'attack',
     bp: 10,
     wins: 0,

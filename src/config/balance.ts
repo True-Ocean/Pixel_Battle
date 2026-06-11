@@ -4,7 +4,11 @@
 
 import type { Attribute, CardRarity } from '../types';
 
-export const CANVAS_SIZE = 16;
+/** 初期キャンバス・既存セーブ移行のデフォルト値 */
+export const CANVAS_SIZE_DEFAULT = 16;
+
+/** @deprecated CANVAS_SIZE_DEFAULT を使用 */
+export const CANVAS_SIZE = CANVAS_SIZE_DEFAULT;
 export const DECK_MAX = 5;
 export const FRONT_SIZE = 2;
 export const BACK_SIZE = 3;
@@ -26,26 +30,30 @@ export const PROTOTYPE_FAKE_LOSS = true;
 
 /**
  * 2×8 マスターパレット（左上から行優先・計16色）。
- * Lv0 は先頭3色（白・黒・赤）のみ表示・選択可。将来 Lv アップで順次追加。
+ * index 0〜9: プレイ用（白→茶、§5.6 の順でレベル解放）。
+ * index 10〜15: 将来用に予約。
  */
 export const PALETTE_16 = [
   '#ffffff',
   '#000000',
   '#ff0000',
-  '#ff8800',
+  '#2222ff',
   '#ffdd00',
   '#44cc44',
+  '#ff8800',
+  '#ff44ff',
+  '#8844ff',
+  '#886644',
   '#44dddd',
   '#4488ff',
-  '#2222ff',
-  '#8844ff',
-  '#ff44ff',
   '#ff4488',
-  '#886644',
   '#bbbbbb',
   '#555555',
   '#ffcccc',
 ] as const;
+
+/** エディタ UI に表示するプレイ用色数（index 0〜9） */
+export const PALETTE_PLAYABLE_COUNT = 10;
 
 export const PALETTE_GRID_COLS = 8;
 export const PALETTE_GRID_ROWS = 2;
@@ -69,7 +77,13 @@ export const DEFENSE_BP_RATIO = 0.85;
 
 /** 初回セットアップ・ユーザープロフィール */
 export const USER_INITIAL_LEVEL = 1;
-export const MAX_USER_LEVEL = 30;
+export const MAX_USER_LEVEL = 50;
+
+/**
+ * プロトタイプ検証用: true のときユーザーを常に最大レベルで扱う。
+ * 本番・通常プレイ前に false に戻すこと。
+ */
+export const DEV_FORCE_MAX_USER_LEVEL = true;
 
 /** @deprecated レベル連動BP以前の固定レンジ（参照用） */
 export const BP_RANGE: Record<'attack' | 'defense', { min: number; max: number }> = {

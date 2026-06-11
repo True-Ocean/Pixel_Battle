@@ -5,6 +5,7 @@ import { applyCardSurvivalRecords, recordCardRevive } from './card';
 import { buildBalancedCpuDeck } from './game/cpuDeck';
 import { loadSave, saveSave } from './storage';
 import {
+  applyDevMaxUserLevel,
   createInitialProfile,
   isProfileComplete,
   recordUserBattleOutcome,
@@ -56,7 +57,7 @@ function App() {
 
   const completeSetup = useCallback(
     (username: string) => {
-      const profile = createInitialProfile(username);
+      const profile = applyDevMaxUserLevel(createInitialProfile(username));
       setUser(profile);
       persistSave({ user: profile });
       setScreen('deck');

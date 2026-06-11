@@ -2,6 +2,7 @@ import {
   PALETTE_16,
   PALETTE_GRID_COLS,
   PALETTE_GRID_ROWS,
+  PALETTE_PLAYABLE_COUNT,
   PALETTE_UNLOCKED_COUNT_LV0,
 } from './balance';
 
@@ -9,6 +10,7 @@ export {
   PALETTE_16,
   PALETTE_GRID_COLS,
   PALETTE_GRID_ROWS,
+  PALETTE_PLAYABLE_COUNT,
   PALETTE_UNLOCKED_COUNT_LV0,
 };
 
@@ -16,16 +18,16 @@ export const PALETTE_COLOR_LABELS = [
   '白',
   '黒',
   '赤',
-  '橙',
+  '青',
   '黄',
   '緑',
+  '橙',
+  '桃',
+  '紫',
+  '茶',
   '水',
   '空',
-  '青',
-  '紫',
-  '桃',
   'ピンク',
-  '茶',
   '灰',
   '暗灰',
   '薄桃',
@@ -58,6 +60,15 @@ export function paletteGridPlacement(index: number): { row: number; col: number 
     row: Math.floor(index / PALETTE_GRID_COLS) + 1,
     col: (index % PALETTE_GRID_COLS) + 1,
   };
+}
+
+/** エディタ用: index 0〜9 の固定スロット（2行目ツールと重ならない） */
+export function paletteEditorSlotPlacement(
+  index: number,
+): { row: number; col: number } | null {
+  if (index < 0 || index >= PALETTE_PLAYABLE_COUNT) return null;
+  if (index < PALETTE_GRID_COLS) return paletteGridPlacement(index);
+  return { row: 2, col: index - PALETTE_GRID_COLS + 4 };
 }
 
 /** 2行目のツール（消しゴム・塗りつぶし・クリア）配置 */

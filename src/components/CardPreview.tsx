@@ -1,14 +1,15 @@
-import { CANVAS_SIZE } from '../config/balance';
-import { checkerTone } from '../canvas';
+import { checkerTone, gridSize } from '../canvas';
 import type { PixelGrid } from '../types';
 
 export function CardPreview({ pixels }: { pixels: PixelGrid }) {
+  const size = gridSize(pixels);
+
   return (
     <div
       className="card-preview pixel-checkerboard"
       style={{
-        gridTemplateColumns: `repeat(${CANVAS_SIZE}, 1fr)`,
-        gridTemplateRows: `repeat(${CANVAS_SIZE}, 1fr)`,
+        gridTemplateColumns: `repeat(${size}, 1fr)`,
+        gridTemplateRows: `repeat(${size}, 1fr)`,
       }}
       aria-hidden
     >

@@ -1,16 +1,69 @@
-import { CANVAS_SIZE } from '../config/balance';
+import { CANVAS_SIZE_DEFAULT } from '../config/balance';
 import type { PixelGrid } from '../types';
 
 /** 未塗りマスは null */
-export function createEmptyGrid(): PixelGrid {
-  return Array.from({ length: CANVAS_SIZE }, () =>
-    Array.from({ length: CANVAS_SIZE }, () => null),
+export function createEmptyGrid(
+  size: number = CANVAS_SIZE_DEFAULT,
+): PixelGrid {
+  const n = Math.max(1, Math.floor(size));
+  return Array.from({ length: n }, () =>
+    Array.from({ length: n }, () => null),
   );
+}
+
+export function gridSize(pixels: PixelGrid): number {
+  return pixels.length;
+}
+
+export function cloneGrid(pixels: PixelGrid): PixelGrid {
+  return pixels.map((row) => [...row]);
+}
+
+/** 1マス塗り（不変更新） */
+export function paintCell(
+  pixels: PixelGrid,
+  row: number,
+  col: number,
+  color: string,
+): PixelGrid {
+  if (row < 0 || col < 0 || row >= pixels.length || col >= pixels.length) {
+    return pixels;
+  }
+  const next = cloneGrid(pixels);
+  next[row]![col] = color;
+  return next;
+}
+
+/** 1マス消し（不変更新） */
+export function eraseCell(pixels: PixelGrid, row: number, col: number): PixelGrid {
+  if (row < 0 || col < 0 || row >= pixels.length || col >= pixels.length) {
+    return pixels;
+  }
+  const next = cloneGrid(pixels);
+  next[row]![col] = null;
+  return next;
+}
+
+export function isStrokeTool(tool: 'paint' | 'eraser' | 'fill'): boolean {
+  return tool === 'paint' || tool === 'eraser';
+}
+
+/** サイズ変更時: 既存ピクセルを左上基準で新グリッドへコピー */
+export function resizeGrid(pixels: PixelGrid, newSize: number): PixelGrid {
+  const next = createEmptyGrid(newSize);
+  const oldSize = pixels.length;
+  const copy = Math.min(oldSize, newSize);
+  for (let r = 0; r < copy; r++) {
+    for (let c = 0; c < copy; c++) {
+      next[r]![c] = pixels[r]?.[c] ?? null;
+    }
+  }
+  return next;
 }
 
 export type CheckerTone = 'light' | 'dark';
 
-/** 16×16 グリッド用の市松模様トーン（行+列の奇偶） */
+/** グリッド用の市松模様トーン（行+列の奇偶） */
 export function checkerTone(row: number, col: number): CheckerTone {
   return (row + col) % 2 === 0 ? 'light' : 'dark';
 }

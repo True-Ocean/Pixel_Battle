@@ -1,12 +1,12 @@
 import {
   BLACK_ATTACK_WEIGHT,
-  CANVAS_SIZE,
   COLOR_WEIGHT,
   HASH_WEIGHT,
   USER_INITIAL_LEVEL,
   applyRarityToBp,
   computeCardBaseBp,
 } from '../config/balance';
+import { gridSize } from '../canvas';
 import type { Attribute, Card, PixelGrid } from '../types';
 import { computeColorRatios, normalizePixelColor } from './colors';
 import type { ColorRatios } from './colors';
@@ -22,6 +22,7 @@ export interface CardDraft {
 export interface CreateCardOptions {
   userLevel?: number;
   unlockedPaletteCount?: number;
+  canvasSize?: number;
   random?: () => number;
 }
 
@@ -41,7 +42,8 @@ function validateDrawingInput(
     throw new CardCreationError('カード名を入力してください');
   }
 
-  const totalCells = CANVAS_SIZE * CANVAS_SIZE;
+  const size = gridSize(pixels);
+  const totalCells = size * size;
   const ratios = computeColorRatios(pixels, totalCells);
   if (!ratios) {
     throw new CardCreationError('1マス以上塗ってください');
@@ -122,10 +124,13 @@ export function createCardFromDrawing(
   );
   const finalBp = applyRarityToBp(bp, attribute, rarity, userLevel);
 
+  const canvasSize = options.canvasSize ?? gridSize(normalized);
+
   return {
     id: createCardId(),
     name: name.trim(),
     pixels: normalized,
+    canvasSize,
     attribute,
     bp: finalBp,
     wins: 0,
@@ -159,6 +164,7 @@ export function updateCardFromDrawing(
     ...existing,
     name: trimmed,
     pixels: normalized,
+    canvasSize: gridSize(normalized),
     bp,
   };
 }

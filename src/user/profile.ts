@@ -1,4 +1,6 @@
 import {
+  DEV_FORCE_MAX_USER_LEVEL,
+  MAX_USER_LEVEL,
   USER_INITIAL_EXP,
   USER_INITIAL_LEVEL,
   USERNAME_MAX_LENGTH,
@@ -8,7 +10,18 @@ import {
   calcBattleExpGain,
   calcUpsetExpBonus,
   levelFromTotalExp,
+  totalExpForLevel,
 } from './level';
+
+/** 開発用: レベル・EXP を上限に揃える */
+export function applyDevMaxUserLevel(user: UserProfile): UserProfile {
+  if (!DEV_FORCE_MAX_USER_LEVEL) return user;
+  return {
+    ...user,
+    level: MAX_USER_LEVEL,
+    exp: totalExpForLevel(MAX_USER_LEVEL),
+  };
+}
 
 export function isProfileComplete(user: UserProfile | null): user is UserProfile {
   return user != null && user.username.trim().length > 0;

@@ -78,6 +78,7 @@ describe('createCardFromDrawing', () => {
     const card = createCardFromDrawing('x', fillGrid('#ff0000'));
     expect(card.pixels).toHaveLength(CANVAS_SIZE);
     expect(card.pixels[0]).toHaveLength(CANVAS_SIZE);
+    expect(card.canvasSize).toBe(CANVAS_SIZE);
     expect(card.name).toBe('x');
     expect(card.wins).toBe(0);
     expect(card.reviveCount).toBe(0);

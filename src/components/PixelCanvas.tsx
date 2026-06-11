@@ -1,13 +1,25 @@
-import { useRef } from 'react';
-import { CANVAS_SIZE } from '../config/balance';
+import { useEffect, useRef, useState } from 'react';
+import {
+  PALETTE_16,
+  PALETTE_PLAYABLE_COUNT,
+} from '../config/balance';
 import {
   PALETTE_COLOR_LABELS,
-  PALETTE_UNLOCKED_COUNT_LV0,
-  paletteGridPlacement,
+  paletteEditorSlotPlacement,
   paletteToolPlacement,
-  unlockedPaletteColors,
 } from '../config/palette';
-import { checkerTone, floodFill } from '../canvas';
+import {
+  isPaletteUnlockedAtLevel,
+  PALETTE_UNLOCK_LEVELS,
+} from '../config/paletteUnlock';
+import {
+  checkerTone,
+  eraseCell,
+  floodFill,
+  gridSize,
+  isStrokeTool,
+  paintCell,
+} from '../canvas';
 import type { PixelGrid } from '../types';
 
 export type EditorTool = 'paint' | 'eraser' | 'fill';
@@ -26,34 +38,26 @@ export function PixelCanvas({
   brushColor,
 }: PixelCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
-  const pixelsRef = useRef(pixels);
   const isDrawingRef = useRef(false);
   const lastCellRef = useRef<{ row: number; col: number } | null>(null);
+  /** ストローク中の下書き（親への onChange はポインタアップまで遅延） */
+  const [draftPixels, setDraftPixels] = useState<PixelGrid | null>(null);
+  const draftPixelsRef = useRef<PixelGrid | null>(null);
 
-  pixelsRef.current = pixels;
+  const canvasSize = gridSize(pixels);
+  const displayPixels = draftPixels ?? pixels;
 
-  const applyAt = (row: number, col: number) => {
-    const current = pixelsRef.current;
-
-    if (tool === 'paint') {
-      const next = current.map((r, ri) =>
-        r.map((cell, ci) => (ri === row && ci === col ? brushColor : cell)),
-      );
-      pixelsRef.current = next;
-      onChange(next);
-      return;
+  useEffect(() => {
+    if (!isDrawingRef.current) {
+      draftPixelsRef.current = null;
+      setDraftPixels(null);
     }
-    if (tool === 'eraser') {
-      const next = current.map((r, ri) =>
-        r.map((cell, ci) => (ri === row && ci === col ? null : cell)),
-      );
-      pixelsRef.current = next;
-      onChange(next);
-      return;
-    }
-    const next = floodFill(current, row, col, brushColor);
-    pixelsRef.current = next;
-    onChange(next);
+  }, [pixels]);
+
+  const applyStrokeCell = (grid: PixelGrid, row: number, col: number) => {
+    if (tool === 'paint') return paintCell(grid, row, col, brushColor);
+    if (tool === 'eraser') return eraseCell(grid, row, col);
+    return grid;
   };
 
   const cellFromPointer = (clientX: number, clientY: number) => {
@@ -66,12 +70,12 @@ export function PixelCanvas({
     if (x < 0 || y < 0 || x >= rect.width || y >= rect.height) return null;
 
     const col = Math.min(
-      CANVAS_SIZE - 1,
-      Math.floor((x / rect.width) * CANVAS_SIZE),
+      canvasSize - 1,
+      Math.floor((x / rect.width) * canvasSize),
     );
     const row = Math.min(
-      CANVAS_SIZE - 1,
-      Math.floor((y / rect.height) * CANVAS_SIZE),
+      canvasSize - 1,
+      Math.floor((y / rect.height) * canvasSize),
     );
     return { row, col };
   };
@@ -80,13 +84,29 @@ export function PixelCanvas({
     const last = lastCellRef.current;
     if (last?.row === row && last.col === col) return;
     lastCellRef.current = { row, col };
-    applyAt(row, col);
+    setDraftPixels((current) => {
+      const next = applyStrokeCell(current ?? pixels, row, col);
+      draftPixelsRef.current = next;
+      return next;
+    });
+  };
+
+  const commitStroke = () => {
+    const final = draftPixelsRef.current;
+    if (final != null) {
+      onChange(final);
+    }
+    draftPixelsRef.current = null;
+    setDraftPixels(null);
   };
 
   const endStroke = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDrawingRef.current) return;
     isDrawingRef.current = false;
     lastCellRef.current = null;
+    if (isStrokeTool(tool)) {
+      commitStroke();
+    }
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
@@ -99,14 +119,23 @@ export function PixelCanvas({
     const cell = cellFromPointer(e.clientX, e.clientY);
     if (!cell) return;
 
+    if (tool === 'fill') {
+      onChange(floodFill(pixels, cell.row, cell.col, brushColor));
+      return;
+    }
+
+    if (!isStrokeTool(tool)) return;
+
     isDrawingRef.current = true;
     lastCellRef.current = null;
     e.currentTarget.setPointerCapture(e.pointerId);
-    paintAt(cell.row, cell.col);
+    const next = applyStrokeCell(pixels, cell.row, cell.col);
+    draftPixelsRef.current = next;
+    setDraftPixels(next);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDrawingRef.current || tool === 'fill') return;
+    if (!isDrawingRef.current || !isStrokeTool(tool)) return;
 
     const cell = cellFromPointer(e.clientX, e.clientY);
     if (!cell) return;
@@ -118,17 +147,17 @@ export function PixelCanvas({
       ref={canvasRef}
       className="pixel-canvas pixel-checkerboard"
       style={{
-        gridTemplateColumns: `repeat(${CANVAS_SIZE}, 1fr)`,
+        gridTemplateColumns: `repeat(${canvasSize}, 1fr)`,
       }}
       role="img"
-      aria-label={`${CANVAS_SIZE}×${CANVAS_SIZE} ドットキャンバス`}
+      aria-label={`${canvasSize}×${canvasSize} ドットキャンバス`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={endStroke}
       onPointerCancel={endStroke}
       onLostPointerCapture={endStroke}
     >
-      {pixels.map((row, ri) =>
+      {displayPixels.map((row, ri) =>
         row.map((cell, ci) => (
           <div
             key={`${ri}-${ci}`}
@@ -146,22 +175,77 @@ export function PixelCanvas({
   );
 }
 
+function paletteUnlockLevelForIndex(index: number): number | null {
+  if (index < 3) return 1;
+  const extraIndex = index - 3;
+  return PALETTE_UNLOCK_LEVELS[extraIndex] ?? null;
+}
+
 export function PalettePicker({
   tool,
   brushColor,
   onSelectColor,
   onSelectTool,
   onClear,
-  unlockedCount = PALETTE_UNLOCKED_COUNT_LV0,
+  userLevel = 1,
 }: {
   tool: EditorTool;
   brushColor: string;
   onSelectColor: (color: string) => void;
   onSelectTool: (tool: 'eraser' | 'fill') => void;
   onClear: () => void;
-  unlockedCount?: number;
+  userLevel?: number;
 }) {
-  const colors = unlockedPaletteColors(unlockedCount);
+  const colorSlots = Array.from({ length: PALETTE_PLAYABLE_COUNT }, (_, index) => {
+    const color = PALETTE_16[index]!;
+    const placement = paletteEditorSlotPlacement(index);
+    const unlocked = isPaletteUnlockedAtLevel(index, userLevel);
+    const unlockLevel = paletteUnlockLevelForIndex(index);
+    const label = PALETTE_COLOR_LABELS[index];
+    const active = tool === 'paint' && brushColor === color;
+    const isLight = color === '#ffffff';
+
+    if (!placement) return null;
+
+    return (
+      <button
+        key={color}
+        type="button"
+        className={[
+          'palette-swatch',
+          isLight ? 'palette-swatch-light' : '',
+          active ? 'active' : '',
+          !unlocked ? 'palette-swatch-locked' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        style={{
+          gridRow: placement.row,
+          gridColumn: placement.col,
+          background: unlocked ? color : undefined,
+        }}
+        disabled={!unlocked}
+        title={
+          unlocked
+            ? label
+            : unlockLevel != null
+              ? `Lv${unlockLevel}で解放`
+              : label
+        }
+        onClick={() => onSelectColor(color)}
+      >
+        {!unlocked && (
+          <span className="palette-swatch-lock" aria-hidden>
+            🔒
+          </span>
+        )}
+        <span className="sr-only">
+          {label}
+          {!unlocked && unlockLevel != null ? `（Lv${unlockLevel}で解放）` : ''}
+        </span>
+      </button>
+    );
+  });
 
   return (
     <div
@@ -169,36 +253,7 @@ export function PalettePicker({
       role="toolbar"
       aria-label="カラーパレット"
     >
-      {colors.map((color, index) => {
-        const { row, col } = paletteGridPlacement(index);
-        const label = PALETTE_COLOR_LABELS[index];
-        const active = tool === 'paint' && brushColor === color;
-
-        const isLight = color === '#ffffff';
-
-        return (
-          <button
-            key={color}
-            type="button"
-            className={[
-              'palette-swatch',
-              isLight ? 'palette-swatch-light' : '',
-              active ? 'active' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            style={{
-              gridRow: row,
-              gridColumn: col,
-              background: color,
-            }}
-            title={label}
-            onClick={() => onSelectColor(color)}
-          >
-            <span className="sr-only">{label}</span>
-          </button>
-        );
-      })}
+      {colorSlots}
 
       <button
         type="button"

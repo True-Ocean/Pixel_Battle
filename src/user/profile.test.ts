@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEV_FORCE_MAX_USER_LEVEL,
+  MAX_USER_LEVEL,
   USER_INITIAL_EXP,
   USER_INITIAL_LEVEL,
 } from '../config/balance';
 import {
+  applyDevMaxUserLevel,
   createInitialProfile,
   grantBattleExp,
   isProfileComplete,
@@ -30,6 +33,19 @@ describe('createInitialProfile', () => {
       battleWins: 0,
       battleLosses: 0,
     });
+  });
+});
+
+describe('applyDevMaxUserLevel', () => {
+  it('raises level and exp to the cap when dev flag is on', () => {
+    const base = createInitialProfile('test');
+    const result = applyDevMaxUserLevel(base);
+    if (DEV_FORCE_MAX_USER_LEVEL) {
+      expect(result.level).toBe(MAX_USER_LEVEL);
+      expect(result.exp).toBe(totalExpForLevel(MAX_USER_LEVEL));
+    } else {
+      expect(result).toEqual(base);
+    }
   });
 });
 

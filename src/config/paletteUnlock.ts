@@ -1,7 +1,26 @@
-import { PALETTE_UNLOCKED_COUNT_LV0 } from './balance';
+import {
+  PALETTE_PLAYABLE_COUNT,
+  PALETTE_UNLOCKED_COUNT_LV0,
+} from './balance';
 
-/** ユーザーレベルに応じた解放パレット色数（将来拡張） */
+/** 追加色の解放レベル（下一桁が5）。index 3〜9 に対応。 */
+export const PALETTE_UNLOCK_LEVELS = [5, 15, 25, 35, 45, 55, 65] as const;
+
+/** ユーザーレベルに応じた解放パレット色数（index 0 から連続） */
 export function getUnlockedPaletteCount(userLevel: number): number {
-  void userLevel;
-  return PALETTE_UNLOCKED_COUNT_LV0;
+  const level = Math.max(1, Math.floor(userLevel));
+  let count = PALETTE_UNLOCKED_COUNT_LV0;
+  for (const unlockLevel of PALETTE_UNLOCK_LEVELS) {
+    if (level >= unlockLevel) count++;
+    else break;
+  }
+  return Math.min(count, PALETTE_PLAYABLE_COUNT);
+}
+
+export function isPaletteUnlockedAtLevel(
+  paletteIndex: number,
+  userLevel: number,
+): boolean {
+  if (paletteIndex < 0 || paletteIndex >= PALETTE_PLAYABLE_COUNT) return false;
+  return paletteIndex < getUnlockedPaletteCount(userLevel);
 }

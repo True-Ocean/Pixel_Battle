@@ -16,6 +16,8 @@ export interface Card {
   id: string;
   name: string;
   pixels: PixelGrid;
+  /** 描画グリッドの一辺（マス数）。未設定セーブは 16 として移行 */
+  canvasSize: number;
   attribute: Attribute;
   bp: number;
   wins: number;

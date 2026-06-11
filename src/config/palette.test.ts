@@ -5,6 +5,7 @@ import {
   eraserGridPlacement,
   isPaletteColorUnlocked,
   isPaletteIndexUnlocked,
+  paletteEditorSlotPlacement,
   paletteGridPlacement,
   unlockedPaletteColors,
 } from '../config/palette';
@@ -21,7 +22,14 @@ describe('palette', () => {
     expect(isPaletteIndexUnlocked(2)).toBe(true);
     expect(isPaletteIndexUnlocked(3)).toBe(false);
     expect(isPaletteColorUnlocked('#ff0000')).toBe(true);
-    expect(isPaletteColorUnlocked('#ff8800')).toBe(false);
+    expect(isPaletteColorUnlocked('#2222ff')).toBe(false);
+    expect(isPaletteColorUnlocked('#ff8800', 7)).toBe(true);
+  });
+
+  it('エディタ用スロット配置（紫・茶は2行目 col4-5）', () => {
+    expect(paletteEditorSlotPlacement(3)).toEqual({ row: 1, col: 4 });
+    expect(paletteEditorSlotPlacement(8)).toEqual({ row: 2, col: 4 });
+    expect(paletteEditorSlotPlacement(9)).toEqual({ row: 2, col: 5 });
   });
 
   it('2×8 グリッド配置', () => {
