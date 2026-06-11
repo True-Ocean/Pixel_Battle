@@ -52,8 +52,11 @@ export const PALETTE_16 = [
   '#ffcccc',
 ] as const;
 
-/** エディタ UI に表示するプレイ用色数（index 0〜9） */
+/** マスターパレットのプレイ用色数（index 0〜9。紫・茶含む） */
 export const PALETTE_PLAYABLE_COUNT = 10;
+
+/** エディタ1行目に表示する色スロット数（index 0〜7。Lv50 まで） */
+export const PALETTE_EDITOR_COLOR_COUNT = 8;
 
 export const PALETTE_GRID_COLS = 8;
 export const PALETTE_GRID_ROWS = 2;

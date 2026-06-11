@@ -1,5 +1,11 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { cloneGrid, createEmptyGrid, gridSize, resizeGrid } from '../canvas';
+import {
+  popEditorHistory,
+  pushEditorHistory,
+  snapshotsEqual,
+  type EditorSnapshot,
+} from '../canvas/editorHistory';
 import { DECK_MAX } from '../config/balance';
 import { PALETTE_16 } from '../config/palette';
 import {
@@ -18,8 +24,10 @@ import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import type { Card, PixelGrid } from '../types';
 import { CanvasSizePicker } from './CanvasSizePicker';
 import { CardPreview } from './CardPreview';
+import { ColorPalette } from './ColorPalette';
 import { ConfirmDialog } from './ConfirmDialog';
-import { PalettePicker, PixelCanvas, type EditorTool } from './PixelCanvas';
+import { PixelCanvas, type EditorTool } from './PixelCanvas';
+import { ToolStrip } from './ToolStrip';
 
 interface EditorScreenProps {
   deckCount: number;
@@ -29,6 +37,8 @@ interface EditorScreenProps {
   onCreated: (card: Card) => void;
   onUpdated?: (card: Card) => void;
 }
+
+const MINI_PREVIEW_SIZE = 48;
 
 function validateDrawing(name: string, pixels: PixelGrid): string | null {
   if (!name.trim()) {
@@ -64,34 +74,51 @@ export function EditorScreen({
   const [pixels, setPixels] = useState(() =>
     editTarget ? cloneGrid(editTarget.pixels) : createEmptyGrid(canvasSize),
   );
+  const [editorHistory, setEditorHistory] = useState<EditorSnapshot[]>([]);
   const [brushColor, setBrushColor] = useState<string>(PALETTE_16[0]);
   const [tool, setTool] = useState<EditorTool>('paint');
   const [error, setError] = useState<string | null>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
-  const paletteWrapRef = useRef<HTMLDivElement>(null);
-  const [previewSize, setPreviewSize] = useState(56);
+  const editorSnapshotRef = useRef<EditorSnapshot>({ pixels, canvasSize });
 
-  useLayoutEffect(() => {
-    const node = paletteWrapRef.current;
-    if (!node) return;
+  editorSnapshotRef.current = { pixels, canvasSize };
 
-    const syncPreviewSize = () => {
-      const grid = node.querySelector<HTMLElement>('.palette-grid-2x8');
-      const height = grid?.offsetHeight ?? node.clientHeight - 8;
-      setPreviewSize(Math.max(32, Math.round(height)));
-    };
+  const applyEditorChange = useCallback(
+    (next: Partial<EditorSnapshot> & { pixels: PixelGrid }) => {
+      const current = editorSnapshotRef.current;
+      const target: EditorSnapshot = {
+        pixels: next.pixels,
+        canvasSize: next.canvasSize ?? current.canvasSize,
+      };
+      if (snapshotsEqual(current, target)) return;
 
-    syncPreviewSize();
-    const observer = new ResizeObserver(syncPreviewSize);
-    observer.observe(node);
-    return () => observer.disconnect();
+      setEditorHistory((past) => pushEditorHistory(past, current));
+      if (target.canvasSize !== current.canvasSize) {
+        setCanvasSize(target.canvasSize as CanvasSize);
+      }
+      setPixels(cloneGrid(target.pixels));
+    },
+    [],
+  );
+
+  const handleUndo = useCallback(() => {
+    setEditorHistory((past) => {
+      const { past: nextPast, snapshot } = popEditorHistory(past);
+      if (snapshot) {
+        setCanvasSize(snapshot.canvasSize as CanvasSize);
+        setPixels(cloneGrid(snapshot.pixels));
+      }
+      return nextPast;
+    });
   }, []);
 
   const handleCanvasSizeChange = (nextSize: CanvasSize) => {
     if (isEditing) return;
     if (!isCanvasSizeUnlocked(nextSize, userLevel)) return;
-    setCanvasSize(nextSize);
-    setPixels((current) => resizeGrid(current, nextSize));
+    applyEditorChange({
+      pixels: resizeGrid(editorSnapshotRef.current.pixels, nextSize),
+      canvasSize: nextSize,
+    });
   };
 
   const persistCard = () => {
@@ -154,44 +181,55 @@ export function EditorScreen({
 
       <div className="editor-body">
         <div className="editor-image-area">
-          <div className="editor-toolbar-row">
-            <div ref={paletteWrapRef} className="editor-palette-wrap">
-              <PalettePicker
-                tool={tool}
-                brushColor={brushColor}
-                userLevel={userLevel}
-                onSelectColor={(color) => {
-                  setBrushColor(color);
-                  setTool('paint');
-                }}
-                onSelectTool={setTool}
-                onClear={() => setPixels(createEmptyGrid(canvasSize))}
-              />
-            </div>
+          <div className="editor-canvas-meta-row">
+            <CanvasSizePicker
+              selectedSize={canvasSize}
+              unlockedSizes={unlockedCanvasSizes}
+              onSelectSize={handleCanvasSizeChange}
+              disabled={isEditing}
+            />
             <div
               className="editor-screen-mini-preview"
-              style={{ width: previewSize, height: previewSize }}
+              style={{
+                width: MINI_PREVIEW_SIZE,
+                height: MINI_PREVIEW_SIZE,
+              }}
               aria-hidden
             >
               <CardPreview pixels={pixels} />
             </div>
           </div>
 
-          <CanvasSizePicker
-            selectedSize={canvasSize}
-            unlockedSizes={unlockedCanvasSizes}
-            onSelectSize={handleCanvasSizeChange}
-            disabled={isEditing}
-          />
-
-          <div className="editor-canvas-wrap">
-            <PixelCanvas
-              pixels={pixels}
-              onChange={setPixels}
+          <div className="editor-workspace">
+            <ToolStrip
               tool={tool}
-              brushColor={brushColor}
+              userLevel={userLevel}
+              canUndo={editorHistory.length > 0}
+              onSelectTool={setTool}
+              onClear={() =>
+                applyEditorChange({ pixels: createEmptyGrid(canvasSize) })
+              }
+              onUndo={handleUndo}
             />
+            <div className="editor-canvas-wrap">
+              <PixelCanvas
+                pixels={pixels}
+                onChange={(next) => applyEditorChange({ pixels: next })}
+                tool={tool}
+                brushColor={brushColor}
+              />
+            </div>
           </div>
+
+          <ColorPalette
+            tool={tool}
+            brushColor={brushColor}
+            userLevel={userLevel}
+            onSelectColor={(color) => {
+              setBrushColor(color);
+              setTool('paint');
+            }}
+          />
         </div>
 
         <div className="editor-name-section">

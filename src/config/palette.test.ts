@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { PALETTE_16 } from '../config/balance';
 import {
+  PALETTE_EDITOR_COLOR_COUNT,
   PALETTE_UNLOCKED_COUNT_LV0,
-  eraserGridPlacement,
   isPaletteColorUnlocked,
   isPaletteIndexUnlocked,
-  paletteEditorSlotPlacement,
   paletteGridPlacement,
   unlockedPaletteColors,
 } from '../config/palette';
@@ -26,15 +25,9 @@ describe('palette', () => {
     expect(isPaletteColorUnlocked('#ff8800', 7)).toBe(true);
   });
 
-  it('エディタ用スロット配置（紫・茶は2行目 col4-5）', () => {
-    expect(paletteEditorSlotPlacement(3)).toEqual({ row: 1, col: 4 });
-    expect(paletteEditorSlotPlacement(8)).toEqual({ row: 2, col: 4 });
-    expect(paletteEditorSlotPlacement(9)).toEqual({ row: 2, col: 5 });
-  });
-
-  it('2×8 グリッド配置', () => {
+  it('エディタ1行目は index 0〜7 を横並び', () => {
+    expect(PALETTE_EDITOR_COLOR_COUNT).toBe(8);
     expect(paletteGridPlacement(0)).toEqual({ row: 1, col: 1 });
-    expect(paletteGridPlacement(2)).toEqual({ row: 1, col: 3 });
-    expect(eraserGridPlacement(3)).toEqual({ row: 2, col: 1 });
+    expect(paletteGridPlacement(7)).toEqual({ row: 1, col: 8 });
   });
 });
