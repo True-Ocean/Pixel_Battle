@@ -6,6 +6,7 @@ import {
   applyRarityToBp,
   computeCardBaseBp,
 } from '../config/balance';
+import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import { gridSize } from '../canvas';
 import type { Attribute, Card, PixelGrid } from '../types';
 import { computeColorRatios, normalizePixelColor } from './colors';
@@ -95,8 +96,13 @@ export function deriveCardStats(
   return { attribute, bp, ratios };
 }
 
-function normalizeGrid(pixels: PixelGrid): PixelGrid {
-  return pixels.map((row) => row.map((c) => normalizePixelColor(c)));
+function normalizeGrid(
+  pixels: PixelGrid,
+  unlockedPaletteCount: number,
+): PixelGrid {
+  return pixels.map((row) =>
+    row.map((c) => normalizePixelColor(c, unlockedPaletteCount)),
+  );
 }
 
 /** HTTP の LAN アクセスなど非セキュアコンテキストでも使える ID 生成 */
@@ -113,9 +119,10 @@ export function createCardFromDrawing(
   options: CreateCardOptions = {},
 ): Card {
   const userLevel = options.userLevel ?? USER_INITIAL_LEVEL;
-  const normalized = normalizeGrid(pixels);
+  const unlockedPaletteCount =
+    options.unlockedPaletteCount ?? getUnlockedPaletteCount(userLevel);
+  const normalized = normalizeGrid(pixels, unlockedPaletteCount);
   const { attribute, bp, ratios } = deriveCardStats(name, normalized, userLevel);
-  const unlockedPaletteCount = options.unlockedPaletteCount ?? 3;
   const rarity = rollRarity(
     ratios,
     normalized,
@@ -148,8 +155,9 @@ export function updateCardFromDrawing(
   name: string,
   pixels: PixelGrid,
   userLevel: number = USER_INITIAL_LEVEL,
+  unlockedPaletteCount: number = getUnlockedPaletteCount(userLevel),
 ): Card {
-  const normalized = normalizeGrid(pixels);
+  const normalized = normalizeGrid(pixels, unlockedPaletteCount);
   const { trimmed, ratios } = validateDrawingInput(name, normalized);
   const bpBlend = computeBpBlend(trimmed, normalized, ratios);
   const baseBp = computeCardBaseBp(bpBlend, userLevel, existing.attribute);

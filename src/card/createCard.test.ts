@@ -100,6 +100,28 @@ describe('createCardFromDrawing', () => {
     expect(card.bp).toBeGreaterThanOrEqual(Math.round(min * 1.15));
   });
 
+  it('Lv50 の解放色は保存後も保持される', () => {
+    const grid = fillGrid('#ff0000');
+    grid[0][0] = '#2222ff';
+    grid[0][1] = '#ffdd00';
+    grid[0][2] = '#44cc44';
+    grid[0][3] = '#ff8800';
+    grid[0][4] = '#ff44ff';
+
+    const card = createCardFromDrawing('8色', grid, {
+      userLevel: 50,
+      unlockedPaletteCount: 8,
+      canvasSize: 36,
+    });
+
+    expect(card.pixels[0][0]).toBe('#2222ff');
+    expect(card.pixels[0][1]).toBe('#ffdd00');
+    expect(card.pixels[0][2]).toBe('#44cc44');
+    expect(card.pixels[0][3]).toBe('#ff8800');
+    expect(card.pixels[0][4]).toBe('#ff44ff');
+    expect(card.pixels[1][0]).toBe('#ff0000');
+  });
+
   it('同じ絵でも R/SR は N より BP が高くなる', () => {
     const grid = fillGrid('#ff0000');
     const nCard = createCardFromDrawing('same', grid, {
@@ -141,5 +163,20 @@ describe('updateCardFromDrawing', () => {
     expect(updated.stars).toBe(original.stars);
     expect(updated.reviveCount).toBe(original.reviveCount);
     expect(updated.bp).toBeGreaterThan(original.bp);
+  });
+
+  it('編集保存でも解放済みの色を保持する', () => {
+    const original = createCardFromDrawing('色', fillGrid('#ff0000'), {
+      userLevel: 50,
+      unlockedPaletteCount: 8,
+    });
+
+    const grid = fillGrid('#ff0000');
+    grid[0][0] = '#2222ff';
+
+    const updated = updateCardFromDrawing(original, '色', grid, 50, 8);
+
+    expect(updated.pixels[0][0]).toBe('#2222ff');
+    expect(updated.pixels[0][1]).toBe('#ff0000');
   });
 });

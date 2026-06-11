@@ -179,6 +179,7 @@ export function EditorScreen({
           name,
           pixels,
           userLevel,
+          getUnlockedPaletteCount(userLevel),
         );
         onUpdated?.(card);
       } else {
