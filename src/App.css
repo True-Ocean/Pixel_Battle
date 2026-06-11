@@ -1786,8 +1786,15 @@
   color: #fff;
 }
 
-.canvas-size-chip.locked,
-.canvas-size-chip:disabled:not(.active) {
+.canvas-size-chip.locked {
+  opacity: 0.72;
+  cursor: not-allowed;
+  background: #e8e8ee !important;
+  color: #aaa;
+  border-color: #d4d4dc;
+}
+
+.canvas-size-chip:disabled:not(.active):not(.locked) {
   opacity: 0.55;
   cursor: not-allowed;
   background: #ececf0;
@@ -1812,7 +1819,7 @@
 }
 
 .canvas-size-chip-lock {
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   line-height: 1;
 }
 
@@ -1820,6 +1827,12 @@
   background: #e8e8ee !important;
   cursor: not-allowed;
   opacity: 0.72;
+}
+
+.editor-tool-strip .palette-swatch-locked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .palette-swatch-lock {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   getUnlockedPaletteCount,
+  isPaletteColorUnlockedAtLevel,
   isPaletteUnlockedAtLevel,
 } from './paletteUnlock';
 
@@ -17,6 +18,14 @@ describe('paletteUnlock', () => {
     expect(getUnlockedPaletteCount(20)).toBe(6);
     expect(getUnlockedPaletteCount(25)).toBe(7);
     expect(getUnlockedPaletteCount(30)).toBe(8);
+  });
+
+  it('色コードから解放状態を判定できる', () => {
+    expect(isPaletteColorUnlockedAtLevel('#ff0000', 1)).toBe(true);
+    expect(isPaletteColorUnlockedAtLevel('#2222ff', 4)).toBe(false);
+    expect(isPaletteColorUnlockedAtLevel('#2222ff', 5)).toBe(true);
+    expect(isPaletteColorUnlockedAtLevel('#ff44ff', 30)).toBe(true);
+    expect(isPaletteColorUnlockedAtLevel('#ff44ff', 25)).toBe(false);
   });
 
   it('Lv50では8色（紫・茶は未解放）', () => {

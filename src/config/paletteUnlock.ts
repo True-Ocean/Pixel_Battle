@@ -1,4 +1,6 @@
 import {
+  PALETTE_16,
+  PALETTE_EDITOR_COLOR_COUNT,
   PALETTE_PLAYABLE_COUNT,
   PALETTE_UNLOCKED_COUNT_LV0,
 } from './balance';
@@ -23,4 +25,16 @@ export function isPaletteUnlockedAtLevel(
 ): boolean {
   if (paletteIndex < 0 || paletteIndex >= PALETTE_PLAYABLE_COUNT) return false;
   return paletteIndex < getUnlockedPaletteCount(userLevel);
+}
+
+export function isPaletteColorUnlockedAtLevel(
+  color: string,
+  userLevel: number,
+): boolean {
+  const normalized = color.toLowerCase();
+  const index = PALETTE_16.findIndex(
+    (paletteColor) => paletteColor.toLowerCase() === normalized,
+  );
+  if (index < 0 || index >= PALETTE_EDITOR_COLOR_COUNT) return false;
+  return isPaletteUnlockedAtLevel(index, userLevel);
 }

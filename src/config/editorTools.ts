@@ -84,5 +84,10 @@ export function getVisibleEditorTools(userLevel: number): EditorToolId[] {
   );
 }
 
+/** UI に並べる実装済みツール（理想順。未解放はロック表示） */
+export function getDisplayEditorTools(): EditorToolId[] {
+  return IDEAL_TOOL_ORDER.filter(isEditorToolImplemented);
+}
+
 /** @deprecated IDEAL_TOOL_ORDER を使用 */
 export const EDITOR_TOOL_IDS = IMPLEMENTED_EDITOR_TOOLS;

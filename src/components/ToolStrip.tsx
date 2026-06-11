@@ -1,5 +1,8 @@
+import type { ReactNode } from 'react';
 import {
-  getVisibleEditorTools,
+  getDisplayEditorTools,
+  getToolUnlockLevel,
+  isEditorToolUnlocked,
   type EditorToolId,
 } from '../config/editorTools';
 
@@ -14,6 +17,56 @@ interface ToolStripProps {
   onRedo: () => void;
 }
 
+function EditorToolButton({
+  toolId,
+  userLevel,
+  active = false,
+  disabled = false,
+  baseClassName,
+  label,
+  onClick,
+  children,
+}: {
+  toolId: EditorToolId;
+  userLevel: number;
+  active?: boolean;
+  disabled?: boolean;
+  baseClassName: string;
+  label: string;
+  onClick?: () => void;
+  children: ReactNode;
+}) {
+  const unlocked = isEditorToolUnlocked(toolId, userLevel);
+  const unlockLevel = getToolUnlockLevel(toolId);
+
+  return (
+    <button
+      type="button"
+      className={[
+        baseClassName,
+        active && unlocked ? 'active' : '',
+        !unlocked ? 'palette-swatch-locked' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      disabled={!unlocked || disabled}
+      title={unlocked ? label : `Lv${unlockLevel}で解放`}
+      onClick={unlocked ? onClick : undefined}
+    >
+      {unlocked ? (
+        children
+      ) : (
+        <span className="palette-swatch-lock" aria-hidden>
+          🔒
+        </span>
+      )}
+      <span className="sr-only">
+        {unlocked ? label : `Lv${unlockLevel}で解放`}
+      </span>
+    </button>
+  );
+}
+
 export function ToolStrip({
   tool,
   userLevel = 1,
@@ -24,216 +77,176 @@ export function ToolStrip({
   onUndo,
   onRedo,
 }: ToolStripProps) {
-  const visibleTools = getVisibleEditorTools(userLevel);
+  const displayTools = getDisplayEditorTools();
 
   return (
     <div className="editor-tool-strip" role="toolbar" aria-label="描画ツール">
-      {visibleTools.map((toolId) => {
+      {displayTools.map((toolId) => {
         if (toolId === 'undo') {
           return (
-            <button
+            <EditorToolButton
               key={toolId}
-              type="button"
-              className="palette-swatch palette-swatch-tool palette-swatch-undo"
+              toolId={toolId}
+              userLevel={userLevel}
               disabled={!canUndo}
-              title="元に戻す"
+              baseClassName="palette-swatch palette-swatch-tool palette-swatch-undo"
+              label="元に戻す"
               onClick={onUndo}
             >
               <span className="palette-undo-icon" aria-hidden>
                 ↩
               </span>
-              <span className="sr-only">元に戻す</span>
-            </button>
+            </EditorToolButton>
           );
         }
 
         if (toolId === 'redo') {
           return (
-            <button
+            <EditorToolButton
               key={toolId}
-              type="button"
-              className="palette-swatch palette-swatch-tool palette-swatch-redo"
+              toolId={toolId}
+              userLevel={userLevel}
               disabled={!canRedo}
-              title="やり直す"
+              baseClassName="palette-swatch palette-swatch-tool palette-swatch-redo"
+              label="やり直す"
               onClick={onRedo}
             >
               <span className="palette-redo-icon" aria-hidden>
                 ↪
               </span>
-              <span className="sr-only">やり直す</span>
-            </button>
-          );
-        }
-
-        if (toolId === 'eyedropper') {
-          return (
-            <button
-              key={toolId}
-              type="button"
-              className={
-                tool === 'eyedropper'
-                  ? 'palette-swatch palette-swatch-tool palette-swatch-eyedropper active'
-                  : 'palette-swatch palette-swatch-tool palette-swatch-eyedropper'
-              }
-              title="スポイト"
-              onClick={() => onSelectTool('eyedropper')}
-            >
-              <span className="palette-eyedropper-icon" aria-hidden />
-              <span className="sr-only">スポイト</span>
-            </button>
+            </EditorToolButton>
           );
         }
 
         if (toolId === 'line') {
           return (
-            <button
+            <EditorToolButton
               key={toolId}
-              type="button"
-              className={
-                tool === 'line'
-                  ? 'palette-swatch palette-swatch-tool palette-swatch-line active'
-                  : 'palette-swatch palette-swatch-tool palette-swatch-line'
-              }
-              title="直線"
+              toolId={toolId}
+              userLevel={userLevel}
+              active={tool === 'line'}
+              baseClassName="palette-swatch palette-swatch-tool palette-swatch-line"
+              label="直線"
               onClick={() => onSelectTool('line')}
             >
               <span className="palette-line-icon" aria-hidden />
-              <span className="sr-only">直線</span>
-            </button>
+            </EditorToolButton>
           );
         }
 
         if (toolId === 'rectangle') {
           return (
-            <button
+            <EditorToolButton
               key={toolId}
-              type="button"
-              className={
-                tool === 'rectangle'
-                  ? 'palette-swatch palette-swatch-tool palette-swatch-rectangle active'
-                  : 'palette-swatch palette-swatch-tool palette-swatch-rectangle'
-              }
-              title="矩形"
+              toolId={toolId}
+              userLevel={userLevel}
+              active={tool === 'rectangle'}
+              baseClassName="palette-swatch palette-swatch-tool palette-swatch-rectangle"
+              label="矩形"
               onClick={() => onSelectTool('rectangle')}
             >
               <span className="palette-rectangle-icon" aria-hidden />
-              <span className="sr-only">矩形</span>
-            </button>
+            </EditorToolButton>
           );
         }
 
         if (toolId === 'circle') {
           return (
-            <button
+            <EditorToolButton
               key={toolId}
-              type="button"
-              className={
-                tool === 'circle'
-                  ? 'palette-swatch palette-swatch-tool palette-swatch-circle active'
-                  : 'palette-swatch palette-swatch-tool palette-swatch-circle'
-              }
-              title="円"
+              toolId={toolId}
+              userLevel={userLevel}
+              active={tool === 'circle'}
+              baseClassName="palette-swatch palette-swatch-tool palette-swatch-circle"
+              label="円"
               onClick={() => onSelectTool('circle')}
             >
               <span className="palette-circle-icon" aria-hidden />
-              <span className="sr-only">円</span>
-            </button>
+            </EditorToolButton>
           );
         }
 
         if (toolId === 'selection') {
           return (
-            <button
+            <EditorToolButton
               key={toolId}
-              type="button"
-              className={
-                tool === 'selection'
-                  ? 'palette-swatch palette-swatch-tool palette-swatch-selection active'
-                  : 'palette-swatch palette-swatch-tool palette-swatch-selection'
-              }
-              title="選択"
+              toolId={toolId}
+              userLevel={userLevel}
+              active={tool === 'selection'}
+              baseClassName="palette-swatch palette-swatch-tool palette-swatch-selection"
+              label="選択"
               onClick={() => onSelectTool('selection')}
             >
               <span className="palette-selection-icon" aria-hidden />
-              <span className="sr-only">選択</span>
-            </button>
+            </EditorToolButton>
           );
         }
 
         if (toolId === 'pen') {
           return (
-            <button
+            <EditorToolButton
               key={toolId}
-              type="button"
-              className={
-                tool === 'pen'
-                  ? 'palette-swatch palette-swatch-tool palette-swatch-pen active'
-                  : 'palette-swatch palette-swatch-tool palette-swatch-pen'
-              }
-              title="ペン"
+              toolId={toolId}
+              userLevel={userLevel}
+              active={tool === 'pen'}
+              baseClassName="palette-swatch palette-swatch-tool palette-swatch-pen"
+              label="ペン"
               onClick={() => onSelectTool('pen')}
             >
               <span className="palette-pen-icon" aria-hidden />
-              <span className="sr-only">ペン</span>
-            </button>
+            </EditorToolButton>
           );
         }
 
         if (toolId === 'eraser') {
           return (
-            <button
+            <EditorToolButton
               key={toolId}
-              type="button"
-              className={
-                tool === 'eraser'
-                  ? 'palette-swatch palette-swatch-tool palette-swatch-eraser active'
-                  : 'palette-swatch palette-swatch-tool palette-swatch-eraser'
-              }
-              title="消しゴム"
+              toolId={toolId}
+              userLevel={userLevel}
+              active={tool === 'eraser'}
+              baseClassName="palette-swatch palette-swatch-tool palette-swatch-eraser"
+              label="消しゴム"
               onClick={() => onSelectTool('eraser')}
             >
               <span className="palette-eraser-icon" aria-hidden>
                 <span className="palette-eraser-rubber" />
                 <span className="palette-eraser-sleeve" />
               </span>
-              <span className="sr-only">消しゴム</span>
-            </button>
+            </EditorToolButton>
           );
         }
 
         if (toolId === 'fill') {
           return (
-            <button
+            <EditorToolButton
               key={toolId}
-              type="button"
-              className={
-                tool === 'fill'
-                  ? 'palette-swatch palette-swatch-tool palette-swatch-fill active'
-                  : 'palette-swatch palette-swatch-tool palette-swatch-fill'
-              }
-              title="塗りつぶし"
+              toolId={toolId}
+              userLevel={userLevel}
+              active={tool === 'fill'}
+              baseClassName="palette-swatch palette-swatch-tool palette-swatch-fill"
+              label="塗りつぶし"
               onClick={() => onSelectTool('fill')}
             >
               <span className="palette-fill-icon" aria-hidden />
-              <span className="sr-only">塗りつぶし</span>
-            </button>
+            </EditorToolButton>
           );
         }
 
         if (toolId === 'clear') {
           return (
-            <button
+            <EditorToolButton
               key={toolId}
-              type="button"
-              className="palette-swatch palette-swatch-tool palette-swatch-clear pixel-checkerboard pixel-checkerboard-bg"
-              title="クリア"
+              toolId={toolId}
+              userLevel={userLevel}
+              baseClassName="palette-swatch palette-swatch-tool palette-swatch-clear pixel-checkerboard pixel-checkerboard-bg"
+              label="クリア"
               onClick={onClear}
             >
               <span className="palette-clear-label" aria-hidden>
                 クリア
               </span>
-              <span className="sr-only">クリア</span>
-            </button>
+            </EditorToolButton>
           );
         }
 

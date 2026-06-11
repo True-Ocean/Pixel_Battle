@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { cloneGrid, createEmptyGrid, gridSize, resizeGrid } from '../canvas';
 import {
   applyRedo,
@@ -21,13 +21,20 @@ import {
   createCardFromDrawing,
   updateCardFromDrawing,
 } from '../card';
-import { getUnlockedPaletteCount } from '../config/paletteUnlock';
+import {
+  getUnlockedPaletteCount,
+  isPaletteColorUnlockedAtLevel,
+} from '../config/paletteUnlock';
 import type { Card, PixelGrid } from '../types';
 import { CanvasSizePicker } from './CanvasSizePicker';
 import { CardPreview } from './CardPreview';
 import { ColorPalette } from './ColorPalette';
 import { ConfirmDialog } from './ConfirmDialog';
-import type { EditorToolId } from '../config/editorTools';
+import {
+  isEditorToolImplemented,
+  isEditorToolUnlocked,
+  type EditorToolId,
+} from '../config/editorTools';
 import { PixelCanvas } from './PixelCanvas';
 import { ToolStrip } from './ToolStrip';
 
@@ -89,6 +96,18 @@ export function EditorScreen({
   editorSnapshotRef.current = { pixels, canvasSize };
   editorHistoryRef.current = editorHistory;
   editorFutureRef.current = editorFuture;
+
+  useEffect(() => {
+    if (!isPaletteColorUnlockedAtLevel(brushColor, userLevel)) {
+      setBrushColor(PALETTE_16[0]!);
+    }
+  }, [userLevel, brushColor]);
+
+  useEffect(() => {
+    if (!isEditorToolImplemented(tool) || !isEditorToolUnlocked(tool, userLevel)) {
+      setTool('pen');
+    }
+  }, [userLevel, tool]);
 
   const applyEditorChange = useCallback(
     (next: Partial<EditorSnapshot> & { pixels: PixelGrid }) => {

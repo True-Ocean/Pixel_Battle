@@ -36,6 +36,7 @@ export function CanvasSizePicker({
           const unlocked = unlockedSet.has(size);
           const active = selectedSize === size;
           const unlockLevel = getCanvasUnlockLevel(size);
+          const showSize = unlocked || (disabled && active);
 
           return (
             <button
@@ -50,19 +51,19 @@ export function CanvasSizePicker({
                 .join(' ')}
               disabled={disabled || !unlocked}
               title={
-                unlocked ? `${size}×${size}` : `Lv${unlockLevel}で解放`
+                showSize ? `${size}×${size}` : `Lv${unlockLevel}で解放`
               }
               onClick={() => onSelectSize(size)}
             >
-              <span className="canvas-size-chip-value">{size}</span>
-              {!unlocked && (
+              {showSize ? (
+                <span className="canvas-size-chip-value">{size}</span>
+              ) : (
                 <span className="canvas-size-chip-lock" aria-hidden>
                   🔒
                 </span>
               )}
               <span className="sr-only">
-                {size}×{size}
-                {!unlocked ? `（Lv${unlockLevel}で解放）` : ''}
+                {showSize ? `${size}×${size}` : `Lv${unlockLevel}で解放`}
               </span>
             </button>
           );

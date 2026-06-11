@@ -3,6 +3,7 @@ import {
   COLOR_USING_EDITOR_TOOLS,
   IDEAL_TOOL_ORDER,
   IMPLEMENTED_EDITOR_TOOLS,
+  getDisplayEditorTools,
   getVisibleEditorTools,
   isEditorToolImplemented,
   isEditorToolUnlocked,
@@ -102,6 +103,22 @@ describe('editorTools', () => {
     expect(usesBrushColor('pen')).toBe(true);
     expect(usesBrushColor('fill')).toBe(true);
     expect(usesBrushColor('eraser')).toBe(false);
+  });
+
+  it('表示用リストは実装済みツールを理想順で返す', () => {
+    expect(getDisplayEditorTools()).toEqual([
+      'pen',
+      'eraser',
+      'fill',
+      'clear',
+      'undo',
+      'redo',
+      'line',
+      'rectangle',
+      'circle',
+      'selection',
+    ]);
+    expect(getDisplayEditorTools().length).toBeGreaterThan(getVisibleEditorTools(1).length);
   });
 
   it('理想順マスターに図形グループが含まれる', () => {
