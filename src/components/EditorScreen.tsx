@@ -286,6 +286,8 @@ export function EditorScreen({
               value={name}
               maxLength={32}
               placeholder="例：ほのおの剣"
+              readOnly={isEditing}
+              className={isEditing ? 'editor-name-readonly' : undefined}
               onChange={(e) => setName(e.target.value)}
             />
           </label>

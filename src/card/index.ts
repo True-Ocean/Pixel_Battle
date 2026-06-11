@@ -2,6 +2,8 @@ export {
   createCardFromDrawing,
   updateCardFromDrawing,
   deriveCardStats,
+  recalculateCardBp,
+  rescaleDeckBp,
   CardCreationError,
 } from './createCard';
 export { computeColorRatios, normalizePixelColor } from './colors';

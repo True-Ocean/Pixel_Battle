@@ -5,7 +5,13 @@ import {
   getUserBaseBp,
 } from '../config/balance';
 import { createEmptyGrid } from '../canvas';
-import { createCardFromDrawing, deriveCardStats, updateCardFromDrawing } from './createCard';
+import {
+  createCardFromDrawing,
+  deriveCardStats,
+  recalculateCardBp,
+  rescaleDeckBp,
+  updateCardFromDrawing,
+} from './createCard';
 import { buildCardSeed, hashToUnit } from './hash';
 
 function fillGrid(color: string): ReturnType<typeof createEmptyGrid> {
@@ -135,6 +141,28 @@ describe('createCardFromDrawing', () => {
     expect(nCard.rarity).toBe('N');
     expect(srCard.rarity).toBe('SR');
     expect(srCard.bp).toBeGreaterThan(nCard.bp);
+  });
+});
+
+describe('recalculateCardBp', () => {
+  it('ユーザーレベルに応じて BP を再算出する', () => {
+    const card = createCardFromDrawing('固定', fillGrid('#ff0000'), {
+      userLevel: 1,
+    });
+    const low = recalculateCardBp(card, 1);
+    const high = recalculateCardBp(card, 20);
+    expect(low).toBe(card.bp);
+    expect(high).toBeGreaterThan(low);
+  });
+});
+
+describe('rescaleDeckBp', () => {
+  it('デッキ内の全カード BP を一括更新する', () => {
+    const card = createCardFromDrawing('a', fillGrid('#ff0000'), {
+      userLevel: 1,
+    });
+    const deck = rescaleDeckBp([card], 20);
+    expect(deck[0]!.bp).toBe(recalculateCardBp(card, 20));
   });
 });
 

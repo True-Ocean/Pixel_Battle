@@ -1,5 +1,7 @@
 export {
   applyDevMaxUserLevel,
+  applyDevUserLevelOverride,
+  applyDevUserProfile,
   createInitialProfile,
   grantBattleExp,
   isProfileComplete,

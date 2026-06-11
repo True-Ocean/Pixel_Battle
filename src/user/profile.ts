@@ -5,6 +5,7 @@ import {
   USER_INITIAL_LEVEL,
   USERNAME_MAX_LENGTH,
 } from '../config/balance';
+import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
 import type { UserProfile } from '../types';
 import {
   calcBattleExpGain,
@@ -21,6 +22,25 @@ export function applyDevMaxUserLevel(user: UserProfile): UserProfile {
     level: MAX_USER_LEVEL,
     exp: totalExpForLevel(MAX_USER_LEVEL),
   };
+}
+
+function clampDevUserLevel(level: number): number {
+  return Math.max(USER_INITIAL_LEVEL, Math.min(MAX_USER_LEVEL, Math.floor(level)));
+}
+
+/** 開発用: DEV_USER_LEVEL_OVERRIDE でレベル・EXP を上書き */
+export function applyDevUserLevelOverride(user: UserProfile): UserProfile {
+  if (!import.meta.env.DEV || DEV_USER_LEVEL_OVERRIDE == null) return user;
+  const level = clampDevUserLevel(DEV_USER_LEVEL_OVERRIDE);
+  return { ...user, level, exp: totalExpForLevel(level) };
+}
+
+/** 開発用: レベル上書きがあれば優先。なければ最大レベル強制を適用 */
+export function applyDevUserProfile(user: UserProfile): UserProfile {
+  if (import.meta.env.DEV && DEV_USER_LEVEL_OVERRIDE != null) {
+    return applyDevUserLevelOverride(user);
+  }
+  return applyDevMaxUserLevel(user);
 }
 
 export function isProfileComplete(user: UserProfile | null): user is UserProfile {

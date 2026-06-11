@@ -1,4 +1,5 @@
 import type { Card, CardRarity, CardStars, SaveData } from '../types';
+import { rescaleDeckBp } from '../card';
 import {
   CANVAS_SIZE_DEFAULT,
   DEV_FORCE_MAX_USER_LEVEL,
@@ -6,8 +7,9 @@ import {
   USER_INITIAL_EXP,
   USER_INITIAL_LEVEL,
 } from '../config/balance';
+import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
 import { gridSize } from '../canvas';
-import { applyDevMaxUserLevel, normalizeUserProfile } from '../user';
+import { applyDevUserProfile, normalizeUserProfile } from '../user';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
 
@@ -81,6 +83,17 @@ function migrateCard(raw: Record<string, unknown>): Card | null {
   };
 }
 
+function shouldRescaleDeckForDev(): boolean {
+  return (
+    import.meta.env.DEV &&
+    (DEV_USER_LEVEL_OVERRIDE != null || DEV_FORCE_MAX_USER_LEVEL)
+  );
+}
+
+function deckBpChanged(before: Card[], after: Card[]): boolean {
+  return after.some((card, index) => card.bp !== before[index]?.bp);
+}
+
 function migrateDeck(deck: unknown[]): Card[] {
   return deck
     .map((item) =>
@@ -100,12 +113,20 @@ export function loadSave(): SaveData {
     if (!Array.isArray(parsed.deck)) return emptySave();
     const user = normalizeUserProfile(parsed.user);
     const deck = migrateDeck(parsed.deck);
-    if (user && DEV_FORCE_MAX_USER_LEVEL) {
-      const upgraded = applyDevMaxUserLevel(user);
-      if (upgraded.level !== user.level || upgraded.exp !== user.exp) {
-        saveSave({ user: upgraded, deck });
+    if (user) {
+      const devAdjusted = applyDevUserProfile(user);
+      const rescale = shouldRescaleDeckForDev();
+      const finalDeck = rescale
+        ? rescaleDeckBp(deck, devAdjusted.level)
+        : deck;
+      if (
+        devAdjusted.level !== user.level ||
+        devAdjusted.exp !== user.exp ||
+        (rescale && deckBpChanged(deck, finalDeck))
+      ) {
+        saveSave({ user: devAdjusted, deck: finalDeck });
       }
-      return { user: upgraded, deck };
+      return { user: devAdjusted, deck: finalDeck };
     }
     return { user, deck };
   } catch {

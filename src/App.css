@@ -1674,6 +1674,13 @@
   font-size: 1rem;
 }
 
+.editor-screen .field input.editor-name-readonly {
+  background: #f0f0f4;
+  border-color: #d8d8de;
+  color: #333;
+  cursor: default;
+}
+
 .editor-tool-strip .palette-eraser-icon {
   width: 0.72rem;
   height: 0.92rem;
@@ -1780,10 +1787,28 @@
 }
 
 .canvas-size-chip.locked,
-.canvas-size-chip:disabled {
+.canvas-size-chip:disabled:not(.active) {
   opacity: 0.55;
   cursor: not-allowed;
   background: #ececf0;
+  color: #aaa;
+}
+
+.canvas-size-picker--fixed .canvas-size-chip:not(.active) {
+  opacity: 0.5;
+  cursor: default;
+  background: #ececf0;
+  color: #aaa;
+  border-color: #d4d4dc;
+}
+
+.canvas-size-picker--fixed .canvas-size-chip.active {
+  opacity: 1;
+  cursor: default;
+  border-color: #646cff;
+  background: #eef0ff;
+  color: #3d47d9;
+  font-weight: 700;
 }
 
 .canvas-size-chip-lock {

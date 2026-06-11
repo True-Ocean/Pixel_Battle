@@ -149,6 +149,24 @@ export function createCardFromDrawing(
   };
 }
 
+/** 既存カードの BP をユーザーレベルに合わせて再算出（絵・属性・レアは維持） */
+export function recalculateCardBp(card: Card, userLevel: number): number {
+  const size = gridSize(card.pixels);
+  const ratios = computeColorRatios(card.pixels, size * size);
+  if (!ratios) return card.bp;
+
+  const bpBlend = computeBpBlend(card.name.trim(), card.pixels, ratios);
+  const baseBp = computeCardBaseBp(bpBlend, userLevel, card.attribute);
+  return applyRarityToBp(baseBp, card.attribute, card.rarity, userLevel);
+}
+
+export function rescaleDeckBp(deck: Card[], userLevel: number): Card[] {
+  return deck.map((card) => ({
+    ...card,
+    bp: recalculateCardBp(card, userLevel),
+  }));
+}
+
 /** 既存カードの見た目・名前を更新（属性・レア・戦績等は維持、BPのみ再算出） */
 export function updateCardFromDrawing(
   existing: Card,

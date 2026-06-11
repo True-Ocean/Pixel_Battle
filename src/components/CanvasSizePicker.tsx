@@ -21,7 +21,12 @@ export function CanvasSizePicker({
 
   return (
     <div
-      className="canvas-size-picker"
+      className={[
+        'canvas-size-picker',
+        disabled ? 'canvas-size-picker--fixed' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       role="toolbar"
       aria-label="キャンバスサイズ"
     >
