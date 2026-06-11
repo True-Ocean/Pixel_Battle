@@ -14,23 +14,12 @@ describe('editorTools', () => {
     expect(getVisibleEditorTools(1)).toEqual(['pen', 'eraser', 'fill', 'clear']);
   });
 
-  it('Lv2 で元に戻すが理想順の位置に追加される', () => {
-    expect(getVisibleEditorTools(2)).toEqual([
-      'pen',
-      'eraser',
-      'fill',
-      'clear',
-      'undo',
-    ]);
-  });
-
-  it('Lv7 でやり直しが理想順の位置に追加される', () => {
+  it('Lv7 で元に戻すが理想順の位置に追加される', () => {
     expect(getVisibleEditorTools(6)).toEqual([
       'pen',
       'eraser',
       'fill',
       'clear',
-      'undo',
     ]);
     expect(getVisibleEditorTools(7)).toEqual([
       'pen',
@@ -38,12 +27,18 @@ describe('editorTools', () => {
       'fill',
       'clear',
       'undo',
-      'redo',
     ]);
   });
 
-  it('Lv12 で直線が追加される', () => {
+  it('Lv12 でやり直しが理想順の位置に追加される', () => {
     expect(getVisibleEditorTools(11)).toEqual([
+      'pen',
+      'eraser',
+      'fill',
+      'clear',
+      'undo',
+    ]);
+    expect(getVisibleEditorTools(12)).toEqual([
       'pen',
       'eraser',
       'fill',
@@ -51,7 +46,18 @@ describe('editorTools', () => {
       'undo',
       'redo',
     ]);
-    expect(getVisibleEditorTools(12)).toEqual([
+  });
+
+  it('Lv17 で直線が追加される', () => {
+    expect(getVisibleEditorTools(16)).toEqual([
+      'pen',
+      'eraser',
+      'fill',
+      'clear',
+      'undo',
+      'redo',
+    ]);
+    expect(getVisibleEditorTools(17)).toEqual([
       'pen',
       'eraser',
       'fill',
@@ -62,10 +68,10 @@ describe('editorTools', () => {
     ]);
   });
 
-  it('Lv17〜27 で選択・矩形・円が順に追加される', () => {
-    expect(getVisibleEditorTools(17)).toContain('selection');
-    expect(getVisibleEditorTools(22)).toContain('rectangle');
-    expect(getVisibleEditorTools(27)).toEqual([
+  it('Lv22〜32 で選択・矩形・円が順に追加される', () => {
+    expect(getVisibleEditorTools(22)).toContain('selection');
+    expect(getVisibleEditorTools(27)).toContain('rectangle');
+    expect(getVisibleEditorTools(32)).toEqual([
       'pen',
       'eraser',
       'fill',

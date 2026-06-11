@@ -10,12 +10,13 @@ describe('paletteUnlock', () => {
     expect(getUnlockedPaletteCount(4)).toBe(3);
   });
 
-  it('下一桁5のレベルで1色ずつ追加', () => {
+  it('レベルに応じて1色ずつ追加', () => {
     expect(getUnlockedPaletteCount(5)).toBe(4);
+    expect(getUnlockedPaletteCount(14)).toBe(4);
     expect(getUnlockedPaletteCount(15)).toBe(5);
-    expect(getUnlockedPaletteCount(25)).toBe(6);
-    expect(getUnlockedPaletteCount(35)).toBe(7);
-    expect(getUnlockedPaletteCount(45)).toBe(8);
+    expect(getUnlockedPaletteCount(20)).toBe(6);
+    expect(getUnlockedPaletteCount(25)).toBe(7);
+    expect(getUnlockedPaletteCount(30)).toBe(8);
   });
 
   it('Lv50では8色（紫・茶は未解放）', () => {

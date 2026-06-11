@@ -46,12 +46,12 @@ const TOOL_UNLOCK_LEVEL: Record<EditorToolId, number> = {
   eraser: 1,
   fill: 1,
   clear: 1,
-  undo: 2,
-  redo: 7,
-  line: 12,
-  selection: 17,
-  rectangle: 22,
-  circle: 27,
+  undo: 7,
+  redo: 12,
+  line: 17,
+  selection: 22,
+  rectangle: 27,
+  circle: 32,
   /** パレット色が大幅増加した将来用（実装済みだが UI 非表示） */
   eyedropper: 99,
 };
