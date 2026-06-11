@@ -1235,12 +1235,157 @@
   border-color: #666;
 }
 
+.palette-swatch-pen {
+  background: #eef1f6;
+}
+
+.palette-pen-icon {
+  position: relative;
+  display: block;
+  width: 0.5rem;
+  height: 1rem;
+  transform: rotate(-40deg);
+}
+
+.palette-pen-icon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0.12rem;
+  width: 0.26rem;
+  height: 0.42rem;
+  border: 1.5px solid #2f2f2f;
+  border-bottom: none;
+  border-radius: 1px 1px 0 0;
+  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.palette-pen-icon::after {
+  content: '';
+  position: absolute;
+  top: 0.38rem;
+  left: 0.12rem;
+  width: 0.26rem;
+  height: 0.58rem;
+  border: 1.5px solid #2f2f2f;
+  border-top: none;
+  border-radius: 0 0 1px 1px;
+  background: linear-gradient(180deg, #cbd5e1 0%, #64748b 100%);
+}
+
+.editor-tool-strip .palette-pen-icon {
+  width: 0.42rem;
+  height: 0.84rem;
+}
+
 .palette-swatch-eraser {
   background: #e8ebf2;
 }
 
 .palette-swatch-fill {
   background: #eef1f6;
+}
+
+.palette-swatch-eyedropper {
+  background: #eef1f6;
+}
+
+.palette-eyedropper-icon {
+  position: relative;
+  width: 0.55rem;
+  height: 1.15rem;
+  transform: rotate(-38deg);
+}
+
+.palette-eyedropper-icon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0.08rem;
+  width: 0.38rem;
+  height: 0.38rem;
+  border: 1.5px solid #2f2f2f;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #8ec5ff 0%, #2563c7 70%);
+}
+
+.palette-eyedropper-icon::after {
+  content: '';
+  position: absolute;
+  top: 0.34rem;
+  left: 0.2rem;
+  width: 0.22rem;
+  height: 0.72rem;
+  border: 1.5px solid #2f2f2f;
+  border-top: none;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(180deg, #cbd5e1 0%, #64748b 100%);
+}
+
+.palette-swatch-line,
+.palette-swatch-rectangle,
+.palette-swatch-circle,
+.palette-swatch-selection {
+  background: #eef1f6;
+}
+
+.palette-line-icon {
+  display: block;
+  width: 1.1rem;
+  height: 1.1rem;
+  background: linear-gradient(
+    135deg,
+    transparent 44%,
+    #2f2f2f 44%,
+    #2f2f2f 56%,
+    transparent 56%
+  );
+}
+
+.palette-rectangle-icon {
+  display: block;
+  width: 1rem;
+  height: 0.75rem;
+  border: 1.5px solid #2f2f2f;
+  border-radius: 1px;
+}
+
+.palette-circle-icon {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  border: 1.5px solid #2f2f2f;
+  border-radius: 50%;
+}
+
+.palette-selection-icon {
+  position: relative;
+  display: block;
+  width: 1rem;
+  height: 1rem;
+}
+
+.palette-selection-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1.5px dashed #2563c7;
+  border-radius: 1px;
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.pixel-cell-marquee {
+  box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.85);
+}
+
+.pixel-cell-float-source {
+  outline: 1px dashed rgba(37, 99, 235, 0.55);
+  outline-offset: -1px;
+  box-shadow: inset 0 0 0 999px rgba(37, 99, 235, 0.14);
+}
+
+.pixel-cell-float-edge {
+  box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.9);
 }
 
 .palette-eraser-icon {
@@ -1428,33 +1573,47 @@
 .editor-workspace {
   display: flex;
   align-items: stretch;
-  gap: 0.35rem;
+  gap: 0.3rem;
   width: 100%;
+}
+
+.editor-canvas-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .editor-tool-strip {
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  gap: 0.28rem;
-  width: 2.5rem;
-  padding: 2px 0;
+  flex: 0 0 1.85rem;
+  width: 1.85rem;
+  gap: 0.16rem;
+  padding: 0;
   box-sizing: border-box;
+  align-self: flex-start;
 }
 
 .editor-tool-strip .palette-swatch {
+  flex: 0 0 auto;
   width: 100%;
   aspect-ratio: 1;
+  height: auto;
+  min-height: 0;
+  border-width: 1.5px;
+  border-radius: 3px;
 }
 
 .editor-color-palette {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: 0.28rem;
+  gap: 0.22rem;
   width: 100%;
-  margin-top: 0.45rem;
-  padding: 2px 0;
+  margin-top: 0.3rem;
+  padding: 0;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .editor-screen-mini-preview .card-preview {
@@ -1515,26 +1674,58 @@
   font-size: 1rem;
 }
 
-.editor-screen .palette-eraser-icon {
-  width: 0.9rem;
-  height: 1.15rem;
-}
-
-.editor-screen .palette-fill-icon {
-  width: 0.82rem;
+.editor-tool-strip .palette-eraser-icon {
+  width: 0.72rem;
   height: 0.92rem;
 }
 
-.editor-screen .palette-clear-label {
-  font-size: 0.48rem;
+.editor-tool-strip .palette-fill-icon {
+  width: 0.66rem;
+  height: 0.74rem;
 }
 
-.palette-swatch-undo:disabled {
+.editor-tool-strip .palette-clear-label {
+  font-size: 0.38rem;
+}
+
+.editor-tool-strip .palette-undo-icon,
+.editor-tool-strip .palette-redo-icon {
+  font-size: 0.82rem;
+}
+
+.editor-tool-strip .palette-line-icon {
+  width: 0.82rem;
+  height: 0.82rem;
+}
+
+.editor-tool-strip .palette-rectangle-icon {
+  width: 0.74rem;
+  height: 0.56rem;
+}
+
+.editor-tool-strip .palette-circle-icon {
+  width: 0.74rem;
+  height: 0.74rem;
+}
+
+.editor-tool-strip .palette-selection-icon {
+  width: 0.74rem;
+  height: 0.74rem;
+}
+
+.editor-tool-strip .palette-eyedropper-icon {
+  width: 0.42rem;
+  height: 0.88rem;
+}
+
+.palette-swatch-undo:disabled,
+.palette-swatch-redo:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.palette-undo-icon {
+.palette-undo-icon,
+.palette-redo-icon {
   font-size: 1.05rem;
   line-height: 1;
   font-weight: 700;
@@ -1612,8 +1803,9 @@
 }
 
 .editor-canvas-wrap {
-  flex: 1;
+  flex: 0 0 auto;
   min-width: 0;
+  width: 100%;
   display: flex;
   align-items: flex-start;
   justify-content: stretch;

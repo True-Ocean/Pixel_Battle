@@ -48,3 +48,40 @@ export function popEditorHistory(
   const snapshot = past[past.length - 1]!;
   return { past: past.slice(0, -1), snapshot: cloneSnapshot(snapshot) };
 }
+
+export interface EditorStacks {
+  past: EditorSnapshot[];
+  future: EditorSnapshot[];
+}
+
+/** Undo: past から復元し、現在を future へ */
+export function applyUndo(
+  stacks: EditorStacks,
+  current: EditorSnapshot,
+): EditorStacks & { next: EditorSnapshot | null } {
+  const { past: nextPast, snapshot } = popEditorHistory(stacks.past);
+  if (!snapshot) {
+    return { ...stacks, next: null };
+  }
+  return {
+    past: nextPast,
+    future: pushEditorHistory(stacks.future, current),
+    next: snapshot,
+  };
+}
+
+/** Redo: future から復元し、現在を past へ */
+export function applyRedo(
+  stacks: EditorStacks,
+  current: EditorSnapshot,
+): EditorStacks & { next: EditorSnapshot | null } {
+  const { past: nextFuture, snapshot } = popEditorHistory(stacks.future);
+  if (!snapshot) {
+    return { ...stacks, next: null };
+  }
+  return {
+    past: pushEditorHistory(stacks.past, current),
+    future: nextFuture,
+    next: snapshot,
+  };
+}

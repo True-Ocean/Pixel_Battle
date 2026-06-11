@@ -44,8 +44,20 @@ export function eraseCell(pixels: PixelGrid, row: number, col: number): PixelGri
   return next;
 }
 
-export function isStrokeTool(tool: 'paint' | 'eraser' | 'fill'): boolean {
-  return tool === 'paint' || tool === 'eraser';
+export function isStrokeTool(tool: string): boolean {
+  return tool === 'pen' || tool === 'eraser';
+}
+
+/** マスの色を取得（範囲外は null） */
+export function samplePixelColor(
+  pixels: PixelGrid,
+  row: number,
+  col: number,
+): string | null {
+  if (row < 0 || col < 0 || row >= pixels.length || col >= pixels.length) {
+    return null;
+  }
+  return pixels[row]![col] ?? null;
 }
 
 /** サイズ変更時: 既存ピクセルを左上基準で新グリッドへコピー */
@@ -91,3 +103,19 @@ export function floodFill(
 
   return next;
 }
+
+export {
+  cutRect,
+  drawEllipseOutline,
+  drawLine,
+  drawRectOutline,
+  extractRect,
+  fragmentHasPixels,
+  isCellInRect,
+  moveFragment,
+  normalizeRect,
+  stampFragment,
+  type CellCoord,
+  type NormalizedRect,
+  type PixelFragment,
+} from './shapes';

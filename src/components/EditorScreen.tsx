@@ -1,7 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { cloneGrid, createEmptyGrid, gridSize, resizeGrid } from '../canvas';
 import {
-  popEditorHistory,
+  applyRedo,
+  applyUndo,
   pushEditorHistory,
   snapshotsEqual,
   type EditorSnapshot,
@@ -26,7 +27,8 @@ import { CanvasSizePicker } from './CanvasSizePicker';
 import { CardPreview } from './CardPreview';
 import { ColorPalette } from './ColorPalette';
 import { ConfirmDialog } from './ConfirmDialog';
-import { PixelCanvas, type EditorTool } from './PixelCanvas';
+import type { EditorToolId } from '../config/editorTools';
+import { PixelCanvas } from './PixelCanvas';
 import { ToolStrip } from './ToolStrip';
 
 interface EditorScreenProps {
@@ -75,13 +77,18 @@ export function EditorScreen({
     editTarget ? cloneGrid(editTarget.pixels) : createEmptyGrid(canvasSize),
   );
   const [editorHistory, setEditorHistory] = useState<EditorSnapshot[]>([]);
+  const [editorFuture, setEditorFuture] = useState<EditorSnapshot[]>([]);
   const [brushColor, setBrushColor] = useState<string>(PALETTE_16[0]);
-  const [tool, setTool] = useState<EditorTool>('paint');
+  const [tool, setTool] = useState<EditorToolId>('pen');
   const [error, setError] = useState<string | null>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
   const editorSnapshotRef = useRef<EditorSnapshot>({ pixels, canvasSize });
+  const editorHistoryRef = useRef<EditorSnapshot[]>(editorHistory);
+  const editorFutureRef = useRef<EditorSnapshot[]>(editorFuture);
 
   editorSnapshotRef.current = { pixels, canvasSize };
+  editorHistoryRef.current = editorHistory;
+  editorFutureRef.current = editorFuture;
 
   const applyEditorChange = useCallback(
     (next: Partial<EditorSnapshot> & { pixels: PixelGrid }) => {
@@ -92,7 +99,11 @@ export function EditorScreen({
       };
       if (snapshotsEqual(current, target)) return;
 
-      setEditorHistory((past) => pushEditorHistory(past, current));
+      const nextPast = pushEditorHistory(editorHistoryRef.current, current);
+      editorHistoryRef.current = nextPast;
+      editorFutureRef.current = [];
+      setEditorHistory(nextPast);
+      setEditorFuture([]);
       if (target.canvasSize !== current.canvasSize) {
         setCanvasSize(target.canvasSize as CanvasSize);
       }
@@ -102,14 +113,48 @@ export function EditorScreen({
   );
 
   const handleUndo = useCallback(() => {
-    setEditorHistory((past) => {
-      const { past: nextPast, snapshot } = popEditorHistory(past);
-      if (snapshot) {
-        setCanvasSize(snapshot.canvasSize as CanvasSize);
-        setPixels(cloneGrid(snapshot.pixels));
-      }
-      return nextPast;
-    });
+    const result = applyUndo(
+      {
+        past: editorHistoryRef.current,
+        future: editorFutureRef.current,
+      },
+      editorSnapshotRef.current,
+    );
+    if (!result.next) return;
+
+    editorHistoryRef.current = result.past;
+    editorFutureRef.current = result.future;
+    setEditorHistory(result.past);
+    setEditorFuture(result.future);
+    setCanvasSize(result.next.canvasSize as CanvasSize);
+    setPixels(cloneGrid(result.next.pixels));
+  }, []);
+
+  const handlePickColor = useCallback((color: string | null) => {
+    if (color == null) {
+      setTool('eraser');
+      return;
+    }
+    setBrushColor(color);
+    setTool('pen');
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    const result = applyRedo(
+      {
+        past: editorHistoryRef.current,
+        future: editorFutureRef.current,
+      },
+      editorSnapshotRef.current,
+    );
+    if (!result.next) return;
+
+    editorHistoryRef.current = result.past;
+    editorFutureRef.current = result.future;
+    setEditorHistory(result.past);
+    setEditorFuture(result.future);
+    setCanvasSize(result.next.canvasSize as CanvasSize);
+    setPixels(cloneGrid(result.next.pixels));
   }, []);
 
   const handleCanvasSizeChange = (nextSize: CanvasSize) => {
@@ -205,31 +250,31 @@ export function EditorScreen({
               tool={tool}
               userLevel={userLevel}
               canUndo={editorHistory.length > 0}
+              canRedo={editorFuture.length > 0}
               onSelectTool={setTool}
               onClear={() =>
                 applyEditorChange({ pixels: createEmptyGrid(canvasSize) })
               }
               onUndo={handleUndo}
+              onRedo={handleRedo}
             />
-            <div className="editor-canvas-wrap">
-              <PixelCanvas
-                pixels={pixels}
-                onChange={(next) => applyEditorChange({ pixels: next })}
-                tool={tool}
+            <div className="editor-canvas-column">
+              <div className="editor-canvas-wrap">
+                <PixelCanvas
+                  pixels={pixels}
+                  onChange={(next) => applyEditorChange({ pixels: next })}
+                  onPickColor={handlePickColor}
+                  tool={tool}
+                  brushColor={brushColor}
+                />
+              </div>
+              <ColorPalette
                 brushColor={brushColor}
+                userLevel={userLevel}
+                onSelectColor={setBrushColor}
               />
             </div>
           </div>
-
-          <ColorPalette
-            tool={tool}
-            brushColor={brushColor}
-            userLevel={userLevel}
-            onSelectColor={(color) => {
-              setBrushColor(color);
-              setTool('paint');
-            }}
-          />
         </div>
 
         <div className="editor-name-section">

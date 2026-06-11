@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyGrid, eraseCell, paintCell } from './index';
+import {
+  createEmptyGrid,
+  eraseCell,
+  paintCell,
+  samplePixelColor,
+} from './index';
 
 describe('paintCell', () => {
   it('指定マスだけ色を変える', () => {
@@ -8,6 +13,15 @@ describe('paintCell', () => {
     expect(next[1]![2]).toBe('#ff0000');
     expect(grid[1]![2]).toBeNull();
     expect(next[0]![0]).toBeNull();
+  });
+});
+
+describe('samplePixelColor', () => {
+  it('マスの色を取得できる', () => {
+    const grid = paintCell(createEmptyGrid(4), 2, 3, '#00ff00');
+    expect(samplePixelColor(grid, 2, 3)).toBe('#00ff00');
+    expect(samplePixelColor(grid, 0, 0)).toBeNull();
+    expect(samplePixelColor(grid, -1, 0)).toBeNull();
   });
 });
 

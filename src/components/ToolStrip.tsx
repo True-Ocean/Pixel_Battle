@@ -1,22 +1,28 @@
-import { getVisibleEditorTools } from '../config/editorTools';
-import type { EditorTool } from './PixelCanvas';
+import {
+  getVisibleEditorTools,
+  type EditorToolId,
+} from '../config/editorTools';
 
 interface ToolStripProps {
-  tool: EditorTool;
+  tool: EditorToolId;
   userLevel?: number;
   canUndo?: boolean;
-  onSelectTool: (tool: 'eraser' | 'fill') => void;
+  canRedo?: boolean;
+  onSelectTool: (tool: EditorToolId) => void;
   onClear: () => void;
   onUndo: () => void;
+  onRedo: () => void;
 }
 
 export function ToolStrip({
   tool,
   userLevel = 1,
   canUndo = false,
+  canRedo = false,
   onSelectTool,
   onClear,
   onUndo,
+  onRedo,
 }: ToolStripProps) {
   const visibleTools = getVisibleEditorTools(userLevel);
 
@@ -37,6 +43,138 @@ export function ToolStrip({
                 ↩
               </span>
               <span className="sr-only">元に戻す</span>
+            </button>
+          );
+        }
+
+        if (toolId === 'redo') {
+          return (
+            <button
+              key={toolId}
+              type="button"
+              className="palette-swatch palette-swatch-tool palette-swatch-redo"
+              disabled={!canRedo}
+              title="やり直す"
+              onClick={onRedo}
+            >
+              <span className="palette-redo-icon" aria-hidden>
+                ↪
+              </span>
+              <span className="sr-only">やり直す</span>
+            </button>
+          );
+        }
+
+        if (toolId === 'eyedropper') {
+          return (
+            <button
+              key={toolId}
+              type="button"
+              className={
+                tool === 'eyedropper'
+                  ? 'palette-swatch palette-swatch-tool palette-swatch-eyedropper active'
+                  : 'palette-swatch palette-swatch-tool palette-swatch-eyedropper'
+              }
+              title="スポイト"
+              onClick={() => onSelectTool('eyedropper')}
+            >
+              <span className="palette-eyedropper-icon" aria-hidden />
+              <span className="sr-only">スポイト</span>
+            </button>
+          );
+        }
+
+        if (toolId === 'line') {
+          return (
+            <button
+              key={toolId}
+              type="button"
+              className={
+                tool === 'line'
+                  ? 'palette-swatch palette-swatch-tool palette-swatch-line active'
+                  : 'palette-swatch palette-swatch-tool palette-swatch-line'
+              }
+              title="直線"
+              onClick={() => onSelectTool('line')}
+            >
+              <span className="palette-line-icon" aria-hidden />
+              <span className="sr-only">直線</span>
+            </button>
+          );
+        }
+
+        if (toolId === 'rectangle') {
+          return (
+            <button
+              key={toolId}
+              type="button"
+              className={
+                tool === 'rectangle'
+                  ? 'palette-swatch palette-swatch-tool palette-swatch-rectangle active'
+                  : 'palette-swatch palette-swatch-tool palette-swatch-rectangle'
+              }
+              title="矩形"
+              onClick={() => onSelectTool('rectangle')}
+            >
+              <span className="palette-rectangle-icon" aria-hidden />
+              <span className="sr-only">矩形</span>
+            </button>
+          );
+        }
+
+        if (toolId === 'circle') {
+          return (
+            <button
+              key={toolId}
+              type="button"
+              className={
+                tool === 'circle'
+                  ? 'palette-swatch palette-swatch-tool palette-swatch-circle active'
+                  : 'palette-swatch palette-swatch-tool palette-swatch-circle'
+              }
+              title="円"
+              onClick={() => onSelectTool('circle')}
+            >
+              <span className="palette-circle-icon" aria-hidden />
+              <span className="sr-only">円</span>
+            </button>
+          );
+        }
+
+        if (toolId === 'selection') {
+          return (
+            <button
+              key={toolId}
+              type="button"
+              className={
+                tool === 'selection'
+                  ? 'palette-swatch palette-swatch-tool palette-swatch-selection active'
+                  : 'palette-swatch palette-swatch-tool palette-swatch-selection'
+              }
+              title="選択"
+              onClick={() => onSelectTool('selection')}
+            >
+              <span className="palette-selection-icon" aria-hidden />
+              <span className="sr-only">選択</span>
+            </button>
+          );
+        }
+
+        if (toolId === 'pen') {
+          return (
+            <button
+              key={toolId}
+              type="button"
+              className={
+                tool === 'pen'
+                  ? 'palette-swatch palette-swatch-tool palette-swatch-pen active'
+                  : 'palette-swatch palette-swatch-tool palette-swatch-pen'
+              }
+              title="ペン"
+              onClick={() => onSelectTool('pen')}
+            >
+              <span className="palette-pen-icon" aria-hidden />
+              <span className="sr-only">ペン</span>
             </button>
           );
         }
