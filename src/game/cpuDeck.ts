@@ -7,6 +7,12 @@ import {
   USER_INITIAL_LEVEL,
   MAX_USER_LEVEL,
 } from '../config/balance';
+import {
+  getUnlockedCanvasSizes,
+  type CanvasSize,
+} from '../config/canvasUnlock';
+import { unlockedPaletteColors } from '../config/palette';
+import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import type { Card } from '../types';
 import { pickCpuPattern, type PatternBias } from './cpuPatterns';
 
@@ -143,6 +149,13 @@ function inferUserLevelFromDeck(deck: Card[]): number {
   return Math.max(USER_INITIAL_LEVEL, Math.min(MAX_USER_LEVEL, level));
 }
 
+function pickUnlockedCanvasSize(
+  userLevel: number,
+  random: () => number,
+): CanvasSize {
+  return pickRandom(getUnlockedCanvasSizes(userLevel), random);
+}
+
 function buildOneCpuCard(
   prefer: PatternBias,
   usedNames: Set<string>,
@@ -150,8 +163,17 @@ function buildOneCpuCard(
   userLevel: number,
 ): Card {
   const name = uniqueName(usedNames, random);
+  const canvasSize = pickUnlockedCanvasSize(userLevel, random);
+  const unlockedPaletteCount = getUnlockedPaletteCount(userLevel);
+  const colors = unlockedPaletteColors(unlockedPaletteCount);
   const pattern = pickCpuPattern(prefer, random);
-  return createCardFromDrawing(name, pattern.build(random), { userLevel });
+  const pixels = pattern.build({ canvasSize, colors, random });
+  return createCardFromDrawing(name, pixels, {
+    userLevel,
+    unlockedPaletteCount,
+    canvasSize,
+    random,
+  });
 }
 
 function buildCandidateDeck(

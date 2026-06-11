@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DECK_MAX, FIELD_SIZE } from '../config/balance';
+import { DECK_MAX, FIELD_SIZE, PALETTE_16 } from '../config/balance';
+import { getUnlockedCanvasSizes } from '../config/canvasUnlock';
+import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import type { Card } from '../types';
 import { pickCpuPattern } from './cpuPatterns';
 import {
@@ -114,6 +116,27 @@ describe('buildBalancedCpuDeck', () => {
     const strong = buildDeckTargets(player, 'strong');
     expect(strong.avgBpMin).toBeGreaterThan(even.avgBpMin);
   });
+
+  it('ユーザーレベルに応じたキャンバスサイズと色で生成する', () => {
+    const userLevel = 20;
+    const cpu = buildBalancedCpuDeck(stubPlayerDeck(), () => 0.42, userLevel);
+    const allowedSizes = getUnlockedCanvasSizes(userLevel);
+    const allowedColors = new Set(
+      PALETTE_16.slice(0, getUnlockedPaletteCount(userLevel)).map((c) =>
+        c.toLowerCase(),
+      ),
+    );
+
+    for (const card of cpu) {
+      expect(allowedSizes).toContain(card.canvasSize);
+      expect(card.pixels).toHaveLength(card.canvasSize);
+      for (const cell of card.pixels.flat()) {
+        if (cell != null) {
+          expect(allowedColors.has(cell.toLowerCase())).toBe(true);
+        }
+      }
+    }
+  });
 });
 
 describe('rollCpuDifficulty', () => {
@@ -124,11 +147,21 @@ describe('rollCpuDifficulty', () => {
 });
 
 describe('pickCpuPattern', () => {
-  it('16x16 の模様を返す', () => {
-    const grid = pickCpuPattern('neutral', () => 0.2).build(() => 0.2);
-    expect(grid).toHaveLength(16);
-    expect(grid[0]).toHaveLength(16);
+  it('指定サイズの模様を返す', () => {
+    const colors = PALETTE_16.slice(0, 6);
+    const grid = pickCpuPattern('neutral', () => 0.2).build({
+      canvasSize: 24,
+      colors,
+      random: () => 0.2,
+    });
+    expect(grid).toHaveLength(24);
+    expect(grid[0]).toHaveLength(24);
     expect(grid.flat().filter((c) => c != null).length).toBeGreaterThan(0);
+    for (const cell of grid.flat()) {
+      if (cell != null) {
+        expect(colors.map((c) => c.toLowerCase())).toContain(cell.toLowerCase());
+      }
+    }
   });
 });
 
