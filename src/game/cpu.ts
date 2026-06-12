@@ -2,6 +2,7 @@ import type { BattleActionChoice, BattleState, BoardPosition } from '../types/ba
 import { getBowTargets } from './bowCombat';
 import { getDualTargets } from './dualCombat';
 import { getHealTargets } from './healCombat';
+import { getSelectionTurn } from './iceCombat';
 import {
   FRONT_POSITIONS,
   getActionTypesForUnit,
@@ -34,11 +35,17 @@ export function pickCpuAction(
   random = Math.random,
 ): BattleActionChoice {
   const candidates: BattleActionChoice[] = [];
+  const selectionTurn = getSelectionTurn(state);
 
   for (const unit of state.cpu) {
     if (!isAlive(unit) || unit.position === 'defeated') continue;
     const position = unit.position;
-    const actions = getActionTypesForUnit(state.cpu, state.player, position);
+    const actions = getActionTypesForUnit(
+      state.cpu,
+      state.player,
+      position,
+      selectionTurn,
+    );
     if (actions.includes('bowAttack')) {
       for (const target of getBowTargets(state.cpu, state.player, position)) {
         candidates.push({

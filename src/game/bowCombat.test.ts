@@ -10,6 +10,7 @@ import {
 } from './bowCombat';
 import { getActionTypesForUnit } from './actions/getActionTypesForUnit';
 import { createBattleState } from './battleState';
+import { getSelectionTurn } from './iceCombat';
 
 function stubCard(name: string, attr: Card['attribute'], bp: number): Card {
   const grid = createEmptyGrid().map((row, i) =>
@@ -84,9 +85,14 @@ describe('bowCombat', () => {
     const bow = state.player.find((u) => u.attribute === 'bow')!;
     bow.bowArrowsRemaining = 0;
     expect(getBowTargets(state.player, state.cpu, bow.position)).toEqual([]);
-    expect(getActionTypesForUnit(state.player, state.cpu, bow.position)).toEqual(
-      [],
-    );
+    expect(
+      getActionTypesForUnit(
+        state.player,
+        state.cpu,
+        bow.position,
+        getSelectionTurn(state),
+      ),
+    ).toEqual([]);
   });
 
   it('矢切れ後は前衛のみ近接可能', () => {
@@ -104,9 +110,14 @@ describe('bowCombat', () => {
     bow.bowArrowsRemaining = 0;
     bow.position = 'frontLeft';
     expect(canUseBowMeleeAction(bow, 'frontLeft', state.cpu)).toBe(true);
-    expect(getActionTypesForUnit(state.player, state.cpu, 'frontLeft')).toContain(
-      'meleeAttack',
-    );
+    expect(
+      getActionTypesForUnit(
+        state.player,
+        state.cpu,
+        'frontLeft',
+        getSelectionTurn(state),
+      ),
+    ).toContain('meleeAttack');
     bow.position = 'backLeft';
     expect(canUseBowMeleeAction(bow, 'backLeft', state.cpu)).toBe(false);
   });

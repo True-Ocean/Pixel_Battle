@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { DECK_MAX } from '../config/balance';
 import type { Card } from '../types';
 import type { BattleState } from '../types/battle';
+import { getSelectionTurn, isFrozen } from '../game/iceCombat';
 import { sumPoisonDotDamage } from '../game/poisonCombat';
 import { BattleCard } from './BattleCard';
 import { CardFlightLayer } from './CardFlightLayer';
@@ -170,6 +171,7 @@ export function BattleBoard({
         healUsesRemaining={
           unit.attribute === 'heal' ? unit.healUsesRemaining : undefined
         }
+        isFrozen={isFrozen(unit, getSelectionTurn(state))}
         poisonStackCount={unit.poisonStacks.length}
         poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}
@@ -209,6 +211,7 @@ export function BattleBoard({
         healUsesRemaining={
           unit.attribute === 'heal' ? unit.healUsesRemaining : undefined
         }
+        isFrozen={isFrozen(unit, getSelectionTurn(state))}
         poisonStackCount={unit.poisonStacks.length}
         poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}

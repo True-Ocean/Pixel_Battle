@@ -16,7 +16,9 @@ import {
   FRONT_POSITIONS,
   getDefeated,
   getHealTargets,
+  getSelectionTurn,
   getUnitAt,
+  isFrozen,
 } from '../game';
 import { sumPoisonDotDamage } from '../game/poisonCombat';
 import type { BattleUnit } from '../types/battle';
@@ -157,6 +159,34 @@ function getPoisonDotSlotFx(
   if (!dot) return null;
   return {
     animatedBp: { from: dot.bpFrom, to: dot.bpTo, active: true as const },
+  };
+}
+
+function resolveFrozenDisplay(
+  unit: BattleUnit,
+  battle: ReturnType<typeof useBattle>,
+  side: 'cpu' | 'player',
+  position: BoardPosition,
+): { frozen: boolean; justApplied: boolean } {
+  const playback = battle.playback;
+  if (playback?.phase === 'attack' && playback.attackSubPhase === 'bp') {
+    const attack = playback.attacks[playback.attackIndex];
+    if (
+      attack?.iceGranted &&
+      attack.toSide === side &&
+      attack.toPosition === position
+    ) {
+      const field =
+        side === 'player' ? attack.stateAfter.player : attack.stateAfter.cpu;
+      const after = getUnitAt(field, position);
+      if (after?.frozenUntilTurn != null) {
+        return { frozen: true, justApplied: true };
+      }
+    }
+  }
+  return {
+    frozen: isFrozen(unit, getSelectionTurn(battle.state)),
+    justApplied: false,
   };
 }
 
@@ -432,6 +462,9 @@ function BattleUnitSlot({
   const attackFx = getAttackSlotFx(battle.playback, side, position);
   const healFx = getHealSlotFx(battle.playback, side, position);
   const poisonFx = getPoisonDotSlotFx(battle.turnStartPlayback, side, position);
+  const frozenDisplay = unit
+    ? resolveFrozenDisplay(unit, battle, side, position)
+    : { frozen: false, justApplied: false };
   const poisonDisplay = unit
     ? resolvePoisonDisplay(unit, battle, side, position)
     : { count: 0, damagePerTurn: 0, justApplied: false };
@@ -476,6 +509,8 @@ function BattleUnitSlot({
           healUsesRemaining={
             unit.attribute === 'heal' ? unit.healUsesRemaining : undefined
           }
+          isFrozen={frozenDisplay.frozen}
+          freezeJustApplied={frozenDisplay.justApplied}
           poisonStackCount={poisonDisplay.count}
           poisonDamagePerTurn={poisonDisplay.damagePerTurn}
           poisonJustApplied={poisonDisplay.justApplied}

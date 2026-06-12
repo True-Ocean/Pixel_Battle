@@ -30,6 +30,10 @@ export interface BattleCardProps {
   bowArrowsRemaining?: number;
   /** 癒の残り回復回数（戦闘中のみ渡す。0 で非表示） */
   healUsesRemaining?: number;
+  /** 凍結中（行動不能） */
+  isFrozen?: boolean;
+  /** このターンに凍結が付与された演出 */
+  freezeJustApplied?: boolean;
   defenseShieldUsed?: boolean;
   dead?: boolean;
   interactive?: boolean;
@@ -74,6 +78,8 @@ export function BattleCard({
   healSparkle = false,
   bowArrowsRemaining,
   healUsesRemaining,
+  isFrozen = false,
+  freezeJustApplied = false,
   defenseShieldUsed = false,
   dead = false,
   interactive = false,
@@ -107,6 +113,8 @@ export function BattleCard({
     cpuTurnFocus ? 'cpu-focus' : '',
     hasShield ? 'has-shield' : '',
     poisonStackCount > 0 ? 'has-poison' : '',
+    isFrozen ? 'has-freeze' : '',
+    freezeJustApplied ? 'freeze-just-applied' : '',
     poisonJustApplied ? 'poison-just-applied' : '',
     healSparkle ? 'heal-sparkle' : '',
     interactive ? 'interactive' : '',
@@ -137,6 +145,7 @@ export function BattleCard({
       : '';
   const bowLabel = showBowArrows ? `（矢${bowArrowsRemaining}）` : '';
   const healLabel = showHealUses ? `（回復${healUsesRemaining}）` : '';
+  const freezeLabel = isFrozen ? '（凍結）' : '';
 
   const front = (
     <>
@@ -162,7 +171,8 @@ export function BattleCard({
       {(hasShield ||
         poisonStackCount > 0 ||
         showBowArrows ||
-        showHealUses) && (
+        showHealUses ||
+        isFrozen) && (
         <div className="battle-card-buffs" aria-hidden>
           {hasShield && (
             <span className="battle-card-buff-icon battle-card-buff-shield">🛡</span>
@@ -205,6 +215,14 @@ export function BattleCard({
               🧪{healUsesRemaining > 1 ? healUsesRemaining : ''}
             </span>
           )}
+          {isFrozen && (
+            <span
+              className="battle-card-buff-icon battle-card-buff-freeze"
+              title="凍結（行動不能）"
+            >
+              ❄
+            </span>
+          )}
           {poisonStackCount > 0 && (
             <span
               className="battle-card-buff-icon battle-card-buff-poison"
@@ -234,6 +252,11 @@ export function BattleCard({
         </span>
       )}
       <span className="battle-card-name">{name}</span>
+      {isFrozen && (
+        <div className="battle-card-freeze-overlay" aria-hidden>
+          <div className="battle-card-freeze-crystals" />
+        </div>
+      )}
     </>
   );
 
@@ -243,7 +266,7 @@ export function BattleCard({
 
   const ariaLabel = faceDown
     ? '裏向きのカード'
-    : `${name} ${attrMeta.ariaName} BP${currentBp}${shieldLabel}${bowLabel}${healLabel}${poisonLabel}`;
+    : `${name} ${attrMeta.ariaName} BP${currentBp}${shieldLabel}${bowLabel}${healLabel}${freezeLabel}${poisonLabel}`;
 
   // 裏向きは CardBack を直接描画（iOS Safari で rotateY フリップが反転表示になるため）
   const content = faceDown ? (

@@ -9,6 +9,7 @@ import {
 } from './battleState';
 import { getActionTypesForUnit } from './actions/getActionTypesForUnit';
 import { getHealTargets } from './healCombat';
+import { getSelectionTurn, isFrozen } from './iceCombat';
 import { promoteUnit, resolveTurn } from './resolveTurn';
 import { startNextTurn } from './startNextTurn';
 import { pickCpuAction } from './cpu';
@@ -451,7 +452,14 @@ describe('battle', () => {
     );
 
     const bow = state.player.find((u) => u.attribute === 'bow')!;
-    expect(getActionTypesForUnit(state.player, state.cpu, bow.position)).toEqual([]);
+    expect(
+      getActionTypesForUnit(
+        state.player,
+        state.cpu,
+        bow.position,
+        getSelectionTurn(state),
+      ),
+    ).toEqual([]);
   });
 
   it('弓は矢切れ後も前衛なら近接攻撃できる', () => {
@@ -468,9 +476,14 @@ describe('battle', () => {
     bow.position = 'frontLeft';
     state.cpu[0].currentBp = 100;
 
-    expect(getActionTypesForUnit(state.player, state.cpu, 'frontLeft')).toEqual([
-      'meleeAttack',
-    ]);
+    expect(
+      getActionTypesForUnit(
+        state.player,
+        state.cpu,
+        'frontLeft',
+        getSelectionTurn(state),
+      ),
+    ).toEqual(['meleeAttack']);
 
     state = resolveTurn(state, {
       player: {
@@ -934,6 +947,141 @@ describe('battle', () => {
     }).state;
     const after = state.player.find((u) => u.position === 'frontLeft')!.currentBp;
     expect(after).toBe(before);
+  });
+
+  it('氷属性の近接で主対象を凍結する', () => {
+    const playerDeck = [
+      stubCard('氷', 'ice', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu[0].frozenUntilTurn).toBe(2);
+    expect(state.cpu[0].currentBp).toBe(20);
+  });
+
+  it('凍結中は行動カードを選べない', () => {
+    const playerDeck = [
+      stubCard('氷', 'ice', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    const cpu = state.cpu[0]!;
+    expect(cpu.frozenUntilTurn).toBe(2);
+    expect(isFrozen(cpu, getSelectionTurn(state))).toBe(true);
+    expect(
+      getActionTypesForUnit(
+        state.cpu,
+        state.player,
+        'frontLeft',
+        getSelectionTurn(state),
+      ),
+    ).toEqual([]);
+  });
+
+  it('盾があると凍結付与も防がれ盾は消える', () => {
+    const playerDeck = [
+      stubCard('氷', 'ice', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+    state.cpu[0].hasShield = true;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu[0].hasShield).toBe(false);
+    expect(state.cpu[0].currentBp).toBe(100);
+    expect(state.cpu[0].frozenUntilTurn).toBeNull();
+  });
+
+  it('再凍結でタイマーがリセットされる', () => {
+    const playerDeck = [
+      stubCard('氷', 'ice', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuPass = {
+      type: 'grantShield' as const,
+      actorPosition: 'backCenter' as const,
+      targetPosition: 'frontRight' as const,
+    };
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 110;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: cpuPass,
+    }).state;
+    expect(state.cpu[0].frozenUntilTurn).toBe(2);
+    expect(state.player[0].currentBp).toBeGreaterThan(0);
+    expect(state.cpu[0].currentBp).toBeGreaterThan(0);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: cpuPass,
+    }).state;
+    expect(state.cpu[0].frozenUntilTurn).toBe(3);
+    expect(isFrozen(state.cpu[0]!, getSelectionTurn(state))).toBe(true);
   });
 
   it('弓が前衛に補充されてもBPは半減しない', () => {

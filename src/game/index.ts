@@ -37,6 +37,12 @@ export {
   calcHealAmount,
   getHealTargets,
 } from './healCombat';
+export {
+  applyFreeze,
+  expireFreeze,
+  getSelectionTurn,
+  isFrozen,
+} from './iceCombat';
 export { resolveTurn, promoteUnit } from './resolveTurn';
 export { startNextTurn } from './startNextTurn';
 export type { StartTurnResult } from './startNextTurn';

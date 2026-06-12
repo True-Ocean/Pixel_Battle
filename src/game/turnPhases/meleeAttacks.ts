@@ -6,6 +6,7 @@ import type {
   BoardPosition,
 } from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
+import { applyFreeze } from '../iceCombat';
 import { grantPoisonStack } from '../poisonCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
 import type { AttackPlayback } from '../turnResult';
@@ -169,6 +170,8 @@ export function applyMeleeBattle(
   );
   attack.target.currentBp = Math.max(0, attack.target.currentBp - damageToTarget);
 
+  const freezeOnTarget =
+    attack.attacker.attribute === 'ice' && !targetShieldConsumed;
   const poisonOnTarget =
     attack.attacker.attribute === 'poison' && !targetShieldConsumed;
   const poisonOnAttacker =
@@ -177,6 +180,13 @@ export function applyMeleeBattle(
     damageToAttacker > 0 &&
     !attackerShieldConsumed;
 
+  if (freezeOnTarget) {
+    applyFreeze(attack.target, next.turn);
+    next = appendLog(
+      next,
+      `${attack.target.name} は凍結された（${attack.attacker.name}）`,
+    );
+  }
   if (poisonOnTarget) {
     grantPoisonStack(attack.target, attack.attacker, attackerBpAtMelee);
     next = appendLog(
@@ -194,6 +204,7 @@ export function applyMeleeBattle(
 
   const poisonGranted = poisonOnTarget;
   const poisonCounterGranted = poisonOnAttacker;
+  const iceGranted = freezeOnTarget;
   const playback: AttackPlayback = {
     kind: 'melee',
     fromSide: attack.side,
@@ -210,6 +221,7 @@ export function applyMeleeBattle(
     attackerBpTo: attack.attacker.currentBp,
     poisonGranted,
     poisonCounterGranted,
+    iceGranted,
     stateAfter: {
       ...next,
       player: player.map((u) => ({ ...u, poisonStacks: u.poisonStacks.map((s) => ({ ...s })) })),

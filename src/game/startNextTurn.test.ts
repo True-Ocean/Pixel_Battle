@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createBattleState, getPendingPromotionFronts } from './battleState';
 import { resolveTurn } from './resolveTurn';
+import { isFrozen, getSelectionTurn } from './iceCombat';
 import { startNextTurn } from './startNextTurn';
 import { createCardFromDrawing } from '../card';
 import { createEmptyGrid } from '../canvas';
@@ -80,5 +81,45 @@ describe('startNextTurn', () => {
     expect(getPendingPromotionFronts(turnStart.stateAfterDot.player)).toContain(
       'frontLeft',
     );
+  });
+
+  it('凍結期限を過ぎたユニットの frozenUntilTurn をクリアする', () => {
+    const playerDeck = [
+      stubCard('氷', 'ice', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('C1', 'attack', 80),
+      stubCard('C2', 'attack', 70),
+      stubCard('C3', 'attack', 60),
+      stubCard('C4', 'defense', 50),
+      stubCard('C5', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+    const cpuPass = {
+      type: 'grantShield' as const,
+      actorPosition: 'backCenter' as const,
+      targetPosition: 'frontRight' as const,
+    };
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: cpuPass,
+    }).state;
+    expect(state.cpu[0].frozenUntilTurn).toBe(2);
+
+    state = resolveTurn(state, { player: cpuPass, cpu: cpuPass }).state;
+    expect(state.turn).toBe(2);
+    expect(isFrozen(state.cpu[0]!, getSelectionTurn(state))).toBe(false);
+
+    const turnStart = startNextTurn(state);
+    expect(turnStart.stateAfterDot.cpu[0].frozenUntilTurn).toBeNull();
   });
 });

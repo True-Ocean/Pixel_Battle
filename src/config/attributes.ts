@@ -96,13 +96,13 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   heal: {
     label: '癒',
     ariaName: '癒属性',
-    description: '味方を回復する（2回まで）\n盾付与・攻撃より先に回復を付与できる\n毒効果も同時に無効化できる',
+    description: '味方を回復する（2回まで）\n毒効果も同時に無効化できる',
     battleGuide: [
-      '・回復は毒ダメージの後、盾付与・攻撃より先に処理される',
       '・後衛にいるとき：回復のみ',
       '・前衛にいるとき：近接攻撃または回復',
       '・自分の現BP分の回復を付与する（最大BPを超えない）',
       '・回復付与は2回まで',
+      '・回復は毒ダメージの後、盾付与・攻撃より先に処理される',
       '・他属性よりBPが低い（弓と同程度）',
     ].join('\n'),
     bg: '#44cc88',
@@ -111,11 +111,11 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   ice: {
     label: '氷',
     ariaName: '氷属性',
-    description: '近接で次ターン行動不能（Phase 7）',
+    description: '近接攻撃で戦った相手を凍結させる\n（相手は次ターン行動不能）',
     battleGuide: [
-      '・前衛にいるときのみ近接攻撃（バトル未実装）',
-      '・近接した相手を次ターン行動不能にする',
-      '・再凍結で効果時間がリセットされる',
+      '・前衛にいるときのみ近接攻撃',
+      '・近接攻撃で戦った相手を凍結させ、次ターンの間、行動不能にする',
+      '・凍結したカードのBPは回復できるが、凍結は解除できない',
     ].join('\n'),
     bg: '#66ccff',
     border: '#3399cc',

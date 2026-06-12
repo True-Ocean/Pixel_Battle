@@ -4,6 +4,7 @@ import type { BoardPosition } from '../../types/battle';
 import { canUseBowMeleeAction, getBowTargets } from '../bowCombat';
 import { getDualTargets } from '../dualCombat';
 import { canUseHealAction } from '../healCombat';
+import { isFrozen } from '../iceCombat';
 import {
   canUseShieldAction,
   getMeleeTargets,
@@ -26,9 +27,11 @@ export function getActionTypesForUnit(
   ownField: Parameters<typeof getUnitAt>[0],
   enemyField: Parameters<typeof getMeleeTargets>[0],
   position: BoardPosition,
+  selectionTurn: number,
 ): BattleActionType[] {
   const unit = getUnitAt(ownField, position);
   if (!unit) return [];
+  if (isFrozen(unit, selectionTurn)) return [];
 
   const actions: BattleActionType[] = [];
 

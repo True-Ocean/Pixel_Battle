@@ -1,6 +1,7 @@
 import type { BattleState } from '../types/battle';
 import { appendLog } from './battleState';
 import { applyDefeated } from './turnPhases/defeated';
+import { expireFreeze } from './iceCombat';
 import { applyPoisonDoT } from './turnPhases/poisonDoT';
 import type { PoisonDoTPlayback } from './turnResult';
 
@@ -38,6 +39,8 @@ export interface StartTurnResult {
 export function startNextTurn(state: BattleState): StartTurnResult {
   const displayTurn = state.turn + 1;
   let beforeDot = cloneBattleState(state);
+  expireFreeze(beforeDot.player, displayTurn);
+  expireFreeze(beforeDot.cpu, displayTurn);
   beforeDot = appendLog(beforeDot, `--- TURN ${displayTurn} ---`);
 
   const poisonResult = applyPoisonDoT(beforeDot);

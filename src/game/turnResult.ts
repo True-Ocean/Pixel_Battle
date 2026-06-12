@@ -39,6 +39,8 @@ export interface AttackPlayback {
   poisonGranted?: boolean;
   /** 一方的近接の反撃で毒を付与した（被攻撃側→攻撃側） */
   poisonCounterGranted?: boolean;
+  /** 近接で凍結を付与した（攻撃側→主対象） */
+  iceGranted?: boolean;
   stateAfter: BattleState;
 }
 

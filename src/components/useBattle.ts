@@ -13,6 +13,7 @@ import {
   getPendingPromotionFronts,
   getPromotableBackPositions,
   getHealTargets,
+  getSelectionTurn,
   getShieldTargetsForActor,
   getUnitAt,
   promoteUnit,
@@ -342,10 +343,16 @@ export function useBattle(
     return () => window.clearTimeout(t);
   }, [playback, uiPhase, finishPlayback]);
 
+  const selectionTurn = getSelectionTurn(state);
   const availableActionsFor = useCallback(
     (position: BoardPosition) =>
-      getActionTypesForUnit(state.player, state.cpu, position),
-    [state],
+      getActionTypesForUnit(
+        state.player,
+        state.cpu,
+        position,
+        selectionTurn,
+      ),
+    [state, selectionTurn],
   );
 
   const commitTurn = useCallback(
