@@ -8,7 +8,7 @@ import type {
 import { appendLog, getUnitAt } from './battleState';
 import { applyDefeated } from './turnPhases/defeated';
 import { resolveHeals } from './turnPhases/heals';
-import { resolveMeleeAttacks } from './turnPhases/meleeAttacks';
+import { resolveCombatAttacks } from './turnPhases/combatAttacks';
 import { applyPoisonDoT } from './turnPhases/poisonDoT';
 import { resolveShields } from './turnPhases/shields';
 import type { ResolveTurnResult } from './turnResult';
@@ -58,8 +58,8 @@ export function resolveTurn(
   next = shieldResult.state;
   const shieldState = cloneBattleState(next);
 
-  const meleeResult = resolveMeleeAttacks(next, choices, player, cpu);
-  next = meleeResult.state;
+  const combatResult = resolveCombatAttacks(next, choices, player, cpu);
+  next = combatResult.state;
 
   next = applyDefeated(next, player, cpu);
 
@@ -67,7 +67,7 @@ export function resolveTurn(
     state: next,
     shieldState,
     shieldGrants: shieldResult.shieldGrants,
-    attacks: meleeResult.attacks,
+    attacks: combatResult.attacks,
     shields: shieldResult.shields,
   };
 }

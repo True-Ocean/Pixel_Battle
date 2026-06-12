@@ -770,6 +770,53 @@
   justify-content: inherit;
 }
 
+.deck-detail-card-guide {
+  margin: 0.35rem 0 0;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.55);
+  overflow: hidden;
+}
+
+.deck-detail-card-guide-summary {
+  padding: 0.5rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #335;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.deck-detail-card-guide-summary::-webkit-details-marker {
+  display: none;
+}
+
+.deck-detail-card-guide-summary::after {
+  content: ' ▾';
+  float: right;
+  color: #778;
+  font-weight: 400;
+}
+
+.deck-detail-card-guide[open] .deck-detail-card-guide-summary::after {
+  content: ' ▴';
+}
+
+.deck-detail-card-guide-body {
+  padding: 0 0.65rem 0.6rem;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  color: #444;
+  white-space: pre-line;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.deck-detail-card-guide-common {
+  margin-top: 0.5rem;
+  background: rgba(248, 248, 252, 0.85);
+}
+
 .deck-detail-card-record {
   margin: 0;
   text-align: center;

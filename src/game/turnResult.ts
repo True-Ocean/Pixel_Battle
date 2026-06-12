@@ -6,6 +6,7 @@ export interface ShieldGrants {
 }
 
 export interface AttackPlayback {
+  kind?: 'melee' | 'bow';
   fromSide: BattleSide;
   fromPosition: BoardPosition;
   toSide: BattleSide;

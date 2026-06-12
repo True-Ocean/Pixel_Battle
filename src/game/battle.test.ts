@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Card } from '../types';
+import type { Attribute, Card } from '../types';
 import { createCardFromDrawing } from '../card';
 import { createEmptyGrid } from '../canvas';
 import {
@@ -10,7 +10,7 @@ import {
 import { promoteUnit, resolveTurn } from './resolveTurn';
 import { pickCpuAction } from './cpu';
 
-function stubCard(name: string, attr: 'attack' | 'defense', bp: number): Card {
+function stubCard(name: string, attr: Attribute, bp: number): Card {
   const grid = createEmptyGrid().map((row, i) =>
     row.map(() => (i === 0 ? '#ff0000' : null)),
   );
@@ -364,5 +364,105 @@ describe('battle', () => {
     const state = createBattleState(cards('P'), cards('C'));
     const action = pickCpuAction(state, () => 0);
     expect(['meleeAttack', 'grantShield']).toContain(action.type);
+  });
+
+  it('後衛弓は敵前衛に100%ダメージで反撃されない', () => {
+    const playerDeck = [
+      stubCard('P1', 'attack', 50),
+      stubCard('P2', 'attack', 50),
+      stubCard('弓', 'bow', 80),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state = resolveTurn(state, {
+      player: {
+        type: 'bowAttack',
+        actorPosition: 'backLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.player[2].currentBp).toBe(80);
+    expect(state.cpu[0].currentBp).toBe(0);
+  });
+
+  it('後衛弓は敵後衛に50%ダメージ', () => {
+    const playerDeck = [
+      stubCard('P1', 'attack', 50),
+      stubCard('P2', 'attack', 50),
+      stubCard('弓', 'bow', 80),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state = resolveTurn(state, {
+      player: {
+        type: 'bowAttack',
+        actorPosition: 'backLeft',
+        targetPosition: 'backLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu[2].currentBp).toBe(20);
+    expect(state.player[2].currentBp).toBe(80);
+  });
+
+  it('弓が前衛に補充されてもBPは半減しない', () => {
+    const playerDeck = [
+      stubCard('P1', 'attack', 50),
+      stubCard('P2', 'attack', 50),
+      stubCard('弓', 'bow', 80),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.player[0].position = 'defeated';
+    state.player[0].currentBp = 0;
+
+    state = promoteUnit(state, 'player', 'backLeft', 'frontLeft');
+    const bow = state.player.find((u) => u.name === '弓');
+    expect(bow?.position).toBe('frontLeft');
+    expect(bow?.currentBp).toBe(80);
+    expect(bow?.maxBp).toBe(80);
+  });
+
+  it('前衛の弓が近接すると与ダメは50%・反撃は通常近接ルール', () => {
+    const playerDeck = [
+      stubCard('弓', 'bow', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.player[0].position = 'frontLeft';
+    state.cpu[0].currentBp = 100;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu[0].currentBp).toBe(60);
+    expect(state.player[0].currentBp).toBe(30);
   });
 });

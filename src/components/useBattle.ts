@@ -7,6 +7,7 @@ import {
   createBattleState,
   getActionTypesForUnit,
   getBattleResult,
+  getBowTargets,
   getDefeated,
   getMeleeTargets,
   getPendingPromotionFronts,
@@ -323,7 +324,9 @@ export function useBattle(
       if (actions.length === 1) {
         const action = actions[0]!;
         setPendingAction(action);
-        setUiPhase(action === 'meleeAttack' ? 'pickTarget' : 'pickShield');
+        setUiPhase(
+          action === 'grantShield' ? 'pickShield' : 'pickTarget',
+        );
       } else {
         setPendingAction(null);
         setUiPhase('pickTarget');
@@ -345,14 +348,48 @@ export function useBattle(
       if (effectivePhase !== 'pickTarget' || !pendingActor) {
         return;
       }
-      if (!getMeleeTargets(state.cpu).includes(position)) return;
-      commitTurn({
-        type: 'meleeAttack',
-        actorPosition: pendingActor,
-        targetPosition: position,
-      });
+      const actor = getUnitAt(state.player, pendingActor);
+      if (!actor) return;
+
+      const bowTargets = getBowTargets(state.player, state.cpu, pendingActor);
+      const meleeTargets = getMeleeTargets(state.cpu);
+
+      if (
+        bowTargets.includes(position) &&
+        (pendingAction === 'bowAttack' ||
+          (pendingAction == null && actor.attribute === 'bow'))
+      ) {
+        commitTurn({
+          type: 'bowAttack',
+          actorPosition: pendingActor,
+          targetPosition: position,
+        });
+        return;
+      }
+
+      if (
+        meleeTargets.includes(position) &&
+        (pendingAction === 'meleeAttack' ||
+          (pendingAction == null &&
+            (actor.attribute === 'bow' || actor.attribute === 'defense')))
+      ) {
+        commitTurn({
+          type: 'meleeAttack',
+          actorPosition: pendingActor,
+          targetPosition: position,
+        });
+        return;
+      }
+
+      if (pendingAction !== 'bowAttack' && meleeTargets.includes(position)) {
+        commitTurn({
+          type: 'meleeAttack',
+          actorPosition: pendingActor,
+          targetPosition: position,
+        });
+      }
     },
-    [effectivePhase, pendingActor, pendingAction, state.cpu, commitTurn],
+    [effectivePhase, pendingActor, pendingAction, state, commitTurn],
   );
 
   const cancelSelection = useCallback(() => {
@@ -374,8 +411,23 @@ export function useBattle(
   const isValidTargetPosition = useCallback(
     (position: BoardPosition, side: 'cpu' | 'player' = 'player') => {
       if (effectivePhase === 'pickTarget') {
-        if (side === 'cpu') {
-          return getMeleeTargets(state.cpu).includes(position);
+        if (side === 'cpu' && pendingActor) {
+          const actor = getUnitAt(state.player, pendingActor);
+          if (!actor) return false;
+          const bowTargets = getBowTargets(state.player, state.cpu, pendingActor);
+          const meleeTargets = getMeleeTargets(state.cpu);
+          if (pendingAction === 'bowAttack') {
+            return bowTargets.includes(position);
+          }
+          if (pendingAction === 'meleeAttack') {
+            return meleeTargets.includes(position);
+          }
+          if (actor.attribute === 'bow') {
+            return (
+              bowTargets.includes(position) || meleeTargets.includes(position)
+            );
+          }
+          return meleeTargets.includes(position);
         }
         return (
           pendingAction == null &&
@@ -442,8 +494,19 @@ export function useBattle(
       if (playback.phase === 'attack') return '攻撃';
       return '判定中';
     }
-    if (effectivePhase === 'pickTarget' && pendingAction == null)
+    if (effectivePhase === 'pickTarget' && pendingAction == null) {
+      const actor =
+        pendingActor != null
+          ? getUnitAt(state.player, pendingActor)
+          : undefined;
+      if (actor?.attribute === 'bow') {
+        return '前衛＝近接・後衛＝弓で攻撃先を選択';
+      }
       return '攻撃先か盾先を選択';
+    }
+    if (effectivePhase === 'pickTarget' && pendingAction === 'bowAttack') {
+      return '弓の対象を選択';
+    }
     if (effectivePhase === 'pickTarget') return '攻撃対象を選択';
     if (effectivePhase === 'pickShield') return '盾対象を選択';
     if (effectivePhase === 'promoteUnit') {

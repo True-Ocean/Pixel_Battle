@@ -15,6 +15,7 @@ export {
   getShieldTargets,
   getShieldTargetsForActor,
   getMeleeTargets,
+  getBowTargets,
   getActionTypesForUnit,
   getPromotableBackPositions,
   getPendingPromotionFronts,

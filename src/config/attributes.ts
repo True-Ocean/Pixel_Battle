@@ -7,6 +7,8 @@ export interface AttributeMeta {
   ariaName: string;
   /** カード詳細などに表示する簡易説明 */
   description: string;
+  /** 詳細カード内の折りたたみ「戦い方」本文（white-space: pre-line） */
+  battleGuide: string;
   bg: string;
   border: string;
 }
@@ -17,6 +19,11 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
     label: '剣',
     ariaName: '剣属性',
     description: '通常攻撃のみ（特殊能力なし）',
+    battleGuide: [
+      '・前衛にいるときのみ近接攻撃できる（後衛は行動不可）',
+      '・敵前衛のいずれか1体を選んで攻撃',
+      '・特殊能力なし',
+    ].join('\n'),
     bg: '#e24a4a',
     border: '#b83232',
   },
@@ -25,6 +32,14 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
     ariaName: '盾属性',
     description:
       '敵の攻撃を1回無効にする盾を保有する\n味方1体に対して一度だけ盾を付与できる',
+    battleGuide: [
+      '・バトル開始時から盾1枚を所持',
+      '・前衛時：近接攻撃または盾付与のどちらか',
+      '・後衛時：盾付与のみ',
+      '',
+      ' 盾：敵の攻撃を1回無効、敵から攻撃を受けると消滅',
+      ' 盾付与：自分以外の盾なし味方に付与（バトル中1体のみ）',
+    ].join('\n'),
     bg: '#4488ff',
     border: '#2266cc',
   },
@@ -32,13 +47,24 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
     label: '力',
     ariaName: '力属性',
     description: '他属性より高いBPを持つ',
+    battleGuide: [
+      '・前衛にいるときのみ近接攻撃できる（後衛は行動不可）',
+      '・敵前衛のいずれか1体を選んで攻撃',
+      '・他属性よりBPが高い（作成時に決定）',
+      '・特殊能力なし',
+    ].join('\n'),
     bg: '#cc6622',
     border: '#994411',
   },
   bow: {
     label: '弓',
     ariaName: '弓属性',
-    description: '後衛から距離攻撃（Phase 2）',
+    description: '後衛から攻撃できる（反撃なし）\n前衛では弓か近接を選べる',
+    battleGuide: [
+      '・弓攻撃は反撃を受けない',
+      '・後衛にいるとき：弓攻撃のみ可能（敵前衛には100%、敵後衛には50%の与ダメージ）',
+      '・前衛にいるとき：敵後衛への弓攻撃（100%与ダメージ）か敵前衛への近接攻撃（50%与ダメージ）かを選べる',
+    ].join('\n'),
     bg: '#66aa44',
     border: '#448822',
   },
@@ -46,6 +72,11 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
     label: '両',
     ariaName: '両属性',
     description: '前衛近接＋副前衛50%追加攻撃（Phase 3）',
+    battleGuide: [
+      '・前衛にいるときのみ近接攻撃（バトル未実装）',
+      '・主対象へ通常近接＋もう一方の敵前衛へ50%副攻撃',
+      '・副攻撃は無反撃。毒・氷は主対象のみ',
+    ].join('\n'),
     bg: '#aa8844',
     border: '#886622',
   },
@@ -53,6 +84,11 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
     label: '毒',
     ariaName: '毒属性',
     description: '近接で毒スタック付与・DoT（Phase 4）',
+    battleGuide: [
+      '・前衛にいるときのみ近接攻撃（バトル未実装）',
+      '・近接した相手に毒スタックを付与',
+      '・毎ターン開始時、各スタックが付与時maxBp×20%のDoT',
+    ].join('\n'),
     bg: '#8844aa',
     border: '#662288',
   },
@@ -60,6 +96,13 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
     label: '癒',
     ariaName: '癒属性',
     description: '味方回復・攻撃フェーズ前に解決（Phase 5）',
+    battleGuide: [
+      '・回復は盾・攻撃より先に解決（バトル未実装）',
+      '・後衛にいるとき：回復のみ',
+      '・前衛にいるとき：近接攻撃または回復',
+      '・ダメージを受けた味方のみ回復（maxBpまで）',
+      '・1枚あたり1戦闘2回まで',
+    ].join('\n'),
     bg: '#44cc88',
     border: '#22aa66',
   },
@@ -67,6 +110,11 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
     label: '氷',
     ariaName: '氷属性',
     description: '近接で次ターン行動不能（Phase 7）',
+    battleGuide: [
+      '・前衛にいるときのみ近接攻撃（バトル未実装）',
+      '・近接した相手を次ターン行動不能にする',
+      '・再凍結で効果時間がリセットされる',
+    ].join('\n'),
     bg: '#66ccff',
     border: '#3399cc',
   },
@@ -74,6 +122,10 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
     label: '嵐',
     ariaName: '嵐属性',
     description: '1回/戦闘・currentBp分割ダメージ（Phase 6）',
+    battleGuide: [
+      '・1戦闘1回、currentBp×25%を別ユニット2体へ（バトル未実装）',
+      '・反撃なし',
+    ].join('\n'),
     bg: '#8888cc',
     border: '#6666aa',
   },
@@ -81,6 +133,11 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
     label: '忍',
     ariaName: '忍属性',
     description: '後衛ステルス・初回無反撃（Phase 8）',
+    battleGuide: [
+      '・後衛にいるとき：ステルス（行動不可）（バトル未実装）',
+      '・前衛に上がってから近接。初回1回だけ無反撃',
+      '・ダメージ・回復等でステルス解除',
+    ].join('\n'),
     bg: '#444444',
     border: '#222222',
   },

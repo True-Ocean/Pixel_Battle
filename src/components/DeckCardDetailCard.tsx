@@ -3,6 +3,7 @@ import { getAttributeMeta } from '../config/attributes';
 import { getRarityMeta } from '../config/rarity';
 import type { Card } from '../types';
 import { AttributeBadge } from './AttributeBadge';
+import { AttributeBattleGuide } from './AttributeBattleGuide';
 import { CardBattleRecord } from './CardBattleRecord';
 import { CardPreview } from './CardPreview';
 import { LimitBreakStars } from './LimitBreakStars';
@@ -64,6 +65,8 @@ export function DeckCardDetailCard({ card, isFauxLost }: DeckCardDetailCardProps
         </div>
         <p className="deck-detail-card-attr-desc">{attrMeta.description}</p>
       </div>
+
+      <AttributeBattleGuide attribute={card.attribute} />
 
       <p className="deck-detail-card-record">
         <CardBattleRecord

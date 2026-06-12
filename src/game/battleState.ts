@@ -10,6 +10,12 @@ import { createExtendedBattleUnitState } from './battleUnitState';
 import { getActionTypesForUnit } from './actions/getActionTypesForUnit';
 
 export { getActionTypesForUnit };
+export {
+  getBowTargets,
+  calcBowDamage,
+  getBowDamageRatio,
+  isBowTargetable,
+} from './bowCombat';
 
 export const BOARD_POSITIONS = [
   'frontLeft',

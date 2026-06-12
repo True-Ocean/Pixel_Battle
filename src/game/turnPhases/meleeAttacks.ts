@@ -6,6 +6,7 @@ import type {
   BoardPosition,
 } from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
+import { calcBowMeleeDamage } from '../bowCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
 import type { AttackPlayback } from '../turnResult';
 
@@ -16,13 +17,17 @@ export interface MeleePhaseResult {
   attacks: AttackPlayback[];
 }
 
-interface MeleeBattleInput {
+export interface MeleeBattleInput {
   side: BattleSide;
   targetSide: BattleSide;
   action: BattleActionChoice;
   attacker: BattleUnit;
   target: BattleUnit;
 }
+
+export type MeleeBattleResolution = MeleeBattleInput & {
+  bidirectional: boolean;
+};
 
 function cloneBattleStateFields(
   state: BattleState,
@@ -42,11 +47,11 @@ function battleKey(side: BattleSide, position: BoardPosition): string {
   return `${side}:${position}`;
 }
 
-function collectMeleeBattles(
+export function collectMeleeBattles(
   choices: { player: BattleActionChoice; cpu: BattleActionChoice },
   player: BattleUnit[],
   cpu: BattleUnit[],
-): Map<string, MeleeBattleInput & { bidirectional: boolean }> {
+): Map<string, MeleeBattleResolution> {
   const pendingAttacks = [
     { side: 'player' as const, action: choices.player },
     { side: 'cpu' as const, action: choices.cpu },
@@ -71,7 +76,7 @@ function collectMeleeBattles(
     })
     .filter((a): a is MeleeBattleInput => a != null);
 
-  const battles = new Map<string, MeleeBattleInput & { bidirectional: boolean }>();
+  const battles = new Map<string, MeleeBattleResolution>();
   for (const attack of attackInputs) {
     const aKey = battleKey(attack.side, attack.action.actorPosition);
     const tKey = battleKey(attack.targetSide, attack.action.targetPosition);
@@ -92,6 +97,109 @@ function counterDamage(target: BattleUnit, bidirectional: boolean): number {
   return Math.round(raw * MELEE_COUNTER_RATIO_ONE_SIDED);
 }
 
+export function applyMeleeBattle(
+  state: BattleState,
+  player: BattleUnit[],
+  cpu: BattleUnit[],
+  attack: MeleeBattleResolution,
+): { state: BattleState; playback: AttackPlayback } {
+  let next = cloneBattleStateFields(state, player, cpu);
+
+  const attackerBpFrom = attack.attacker.currentBp;
+  const bpFrom = attack.target.currentBp;
+  const attackerShieldConsumed = attack.attacker.hasShield;
+  const targetShieldConsumed = attack.target.hasShield;
+  const blocked = targetShieldConsumed;
+
+  let damageToTarget = calcBowMeleeDamage(
+    attack.attacker,
+    attack.action.actorPosition,
+  );
+  let damageToAttacker = counterDamage(attack.target, attack.bidirectional);
+
+  if (attackerShieldConsumed) {
+    damageToAttacker = 0;
+    attack.attacker.hasShield = false;
+    next = appendLog(next, `${attack.attacker.name} の盾が攻撃で壊れた`);
+    next = {
+      ...next,
+      events: [
+        ...next.events,
+        {
+          type: 'blocked',
+          side: attack.side,
+          targetId: attack.attacker.cardId,
+        },
+      ],
+    };
+  }
+  if (targetShieldConsumed) {
+    damageToTarget = 0;
+    attack.target.hasShield = false;
+    next = appendLog(next, `${attack.target.name} の盾が攻撃を防いだ`);
+    next = {
+      ...next,
+      events: [
+        ...next.events,
+        {
+          type: 'blocked',
+          side: attack.side === 'player' ? 'cpu' : 'player',
+          targetId: attack.target.cardId,
+        },
+      ],
+    };
+  }
+
+  attack.attacker.currentBp = Math.max(
+    0,
+    attack.attacker.currentBp - damageToAttacker,
+  );
+  attack.target.currentBp = Math.max(0, attack.target.currentBp - damageToTarget);
+
+  const playback: AttackPlayback = {
+    kind: 'melee',
+    fromSide: attack.side,
+    fromPosition: attack.action.actorPosition,
+    toSide: attack.targetSide,
+    toPosition: attack.action.targetPosition,
+    bidirectional: attack.bidirectional,
+    damage: damageToTarget,
+    blocked,
+    bpFrom,
+    bpTo: attack.target.currentBp,
+    attackerDamage: damageToAttacker,
+    attackerBpFrom,
+    attackerBpTo: attack.attacker.currentBp,
+    stateAfter: {
+      ...next,
+      player: player.map((u) => ({ ...u, poisonStacks: u.poisonStacks.map((s) => ({ ...s })) })),
+      cpu: cpu.map((u) => ({ ...u, poisonStacks: u.poisonStacks.map((s) => ({ ...s })) })),
+      log: [...next.log],
+      events: [...next.events],
+    },
+  };
+
+  next = appendLog(
+    next,
+    `${attack.attacker.name} ↔ ${attack.target.name}: ${attackerBpFrom}→${attack.attacker.currentBp}, ${bpFrom}→${attack.target.currentBp}`,
+  );
+  next = {
+    ...next,
+    events: [
+      ...next.events,
+      {
+        type: 'attack',
+        side: attack.side,
+        actorId: attack.attacker.cardId,
+        targetId: attack.target.cardId,
+        damage: damageToTarget,
+      },
+    ],
+  };
+
+  return { state: next, playback };
+}
+
 export function resolveMeleeAttacks(
   state: BattleState,
   choices: { player: BattleActionChoice; cpu: BattleActionChoice },
@@ -107,96 +215,11 @@ export function resolveMeleeAttacks(
 
   let next = cloneBattleStateFields(state, player, cpu);
 
-  for (const attack of orderedBattles) {
-    if (!isAlive(attack.attacker) || !isAlive(attack.target)) continue;
-
-    const attackerBpFrom = attack.attacker.currentBp;
-    const bpFrom = attack.target.currentBp;
-    const attackerShieldConsumed = attack.attacker.hasShield;
-    const targetShieldConsumed = attack.target.hasShield;
-    const blocked = targetShieldConsumed;
-
-    let damageToTarget = attackerBpFrom;
-    let damageToAttacker = counterDamage(attack.target, attack.bidirectional);
-
-    if (attackerShieldConsumed) {
-      damageToAttacker = 0;
-      attack.attacker.hasShield = false;
-      next = appendLog(next, `${attack.attacker.name} の盾が攻撃で壊れた`);
-      next = {
-        ...next,
-        events: [
-          ...next.events,
-          {
-            type: 'blocked',
-            side: attack.side,
-            targetId: attack.attacker.cardId,
-          },
-        ],
-      };
-    }
-    if (targetShieldConsumed) {
-      damageToTarget = 0;
-      attack.target.hasShield = false;
-      next = appendLog(next, `${attack.target.name} の盾が攻撃を防いだ`);
-      next = {
-        ...next,
-        events: [
-          ...next.events,
-          {
-            type: 'blocked',
-            side: attack.side === 'player' ? 'cpu' : 'player',
-            targetId: attack.target.cardId,
-          },
-        ],
-      };
-    }
-
-    attack.attacker.currentBp = Math.max(
-      0,
-      attack.attacker.currentBp - damageToAttacker,
-    );
-    attack.target.currentBp = Math.max(0, attack.target.currentBp - damageToTarget);
-
-    attacks.push({
-      fromSide: attack.side,
-      fromPosition: attack.action.actorPosition,
-      toSide: attack.targetSide,
-      toPosition: attack.action.targetPosition,
-      bidirectional: attack.bidirectional,
-      damage: damageToTarget,
-      blocked,
-      bpFrom,
-      bpTo: attack.target.currentBp,
-      attackerDamage: damageToAttacker,
-      attackerBpFrom,
-      attackerBpTo: attack.attacker.currentBp,
-      stateAfter: {
-        ...next,
-        player: player.map((u) => ({ ...u })),
-        cpu: cpu.map((u) => ({ ...u })),
-        log: [...next.log],
-        events: [...next.events],
-      },
-    });
-
-    next = appendLog(
-      next,
-      `${attack.attacker.name} ↔ ${attack.target.name}: ${attackerBpFrom}→${attack.attacker.currentBp}, ${bpFrom}→${attack.target.currentBp}`,
-    );
-    next = {
-      ...next,
-      events: [
-        ...next.events,
-        {
-          type: 'attack',
-          side: attack.side,
-          actorId: attack.attacker.cardId,
-          targetId: attack.target.cardId,
-          damage: damageToTarget,
-        },
-      ],
-    };
+  for (const battle of orderedBattles) {
+    if (!isAlive(battle.attacker) || !isAlive(battle.target)) continue;
+    const result = applyMeleeBattle(next, player, cpu, battle);
+    next = result.state;
+    attacks.push(result.playback);
   }
 
   return { state: next, attacks };

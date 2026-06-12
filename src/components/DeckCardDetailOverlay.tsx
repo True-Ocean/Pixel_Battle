@@ -1,4 +1,5 @@
 import type { Card } from '../types';
+import { BattleCommonRules } from './BattleCommonRules';
 import { DeckCardDetailCard } from './DeckCardDetailCard';
 
 interface DeckCardDetailOverlayProps {
@@ -32,6 +33,8 @@ export function DeckCardDetailOverlay({
         </h2>
 
         <DeckCardDetailCard card={card} isFauxLost={isFauxLost} />
+
+        <BattleCommonRules />
 
         <div className="deck-card-detail-actions">
           {isFauxLost && onRevive ? (

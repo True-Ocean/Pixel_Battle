@@ -1,4 +1,5 @@
 import type { BattleActionChoice, BattleState, BoardPosition } from '../types/battle';
+import { getBowTargets } from './bowCombat';
 import {
   FRONT_POSITIONS,
   getActionTypesForUnit,
@@ -36,6 +37,15 @@ export function pickCpuAction(
     if (!isAlive(unit) || unit.position === 'defeated') continue;
     const position = unit.position;
     const actions = getActionTypesForUnit(state.cpu, state.player, position);
+    if (actions.includes('bowAttack')) {
+      for (const target of getBowTargets(state.cpu, state.player, position)) {
+        candidates.push({
+          type: 'bowAttack',
+          actorPosition: position,
+          targetPosition: target,
+        });
+      }
+    }
     if (actions.includes('meleeAttack')) {
       for (const target of getMeleeTargets(state.player)) {
         candidates.push({
