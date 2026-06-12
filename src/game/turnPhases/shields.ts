@@ -6,6 +6,7 @@ import type {
 } from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
 import { appendLog, getUnitAt, getUnitIndexAt, isAlive } from '../battleState';
+import { onExternalEffectToUnit } from '../ninjaCombat';
 import type { ShieldGrants, ShieldPlayback } from '../turnResult';
 
 export interface ShieldPhaseResult {
@@ -34,6 +35,7 @@ function applyShieldGrant(
   if (target.hasShield) return state;
 
   actor.defenseShieldUsed = true;
+  onExternalEffectToUnit(target);
   target.hasShield = true;
   const targetIndex = getUnitIndexAt(field, action.targetPosition);
   if (targetIndex >= 0) shieldGrants[side].push(targetIndex);

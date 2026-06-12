@@ -7,7 +7,13 @@ import type {
 } from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
 import { getActionTypesForUnit } from '../actions/getActionTypesForUnit';
-import { applyFreeze } from '../iceCombat';
+import { applyFreeze, getSelectionTurn, isFrozen } from '../iceCombat';
+import {
+  isMeleeTargetable,
+  onExternalEffectToUnit,
+  onNinjaMeleeAttack,
+  shouldApplyNinjaFirstStrike,
+} from '../ninjaCombat';
 import { grantPoisonStack } from '../poisonCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
 import type { AttackPlayback } from '../turnResult';
@@ -77,7 +83,13 @@ export function collectMeleeBattles(
       const enemy = side === 'player' ? cpu : player;
       const attacker = getUnitAt(own, action.actorPosition);
       const target = getUnitAt(enemy, action.targetPosition);
-      if (!attacker || !target || !isAlive(attacker) || !isAlive(target)) {
+      if (
+        !attacker ||
+        !target ||
+        !isAlive(attacker) ||
+        !isAlive(target) ||
+        !isMeleeTargetable(target)
+      ) {
         return null;
       }
       const actions = getActionTypesForUnit(
@@ -140,7 +152,15 @@ export function applyMeleeBattle(
   const blocked = targetShieldConsumed;
 
   let damageToTarget = attack.attacker.currentBp;
-  let damageToAttacker = counterDamage(attack.target, attack.bidirectional);
+  let damageToAttacker = shouldApplyNinjaFirstStrike(
+    attack.attacker,
+    attack.bidirectional,
+  )
+    ? 0
+    : counterDamage(attack.target, attack.bidirectional);
+  if (isFrozen(attack.target, getSelectionTurn(next))) {
+    damageToAttacker = 0;
+  }
 
   if (attackerShieldConsumed) {
     damageToAttacker = 0;
@@ -174,6 +194,11 @@ export function applyMeleeBattle(
       ],
     };
   }
+
+  if (attack.attacker.attribute === 'ninja') {
+    onNinjaMeleeAttack(attack.attacker);
+  }
+  onExternalEffectToUnit(attack.target);
 
   attack.attacker.currentBp = Math.max(
     0,

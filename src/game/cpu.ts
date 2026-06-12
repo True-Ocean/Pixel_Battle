@@ -1,17 +1,12 @@
-import type { BattleActionChoice, BattleState, BoardPosition } from '../types/battle';
-import { getBowTargets } from './bowCombat';
-import { getDualTargets } from './dualCombat';
-import { getHealTargets } from './healCombat';
-import { getSelectionTurn } from './iceCombat';
+import type { BattleActionChoice, BattleState } from '../types/battle';
 import {
-  FRONT_POSITIONS,
-  getActionTypesForUnit,
+  enumerateBattleActionChoices,
+  pickPassAction,
+} from './actionChoices';
+import {
   getAliveIndices,
-  getMeleeTargets,
   getPendingPromotionFronts,
   getPromotableBackPositions,
-  getShieldTargetsForActor,
-  isAlive,
 } from './battleState';
 import { promoteUnit } from './resolveTurn';
 
@@ -34,86 +29,8 @@ export function pickCpuAction(
   state: BattleState,
   random = Math.random,
 ): BattleActionChoice {
-  const candidates: BattleActionChoice[] = [];
-  const selectionTurn = getSelectionTurn(state);
-
-  for (const unit of state.cpu) {
-    if (!isAlive(unit) || unit.position === 'defeated') continue;
-    const position = unit.position;
-    const actions = getActionTypesForUnit(
-      state.cpu,
-      state.player,
-      position,
-      selectionTurn,
-    );
-    if (actions.includes('bowAttack')) {
-      for (const target of getBowTargets(state.cpu, state.player, position)) {
-        candidates.push({
-          type: 'bowAttack',
-          actorPosition: position,
-          targetPosition: target,
-        });
-      }
-    }
-    if (actions.includes('dualAttack')) {
-      for (const target of getDualTargets(state.player)) {
-        candidates.push({
-          type: 'dualAttack',
-          actorPosition: position,
-          targetPosition: target,
-        });
-      }
-    }
-    if (actions.includes('meleeAttack')) {
-      for (const target of getMeleeTargets(state.player)) {
-        candidates.push({
-          type: 'meleeAttack',
-          actorPosition: position,
-          targetPosition: target,
-        });
-      }
-    }
-    if (actions.includes('grantShield')) {
-      for (const target of getShieldTargetsForActor(state.cpu, position)) {
-        candidates.push({
-          type: 'grantShield',
-          actorPosition: position,
-          targetPosition: target,
-        });
-      }
-    }
-    if (actions.includes('heal')) {
-      for (const target of getHealTargets(state.cpu, position)) {
-        candidates.push({
-          type: 'heal',
-          actorPosition: position,
-          targetPosition: target,
-        });
-      }
-    }
-    if (actions.includes('storm')) {
-      candidates.push({
-        type: 'storm',
-        actorPosition: position,
-        targetPosition: position,
-      });
-    }
-  }
-
-  const picked = pickRandom(candidates, random);
-  if (picked) return picked;
-
-  const fallbackActor = FRONT_POSITIONS.find((p) =>
-    state.cpu.some((u) => u.position === p && isAlive(u)),
-  );
-  const fallbackTarget = FRONT_POSITIONS.find((p) =>
-    state.player.some((u) => u.position === p && isAlive(u)),
-  );
-  return {
-    type: 'meleeAttack',
-    actorPosition: fallbackActor ?? 'frontLeft',
-    targetPosition: fallbackTarget ?? 'frontLeft',
-  };
+  const candidates = enumerateBattleActionChoices(state, 'cpu');
+  return pickRandom(candidates, random) ?? pickPassAction(state, 'cpu');
 }
 
 export function autoPromoteCpu(

@@ -16,8 +16,10 @@ import {
   getSelectionTurn,
   getShieldTargetsForActor,
   getUnitAt,
+  hasBattleActionChoices,
   promoteUnit,
   pickCpuAction,
+  pickPassAction,
   resolveTurn,
   startNextTurn,
 } from '../game';
@@ -402,6 +404,27 @@ export function useBattle(
     [state],
   );
 
+  useEffect(() => {
+    if (
+      effectivePhase !== 'pickMain' ||
+      playback ||
+      turnStartPlayback ||
+      result
+    ) {
+      return;
+    }
+    if (!hasBattleActionChoices(state, 'player')) {
+      commitTurn(pickPassAction(state, 'player'));
+    }
+  }, [
+    effectivePhase,
+    playback,
+    turnStartPlayback,
+    result,
+    state,
+    commitTurn,
+  ]);
+
   const handlePlayerCardClick = useCallback(
     (position: BoardPosition | number) => {
       if (typeof position === 'number') return;
@@ -585,6 +608,15 @@ export function useBattle(
       const actor = getUnitAt(state.player, pendingActor);
       if (!actor) return;
 
+      const targetUnit = getUnitAt(state.cpu, position);
+      if (!targetUnit) {
+        cancelStormPick();
+        return;
+      }
+      if (targetUnit.stealthActive) {
+        return;
+      }
+
       const bowTargets = getBowTargets(state.player, state.cpu, pendingActor);
       const meleeTargets = getMeleeTargets(state.cpu);
 
@@ -674,6 +706,8 @@ export function useBattle(
     (position: BoardPosition, side: 'cpu' | 'player' = 'player') => {
       if (effectivePhase === 'pickTarget') {
         if (side === 'cpu' && pendingActor) {
+          const targetUnit = getUnitAt(state.cpu, position);
+          if (targetUnit?.stealthActive) return false;
           const actor = getUnitAt(state.player, pendingActor);
           if (!actor) return false;
           const actorActions = availableActionsFor(pendingActor);

@@ -9,6 +9,7 @@ import type {
 import {
   calcDualSecondaryDamage,
   getDualSecondaryTarget,
+  isDualTargetable,
 } from '../dualCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
 import type { AttackPlayback } from '../turnResult';
@@ -61,7 +62,13 @@ export function collectDualAttacks(
       const enemy = side === 'player' ? cpu : player;
       const attacker = getUnitAt(own, action.actorPosition);
       const target = getUnitAt(enemy, action.targetPosition);
-      if (!attacker || !target || !isAlive(attacker) || !isAlive(target)) {
+      if (
+        !attacker ||
+        !target ||
+        !isAlive(attacker) ||
+        !isAlive(target) ||
+        !isDualTargetable(target)
+      ) {
         return null;
       }
       if (attacker.attribute !== 'dual') return null;

@@ -5,9 +5,11 @@ import { createEmptyGrid } from '../canvas';
 import {
   createBattleState,
   getBattleResult,
+  getMeleeTargets,
   getPromotableBackPositions,
 } from './battleState';
 import { getActionTypesForUnit } from './actions/getActionTypesForUnit';
+import { getBowTargets } from './bowCombat';
 import { getHealTargets } from './healCombat';
 import { getSelectionTurn, isFrozen } from './iceCombat';
 import { promoteUnit, resolveTurn } from './resolveTurn';
@@ -977,6 +979,28 @@ describe('battle', () => {
     expect(state.cpu[0].currentBp).toBe(20);
   });
 
+  it('凍結中のカードは近接反撃しない', () => {
+    let state = createBattleState(cards('P'), cards('C'));
+    state.cpu[0]!.frozenUntilTurn = 2;
+    expect(isFrozen(state.cpu[0]!, getSelectionTurn(state))).toBe(true);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontRight',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.player[0]!.currentBp).toBe(80);
+    expect(state.cpu[0]!.currentBp).toBe(0);
+  });
+
   it('凍結中は行動カードを選べない', () => {
     const playerDeck = [
       stubCard('氷', 'ice', 80),
@@ -1318,6 +1342,175 @@ describe('battle', () => {
         getSelectionTurn(state),
       ),
     ).not.toContain('storm');
+  });
+
+  it('前衛の忍も開幕ステルスで始まる', () => {
+    const playerDeck = [
+      stubCard('忍', 'ninja', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const state = createBattleState(playerDeck, cards('C'));
+    const ninja = state.player.find((u) => u.attribute === 'ninja')!;
+
+    expect(ninja.position).toBe('frontLeft');
+    expect(ninja.stealthActive).toBe(true);
+  });
+
+  it('後衛の忍はステルスで行動カードに選べない', () => {
+    const playerDeck = [
+      stubCard('P1', 'attack', 50),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('忍', 'ninja', 80),
+      stubCard('P5', 'attack', 50),
+    ];
+    const state = createBattleState(playerDeck, cards('C'));
+    const ninja = state.player.find((u) => u.attribute === 'ninja')!;
+
+    expect(ninja.position).toBe('backCenter');
+    expect(ninja.stealthActive).toBe(true);
+    expect(
+      getActionTypesForUnit(
+        state.player,
+        state.cpu,
+        'backCenter',
+        getSelectionTurn(state),
+      ),
+    ).toEqual([]);
+  });
+
+  it('ステルス中の忍は近接攻撃の解決対象にならない', () => {
+    const playerDeck = cards('P');
+    const cpuDeck = cards('C');
+    let state = createBattleState(playerDeck, cpuDeck);
+    const target = state.cpu.find((u) => u.position === 'frontLeft')!;
+    target.stealthActive = true;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontRight',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu.find((u) => u.position === 'frontLeft')!.currentBp).toBe(
+      target.currentBp,
+    );
+  });
+
+  it('ステルス中の忍は近接・弓の対象にならない', () => {
+    const playerDeck = [
+      stubCard('P1', 'attack', 50),
+      stubCard('P2', 'attack', 50),
+      stubCard('弓', 'bow', 80),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = cards('C');
+    const state = createBattleState(playerDeck, cpuDeck);
+    const target = state.cpu.find((u) => u.position === 'frontLeft')!;
+    target.stealthActive = true;
+
+    expect(getMeleeTargets(state.cpu)).not.toContain('frontLeft');
+    expect(
+      getBowTargets(state.player, state.cpu, 'backLeft'),
+    ).not.toContain('frontLeft');
+  });
+
+  it('忍の初回近接は無反撃', () => {
+    const playerDeck = [
+      stubCard('忍', 'ninja', 100),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('C1', 'attack', 80),
+      stubCard('C2', 'attack', 50),
+      stubCard('C3', 'attack', 50),
+      stubCard('C4', 'attack', 50),
+      stubCard('C5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+    const ninja = state.player.find((u) => u.attribute === 'ninja')!;
+    ninja.stealthActive = false;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontRight',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    const ninjaAfter = state.player.find((u) => u.attribute === 'ninja')!;
+    const cpuTarget = state.cpu.find((u) => u.cardId === cpuDeck[0]!.id)!;
+    expect(ninjaAfter.currentBp).toBe(100);
+    expect(cpuTarget.currentBp).toBe(0);
+    expect(ninjaAfter.ninjaFirstStrikeUsed).toBe(true);
+    expect(ninjaAfter.stealthActive).toBe(false);
+  });
+
+  it('嵐はステルス中の忍に当たりステルスを解除する', () => {
+    const playerDeck = [
+      stubCard('嵐', 'storm', 100),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('忍', 'ninja', 80),
+      stubCard('C2', 'attack', 50),
+      stubCard('C3', 'attack', 50),
+      stubCard('C4', 'attack', 50),
+      stubCard('C5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+    const ninja = state.cpu.find((u) => u.attribute === 'ninja')!;
+    ninja.stealthActive = true;
+    for (const unit of state.cpu) {
+      if (unit.cardId !== ninja.cardId) {
+        unit.currentBp = 0;
+        unit.position = 'defeated';
+      }
+    }
+
+    state = resolveTurn(
+      state,
+      {
+        player: {
+          type: 'storm',
+          actorPosition: 'frontLeft',
+          targetPosition: 'frontLeft',
+        },
+        cpu: {
+          type: 'meleeAttack',
+          actorPosition: 'frontRight',
+          targetPosition: 'frontRight',
+        },
+      },
+      { random: () => 0 },
+    ).state;
+
+    const ninjaAfter = state.cpu.find((u) => u.attribute === 'ninja')!;
+    expect(ninjaAfter.stealthActive).toBe(false);
+    expect(ninjaAfter.currentBp).toBe(10);
   });
 
   it('弓が前衛に補充されてもBPは半減しない', () => {

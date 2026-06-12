@@ -8,6 +8,7 @@ import type {
 } from '../types/battle';
 import { createExtendedBattleUnitState } from './battleUnitState';
 import { getActionTypesForUnit } from './actions/getActionTypesForUnit';
+import { isMeleeTargetable, shouldStartInStealth } from './ninjaCombat';
 
 export { getActionTypesForUnit };
 export { getBowTargets, calcBowDamage, isBowTargetable } from './bowCombat';
@@ -36,6 +37,7 @@ export function cardToBattleUnit(
   card: Card,
   position: BoardPosition = 'frontLeft',
 ): BattleUnit {
+  const extended = createExtendedBattleUnitState(card);
   return {
     cardId: card.id,
     name: card.name,
@@ -43,7 +45,8 @@ export function cardToBattleUnit(
     maxBp: card.bp,
     currentBp: card.bp,
     position,
-    ...createExtendedBattleUnitState(card),
+    ...extended,
+    stealthActive: shouldStartInStealth(card.attribute),
   };
 }
 
@@ -147,7 +150,10 @@ export function canUseShieldAction(
 }
 
 export function getMeleeTargets(enemyField: BattleUnit[]): BoardPosition[] {
-  return FRONT_POSITIONS.filter((position) => !!getUnitAt(enemyField, position));
+  return FRONT_POSITIONS.filter((position) => {
+    const target = getUnitAt(enemyField, position);
+    return target != null && isMeleeTargetable(target);
+  });
 }
 
 export function getPromotableBackPositions(

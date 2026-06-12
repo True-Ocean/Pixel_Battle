@@ -1,5 +1,6 @@
 import type { BattleSide, BattleState, BattleUnit, BoardPosition } from '../../types/battle';
 import type { PoisonDoTPlayback } from '../turnResult';
+import { onExternalEffectToUnit } from '../ninjaCombat';
 import { sumPoisonDotDamage } from '../poisonCombat';
 import { appendLog, isAlive } from '../battleState';
 
@@ -14,9 +15,7 @@ function applyDotToUnit(
   const bpFrom = unit.currentBp;
   unit.currentBp = Math.max(0, unit.currentBp - totalDot);
   unit.poisonDotDamageReceived = true;
-  if (unit.stealthActive) {
-    unit.stealthActive = false;
-  }
+  onExternalEffectToUnit(unit);
   if (unit.position !== 'defeated') {
     playback.push({
       side,

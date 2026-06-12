@@ -137,11 +137,11 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   ninja: {
     label: '忍',
     ariaName: '忍属性',
-    description: '後衛ステルス・初回無反撃（Phase 8）',
+    description: '開幕ステルス・初回無反撃',
     battleGuide: [
-      '・後衛にいるとき：ステルス（行動不可）（バトル未実装）',
-      '・前衛に上がってから近接。初回1回だけ無反撃',
-      '・ダメージ・回復等でステルス解除',
+      '・開幕はステルス（攻撃対象にならない）',
+      '・前衛なら近接、後衛は前衛に上がってから近接。初回1回だけ無反撃',
+      '・攻撃・被ダメ・回復・盾・嵐などでステルス解除',
     ].join('\n'),
     bg: '#444444',
     border: '#222222',

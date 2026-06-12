@@ -38,6 +38,8 @@ export interface BattleCardProps {
   stormSwirl?: boolean;
   /** このターンに凍結が付与された演出 */
   freezeJustApplied?: boolean;
+  /** 忍ステルス中 */
+  isStealthed?: boolean;
   defenseShieldUsed?: boolean;
   dead?: boolean;
   interactive?: boolean;
@@ -84,6 +86,7 @@ export function BattleCard({
   healUsesRemaining,
   isFrozen = false,
   freezeJustApplied = false,
+  isStealthed = false,
   stormUsesRemaining,
   stormSwirl = false,
   defenseShieldUsed = false,
@@ -123,6 +126,7 @@ export function BattleCard({
     freezeJustApplied ? 'freeze-just-applied' : '',
     poisonJustApplied ? 'poison-just-applied' : '',
     stormSwirl ? 'storm-swirl-active' : '',
+    isStealthed ? 'has-stealth' : '',
     healSparkle ? 'heal-sparkle' : '',
     interactive ? 'interactive' : '',
     selected ? 'selected' : '',
@@ -157,6 +161,7 @@ export function BattleCard({
   const bowLabel = showBowArrows ? `（矢${bowArrowsRemaining}）` : '';
   const healLabel = showHealUses ? `（回復${healUsesRemaining}）` : '';
   const freezeLabel = isFrozen ? '（凍結）' : '';
+  const stealthLabel = isStealthed ? '（ステルス）' : '';
 
   const front = (
     <>
@@ -184,7 +189,8 @@ export function BattleCard({
         showBowArrows ||
         showHealUses ||
         isFrozen ||
-        showStormUses) && (
+        showStormUses ||
+        isStealthed) && (
         <div className="battle-card-buffs" aria-hidden>
           {hasShield && (
             <span className="battle-card-buff-icon battle-card-buff-shield">🛡</span>
@@ -243,6 +249,14 @@ export function BattleCard({
               ❄
             </span>
           )}
+          {isStealthed && (
+            <span
+              className="battle-card-buff-icon battle-card-buff-stealth"
+              title="ステルス"
+            >
+              忍
+            </span>
+          )}
           {poisonStackCount > 0 && (
             <span
               className="battle-card-buff-icon battle-card-buff-poison"
@@ -288,6 +302,11 @@ export function BattleCard({
           <div className="battle-card-storm-vortex battle-card-storm-vortex-inner" />
         </div>
       )}
+      {isStealthed && (
+        <div className="battle-card-stealth-overlay" aria-hidden>
+          <div className="battle-card-stealth-veil" />
+        </div>
+      )}
     </>
   );
 
@@ -297,7 +316,7 @@ export function BattleCard({
 
   const ariaLabel = faceDown
     ? '裏向きのカード'
-    : `${name} ${attrMeta.ariaName} BP${currentBp}${shieldLabel}${bowLabel}${healLabel}${freezeLabel}${poisonLabel}`;
+    : `${name} ${attrMeta.ariaName} BP${currentBp}${shieldLabel}${bowLabel}${healLabel}${freezeLabel}${stealthLabel}${poisonLabel}`;
 
   // 裏向きは CardBack を直接描画（iOS Safari で rotateY フリップが反転表示になるため）
   const content = faceDown ? (

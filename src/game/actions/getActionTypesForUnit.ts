@@ -21,7 +21,6 @@ const FRONT_MELEE_ATTRIBUTES: ReadonlySet<Attribute> = new Set([
   'poison',
   'heal',
   'ice',
-  'ninja',
 ]);
 
 export function getActionTypesForUnit(
@@ -59,6 +58,16 @@ export function getActionTypesForUnit(
     }
     if (canUseStormAction(unit, enemyField)) {
       actions.push('storm');
+    }
+    return actions;
+  }
+
+  if (unit.attribute === 'ninja') {
+    if (
+      isFrontPosition(position) &&
+      getMeleeTargets(enemyField).length > 0
+    ) {
+      actions.push('meleeAttack');
     }
     return actions;
   }

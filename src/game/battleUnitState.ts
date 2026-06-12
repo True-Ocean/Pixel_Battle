@@ -26,7 +26,7 @@ export function createExtendedBattleUnitState(
     poisonStacks: [] as PoisonStack[],
     poisonDotDamageReceived: false,
     frozenUntilTurn: null,
-    stealthActive: false,
+    stealthActive: false, // cardToBattleUnit で忍のみ true に上書き
     healUsesRemaining: card.attribute === 'heal' ? 2 : 0,
     bowArrowsRemaining:
       card.attribute === 'bow' ? BOW_ARROWS_PER_BATTLE : 0,

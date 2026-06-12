@@ -500,6 +500,10 @@ function BattleUnitSlot({
   const poisonDisplay = unit
     ? resolvePoisonDisplay(unit, battle, side, position)
     : { count: 0, damagePerTurn: 0, justApplied: false };
+  const stealthActive = unit?.stealthActive ?? false;
+  const cpuClickable =
+    battle.effectivePhase === 'pickTarget' &&
+    (valid || battle.isStormPickPending());
 
   return (
     <button
@@ -507,7 +511,9 @@ function BattleUnitSlot({
       type="button"
       className={`formation-slot battle-formation-slot ${
         unit ? 'has-card' : ''
-      } ${unit ? 'is-frameless' : ''} ${selected ? 'is-selected' : ''} ${
+      } ${unit ? 'is-frameless' : ''} ${stealthActive ? 'has-stealth-unit' : ''} ${
+        selected ? 'is-selected' : ''
+      } ${
         valid ? 'is-valid' : ''
       } ${
         actionable ? 'is-actionable' : ''
@@ -519,9 +525,9 @@ function BattleUnitSlot({
       onClick={
         side === 'player'
           ? () => battle.handlePlayerCardClick(position)
-          : battle.effectivePhase === 'pickTarget'
+          : cpuClickable
             ? () => battle.handleCpuCardClick(position)
-          : undefined
+            : undefined
       }
     >
       {unit && card ? (
@@ -546,6 +552,7 @@ function BattleUnitSlot({
           stormUsesRemaining={
             unit.attribute === 'storm' ? unit.stormUsesRemaining : undefined
           }
+          isStealthed={unit.stealthActive}
           stormSwirl={stormHitDisplay}
           poisonStackCount={poisonDisplay.count}
           poisonDamagePerTurn={poisonDisplay.damagePerTurn}

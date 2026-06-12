@@ -5,6 +5,7 @@ import type {
   BattleUnit,
   BoardPosition,
 } from '../../types/battle';
+import { onExternalEffectToUnit } from '../ninjaCombat';
 import {
   calcStormDamage,
   pickStormTargets,
@@ -99,6 +100,7 @@ function applyStormHit(
     };
   }
 
+  onExternalEffectToUnit(target);
   target.currentBp = Math.max(0, target.currentBp - actualDamage);
   next = appendLog(
     next,

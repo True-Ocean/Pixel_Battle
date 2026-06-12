@@ -4,7 +4,8 @@ import type {
   BattleState,
   BattleUnit,
 } from '../../types/battle';
-import { calcBowDamage } from '../bowCombat';
+import { calcBowDamage, isBowTargetable } from '../bowCombat';
+import { onExternalEffectToUnit } from '../ninjaCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
 import type { AttackPlayback } from '../turnResult';
 
@@ -33,7 +34,13 @@ export function collectBowAttacks(
       const enemy = side === 'player' ? cpu : player;
       const attacker = getUnitAt(own, action.actorPosition);
       const target = getUnitAt(enemy, action.targetPosition);
-      if (!attacker || !target || !isAlive(attacker) || !isAlive(target)) {
+      if (
+        !attacker ||
+        !target ||
+        !isAlive(attacker) ||
+        !isAlive(target) ||
+        !isBowTargetable(target)
+      ) {
         return null;
       }
       if (attacker.attribute !== 'bow' || attacker.bowArrowsRemaining <= 0) {
@@ -88,6 +95,7 @@ export function applyBowAttack(
     };
   }
 
+  onExternalEffectToUnit(attack.target);
   attack.target.currentBp = Math.max(0, attack.target.currentBp - damageToTarget);
   attack.attacker.bowArrowsRemaining -= 1;
 

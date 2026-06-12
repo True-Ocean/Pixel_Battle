@@ -1,5 +1,6 @@
 import type { BattleState, BattleUnit } from '../types/battle';
 import { isAlive } from './battleState';
+import { onExternalEffectToUnit } from './ninjaCombat';
 
 /** 行動カード選択の表示ターン（startNextTurn の TURN N と一致） */
 export function getSelectionTurn(state: BattleState): number {
@@ -16,6 +17,7 @@ export function isFrozen(unit: BattleUnit, selectionTurn: number): boolean {
 
 /** 近接で凍結付与（ATTRIBUTE_SPEC §4.8）。battleTurn は resolveTurn 時点の state.turn */
 export function applyFreeze(unit: BattleUnit, battleTurn: number): void {
+  onExternalEffectToUnit(unit);
   unit.frozenUntilTurn = battleTurn + 2;
 }
 

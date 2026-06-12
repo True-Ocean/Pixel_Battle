@@ -175,6 +175,7 @@ export function BattleBoard({
         stormUsesRemaining={
           unit.attribute === 'storm' ? unit.stormUsesRemaining : undefined
         }
+        isStealthed={unit.stealthActive}
         poisonStackCount={unit.poisonStacks.length}
         poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}
@@ -218,6 +219,7 @@ export function BattleBoard({
         stormUsesRemaining={
           unit.attribute === 'storm' ? unit.stormUsesRemaining : undefined
         }
+        isStealthed={unit.stealthActive}
         poisonStackCount={unit.poisonStacks.length}
         poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}

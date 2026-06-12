@@ -6,6 +6,7 @@ import type {
 } from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
 import { calcHealAmount } from '../healCombat';
+import { onExternalEffectToUnit } from '../ninjaCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
 import type { HealPlayback } from '../turnResult';
 
@@ -35,6 +36,7 @@ function applyHeal(
   if (amount <= 0 && poisonStacksCleared === 0) return state;
 
   const bpFrom = target.currentBp;
+  onExternalEffectToUnit(target);
   target.currentBp = Math.min(target.maxBp, target.currentBp + amount);
   target.poisonStacks = [];
   target.poisonDotDamageReceived = false;

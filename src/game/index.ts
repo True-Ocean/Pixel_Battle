@@ -50,9 +50,23 @@ export {
   isStormTargetable,
   pickStormTargets,
 } from './stormCombat';
+export {
+  breakStealth,
+  isMeleeTargetable,
+  isStealthed,
+  onExternalEffectToUnit,
+  onNinjaMeleeAttack,
+  shouldApplyNinjaFirstStrike,
+  shouldStartInStealth,
+} from './ninjaCombat';
 export { resolveTurn, promoteUnit } from './resolveTurn';
 export { startNextTurn } from './startNextTurn';
 export type { StartTurnResult } from './startNextTurn';
+export {
+  enumerateBattleActionChoices,
+  hasBattleActionChoices,
+  pickPassAction,
+} from './actionChoices';
 export { pickCpuMainIndex, pickCpuAction, autoPromoteCpu } from './cpu';
 export {
   buildCpuStarterCards,
