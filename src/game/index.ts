@@ -26,10 +26,17 @@ export { compareActionOrder, ATTRIBUTE_PRIORITY } from '../config/attributePrior
 export type {
   ResolveTurnResult,
   AttackPlayback,
+  HealPlayback,
   PoisonDoTPlayback,
   ShieldGrants,
   ShieldPlayback,
 } from './turnResult';
+export {
+  canReceiveHeal,
+  canUseHealAction,
+  calcHealAmount,
+  getHealTargets,
+} from './healCombat';
 export { resolveTurn, promoteUnit } from './resolveTurn';
 export { startNextTurn } from './startNextTurn';
 export type { StartTurnResult } from './startNextTurn';

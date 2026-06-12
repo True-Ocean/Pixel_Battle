@@ -24,6 +24,12 @@ export interface BattleCardProps {
   poisonDamagePerTurn?: number;
   /** このターンに毒が付与された演出 */
   poisonJustApplied?: boolean;
+  /** 回復演出のキラキラ光 */
+  healSparkle?: boolean;
+  /** 弓の残り矢数（戦闘中のみ渡す。0 で非表示） */
+  bowArrowsRemaining?: number;
+  /** 癒の残り回復回数（戦闘中のみ渡す。0 で非表示） */
+  healUsesRemaining?: number;
   defenseShieldUsed?: boolean;
   dead?: boolean;
   interactive?: boolean;
@@ -57,6 +63,7 @@ export function BattleCard({
   pixels,
   attribute,
   currentBp,
+  maxBp,
   variant = 'board',
   focused = false,
   cpuTurnFocus = false,
@@ -64,6 +71,9 @@ export function BattleCard({
   poisonStackCount = 0,
   poisonDamagePerTurn = 0,
   poisonJustApplied = false,
+  healSparkle = false,
+  bowArrowsRemaining,
+  healUsesRemaining,
   defenseShieldUsed = false,
   dead = false,
   interactive = false,
@@ -98,6 +108,7 @@ export function BattleCard({
     hasShield ? 'has-shield' : '',
     poisonStackCount > 0 ? 'has-poison' : '',
     poisonJustApplied ? 'poison-just-applied' : '',
+    healSparkle ? 'heal-sparkle' : '',
     interactive ? 'interactive' : '',
     selected ? 'selected' : '',
     clashAnim === 'player' ? 'clash-card-player' : '',
@@ -110,11 +121,22 @@ export function BattleCard({
     .filter(Boolean)
     .join(' ');
 
+  const isWounded = maxBp != null && !dead && currentBp < maxBp;
+  const showBowArrows =
+    attribute === 'bow' &&
+    bowArrowsRemaining !== undefined &&
+    bowArrowsRemaining > 0;
+  const showHealUses =
+    attribute === 'heal' &&
+    healUsesRemaining !== undefined &&
+    healUsesRemaining > 0;
   const shieldLabel = hasShield ? '（盾あり）' : '';
   const poisonLabel =
     poisonStackCount > 0
       ? `（毒×${poisonStackCount}、毎ターン${poisonDamagePerTurn}）`
       : '';
+  const bowLabel = showBowArrows ? `（矢${bowArrowsRemaining}）` : '';
+  const healLabel = showHealUses ? `（回復${healUsesRemaining}）` : '';
 
   const front = (
     <>
@@ -124,19 +146,64 @@ export function BattleCard({
           from={animatedBp.from}
           to={animatedBp.to}
           active
+          maxBp={maxBp}
           className="battle-card-bp"
         />
       ) : (
         !hideBp && (
-          <span className="battle-card-bp" aria-label={`BP ${currentBp}`}>
+          <span
+            className={`battle-card-bp${isWounded ? ' bp-wounded' : ''}`}
+            aria-label={`BP ${currentBp}${maxBp != null ? ` / ${maxBp}` : ''}`}
+          >
             {currentBp}
           </span>
         )
       )}
-      {(hasShield || poisonStackCount > 0) && (
+      {(hasShield ||
+        poisonStackCount > 0 ||
+        showBowArrows ||
+        showHealUses) && (
         <div className="battle-card-buffs" aria-hidden>
           {hasShield && (
             <span className="battle-card-buff-icon battle-card-buff-shield">🛡</span>
+          )}
+          {showBowArrows && (
+            <span
+              className="battle-card-buff-icon battle-card-buff-arrow"
+              title={`矢${bowArrowsRemaining}`}
+            >
+              <svg
+                className="battle-card-arrow-glyph"
+                viewBox="0 0 10 10"
+                aria-hidden
+              >
+                <line
+                  x1="1.2"
+                  y1="5"
+                  x2="6.8"
+                  y2="5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M6.8 5 L4 2.2 M6.8 5 L4 7.8"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+              </svg>
+              {bowArrowsRemaining > 1 ? bowArrowsRemaining : ''}
+            </span>
+          )}
+          {showHealUses && (
+            <span
+              className="battle-card-buff-icon battle-card-buff-heal"
+              title={`回復${healUsesRemaining}`}
+            >
+              🧪{healUsesRemaining > 1 ? healUsesRemaining : ''}
+            </span>
           )}
           {poisonStackCount > 0 && (
             <span
@@ -158,6 +225,7 @@ export function BattleCard({
       )}
       <div className="battle-card-art">
         <CardPreview pixels={pixels} />
+        {healSparkle && <div className="battle-card-heal-sparkle" aria-hidden />}
       </div>
       <AttributeBadge attribute={attribute} className="battle-card-attr" />
       {defenseShieldUsed && (
@@ -175,7 +243,7 @@ export function BattleCard({
 
   const ariaLabel = faceDown
     ? '裏向きのカード'
-    : `${name} ${attrMeta.ariaName} BP${currentBp}${shieldLabel}${poisonLabel}`;
+    : `${name} ${attrMeta.ariaName} BP${currentBp}${shieldLabel}${bowLabel}${healLabel}${poisonLabel}`;
 
   // 裏向きは CardBack を直接描画（iOS Safari で rotateY フリップが反転表示になるため）
   const content = faceDown ? (

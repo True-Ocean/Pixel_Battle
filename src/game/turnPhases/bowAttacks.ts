@@ -36,7 +36,9 @@ export function collectBowAttacks(
       if (!attacker || !target || !isAlive(attacker) || !isAlive(target)) {
         return null;
       }
-      if (attacker.attribute !== 'bow') return null;
+      if (attacker.attribute !== 'bow' || attacker.bowArrowsRemaining <= 0) {
+        return null;
+      }
       return {
         side,
         targetSide: side === 'player' ? ('cpu' as const) : ('player' as const),
@@ -87,6 +89,7 @@ export function applyBowAttack(
   }
 
   attack.target.currentBp = Math.max(0, attack.target.currentBp - damageToTarget);
+  attack.attacker.bowArrowsRemaining -= 1;
 
   const playback: AttackPlayback = {
     kind: 'bow',

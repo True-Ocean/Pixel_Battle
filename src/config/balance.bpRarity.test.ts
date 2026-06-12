@@ -29,6 +29,11 @@ describe('user level base BP', () => {
     expect(getUserBaseBp(10, 'poison')).toBe(85);
   });
 
+  it('癒は攻撃の60%', () => {
+    expect(getUserBaseBp(10, 'heal')).toBe(60);
+    expect(getUserBaseBp(50, 'heal')).toBe(300);
+  });
+
   it('カードBPレンジは±15%', () => {
     const range = getCardBaseBpRange(10, 'attack');
     expect(range.min).toBe(85);

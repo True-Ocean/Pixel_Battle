@@ -15,6 +15,7 @@ import {
   BOARD_POSITIONS,
   FRONT_POSITIONS,
   getDefeated,
+  getHealTargets,
   getUnitAt,
 } from '../game';
 import { sumPoisonDotDamage } from '../game/poisonCombat';
@@ -30,7 +31,7 @@ type SlotKey = `${'cpu' | 'player'}:${BoardPosition}`;
 
 interface ArrowLine {
   key: string;
-  kind: 'attack' | 'attack-secondary' | 'shield';
+  kind: 'attack' | 'attack-secondary' | 'shield' | 'heal';
   fromSide: 'cpu' | 'player';
   fromPosition: BoardPosition;
   toSide: 'cpu' | 'player';
@@ -74,7 +75,7 @@ interface DamageMarker {
   side: 'cpu' | 'player';
   position: BoardPosition;
   label: string;
-  kind?: 'attack' | 'poison';
+  kind?: 'attack' | 'poison' | 'heal';
 }
 
 function FormationZoneBanner({
@@ -166,6 +167,14 @@ function resolvePoisonDisplay(
   position: BoardPosition,
 ) {
   const playback = battle.playback;
+  if (playback?.phase === 'heal') {
+    const heal = playback.heals.find(
+      (h) => h.side === side && h.toPosition === position,
+    );
+    if (heal && heal.poisonStacksCleared > 0 && playback.healSubPhase === 'bp') {
+      return { count: 0, damagePerTurn: 0, justApplied: false };
+    }
+  }
   if (playback?.phase === 'attack') {
     const attack = playback.attacks[playback.attackIndex];
     if (attack) {
@@ -198,6 +207,25 @@ function resolvePoisonDisplay(
     count: unit.poisonStacks.length,
     damagePerTurn: sumPoisonDotDamage(unit.poisonStacks),
     justApplied: false,
+  };
+}
+
+function getHealSlotFx(
+  playback: ReturnType<typeof useBattle>['playback'],
+  side: 'cpu' | 'player',
+  position: BoardPosition,
+) {
+  if (!playback || playback.phase !== 'heal') return null;
+  const heal = playback.heals[0];
+  if (!heal || heal.side !== side || heal.toPosition !== position) return null;
+  const isTarget = heal.side === side && heal.toPosition === position;
+  if (!isTarget) return null;
+  return {
+    animatedBp:
+      playback.healSubPhase === 'bp' && heal.amount > 0
+        ? { from: heal.bpFrom, to: heal.bpTo, active: true as const }
+        : undefined,
+    sparkle: true,
   };
 }
 
@@ -364,12 +392,21 @@ function BattleUnitSlot({
     side === 'player' &&
     (battle.pendingActor === position || battle.pendingPromoteFrom === position);
   const valid = battle.isValidTargetPosition(position, side);
+  const isHealPick =
+    battle.effectivePhase === 'pickHeal' ||
+    (battle.effectivePhase === 'pickTarget' &&
+      battle.pendingActor != null &&
+      getHealTargets(battle.state.player, battle.pendingActor).includes(
+        position,
+      ));
   const targetKind =
     valid && side === 'cpu'
       ? 'is-attack-target'
-      : valid && side === 'player'
-        ? 'is-shield-target'
-        : '';
+      : valid && side === 'player' && isHealPick
+        ? 'is-heal-target'
+        : valid && side === 'player'
+          ? 'is-shield-target'
+          : '';
   const actionable =
     side === 'player' &&
     battle.effectivePhase === 'pickMain' &&
@@ -389,7 +426,11 @@ function BattleUnitSlot({
   const highlightedShield = battle.playback?.shields.some(
     (s) => s.side === side && (s.fromPosition === position || s.toPosition === position),
   );
+  const highlightedHeal = battle.playback?.heals.some(
+    (h) => h.side === side && (h.fromPosition === position || h.toPosition === position),
+  );
   const attackFx = getAttackSlotFx(battle.playback, side, position);
+  const healFx = getHealSlotFx(battle.playback, side, position);
   const poisonFx = getPoisonDotSlotFx(battle.turnStartPlayback, side, position);
   const poisonDisplay = unit
     ? resolvePoisonDisplay(unit, battle, side, position)
@@ -407,7 +448,9 @@ function BattleUnitSlot({
         actionable ? 'is-actionable' : ''
       } ${highlightedAttack ? 'is-attack-highlight' : ''} ${
         highlightedShield ? 'is-shield-highlight' : ''
-      } ${highlightedAttack ? 'is-shaking' : ''} ${targetKind}`}
+      } ${highlightedHeal ? 'is-heal-highlight' : ''} ${
+        highlightedAttack ? 'is-shaking' : ''
+      } ${targetKind}`}
       onClick={
         side === 'player'
           ? () => battle.handlePlayerCardClick(position)
@@ -422,10 +465,17 @@ function BattleUnitSlot({
           pixels={card.pixels}
           attribute={unit.attribute}
           currentBp={unit.currentBp}
+          maxBp={unit.maxBp}
           variant="compact"
           fixedSize
           side={side}
           hasShield={unit.hasShield}
+          bowArrowsRemaining={
+            unit.attribute === 'bow' ? unit.bowArrowsRemaining : undefined
+          }
+          healUsesRemaining={
+            unit.attribute === 'heal' ? unit.healUsesRemaining : undefined
+          }
           poisonStackCount={poisonDisplay.count}
           poisonDamagePerTurn={poisonDisplay.damagePerTurn}
           poisonJustApplied={poisonDisplay.justApplied}
@@ -434,7 +484,10 @@ function BattleUnitSlot({
           flipEnabled
           hideBp={faceDown}
           selected={selected}
-          animatedBp={attackFx?.animatedBp ?? poisonFx?.animatedBp}
+          animatedBp={
+            attackFx?.animatedBp ?? healFx?.animatedBp ?? poisonFx?.animatedBp
+          }
+          healSparkle={healFx?.sparkle ?? false}
         />
       ) : (
         <span className="formation-empty-label">
@@ -562,6 +615,17 @@ function FormationArrowLayer({
           <path d="M 0 0 L 10 5 L 0 10 z" className="formation-arrow-head-shield" />
         </marker>
         <marker
+          id="formation-arrow-heal"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="5"
+          markerHeight="5"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 0 L 10 5 L 0 10 z" className="formation-arrow-head-heal" />
+        </marker>
+        <marker
           id="formation-arrow-attack-secondary"
           viewBox="0 0 10 10"
           refX="8"
@@ -658,7 +722,11 @@ function FormationDamageLayer({
         <span
           key={label.key}
           className={`formation-damage-float${
-            label.kind === 'poison' ? ' formation-damage-float-poison' : ''
+            label.kind === 'poison'
+              ? ' formation-damage-float-poison'
+              : label.kind === 'heal'
+                ? ' formation-damage-float-heal'
+                : ''
           }`}
           style={{ left: label.x, top: label.y }}
         >
@@ -688,7 +756,18 @@ function BattleBoard({
       ? battle.playback.attacks[battle.playback.attackIndex]
       : null;
   const shieldLines = battle.playback?.shields ?? [];
+  const healLines = battle.playback?.heals ?? [];
   const arrowLines: ArrowLine[] = [
+    ...(battle.playback?.phase === 'heal'
+      ? healLines.map((line, index) => ({
+          key: `heal-${index}-${line.side}-${line.fromPosition}-${line.toPosition}`,
+          kind: 'heal' as const,
+          fromSide: line.side,
+          fromPosition: line.fromPosition,
+          toSide: line.side,
+          toPosition: line.toPosition,
+        }))
+      : []),
     ...(battle.playback?.phase === 'shield'
       ? shieldLines.map((line, index) => ({
           key: `shield-${index}-${line.side}-${line.fromPosition}-${line.toPosition}`,
@@ -749,6 +828,20 @@ function BattleBoard({
         position: dot.position,
         label: `−${dot.damage}`,
         kind: 'poison',
+      });
+    }
+  }
+  if (
+    battle.playback?.phase === 'heal' &&
+    battle.playback.healSubPhase === 'damage'
+  ) {
+    for (const heal of healLines) {
+      damageMarkers.push({
+        key: `heal-${heal.side}-${heal.toPosition}`,
+        side: heal.side,
+        position: heal.toPosition,
+        label: `+${heal.amount}`,
+        kind: 'heal',
       });
     }
   }

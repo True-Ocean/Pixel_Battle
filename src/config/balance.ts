@@ -84,8 +84,14 @@ export const POWER_BP_RATIO = 1.5;
 /** 弓属性の基本BP係数（攻撃比）。ATTRIBUTE_SPEC §4.4 */
 export const BOW_BP_RATIO = 0.6;
 
+/** 弓カード1枚あたりの弓矢数（1戦闘）。ATTRIBUTE_SPEC §4.4 */
+export const BOW_ARROWS_PER_BATTLE = 2;
+
 /** 毒属性の基本BP係数（攻撃比）。近接＋DoT 分を抑えた値。ATTRIBUTE_SPEC §4.6 */
 export const POISON_BP_RATIO = 0.85;
+
+/** 癒属性の基本BP係数（攻撃比）。回復2回・毒解消分を抑えた値。ATTRIBUTE_SPEC §4.7 */
+export const HEAL_BP_RATIO = 0.6;
 
 /** 毒スタック1つあたりの DoT（付与時 currentBp 比）。ATTRIBUTE_SPEC §4.6 */
 export const POISON_DOT_RATIO = 0.3;
@@ -130,6 +136,7 @@ export function getUserBaseBp(
   if (attribute === 'power') return Math.round(attackBase * POWER_BP_RATIO);
   if (attribute === 'bow') return Math.round(attackBase * BOW_BP_RATIO);
   if (attribute === 'poison') return Math.round(attackBase * POISON_BP_RATIO);
+  if (attribute === 'heal') return Math.round(attackBase * HEAL_BP_RATIO);
   return attackBase;
 }
 

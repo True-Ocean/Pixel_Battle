@@ -13,6 +13,7 @@ function applyDotToUnit(
   let next = state;
   const bpFrom = unit.currentBp;
   unit.currentBp = Math.max(0, unit.currentBp - totalDot);
+  unit.poisonDotDamageReceived = true;
   if (unit.stealthActive) {
     unit.stealthActive = false;
   }

@@ -169,11 +169,13 @@ export function applyMeleeBattle(
   );
   attack.target.currentBp = Math.max(0, attack.target.currentBp - damageToTarget);
 
-  const poisonOnTarget = attack.attacker.attribute === 'poison';
+  const poisonOnTarget =
+    attack.attacker.attribute === 'poison' && !targetShieldConsumed;
   const poisonOnAttacker =
     attack.target.attribute === 'poison' &&
     !attack.bidirectional &&
-    damageToAttacker > 0;
+    damageToAttacker > 0 &&
+    !attackerShieldConsumed;
 
   if (poisonOnTarget) {
     grantPoisonStack(attack.target, attack.attacker, attackerBpAtMelee);

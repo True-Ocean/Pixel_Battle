@@ -59,10 +59,11 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   bow: {
     label: '弓',
     ariaName: '弓属性',
-    description: 'どこからでも弓で攻撃できる\n攻撃相手から反撃を受けない',
-    battleGuide:[
+    description: 'どこからでも弓で攻撃できる\n反撃なし・1戦闘2矢',
+    battleGuide: [
       '・前衛、後衛どこからでも、好きな敵1体に弓で攻撃できる',
       '・弓攻撃は、攻撃相手からの反撃を受けない',
+      '・1枚あたり1戦闘2矢まで（矢切れ後は前衛のみ近接攻撃可）',
       '・他属性よりBPが低い',
     ].join('\n'),
     bg: '#66aa44',
@@ -95,13 +96,14 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   heal: {
     label: '癒',
     ariaName: '癒属性',
-    description: '味方回復・攻撃フェーズ前に解決（Phase 5）',
+    description: '味方を回復する（2回まで）\n盾付与・攻撃より先に回復を付与できる\n毒効果も同時に無効化できる',
     battleGuide: [
-      '・回復は盾・攻撃より先に解決（バトル未実装）',
+      '・回復は毒ダメージの後、盾付与・攻撃より先に処理される',
       '・後衛にいるとき：回復のみ',
       '・前衛にいるとき：近接攻撃または回復',
-      '・ダメージを受けた味方のみ回復（maxBpまで）',
-      '・1枚あたり1戦闘2回まで',
+      '・自分の現BP分の回復を付与する（最大BPを超えない）',
+      '・回復付与は2回まで',
+      '・他属性よりBPが低い（弓と同程度）',
     ].join('\n'),
     bg: '#44cc88',
     border: '#22aa66',

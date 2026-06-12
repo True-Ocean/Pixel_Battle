@@ -48,7 +48,8 @@ export function resolveTurn(
     events: [...state.events],
   };
 
-  next = resolveHeals(next, choices);
+  const healResult = resolveHeals(next, choices, player, cpu);
+  next = healResult.state;
   const stateAfterTurnStart = cloneBattleState(next);
 
   const shieldResult = resolveShields(next, choices, player, cpu);
@@ -66,6 +67,7 @@ export function resolveTurn(
     stateAfterTurnStart,
     shieldState,
     shieldGrants: shieldResult.shieldGrants,
+    heals: healResult.heals,
     attacks: combatResult.attacks,
     shields: shieldResult.shields,
   };

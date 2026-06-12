@@ -159,10 +159,17 @@ export function BattleBoard({
         pixels={card?.pixels ?? playerCards[0].pixels}
         attribute={unit.attribute}
         currentBp={unit.currentBp}
+        maxBp={unit.maxBp}
         variant={embedded ? 'compact' : 'board'}
         fixedSize={embedded}
         dead={unit.currentBp <= 0}
         hasShield={unit.hasShield}
+        bowArrowsRemaining={
+          unit.attribute === 'bow' ? unit.bowArrowsRemaining : undefined
+        }
+        healUsesRemaining={
+          unit.attribute === 'heal' ? unit.healUsesRemaining : undefined
+        }
         poisonStackCount={unit.poisonStacks.length}
         poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}
@@ -190,11 +197,18 @@ export function BattleBoard({
         pixels={playerCards[unitIndex].pixels}
         attribute={unit.attribute}
         currentBp={unit.currentBp}
+        maxBp={unit.maxBp}
         variant={embedded ? 'compact' : 'board'}
         fixedSize={embedded}
         dead={unit.currentBp <= 0}
         focused={focused}
         hasShield={unit.hasShield}
+        bowArrowsRemaining={
+          unit.attribute === 'bow' ? unit.bowArrowsRemaining : undefined
+        }
+        healUsesRemaining={
+          unit.attribute === 'heal' ? unit.healUsesRemaining : undefined
+        }
         poisonStackCount={unit.poisonStacks.length}
         poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}

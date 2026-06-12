@@ -175,6 +175,7 @@ function FlyingCard({
         pixels={card.pixels}
         attribute={unit.attribute}
         currentBp={displayBp}
+        maxBp={unit.maxBp}
         variant="board"
         side={side}
         hasShield={hasShield}

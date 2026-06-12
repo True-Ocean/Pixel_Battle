@@ -12,6 +12,7 @@ import {
   getMeleeTargets,
   getPendingPromotionFronts,
   getPromotableBackPositions,
+  getHealTargets,
   getShieldTargetsForActor,
   getUnitAt,
   promoteUnit,
@@ -35,6 +36,7 @@ export type BattleUiPhase =
   | 'pickMain'
   | 'pickTarget'
   | 'pickShield'
+  | 'pickHeal'
   | 'clash'
   | 'promoteUnit'
   | 'promoteSlot'
@@ -49,11 +51,14 @@ export interface TurnStartPlayback {
 export interface BattlePlayback {
   attacks: ReturnType<typeof resolveTurn>['attacks'];
   shields: ReturnType<typeof resolveTurn>['shields'];
+  heals: ReturnType<typeof resolveTurn>['heals'];
   shieldState: BattleState;
+  stateAfterHeal: BattleState;
   pendingNext: BattleState;
   attackIndex: number;
   attackSubPhase: 'damage' | 'bp';
-  phase: 'shield' | 'attack' | 'done';
+  healSubPhase: 'damage' | 'bp';
+  phase: 'heal' | 'shield' | 'attack' | 'done';
 }
 
 export function useBattle(
@@ -229,6 +234,45 @@ export function useBattle(
 
   useEffect(() => {
     if (!playback || uiPhase !== 'clash') return;
+    if (playback.phase === 'heal') {
+      if (playback.healSubPhase === 'damage') {
+        const t = window.setTimeout(
+          () =>
+            setPlayback((p) =>
+              p ? { ...p, healSubPhase: 'bp' } : null,
+            ),
+          CLASH_MS.damage,
+        );
+        return () => window.clearTimeout(t);
+      }
+      const t = window.setTimeout(
+        () => {
+          const firstAttack = playback.attacks[0];
+          const nextPhase =
+            playback.shields.length > 0
+              ? 'shield'
+              : firstAttack
+                ? 'attack'
+                : 'done';
+          setState(playback.stateAfterHeal);
+          if (nextPhase === 'shield' || nextPhase === 'attack') {
+            setState(playback.shieldState);
+          }
+          setPlayback((p) =>
+            p
+              ? {
+                  ...p,
+                  phase: nextPhase,
+                  attackIndex: 0,
+                  attackSubPhase: 'damage',
+                }
+              : null,
+          );
+        },
+        CLASH_MS.bp,
+      );
+      return () => window.clearTimeout(t);
+    }
     if (playback.phase === 'shield') {
       const t = window.setTimeout(
         () => {
@@ -309,19 +353,25 @@ export function useBattle(
       const cpuChoice = pickCpuAction(state);
       const result = resolveTurn(state, { player: playerChoice, cpu: cpuChoice });
       const firstAttack = result.attacks[0];
-      setState(result.shieldState);
+      const hasHeals = result.heals.length > 0;
+      setState(hasHeals ? state : result.shieldState);
       setPlayback({
         attacks: result.attacks,
         shields: result.shields,
+        heals: result.heals,
         shieldState: result.shieldState,
+        stateAfterHeal: result.stateAfterTurnStart,
         pendingNext: result.state,
         attackIndex: 0,
         attackSubPhase: 'damage',
-        phase: result.shields.length > 0
-          ? 'shield'
-          : firstAttack
-            ? 'attack'
-            : 'done',
+        healSubPhase: 'damage',
+        phase: hasHeals
+          ? 'heal'
+          : result.shields.length > 0
+            ? 'shield'
+            : firstAttack
+              ? 'attack'
+              : 'done',
       });
       setUiPhase('clash');
     },
@@ -375,6 +425,17 @@ export function useBattle(
         return;
       }
 
+      if (effectivePhase === 'pickHeal' && pendingActor && pendingAction) {
+        if (getHealTargets(state.player, pendingActor).includes(position)) {
+          commitTurn({
+            type: 'heal',
+            actorPosition: pendingActor,
+            targetPosition: position,
+          });
+          return;
+        }
+      }
+
       if (effectivePhase === 'pickShield' && pendingActor && pendingAction) {
         if (
           getShieldTargetsForActor(state.player, pendingActor).includes(position)
@@ -392,6 +453,20 @@ export function useBattle(
         effectivePhase === 'pickTarget' &&
         pendingActor &&
         pendingAction == null &&
+        getHealTargets(state.player, pendingActor).includes(position)
+      ) {
+        commitTurn({
+          type: 'heal',
+          actorPosition: pendingActor,
+          targetPosition: position,
+        });
+        return;
+      }
+
+      if (
+        effectivePhase === 'pickTarget' &&
+        pendingActor &&
+        pendingAction == null &&
         getShieldTargetsForActor(state.player, pendingActor).includes(position)
       ) {
         commitTurn({
@@ -403,7 +478,9 @@ export function useBattle(
       }
 
       if (
-        (effectivePhase === 'pickTarget' || effectivePhase === 'pickShield') &&
+        (effectivePhase === 'pickTarget' ||
+          effectivePhase === 'pickShield' ||
+          effectivePhase === 'pickHeal') &&
         pendingActor === position
       ) {
         setPendingActor(null);
@@ -425,7 +502,11 @@ export function useBattle(
         const action = actions[0]!;
         setPendingAction(action);
         setUiPhase(
-          action === 'grantShield' ? 'pickShield' : 'pickTarget',
+          action === 'grantShield'
+            ? 'pickShield'
+            : action === 'heal'
+              ? 'pickHeal'
+              : 'pickTarget',
         );
       } else {
         setPendingAction(null);
@@ -539,6 +620,12 @@ export function useBattle(
             return meleeTargets.includes(position);
           }
           if (actor.attribute === 'bow') {
+            if (
+              pendingAction === 'meleeAttack' ||
+              actor.bowArrowsRemaining <= 0
+            ) {
+              return meleeTargets.includes(position);
+            }
             return bowTargets.includes(position);
           }
           if (actor.attribute === 'dual') {
@@ -549,7 +636,10 @@ export function useBattle(
         return (
           pendingAction == null &&
           !!pendingActor &&
-          getShieldTargetsForActor(state.player, pendingActor).includes(position)
+          (getShieldTargetsForActor(state.player, pendingActor).includes(
+            position,
+          ) ||
+            getHealTargets(state.player, pendingActor).includes(position))
         );
       }
       if (effectivePhase === 'pickShield') {
@@ -557,6 +647,13 @@ export function useBattle(
           side === 'player' &&
           !!pendingActor &&
           getShieldTargetsForActor(state.player, pendingActor).includes(position)
+        );
+      }
+      if (effectivePhase === 'pickHeal') {
+        return (
+          side === 'player' &&
+          !!pendingActor &&
+          getHealTargets(state.player, pendingActor).includes(position)
         );
       }
       if (effectivePhase === 'promoteUnit') {
@@ -608,17 +705,12 @@ export function useBattle(
     if (effectivePhase === 'opening') return 'カードオープン';
     if (effectivePhase === 'turnStartPoison') return '毒ダメージ';
     if (effectivePhase === 'clash' && playback) {
+      if (playback.phase === 'heal') return '回復';
       if (playback.phase === 'shield') return '盾付与';
       if (playback.phase === 'attack') return '攻撃';
       return '判定中';
     }
-    if (
-      effectivePhase === 'pickTarget' &&
-      (pendingAction === 'bowAttack' ||
-        (pendingAction == null &&
-          pendingActor != null &&
-          getUnitAt(state.player, pendingActor)?.attribute === 'bow'))
-    ) {
+    if (effectivePhase === 'pickTarget' && pendingAction === 'bowAttack') {
       return '弓の対象を選択';
     }
     if (
@@ -631,10 +723,15 @@ export function useBattle(
       return '両攻撃の主対象を選択';
     }
     if (effectivePhase === 'pickTarget' && pendingAction == null) {
+      const actor = pendingActor
+        ? getUnitAt(state.player, pendingActor)
+        : null;
+      if (actor?.attribute === 'heal') return '攻撃先か回復先を選択';
       return '攻撃先か盾先を選択';
     }
     if (effectivePhase === 'pickTarget') return '攻撃対象を選択';
     if (effectivePhase === 'pickShield') return '盾対象を選択';
+    if (effectivePhase === 'pickHeal') return '回復対象を選択';
     if (effectivePhase === 'promoteUnit') {
       return '前衛に移動する後衛カードを選択';
     }

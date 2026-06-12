@@ -32,7 +32,8 @@ export function SetupBattleSession({
       {battle.effectivePhase !== 'ended' && battle.hint && (
         <p className="battle-hint setup-battle-hint">{battle.hint}</p>
       )}
-      {battle.effectivePhase === 'pickShield' && (
+      {(battle.effectivePhase === 'pickShield' ||
+        battle.effectivePhase === 'pickHeal') && (
         <button
           type="button"
           className="battle-cancel setup-battle-cancel"

@@ -22,6 +22,9 @@ export function grantPoisonStack(
   sourceCurrentBp: number = attacker.currentBp,
 ): void {
   if (attacker.attribute !== 'poison') return;
+  if (target.poisonStacks.length === 0) {
+    target.poisonDotDamageReceived = false;
+  }
   target.poisonStacks.push(createPoisonStack(attacker, sourceCurrentBp));
 }
 

@@ -39,12 +39,16 @@ export interface BattleUnit {
   /** 未使用の盾（1回だけダメージ0） */
   hasShield: boolean;
   poisonStacks: PoisonStack[];
+  /** この戦闘で毒 DoT ダメージを一度でも受けた（癒の対象条件） */
+  poisonDotDamageReceived: boolean;
   /** このターン番号まで行動不能（Phase 7） */
   frozenUntilTurn: number | null;
   /** 忍ステルス（Phase 8） */
   stealthActive: boolean;
   /** 癒カードの残使用回数（Phase 5） */
   healUsesRemaining: number;
+  /** 弓カードの残り矢数（1戦闘あたり上限あり） */
+  bowArrowsRemaining: number;
   /** 嵐をこの戦闘で使用済みか（Phase 6） */
   stormUsed: boolean;
   /** 忍初回無反撃を消費したか（Phase 8） */

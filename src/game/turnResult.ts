@@ -48,12 +48,23 @@ export interface ShieldPlayback {
   toPosition: BoardPosition;
 }
 
+export interface HealPlayback {
+  side: BattleSide;
+  fromPosition: BoardPosition;
+  toPosition: BoardPosition;
+  amount: number;
+  bpFrom: number;
+  bpTo: number;
+  poisonStacksCleared: number;
+}
+
 export interface ResolveTurnResult {
   state: BattleState;
   /** 癒の後、盾付与前 */
   stateAfterTurnStart: BattleState;
   shieldState: BattleState;
   shieldGrants: ShieldGrants;
+  heals: HealPlayback[];
   attacks: AttackPlayback[];
   shields: ShieldPlayback[];
 }

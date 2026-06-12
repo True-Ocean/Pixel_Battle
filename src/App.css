@@ -3184,6 +3184,16 @@ button.battle-card {
   line-height: 1;
 }
 
+.battle-card-bp.bp-wounded {
+  color: #c62828;
+  background: rgba(255, 236, 236, 0.94);
+  border-color: #d8404088;
+  box-shadow:
+    0 1px 3px #c6282822,
+    inset 0 0 0 1px #ffffff88;
+  text-shadow: 0 1px 1px #fff8f8;
+}
+
 .battle-card-bp.bp-damage {
   color: #e83030;
   border-color: #e8303088;
@@ -3258,6 +3268,7 @@ button.battle-card {
 }
 
 .battle-card-art {
+  position: relative;
   display: flex;
   justify-content: center;
   padding: 1.1rem 0.2rem 1.4rem;
@@ -3340,6 +3351,39 @@ button.battle-card {
   color: #1f5c12;
 }
 
+.battle-card-buff-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.06rem;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(145deg, #f8fff4, #c8e8a0);
+  box-shadow:
+    0 1px 3px #0003,
+    0 0 0 1px #5a9a3a88;
+  color: #2a5c18;
+}
+
+.battle-card-arrow-glyph {
+  display: block;
+  width: 0.68rem;
+  height: 0.68rem;
+  flex-shrink: 0;
+}
+
+.battle-card-buff-heal {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(145deg, #f0fbff, #8ed8f0);
+  box-shadow:
+    0 1px 3px #0003,
+    0 0 0 1px #3a9ab888;
+  color: #126080;
+}
+
 .battle-card.has-poison {
   box-shadow:
     0 0 0 2px #6fdc4a99,
@@ -3348,6 +3392,64 @@ button.battle-card {
 
 .battle-card.has-poison.poison-just-applied {
   animation: poison-applied-pulse 0.55s ease-out;
+}
+
+.battle-card.heal-sparkle {
+  z-index: 2;
+  animation: heal-card-glow 0.55s ease-in-out infinite alternate;
+}
+
+.battle-card-heal-sparkle {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 4px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.95) 0%, transparent 11%),
+    radial-gradient(circle at 72% 18%, rgba(255, 245, 180, 0.9) 0%, transparent 9%),
+    radial-gradient(circle at 42% 68%, rgba(180, 240, 255, 0.85) 0%, transparent 12%),
+    radial-gradient(circle at 84% 74%, rgba(255, 255, 255, 0.8) 0%, transparent 8%),
+    linear-gradient(
+      115deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.55) 48%,
+      transparent 62%
+    );
+  mix-blend-mode: screen;
+  animation: heal-sparkle-sweep 0.7s ease-in-out infinite;
+}
+
+@keyframes heal-card-glow {
+  from {
+    box-shadow:
+      0 0 0 2px #7ee8ff88,
+      0 0 12px 2px #5ed4ff66,
+      0 4px 14px #2a8aaa33;
+    filter: brightness(1);
+  }
+  to {
+    box-shadow:
+      0 0 0 3px #ffffffcc,
+      0 0 22px 6px #9ef0ffaa,
+      0 6px 18px #3ab8dd55;
+    filter: brightness(1.12);
+  }
+}
+
+@keyframes heal-sparkle-sweep {
+  0% {
+    opacity: 0.45;
+    transform: translateX(-8%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(6%) scale(1.03);
+  }
+  100% {
+    opacity: 0.5;
+    transform: translateX(12%) scale(1);
+  }
 }
 
 @keyframes poison-applied-pulse {
@@ -4019,12 +4121,22 @@ button.battle-card {
   filter: drop-shadow(0 0 7px rgba(39, 182, 111, 0.95));
 }
 
+.formation-arrow-heal {
+  stroke: #3db8e8;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 7px rgba(61, 184, 232, 0.95));
+}
+
 .formation-arrow-head-attack {
   fill: #f15a24;
 }
 
 .formation-arrow-head-shield {
   fill: #27b66f;
+}
+
+.formation-arrow-head-heal {
+  fill: #3db8e8;
 }
 
 @keyframes formation-arrow-pop {
@@ -4111,6 +4223,21 @@ button.battle-card {
     0 0 16px rgba(140, 255, 100, 0.85);
 }
 
+.formation-damage-float-heal {
+  background: linear-gradient(
+    165deg,
+    rgba(120, 210, 255, 0.96) 0%,
+    rgba(40, 150, 220, 0.96) 100%
+  );
+  border-color: rgba(230, 248, 255, 0.95);
+  box-shadow:
+    0 4px 16px rgba(40, 140, 200, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  text-shadow:
+    0 2px 6px rgba(10, 60, 100, 0.75),
+    0 0 16px rgba(120, 220, 255, 0.85);
+}
+
 @keyframes formation-damage-pop {
   from {
     opacity: 0;
@@ -4169,6 +4296,14 @@ button.battle-card {
     0 0 14px #35b96f77;
 }
 
+.formation-slot.is-heal-target {
+  border-color: #3db8e8;
+  background: #eef9ff;
+  box-shadow:
+    0 0 0 2px #3db8e844,
+    0 0 14px #3db8e877;
+}
+
 .formation-slot.is-selected,
 .formation-slot.is-actionable {
   border-color: #646cff;
@@ -4188,6 +4323,10 @@ button.battle-card {
 
 .formation-slot.is-shield-highlight {
   box-shadow: 0 0 14px #40c878aa;
+}
+
+.formation-slot.is-heal-highlight {
+  box-shadow: 0 0 14px #3db8e8aa;
 }
 
 @keyframes formation-attack-pulse {

@@ -7,6 +7,8 @@ import {
   getBattleResult,
   getPromotableBackPositions,
 } from './battleState';
+import { getActionTypesForUnit } from './actions/getActionTypesForUnit';
+import { getHealTargets } from './healCombat';
 import { promoteUnit, resolveTurn } from './resolveTurn';
 import { startNextTurn } from './startNextTurn';
 import { pickCpuAction } from './cpu';
@@ -419,6 +421,74 @@ describe('battle', () => {
     expect(state.player[2].currentBp).toBe(80);
   });
 
+  it('弓は1戦闘2矢までで矢切れ後は後衛では行動できない', () => {
+    const playerDeck = [
+      stubCard('P1', 'attack', 50),
+      stubCard('P2', 'attack', 50),
+      stubCard('弓', 'bow', 80),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    const bowChoice = {
+      type: 'bowAttack' as const,
+      actorPosition: 'backLeft' as const,
+      targetPosition: 'frontLeft' as const,
+    };
+    const cpuPass = {
+      type: 'grantShield' as const,
+      actorPosition: 'backCenter' as const,
+      targetPosition: 'frontLeft' as const,
+    };
+
+    state = resolveTurn(state, { player: bowChoice, cpu: cpuPass }).state;
+    expect(state.player.find((u) => u.attribute === 'bow')!.bowArrowsRemaining).toBe(
+      1,
+    );
+    state = resolveTurn(state, { player: bowChoice, cpu: cpuPass }).state;
+    expect(state.player.find((u) => u.attribute === 'bow')!.bowArrowsRemaining).toBe(
+      0,
+    );
+
+    const bow = state.player.find((u) => u.attribute === 'bow')!;
+    expect(getActionTypesForUnit(state.player, state.cpu, bow.position)).toEqual([]);
+  });
+
+  it('弓は矢切れ後も前衛なら近接攻撃できる', () => {
+    const playerDeck = [
+      stubCard('弓', 'bow', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    const bow = state.player.find((u) => u.attribute === 'bow')!;
+    bow.bowArrowsRemaining = 0;
+    bow.position = 'frontLeft';
+    state.cpu[0].currentBp = 100;
+
+    expect(getActionTypesForUnit(state.player, state.cpu, 'frontLeft')).toEqual([
+      'meleeAttack',
+    ]);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu[0].currentBp).toBe(20);
+    expect(state.player[0].currentBp).toBe(30);
+  });
+
   it('前衛弓は敵前衛に100%ダメージで反撃されない', () => {
     const playerDeck = [
       stubCard('弓', 'bow', 60),
@@ -537,6 +607,69 @@ describe('battle', () => {
     expect(state.cpu[0].currentBp).toBe(40);
   });
 
+  it('盾があると毒の付与も防がれ盾は消える', () => {
+    const playerDeck = [
+      stubCard('毒', 'poison', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+    state.cpu[0].hasShield = true;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu[0].hasShield).toBe(false);
+    expect(state.cpu[0].currentBp).toBe(100);
+    expect(state.cpu[0].poisonStacks).toHaveLength(0);
+  });
+
+  it('盾があると一方的反撃の毒付与も防がれる', () => {
+    const playerDeck = [
+      stubCard('P1', 'attack', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('毒', 'poison', 80),
+      ...cards('C').slice(1),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+    state.player[0].hasShield = true;
+    state.player[0].currentBp = 100;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+    }).state;
+
+    expect(state.player[0].hasShield).toBe(false);
+    expect(state.player[0].poisonStacks).toHaveLength(0);
+  });
+
   it('毒属性の近接で主対象にスタックを付与する', () => {
     const playerDeck = [
       stubCard('毒', 'poison', 80),
@@ -626,6 +759,181 @@ describe('battle', () => {
 
     expect(state.cpu[0].poisonStacks).toHaveLength(1);
     expect(state.cpu[0].currentBp).toBe(0);
+  });
+
+  it('癒は回復と同時に対象の毒を解消する', () => {
+    const playerDeck = [
+      stubCard('PFront', 'attack', 100),
+      stubCard('PWounded', 'attack', 80),
+      stubCard('PBackL', 'attack', 60),
+      stubCard('Healer', 'heal', 50),
+      stubCard('PBackR', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    const wounded = state.player.find((u) => u.position === 'frontRight')!;
+    wounded.currentBp = 30;
+    wounded.poisonStacks = [{ sourceCardId: 'poison-1', damagePerTurn: 12 }];
+    wounded.poisonDotDamageReceived = true;
+
+    const result = resolveTurn(state, {
+      player: {
+        type: 'heal',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontLeft',
+      },
+    });
+
+    expect(result.heals[0]?.poisonStacksCleared).toBe(1);
+    const healed = result.state.player.find((u) => u.position === 'frontRight')!;
+    expect(healed.poisonStacks).toHaveLength(0);
+    expect(healed.currentBp).toBe(80);
+  });
+
+  it('癒はBP満タンでも毒だけ解消できる', () => {
+    const playerDeck = [
+      stubCard('PFront', 'attack', 100),
+      stubCard('Poisoned', 'attack', 80),
+      stubCard('PBackL', 'attack', 60),
+      stubCard('Healer', 'heal', 50),
+      stubCard('PBackR', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    const poisoned = state.player.find((u) => u.position === 'frontRight')!;
+    poisoned.poisonStacks = [{ sourceCardId: 'poison-1', damagePerTurn: 12 }];
+    poisoned.poisonDotDamageReceived = true;
+
+    const result = resolveTurn(state, {
+      player: {
+        type: 'heal',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontLeft',
+      },
+    });
+
+    expect(result.heals[0]?.amount).toBe(0);
+    expect(result.heals[0]?.poisonStacksCleared).toBe(1);
+    expect(
+      result.state.player.find((u) => u.position === 'frontRight')!.poisonStacks,
+    ).toHaveLength(0);
+  });
+
+  it('毒付与直後は回復できず、毒DoT後に回復できる', () => {
+    const playerDeck = [
+      stubCard('PFront', 'attack', 100),
+      stubCard('Poisoned', 'attack', 80),
+      stubCard('PBackL', 'attack', 60),
+      stubCard('Healer', 'heal', 50),
+      stubCard('PBackR', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    const poisoned = state.player.find((u) => u.position === 'frontRight')!;
+    poisoned.poisonStacks = [{ sourceCardId: 'poison-1', damagePerTurn: 12 }];
+
+    expect(getHealTargets(state.player, 'backCenter')).not.toContain('frontRight');
+
+    state = startNextTurn(state).stateAfterDot;
+    expect(getHealTargets(state.player, 'backCenter')).toContain('frontRight');
+    expect(
+      state.player.find((u) => u.position === 'frontRight')!.poisonDotDamageReceived,
+    ).toBe(true);
+  });
+
+  it('癒は盾・攻撃より先に味方を回復する', () => {
+    const playerDeck = [
+      stubCard('PFront', 'attack', 100),
+      stubCard('PWounded', 'attack', 80),
+      stubCard('PBackL', 'attack', 60),
+      stubCard('Healer', 'heal', 50),
+      stubCard('PBackR', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    const wounded = state.player.find((u) => u.position === 'frontRight')!;
+    wounded.currentBp = 30;
+
+    const result = resolveTurn(state, {
+      player: {
+        type: 'heal',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+    });
+
+    expect(result.heals).toHaveLength(1);
+    expect(result.heals[0]).toMatchObject({
+      side: 'player',
+      amount: 50,
+      bpFrom: 30,
+      bpTo: 80,
+    });
+    const healed = result.state.player.find((u) => u.position === 'frontRight')!;
+    expect(healed.currentBp).toBe(80);
+    const healer = result.state.player.find((u) => u.position === 'backCenter')!;
+    expect(healer.healUsesRemaining).toBe(1);
+  });
+
+  it('癒の回復回数は1戦闘2回まで', () => {
+    const playerDeck = [
+      stubCard('PW1', 'attack', 80),
+      stubCard('PW2', 'attack', 80),
+      stubCard('P3', 'attack', 60),
+      stubCard('Healer', 'heal', 40),
+      stubCard('P5', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.player.find((u) => u.position === 'frontLeft')!.currentBp = 50;
+    state.player.find((u) => u.position === 'frontRight')!.currentBp = 60;
+
+    const cpuPass = {
+      type: 'grantShield' as const,
+      actorPosition: 'backCenter' as const,
+      targetPosition: 'frontLeft' as const,
+    };
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'heal',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontLeft',
+      },
+      cpu: cpuPass,
+    }).state;
+    state = resolveTurn(state, {
+      player: {
+        type: 'heal',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+      cpu: cpuPass,
+    }).state;
+    const healer = state.player.find((u) => u.position === 'backCenter')!;
+    expect(healer.healUsesRemaining).toBe(0);
+
+    const before = state.player.find((u) => u.position === 'frontLeft')!.currentBp;
+    state = resolveTurn(state, {
+      player: {
+        type: 'heal',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontLeft',
+      },
+      cpu: cpuPass,
+    }).state;
+    const after = state.player.find((u) => u.position === 'frontLeft')!.currentBp;
+    expect(after).toBe(before);
   });
 
   it('弓が前衛に補充されてもBPは半減しない', () => {

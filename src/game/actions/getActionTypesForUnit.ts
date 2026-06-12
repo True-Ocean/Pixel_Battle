@@ -1,8 +1,9 @@
 import type { Attribute } from '../../types';
 import type { BattleActionType } from '../../types/battle';
 import type { BoardPosition } from '../../types/battle';
-import { getBowTargets } from '../bowCombat';
+import { canUseBowMeleeAction, getBowTargets } from '../bowCombat';
 import { getDualTargets } from '../dualCombat';
+import { canUseHealAction } from '../healCombat';
 import {
   canUseShieldAction,
   getMeleeTargets,
@@ -16,6 +17,7 @@ const FRONT_MELEE_ATTRIBUTES: ReadonlySet<Attribute> = new Set([
   'defense',
   'power',
   'poison',
+  'heal',
   'ice',
   'ninja',
 ]);
@@ -33,6 +35,9 @@ export function getActionTypesForUnit(
   if (unit.attribute === 'bow') {
     if (getBowTargets(ownField, enemyField, position).length > 0) {
       actions.push('bowAttack');
+    }
+    if (canUseBowMeleeAction(unit, position, enemyField)) {
+      actions.push('meleeAttack');
     }
     return actions;
   }
@@ -54,6 +59,9 @@ export function getActionTypesForUnit(
   }
   if (unit.attribute === 'defense' && canUseShieldAction(ownField, position)) {
     actions.push('grantShield');
+  }
+  if (unit.attribute === 'heal' && canUseHealAction(ownField, position)) {
+    actions.push('heal');
   }
 
   return actions;

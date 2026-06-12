@@ -1,6 +1,7 @@
 import type { BattleActionChoice, BattleState, BoardPosition } from '../types/battle';
 import { getBowTargets } from './bowCombat';
 import { getDualTargets } from './dualCombat';
+import { getHealTargets } from './healCombat';
 import {
   FRONT_POSITIONS,
   getActionTypesForUnit,
@@ -69,6 +70,15 @@ export function pickCpuAction(
       for (const target of getShieldTargetsForActor(state.cpu, position)) {
         candidates.push({
           type: 'grantShield',
+          actorPosition: position,
+          targetPosition: target,
+        });
+      }
+    }
+    if (actions.includes('heal')) {
+      for (const target of getHealTargets(state.cpu, position)) {
+        candidates.push({
+          type: 'heal',
           actorPosition: position,
           targetPosition: target,
         });

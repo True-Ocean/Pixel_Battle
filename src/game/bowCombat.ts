@@ -1,4 +1,5 @@
 import type { BattleUnit, BoardPosition } from '../types/battle';
+import { getMeleeTargets, isFrontPosition } from './battleState';
 
 const ALL_ENEMY_POSITIONS = [
   'frontLeft',
@@ -19,6 +20,24 @@ export function isBowTargetable(unit: BattleUnit): boolean {
   return unit.currentBp > 0 && unit.position !== 'defeated' && !unit.stealthActive;
 }
 
+export function canUseBowAction(unit: BattleUnit): boolean {
+  return unit.attribute === 'bow' && unit.bowArrowsRemaining > 0;
+}
+
+/** 矢切れ後、前衛のみ通常近接（§4.4） */
+export function canUseBowMeleeAction(
+  unit: BattleUnit,
+  position: BoardPosition,
+  enemyField: BattleUnit[],
+): boolean {
+  return (
+    unit.attribute === 'bow' &&
+    unit.bowArrowsRemaining <= 0 &&
+    isFrontPosition(position) &&
+    getMeleeTargets(enemyField).length > 0
+  );
+}
+
 /** 弓攻撃の有効ターゲット（ATTRIBUTE_SPEC §4.4） */
 export function getBowTargets(
   ownField: BattleUnit[],
@@ -26,7 +45,7 @@ export function getBowTargets(
   actorPosition: BoardPosition,
 ): BoardPosition[] {
   const actor = getUnitAt(ownField, actorPosition);
-  if (!actor || actor.attribute !== 'bow') return [];
+  if (!actor || !canUseBowAction(actor)) return [];
 
   return ALL_ENEMY_POSITIONS.filter((position) => {
     const target = getUnitAt(enemyField, position);

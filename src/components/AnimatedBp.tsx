@@ -5,6 +5,7 @@ interface AnimatedBpProps {
   to: number;
   /** true のとき from→to をアニメーション */
   active: boolean;
+  maxBp?: number;
   className?: string;
   onComplete?: () => void;
 }
@@ -13,6 +14,7 @@ export function AnimatedBp({
   from,
   to,
   active,
+  maxBp,
   className = '',
   onComplete,
 }: AnimatedBpProps) {
@@ -45,10 +47,13 @@ export function AnimatedBp({
   }, [active, from, to, onComplete]);
 
   const damage = active && to < from;
+  const wounded = maxBp != null && display < maxBp;
 
   return (
     <span
-      className={`battle-card-bp ${damage ? 'bp-damage' : ''} ${className}`.trim()}
+      className={`battle-card-bp ${damage ? 'bp-damage' : ''} ${
+        wounded ? 'bp-wounded' : ''
+      } ${className}`.trim()}
       aria-label={`BP ${display}`}
     >
       {display}
