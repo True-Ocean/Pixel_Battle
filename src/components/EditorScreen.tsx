@@ -7,6 +7,7 @@ import {
   snapshotsEqual,
   type EditorSnapshot,
 } from '../canvas/editorHistory';
+import { ATTRIBUTE_META } from '../config/attributes';
 import { DECK_MAX } from '../config/balance';
 import { PALETTE_16 } from '../config/palette';
 import {
@@ -25,7 +26,7 @@ import {
   getUnlockedPaletteCount,
   isPaletteColorUnlockedAtLevel,
 } from '../config/paletteUnlock';
-import type { Card, PixelGrid } from '../types';
+import type { Attribute, Card, PixelGrid } from '../types';
 import { CanvasSizePicker } from './CanvasSizePicker';
 import { CardPreview } from './CardPreview';
 import { ColorPalette } from './ColorPalette';
@@ -48,6 +49,15 @@ interface EditorScreenProps {
 }
 
 const MINI_PREVIEW_SIZE = 48;
+const DEV_MODE = import.meta.env.DEV;
+
+const DEV_ATTRIBUTE_OPTIONS = (
+  Object.keys(ATTRIBUTE_META) as Attribute[]
+).map((attribute) => ({
+  attribute,
+  label: ATTRIBUTE_META[attribute].label,
+  ariaName: ATTRIBUTE_META[attribute].ariaName,
+}));
 
 function validateDrawing(
   name: string,
@@ -97,6 +107,9 @@ export function EditorScreen({
   const [tool, setTool] = useState<EditorToolId>('pen');
   const [error, setError] = useState<string | null>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
+  const [devForceAttribute, setDevForceAttribute] = useState<Attribute | null>(
+    null,
+  );
   const editorSnapshotRef = useRef<EditorSnapshot>({ pixels, canvasSize });
   const editorHistoryRef = useRef<EditorSnapshot[]>(editorHistory);
   const editorFutureRef = useRef<EditorSnapshot[]>(editorFuture);
@@ -214,6 +227,9 @@ export function EditorScreen({
           userLevel,
           unlockedPaletteCount: getUnlockedPaletteCount(userLevel),
           canvasSize,
+          ...(DEV_MODE && devForceAttribute
+            ? { forceAttribute: devForceAttribute }
+            : {}),
         });
         onCreated(card);
       }
@@ -318,6 +334,28 @@ export function EditorScreen({
               onChange={(e) => setName(e.target.value)}
             />
           </label>
+          {DEV_MODE && !isEditing && (
+            <label className="field editor-field editor-dev-attribute">
+              <span>開発用: 属性指定</span>
+              <select
+                className="editor-dev-attribute-select"
+                value={devForceAttribute ?? ''}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setDevForceAttribute(
+                    value === '' ? null : (value as Attribute),
+                  );
+                }}
+              >
+                <option value="">自動（通常抽選）</option>
+                {DEV_ATTRIBUTE_OPTIONS.map(({ attribute, label, ariaName }) => (
+                  <option key={attribute} value={attribute}>
+                    {label}（{ariaName}）
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <p className="muted editor-name-hint">
             あなたが描いたイメージとカード名から、カードが自動生成されます
           </p>

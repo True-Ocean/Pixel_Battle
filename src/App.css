@@ -1709,6 +1709,25 @@
   margin-bottom: 0;
 }
 
+.editor-dev-attribute {
+  margin-top: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px dashed #c8a84a;
+  background: rgba(255, 248, 220, 0.55);
+}
+
+.editor-dev-attribute-select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.55rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #d8d0b0;
+  background: #fff;
+  color: #333;
+}
+
 .editor-name-hint {
   margin: 0.7rem 0 0.5rem;
   font-size: 0.75rem;

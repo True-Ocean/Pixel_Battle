@@ -1,5 +1,6 @@
 export {
   createCardFromDrawing,
+  type DeriveCardStatsOptions,
   updateCardFromDrawing,
   deriveCardStats,
   recalculateCardBp,

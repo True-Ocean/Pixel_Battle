@@ -114,6 +114,14 @@ describe('deriveCardStats', () => {
 });
 
 describe('createCardFromDrawing', () => {
+  it('forceAttribute で解放前の属性を固定できる', () => {
+    const card = createCardFromDrawing('弓テスト', fillGrid('#ff0000'), {
+      userLevel: 1,
+      forceAttribute: 'bow',
+    });
+    expect(card.attribute).toBe('bow');
+  });
+
   it('16x16 のカードを生成', () => {
     const card = createCardFromDrawing('x', fillGrid('#ff0000'));
     expect(card.pixels).toHaveLength(CANVAS_SIZE);

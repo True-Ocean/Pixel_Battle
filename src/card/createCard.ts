@@ -21,7 +21,12 @@ export interface CardDraft {
   ratios: NonNullable<ReturnType<typeof computeColorRatios>>;
 }
 
-export interface CreateCardOptions {
+export interface DeriveCardStatsOptions {
+  /** 開発・テスト用: 抽選をスキップして属性を固定 */
+  forceAttribute?: Attribute;
+}
+
+export interface CreateCardOptions extends DeriveCardStatsOptions {
   userLevel?: number;
   unlockedPaletteCount?: number;
   canvasSize?: number;
@@ -112,6 +117,7 @@ export function deriveCardStats(
   name: string,
   pixels: PixelGrid,
   userLevel: number = USER_INITIAL_LEVEL,
+  options: DeriveCardStatsOptions = {},
 ): CardDraft {
   const unlockedPaletteCount = getUnlockedPaletteCount(userLevel);
   const { trimmed, ratios } = validateDrawingInput(
@@ -119,7 +125,9 @@ export function deriveCardStats(
     pixels,
     unlockedPaletteCount,
   );
-  const attribute = deriveAttribute(trimmed, pixels, ratios, userLevel);
+  const attribute =
+    options.forceAttribute ??
+    deriveAttribute(trimmed, pixels, ratios, userLevel);
   const bpBlend = computeBpBlend(trimmed, pixels, ratios);
   const bp = computeCardBaseBp(bpBlend, userLevel, attribute);
 
@@ -152,7 +160,9 @@ export function createCardFromDrawing(
   const unlockedPaletteCount =
     options.unlockedPaletteCount ?? getUnlockedPaletteCount(userLevel);
   const normalized = normalizeGrid(pixels, unlockedPaletteCount);
-  const { attribute, bp, ratios } = deriveCardStats(name, normalized, userLevel);
+  const { attribute, bp, ratios } = deriveCardStats(name, normalized, userLevel, {
+    forceAttribute: options.forceAttribute,
+  });
   const rarity = rollRarity(
     ratios,
     normalized,
