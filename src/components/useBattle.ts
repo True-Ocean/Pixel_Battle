@@ -355,9 +355,9 @@ export function useBattle(
       const meleeTargets = getMeleeTargets(state.cpu);
 
       if (
+        actor.attribute === 'bow' &&
         bowTargets.includes(position) &&
-        (pendingAction === 'bowAttack' ||
-          (pendingAction == null && actor.attribute === 'bow'))
+        (pendingAction === 'bowAttack' || pendingAction == null)
       ) {
         commitTurn({
           type: 'bowAttack',
@@ -370,8 +370,7 @@ export function useBattle(
       if (
         meleeTargets.includes(position) &&
         (pendingAction === 'meleeAttack' ||
-          (pendingAction == null &&
-            (actor.attribute === 'bow' || actor.attribute === 'defense')))
+          (pendingAction == null && actor.attribute === 'defense'))
       ) {
         commitTurn({
           type: 'meleeAttack',
@@ -423,9 +422,7 @@ export function useBattle(
             return meleeTargets.includes(position);
           }
           if (actor.attribute === 'bow') {
-            return (
-              bowTargets.includes(position) || meleeTargets.includes(position)
-            );
+            return bowTargets.includes(position);
           }
           return meleeTargets.includes(position);
         }
@@ -494,18 +491,17 @@ export function useBattle(
       if (playback.phase === 'attack') return '攻撃';
       return '判定中';
     }
-    if (effectivePhase === 'pickTarget' && pendingAction == null) {
-      const actor =
-        pendingActor != null
-          ? getUnitAt(state.player, pendingActor)
-          : undefined;
-      if (actor?.attribute === 'bow') {
-        return '前衛＝近接・後衛＝弓で攻撃先を選択';
-      }
-      return '攻撃先か盾先を選択';
-    }
-    if (effectivePhase === 'pickTarget' && pendingAction === 'bowAttack') {
+    if (
+      effectivePhase === 'pickTarget' &&
+      (pendingAction === 'bowAttack' ||
+        (pendingAction == null &&
+          pendingActor != null &&
+          getUnitAt(state.player, pendingActor)?.attribute === 'bow'))
+    ) {
       return '弓の対象を選択';
+    }
+    if (effectivePhase === 'pickTarget' && pendingAction == null) {
+      return '攻撃先か盾先を選択';
     }
     if (effectivePhase === 'pickTarget') return '攻撃対象を選択';
     if (effectivePhase === 'pickShield') return '盾対象を選択';

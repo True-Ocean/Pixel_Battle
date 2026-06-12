@@ -81,6 +81,9 @@ export const DEFENSE_BP_RATIO = 0.85;
 /** 力属性の基本BP係数（攻撃比）。ATTRIBUTE_SPEC §4.3 */
 export const POWER_BP_RATIO = 1.5;
 
+/** 弓属性の基本BP係数（攻撃比）。ATTRIBUTE_SPEC §4.4 */
+export const BOW_BP_RATIO = 0.6;
+
 /** 初回セットアップ・ユーザープロフィール */
 export const USER_INITIAL_LEVEL = 1;
 export const MAX_USER_LEVEL = 50;
@@ -119,6 +122,7 @@ export function getUserBaseBp(
   const attackBase = level * USER_BP_PER_LEVEL;
   if (attribute === 'defense') return Math.round(attackBase * DEFENSE_BP_RATIO);
   if (attribute === 'power') return Math.round(attackBase * POWER_BP_RATIO);
+  if (attribute === 'bow') return Math.round(attackBase * BOW_BP_RATIO);
   return attackBase;
 }
 

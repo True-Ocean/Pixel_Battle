@@ -6,7 +6,6 @@ import type {
   BoardPosition,
 } from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
-import { calcBowMeleeDamage } from '../bowCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
 import type { AttackPlayback } from '../turnResult';
 
@@ -111,10 +110,7 @@ export function applyMeleeBattle(
   const targetShieldConsumed = attack.target.hasShield;
   const blocked = targetShieldConsumed;
 
-  let damageToTarget = calcBowMeleeDamage(
-    attack.attacker,
-    attack.action.actorPosition,
-  );
+  let damageToTarget = attack.attacker.currentBp;
   let damageToAttacker = counterDamage(attack.target, attack.bidirectional);
 
   if (attackerShieldConsumed) {

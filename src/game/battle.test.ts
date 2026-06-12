@@ -392,7 +392,7 @@ describe('battle', () => {
     expect(state.cpu[0].currentBp).toBe(0);
   });
 
-  it('後衛弓は敵後衛に50%ダメージ', () => {
+  it('弓は敵後衛に100%ダメージで反撃されない', () => {
     const playerDeck = [
       stubCard('P1', 'attack', 50),
       stubCard('P2', 'attack', 50),
@@ -414,8 +414,36 @@ describe('battle', () => {
       },
     }).state;
 
-    expect(state.cpu[2].currentBp).toBe(20);
+    expect(state.cpu[2].currentBp).toBe(0);
     expect(state.player[2].currentBp).toBe(80);
+  });
+
+  it('前衛弓は敵前衛に100%ダメージで反撃されない', () => {
+    const playerDeck = [
+      stubCard('弓', 'bow', 60),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'bowAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu[0].currentBp).toBe(40);
+    expect(state.player[0].currentBp).toBe(60);
   });
 
   it('弓が前衛に補充されてもBPは半減しない', () => {
@@ -437,32 +465,4 @@ describe('battle', () => {
     expect(bow?.maxBp).toBe(80);
   });
 
-  it('前衛の弓が近接すると与ダメは50%・反撃は通常近接ルール', () => {
-    const playerDeck = [
-      stubCard('弓', 'bow', 80),
-      stubCard('P2', 'attack', 50),
-      stubCard('P3', 'attack', 50),
-      stubCard('P4', 'attack', 50),
-      stubCard('P5', 'attack', 50),
-    ];
-    let state = createBattleState(playerDeck, cards('C'));
-    state.player[0].position = 'frontLeft';
-    state.cpu[0].currentBp = 100;
-
-    state = resolveTurn(state, {
-      player: {
-        type: 'meleeAttack',
-        actorPosition: 'frontLeft',
-        targetPosition: 'frontLeft',
-      },
-      cpu: {
-        type: 'grantShield',
-        actorPosition: 'backCenter',
-        targetPosition: 'frontRight',
-      },
-    }).state;
-
-    expect(state.cpu[0].currentBp).toBe(60);
-    expect(state.player[0].currentBp).toBe(30);
-  });
 });

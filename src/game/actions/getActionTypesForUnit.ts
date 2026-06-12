@@ -18,7 +18,6 @@ const FRONT_MELEE_ATTRIBUTES: ReadonlySet<Attribute> = new Set([
   'poison',
   'ice',
   'ninja',
-  'bow',
 ]);
 
 export function getActionTypesForUnit(
@@ -32,15 +31,8 @@ export function getActionTypesForUnit(
   const actions: BattleActionType[] = [];
 
   if (unit.attribute === 'bow') {
-    const bowTargets = getBowTargets(ownField, enemyField, position);
-    if (bowTargets.length > 0) {
+    if (getBowTargets(ownField, enemyField, position).length > 0) {
       actions.push('bowAttack');
-    }
-    if (
-      isFrontPosition(position) &&
-      getMeleeTargets(enemyField).length > 0
-    ) {
-      actions.push('meleeAttack');
     }
     return actions;
   }

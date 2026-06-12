@@ -67,11 +67,7 @@ export function applyBowAttack(
   const targetShieldConsumed = attack.target.hasShield;
   const blocked = targetShieldConsumed;
 
-  let damageToTarget = calcBowDamage(
-    attackerBpFrom,
-    attack.action.actorPosition,
-    attack.action.targetPosition,
-  );
+  let damageToTarget = calcBowDamage(attackerBpFrom);
 
   if (targetShieldConsumed) {
     damageToTarget = 0;

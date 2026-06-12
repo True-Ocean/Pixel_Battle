@@ -21,6 +21,10 @@ describe('user level base BP', () => {
     expect(getUserBaseBp(10, 'power')).toBe(150);
   });
 
+  it('弓は攻撃の60%', () => {
+    expect(getUserBaseBp(10, 'bow')).toBe(60);
+  });
+
   it('カードBPレンジは±15%', () => {
     const range = getCardBaseBpRange(10, 'attack');
     expect(range.min).toBe(85);

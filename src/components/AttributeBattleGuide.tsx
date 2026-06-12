@@ -13,7 +13,7 @@ export function AttributeBattleGuide({ attribute }: AttributeBattleGuideProps) {
   return (
     <details className="deck-detail-card-guide">
       <summary className="deck-detail-card-guide-summary">
-        戦い方を詳しく見る
+        詳しい説明を見る
       </summary>
       <div className="deck-detail-card-guide-body" role="note">
         {guide}
