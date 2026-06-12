@@ -33,9 +33,14 @@ function cloneBattleState(state: BattleState): BattleState {
   };
 }
 
+export interface ResolveTurnOptions {
+  random?: () => number;
+}
+
 export function resolveTurn(
   state: BattleState,
   choices: TurnChoices,
+  options?: ResolveTurnOptions,
 ): ResolveTurnResult {
   const player = cloneField(state.player);
   const cpu = cloneField(state.cpu);
@@ -56,7 +61,13 @@ export function resolveTurn(
   next = shieldResult.state;
   const shieldState = cloneBattleState(next);
 
-  const combatResult = resolveCombatAttacks(next, choices, player, cpu);
+  const combatResult = resolveCombatAttacks(
+    next,
+    choices,
+    player,
+    cpu,
+    options?.random,
+  );
   next = combatResult.state;
 
   next = applyDefeated(next, player, cpu);

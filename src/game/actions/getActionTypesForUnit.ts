@@ -5,6 +5,7 @@ import { canUseBowMeleeAction, getBowTargets } from '../bowCombat';
 import { getDualTargets } from '../dualCombat';
 import { canUseHealAction } from '../healCombat';
 import { isFrozen } from '../iceCombat';
+import { canUseStormAction } from '../stormCombat';
 import {
   canUseShieldAction,
   getMeleeTargets,
@@ -48,6 +49,16 @@ export function getActionTypesForUnit(
   if (unit.attribute === 'dual') {
     if (isFrontPosition(position) && getDualTargets(enemyField).length > 0) {
       actions.push('dualAttack');
+    }
+    return actions;
+  }
+
+  if (unit.attribute === 'storm') {
+    if (isFrontPosition(position) && getMeleeTargets(enemyField).length > 0) {
+      actions.push('meleeAttack');
+    }
+    if (canUseStormAction(unit, enemyField)) {
+      actions.push('storm');
     }
     return actions;
   }

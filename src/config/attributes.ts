@@ -111,11 +111,12 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   ice: {
     label: '氷',
     ariaName: '氷属性',
-    description: '近接攻撃で戦った相手を凍結させる\n（相手は次ターン行動不能）',
+    description: '近接攻撃で自分に触れた相手を凍結させる\n（相手は次ターン行動不能）',
     battleGuide: [
       '・前衛にいるときのみ近接攻撃',
-      '・近接攻撃で戦った相手を凍結させ、次ターンの間、行動不能にする',
-      '・凍結したカードのBPは回復できるが、凍結は解除できない',
+      '・近接攻撃で自分に触れた相手を凍結させる',
+      '・凍結された相手は次ターンの間、行動不能となる。',
+      '・凍結の効果は盾で防ぐことができる',
     ].join('\n'),
     bg: '#66ccff',
     border: '#3399cc',
@@ -123,10 +124,12 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   storm: {
     label: '嵐',
     ariaName: '嵐属性',
-    description: '1回/戦闘・currentBp分割ダメージ（Phase 6）',
+    description: '2体のランダムな敵にダメージを与える\n（バトル中2回まで）',
     battleGuide: [
-      '・1戦闘1回、currentBp×25%を別ユニット2体へ（バトル未実装）',
-      '・反撃なし',
+      '・後衛：嵐カードを2回タップで発動',
+      '・前衛：嵐は自分を再タップ、近接は敵前衛をタップ',
+      '・嵐は、自分のBPの70%のダメージを2体のランダムな敵に与える（バトル中2回まで）',
+      '・嵐による攻撃は反撃を受けない',
     ].join('\n'),
     bg: '#8888cc',
     border: '#6666aa',

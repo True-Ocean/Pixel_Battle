@@ -172,6 +172,9 @@ export function BattleBoard({
           unit.attribute === 'heal' ? unit.healUsesRemaining : undefined
         }
         isFrozen={isFrozen(unit, getSelectionTurn(state))}
+        stormUsesRemaining={
+          unit.attribute === 'storm' ? unit.stormUsesRemaining : undefined
+        }
         poisonStackCount={unit.poisonStacks.length}
         poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}
@@ -212,6 +215,9 @@ export function BattleBoard({
           unit.attribute === 'heal' ? unit.healUsesRemaining : undefined
         }
         isFrozen={isFrozen(unit, getSelectionTurn(state))}
+        stormUsesRemaining={
+          unit.attribute === 'storm' ? unit.stormUsesRemaining : undefined
+        }
         poisonStackCount={unit.poisonStacks.length}
         poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}

@@ -19,7 +19,7 @@ function unit(partial: Partial<BattleUnit> & Pick<BattleUnit, 'position'>): Batt
     stealthActive: false,
     healUsesRemaining: 0,
     bowArrowsRemaining: 0,
-    stormUsed: false,
+    stormUsesRemaining: 0,
     ninjaFirstStrikeUsed: false,
     rarity: 'N',
     stars: 0,

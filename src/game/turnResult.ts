@@ -14,7 +14,7 @@ export interface ShieldGrants {
 }
 
 export interface AttackPlayback {
-  kind?: 'melee' | 'bow' | 'dual';
+  kind?: 'melee' | 'bow' | 'dual' | 'storm';
   fromSide: BattleSide;
   fromPosition: BoardPosition;
   toSide: BattleSide;
@@ -41,6 +41,8 @@ export interface AttackPlayback {
   poisonCounterGranted?: boolean;
   /** 近接で凍結を付与した（攻撃側→主対象） */
   iceGranted?: boolean;
+  /** 氷に近接した攻撃側へ凍結を付与した（主対象→攻撃側） */
+  iceCounterGranted?: boolean;
   stateAfter: BattleState;
 }
 

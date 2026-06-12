@@ -355,6 +355,23 @@ export function useBattle(
     [state, selectionTurn],
   );
 
+  const isStormPickPending = useCallback(() => {
+    return (
+      effectivePhase === 'pickTarget' &&
+      pendingActor != null &&
+      pendingAction == null &&
+      availableActionsFor(pendingActor).includes('storm')
+    );
+  }, [effectivePhase, pendingActor, pendingAction, availableActionsFor]);
+
+  const cancelStormPick = useCallback(() => {
+    if (!isStormPickPending()) return false;
+    setPendingActor(null);
+    setPendingAction(null);
+    setUiPhase('pickMain');
+    return true;
+  }, [isStormPickPending]);
+
   const commitTurn = useCallback(
     (playerChoice: BattleActionChoice) => {
       const cpuChoice = pickCpuAction(state);
@@ -474,6 +491,7 @@ export function useBattle(
         effectivePhase === 'pickTarget' &&
         pendingActor &&
         pendingAction == null &&
+        availableActionsFor(pendingActor).includes('grantShield') &&
         getShieldTargetsForActor(state.player, pendingActor).includes(position)
       ) {
         commitTurn({
@@ -485,11 +503,31 @@ export function useBattle(
       }
 
       if (
+        isStormPickPending() &&
+        pendingActor !== position
+      ) {
+        cancelStormPick();
+        return;
+      }
+
+      if (
         (effectivePhase === 'pickTarget' ||
           effectivePhase === 'pickShield' ||
           effectivePhase === 'pickHeal') &&
         pendingActor === position
       ) {
+        if (
+          effectivePhase === 'pickTarget' &&
+          pendingAction == null &&
+          availableActionsFor(position).includes('storm')
+        ) {
+          commitTurn({
+            type: 'storm',
+            actorPosition: position,
+            targetPosition: position,
+          });
+          return;
+        }
         setPendingActor(null);
         setPendingAction(null);
         setUiPhase('pickMain');
@@ -507,6 +545,11 @@ export function useBattle(
       setPendingActor(position);
       if (actions.length === 1) {
         const action = actions[0]!;
+        if (action === 'storm') {
+          setPendingAction(null);
+          setUiPhase('pickTarget');
+          return;
+        }
         setPendingAction(action);
         setUiPhase(
           action === 'grantShield'
@@ -529,6 +572,8 @@ export function useBattle(
       commitTurn,
       availableActionsFor,
       finishPromotion,
+      isStormPickPending,
+      cancelStormPick,
     ],
   );
 
@@ -582,15 +627,31 @@ export function useBattle(
         return;
       }
 
-      if (pendingAction !== 'bowAttack' && meleeTargets.includes(position)) {
+      const actorActions = availableActionsFor(pendingActor);
+      if (
+        pendingAction !== 'bowAttack' &&
+        actorActions.includes('meleeAttack') &&
+        meleeTargets.includes(position)
+      ) {
         commitTurn({
           type: 'meleeAttack',
           actorPosition: pendingActor,
           targetPosition: position,
         });
+        return;
       }
+
+      cancelStormPick();
     },
-    [effectivePhase, pendingActor, pendingAction, state, commitTurn],
+    [
+      effectivePhase,
+      pendingActor,
+      pendingAction,
+      state,
+      commitTurn,
+      availableActionsFor,
+      cancelStormPick,
+    ],
   );
 
   const cancelSelection = useCallback(() => {
@@ -615,6 +676,7 @@ export function useBattle(
         if (side === 'cpu' && pendingActor) {
           const actor = getUnitAt(state.player, pendingActor);
           if (!actor) return false;
+          const actorActions = availableActionsFor(pendingActor);
           const bowTargets = getBowTargets(state.player, state.cpu, pendingActor);
           const meleeTargets = getMeleeTargets(state.cpu);
           if (pendingAction === 'bowAttack') {
@@ -626,28 +688,44 @@ export function useBattle(
           if (pendingAction === 'meleeAttack') {
             return meleeTargets.includes(position);
           }
-          if (actor.attribute === 'bow') {
-            if (
-              pendingAction === 'meleeAttack' ||
-              actor.bowArrowsRemaining <= 0
-            ) {
+          if (pendingAction == null) {
+            if (actor.attribute === 'bow') {
+              if (actor.bowArrowsRemaining <= 0) {
+                return (
+                  actorActions.includes('meleeAttack') &&
+                  meleeTargets.includes(position)
+                );
+              }
+              return bowTargets.includes(position);
+            }
+            if (actor.attribute === 'dual') {
               return meleeTargets.includes(position);
             }
-            return bowTargets.includes(position);
+            if (actorActions.includes('meleeAttack')) {
+              return meleeTargets.includes(position);
+            }
           }
-          if (actor.attribute === 'dual') {
-            return meleeTargets.includes(position);
-          }
-          return meleeTargets.includes(position);
+          return false;
         }
-        return (
-          pendingAction == null &&
-          !!pendingActor &&
-          (getShieldTargetsForActor(state.player, pendingActor).includes(
-            position,
-          ) ||
-            getHealTargets(state.player, pendingActor).includes(position))
-        );
+        if (side === 'player' && pendingActor) {
+          const actorActions = availableActionsFor(pendingActor);
+          if (
+            pendingAction == null &&
+            actorActions.includes('storm') &&
+            position === pendingActor
+          ) {
+            return true;
+          }
+          return (
+            pendingAction == null &&
+            ((actorActions.includes('grantShield') &&
+              getShieldTargetsForActor(state.player, pendingActor).includes(
+                position,
+              )) ||
+              getHealTargets(state.player, pendingActor).includes(position))
+          );
+        }
+        return false;
       }
       if (effectivePhase === 'pickShield') {
         return (
@@ -685,7 +763,14 @@ export function useBattle(
       }
       return false;
     },
-    [effectivePhase, state, pendingPromoteFrom, pendingActor, pendingAction],
+    [
+      effectivePhase,
+      state,
+      pendingPromoteFrom,
+      pendingActor,
+      pendingAction,
+      availableActionsFor,
+    ],
   );
 
   const handleEnd = useCallback(() => {
@@ -734,7 +819,22 @@ export function useBattle(
         ? getUnitAt(state.player, pendingActor)
         : null;
       if (actor?.attribute === 'heal') return '攻撃先か回復先を選択';
+      if (pendingActor) {
+        const actorActions = availableActionsFor(pendingActor);
+        if (
+          actorActions.includes('storm') &&
+          actorActions.includes('meleeAttack')
+        ) {
+          return '嵐は自分再タップ、近接は敵前衛、嵐以外のどこでも解除';
+        }
+        if (actorActions.includes('storm') && actorActions.length === 1) {
+          return 'もう一度自分をタップで嵐、それ以外をタップで解除';
+        }
+      }
       return '攻撃先か盾先を選択';
+    }
+    if (effectivePhase === 'pickTarget' && pendingAction === 'storm') {
+      return 'もう一度自分をタップで嵐、それ以外をタップで解除';
     }
     if (effectivePhase === 'pickTarget') return '攻撃対象を選択';
     if (effectivePhase === 'pickShield') return '盾対象を選択';
@@ -744,7 +844,7 @@ export function useBattle(
     }
     if (effectivePhase === 'promoteSlot') return '移動先の前衛スロットを選択';
     return 'カードを選択';
-  }, [effectivePhase, playback, pendingAction]);
+  }, [effectivePhase, playback, pendingAction, pendingActor, state, availableActionsFor]);
 
   const turnLabel = effectivePhase === 'opening' ? null : `TURN ${state.turn + 1}`;
 
@@ -769,6 +869,8 @@ export function useBattle(
     getUnitAt,
     availableActionsFor,
     cancelSelection,
+    cancelStormPick,
+    isStormPickPending,
     isActionablePosition,
     isValidTargetPosition,
     handlePlayerCardClick,

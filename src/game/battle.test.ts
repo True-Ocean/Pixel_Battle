@@ -1044,6 +1044,78 @@ describe('battle', () => {
     expect(state.cpu[0].frozenUntilTurn).toBeNull();
   });
 
+  it('氷に近接して倒しても攻撃側は凍結される', () => {
+    const playerDeck = [
+      stubCard('剣', 'attack', 90),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('氷', 'ice', 80),
+      stubCard('C2', 'attack', 70),
+      stubCard('C3', 'attack', 60),
+      stubCard('C4', 'defense', 50),
+      stubCard('C5', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu[0].currentBp).toBe(0);
+    const attacker = state.player[0]!;
+    expect(attacker.frozenUntilTurn).toBe(2);
+    expect(isFrozen(attacker, getSelectionTurn(state))).toBe(true);
+  });
+
+  it('盾があると氷への近接で攻撃側への凍結も防がれる', () => {
+    const playerDeck = [
+      stubCard('剣', 'attack', 90),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('氷', 'ice', 80),
+      stubCard('C2', 'attack', 70),
+      stubCard('C3', 'attack', 60),
+      stubCard('C4', 'defense', 50),
+      stubCard('C5', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+    state.player[0].hasShield = true;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.player[0].hasShield).toBe(false);
+    expect(state.player[0].frozenUntilTurn).toBeNull();
+    expect(state.cpu[0].currentBp).toBe(0);
+  });
+
   it('再凍結でタイマーがリセットされる', () => {
     const playerDeck = [
       stubCard('氷', 'ice', 80),
@@ -1082,6 +1154,170 @@ describe('battle', () => {
     }).state;
     expect(state.cpu[0].frozenUntilTurn).toBe(3);
     expect(isFrozen(state.cpu[0]!, getSelectionTurn(state))).toBe(true);
+  });
+
+  it('後衛の嵐は近接攻撃できない', () => {
+    const playerDeck = [
+      stubCard('P1', 'attack', 50),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('嵐', 'storm', 80),
+      stubCard('P5', 'attack', 50),
+    ];
+    const state = createBattleState(playerDeck, cards('C'));
+    const storm = state.player.find((u) => u.attribute === 'storm')!;
+
+    expect(storm.position).toBe('backCenter');
+    expect(
+      getActionTypesForUnit(
+        state.player,
+        state.cpu,
+        'backCenter',
+        getSelectionTurn(state),
+      ),
+    ).toEqual(['storm']);
+    expect(
+      getActionTypesForUnit(
+        state.player,
+        state.cpu,
+        'backCenter',
+        getSelectionTurn(state),
+      ),
+    ).not.toContain('meleeAttack');
+  });
+
+  it('嵐はcurrentBpの70%を最大2体の敵に与える', () => {
+    const playerDeck = [
+      stubCard('P1', 'attack', 50),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('嵐', 'storm', 80),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+    state.cpu[1].currentBp = 100;
+
+    state = resolveTurn(
+      state,
+      {
+        player: {
+          type: 'storm',
+          actorPosition: 'backCenter',
+          targetPosition: 'backCenter',
+        },
+        cpu: {
+          type: 'grantShield',
+          actorPosition: 'backCenter',
+          targetPosition: 'backRight',
+        },
+      },
+      { random: () => 0 },
+    ).state;
+
+    const storm = state.player.find((u) => u.attribute === 'storm')!;
+    expect(storm.stormUsesRemaining).toBe(1);
+    expect(state.cpu[0].currentBp).toBe(44);
+    expect(state.cpu[1].currentBp).toBe(44);
+  });
+
+  it('嵐は盾でダメージを防げる', () => {
+    const playerDeck = [
+      stubCard('P1', 'attack', 50),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('嵐', 'storm', 80),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+    state.cpu[0].hasShield = true;
+    state.cpu[1].currentBp = 100;
+
+    state = resolveTurn(
+      state,
+      {
+        player: {
+          type: 'storm',
+          actorPosition: 'backCenter',
+          targetPosition: 'backCenter',
+        },
+        cpu: {
+          type: 'grantShield',
+          actorPosition: 'backCenter',
+          targetPosition: 'backRight',
+        },
+      },
+      { random: () => 0 },
+    ).state;
+
+    expect(state.cpu[0].hasShield).toBe(false);
+    expect(state.cpu[0].currentBp).toBe(100);
+    expect(state.cpu[1].currentBp).toBe(44);
+  });
+
+  it('嵐は1戦闘2回まで', () => {
+    const playerDeck = [
+      stubCard('P1', 'attack', 50),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('嵐', 'storm', 80),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    const cpuPass = {
+      type: 'grantShield' as const,
+      actorPosition: 'backCenter' as const,
+      targetPosition: 'backRight' as const,
+    };
+
+    state = resolveTurn(
+      state,
+      {
+        player: {
+          type: 'storm',
+          actorPosition: 'backCenter',
+          targetPosition: 'backCenter',
+        },
+        cpu: cpuPass,
+      },
+      { random: () => 0 },
+    ).state;
+
+    const storm = state.player.find((u) => u.attribute === 'storm')!;
+    expect(storm.stormUsesRemaining).toBe(1);
+    expect(
+      getActionTypesForUnit(
+        state.player,
+        state.cpu,
+        'backCenter',
+        getSelectionTurn(state),
+      ),
+    ).toContain('storm');
+
+    state = resolveTurn(
+      state,
+      {
+        player: {
+          type: 'storm',
+          actorPosition: 'backCenter',
+          targetPosition: 'backCenter',
+        },
+        cpu: cpuPass,
+      },
+      { random: () => 0 },
+    ).state;
+    expect(state.player.find((u) => u.attribute === 'storm')!.stormUsesRemaining).toBe(
+      0,
+    );
+    expect(
+      getActionTypesForUnit(
+        state.player,
+        state.cpu,
+        'backCenter',
+        getSelectionTurn(state),
+      ),
+    ).not.toContain('storm');
   });
 
   it('弓が前衛に補充されてもBPは半減しない', () => {

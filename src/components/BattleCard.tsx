@@ -32,6 +32,10 @@ export interface BattleCardProps {
   healUsesRemaining?: number;
   /** 凍結中（行動不能） */
   isFrozen?: boolean;
+  /** 嵐の残り使用回数（戦闘中のみ渡す。0 で非表示） */
+  stormUsesRemaining?: number;
+  /** 嵐攻撃の渦巻き演出（対象カード） */
+  stormSwirl?: boolean;
   /** このターンに凍結が付与された演出 */
   freezeJustApplied?: boolean;
   defenseShieldUsed?: boolean;
@@ -80,6 +84,8 @@ export function BattleCard({
   healUsesRemaining,
   isFrozen = false,
   freezeJustApplied = false,
+  stormUsesRemaining,
+  stormSwirl = false,
   defenseShieldUsed = false,
   dead = false,
   interactive = false,
@@ -116,6 +122,7 @@ export function BattleCard({
     isFrozen ? 'has-freeze' : '',
     freezeJustApplied ? 'freeze-just-applied' : '',
     poisonJustApplied ? 'poison-just-applied' : '',
+    stormSwirl ? 'storm-swirl-active' : '',
     healSparkle ? 'heal-sparkle' : '',
     interactive ? 'interactive' : '',
     selected ? 'selected' : '',
@@ -138,6 +145,10 @@ export function BattleCard({
     attribute === 'heal' &&
     healUsesRemaining !== undefined &&
     healUsesRemaining > 0;
+  const showStormUses =
+    attribute === 'storm' &&
+    stormUsesRemaining !== undefined &&
+    stormUsesRemaining > 0;
   const shieldLabel = hasShield ? '（盾あり）' : '';
   const poisonLabel =
     poisonStackCount > 0
@@ -172,7 +183,8 @@ export function BattleCard({
         poisonStackCount > 0 ||
         showBowArrows ||
         showHealUses ||
-        isFrozen) && (
+        isFrozen ||
+        showStormUses) && (
         <div className="battle-card-buffs" aria-hidden>
           {hasShield && (
             <span className="battle-card-buff-icon battle-card-buff-shield">🛡</span>
@@ -215,6 +227,14 @@ export function BattleCard({
               🧪{healUsesRemaining > 1 ? healUsesRemaining : ''}
             </span>
           )}
+          {showStormUses && (
+            <span
+              className="battle-card-buff-icon battle-card-buff-storm"
+              title={`嵐${stormUsesRemaining}回`}
+            >
+              🌪{stormUsesRemaining > 1 ? stormUsesRemaining : ''}
+            </span>
+          )}
           {isFrozen && (
             <span
               className="battle-card-buff-icon battle-card-buff-freeze"
@@ -252,9 +272,20 @@ export function BattleCard({
         </span>
       )}
       <span className="battle-card-name">{name}</span>
+      {poisonStackCount > 0 && (
+        <div className="battle-card-poison-overlay" aria-hidden>
+          <div className="battle-card-poison-mist" />
+        </div>
+      )}
       {isFrozen && (
         <div className="battle-card-freeze-overlay" aria-hidden>
           <div className="battle-card-freeze-crystals" />
+        </div>
+      )}
+      {stormSwirl && (
+        <div className="battle-card-storm-overlay" aria-hidden>
+          <div className="battle-card-storm-vortex" />
+          <div className="battle-card-storm-vortex battle-card-storm-vortex-inner" />
         </div>
       )}
     </>

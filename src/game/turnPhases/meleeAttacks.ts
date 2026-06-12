@@ -6,6 +6,7 @@ import type {
   BoardPosition,
 } from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
+import { getActionTypesForUnit } from '../actions/getActionTypesForUnit';
 import { applyFreeze } from '../iceCombat';
 import { grantPoisonStack } from '../poisonCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
@@ -63,6 +64,7 @@ export function collectMeleeBattles(
   choices: { player: BattleActionChoice; cpu: BattleActionChoice },
   player: BattleUnit[],
   cpu: BattleUnit[],
+  selectionTurn: number,
 ): Map<string, MeleeBattleResolution> {
   const pendingAttacks = [
     { side: 'player' as const, action: choices.player },
@@ -76,6 +78,15 @@ export function collectMeleeBattles(
       const attacker = getUnitAt(own, action.actorPosition);
       const target = getUnitAt(enemy, action.targetPosition);
       if (!attacker || !target || !isAlive(attacker) || !isAlive(target)) {
+        return null;
+      }
+      const actions = getActionTypesForUnit(
+        own,
+        enemy,
+        action.actorPosition,
+        selectionTurn,
+      );
+      if (!actions.includes('meleeAttack')) {
         return null;
       }
       return {
@@ -172,6 +183,9 @@ export function applyMeleeBattle(
 
   const freezeOnTarget =
     attack.attacker.attribute === 'ice' && !targetShieldConsumed;
+  /** 氷に近接した側（攻撃側）も凍結。攻撃側の盾で防止可 */
+  const freezeOnAttacker =
+    attack.target.attribute === 'ice' && !attackerShieldConsumed;
   const poisonOnTarget =
     attack.attacker.attribute === 'poison' && !targetShieldConsumed;
   const poisonOnAttacker =
@@ -185,6 +199,13 @@ export function applyMeleeBattle(
     next = appendLog(
       next,
       `${attack.target.name} は凍結された（${attack.attacker.name}）`,
+    );
+  }
+  if (freezeOnAttacker) {
+    applyFreeze(attack.attacker, next.turn);
+    next = appendLog(
+      next,
+      `${attack.attacker.name} は凍結された（${attack.target.name}の氷）`,
     );
   }
   if (poisonOnTarget) {
@@ -205,6 +226,7 @@ export function applyMeleeBattle(
   const poisonGranted = poisonOnTarget;
   const poisonCounterGranted = poisonOnAttacker;
   const iceGranted = freezeOnTarget;
+  const iceCounterGranted = freezeOnAttacker;
   const playback: AttackPlayback = {
     kind: 'melee',
     fromSide: attack.side,
@@ -222,6 +244,7 @@ export function applyMeleeBattle(
     poisonGranted,
     poisonCounterGranted,
     iceGranted,
+    iceCounterGranted,
     stateAfter: {
       ...next,
       player: player.map((u) => ({ ...u, poisonStacks: u.poisonStacks.map((s) => ({ ...s })) })),
@@ -258,7 +281,7 @@ export function resolveMeleeAttacks(
   player: BattleUnit[],
   cpu: BattleUnit[],
 ): MeleePhaseResult {
-  const battles = collectMeleeBattles(choices, player, cpu);
+  const battles = collectMeleeBattles(choices, player, cpu, state.turn + 1);
   const attacks: AttackPlayback[] = [];
 
   const orderedBattles = [...battles.values()].sort((a, b) =>

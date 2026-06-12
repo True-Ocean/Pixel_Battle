@@ -10,10 +10,12 @@ import {
   collectMeleeBattles,
   type MeleeBattleResolution,
 } from './meleeAttacks';
+import { applyStormAttack, collectStormAttacks } from './stormAttacks';
 
 type AttackJob =
   | { kind: 'bow'; attacker: BattleUnit; run: () => AttackPlayback | null }
   | { kind: 'dual'; attacker: BattleUnit; run: () => AttackPlayback | null }
+  | { kind: 'storm'; attacker: BattleUnit; run: () => AttackPlayback | null }
   | { kind: 'melee'; attacker: BattleUnit; run: () => AttackPlayback | null };
 
 export interface CombatAttacksResult {
@@ -26,6 +28,7 @@ export function resolveCombatAttacks(
   choices: { player: BattleActionChoice; cpu: BattleActionChoice },
   player: BattleUnit[],
   cpu: BattleUnit[],
+  random: () => number = Math.random,
 ): CombatAttacksResult {
   let next: BattleState = {
     ...state,
@@ -37,7 +40,10 @@ export function resolveCombatAttacks(
 
   const bowInputs = collectBowAttacks(choices, player, cpu);
   const dualInputs = collectDualAttacks(choices, player, cpu);
-  const meleeBattles = [...collectMeleeBattles(choices, player, cpu).values()];
+  const stormInputs = collectStormAttacks(choices, player, cpu);
+  const meleeBattles = [
+    ...collectMeleeBattles(choices, player, cpu, state.turn + 1).values(),
+  ];
 
   const dualPairKeys = new Set(
     dualInputs.map((input) =>
@@ -76,6 +82,16 @@ export function resolveCombatAttacks(
           choices,
           resolvedMainPairs,
         );
+        next = result.state;
+        return result.playback;
+      },
+    })),
+    ...stormInputs.map((input) => ({
+      kind: 'storm' as const,
+      attacker: input.attacker,
+      run: () => {
+        if (!isAlive(input.attacker)) return null;
+        const result = applyStormAttack(next, player, cpu, input, random);
         next = result.state;
         return result.playback;
       },

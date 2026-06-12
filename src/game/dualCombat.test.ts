@@ -32,7 +32,7 @@ describe('dualCombat', () => {
         stealthActive: false,
         healUsesRemaining: 0,
         bowArrowsRemaining: 0,
-        stormUsed: false,
+        stormUsesRemaining: 0,
         ninjaFirstStrikeUsed: false,
         rarity: 'N' as const,
         stars: 0 as const,

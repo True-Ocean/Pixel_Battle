@@ -34,6 +34,11 @@ describe('user level base BP', () => {
     expect(getUserBaseBp(50, 'heal')).toBe(300);
   });
 
+  it('嵐は攻撃の50%', () => {
+    expect(getUserBaseBp(10, 'storm')).toBe(50);
+    expect(getUserBaseBp(40, 'storm')).toBe(200);
+  });
+
   it('カードBPレンジは±15%', () => {
     const range = getCardBaseBpRange(10, 'attack');
     expect(range.min).toBe(85);

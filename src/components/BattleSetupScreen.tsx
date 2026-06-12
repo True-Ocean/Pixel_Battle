@@ -16,6 +16,7 @@ import {
   FRONT_POSITIONS,
   getDefeated,
   getHealTargets,
+  getMeleeTargets,
   getSelectionTurn,
   getUnitAt,
   isFrozen,
@@ -162,6 +163,23 @@ function getPoisonDotSlotFx(
   };
 }
 
+function resolveStormHitDisplay(
+  battle: ReturnType<typeof useBattle>,
+  side: 'cpu' | 'player',
+  position: BoardPosition,
+): boolean {
+  const playback = battle.playback;
+  if (playback?.phase !== 'attack') return false;
+  const attack = playback.attacks[playback.attackIndex];
+  if (attack?.kind !== 'storm') return false;
+  if (attack.toSide === side && attack.toPosition === position) return true;
+  return (
+    attack.secondaryToPosition != null &&
+    attack.toSide === side &&
+    attack.secondaryToPosition === position
+  );
+}
+
 function resolveFrozenDisplay(
   unit: BattleUnit,
   battle: ReturnType<typeof useBattle>,
@@ -171,11 +189,15 @@ function resolveFrozenDisplay(
   const playback = battle.playback;
   if (playback?.phase === 'attack' && playback.attackSubPhase === 'bp') {
     const attack = playback.attacks[playback.attackIndex];
-    if (
+    const isIceTarget =
       attack?.iceGranted &&
       attack.toSide === side &&
-      attack.toPosition === position
-    ) {
+      attack.toPosition === position;
+    const isIceCounterTarget =
+      attack?.iceCounterGranted &&
+      attack.fromSide === side &&
+      attack.fromPosition === position;
+    if (isIceTarget || isIceCounterTarget) {
       const field =
         side === 'player' ? attack.stateAfter.player : attack.stateAfter.cpu;
       const after = getUnitAt(field, position);
@@ -272,7 +294,7 @@ function getAttackSlotFx(
     attack.fromSide === side && attack.fromPosition === position;
   const isTarget = attack.toSide === side && attack.toPosition === position;
   const isSecondaryTarget =
-    attack.kind === 'dual' &&
+    (attack.kind === 'dual' || attack.kind === 'storm') &&
     attack.secondaryToPosition != null &&
     attack.toSide === side &&
     attack.secondaryToPosition === position;
@@ -429,14 +451,21 @@ function BattleUnitSlot({
       getHealTargets(battle.state.player, battle.pendingActor).includes(
         position,
       ));
+  const isStormPick =
+    battle.effectivePhase === 'pickTarget' &&
+    side === 'player' &&
+    battle.pendingActor === position &&
+    valid;
   const targetKind =
     valid && side === 'cpu'
       ? 'is-attack-target'
-      : valid && side === 'player' && isHealPick
-        ? 'is-heal-target'
-        : valid && side === 'player'
-          ? 'is-shield-target'
-          : '';
+      : valid && isStormPick
+        ? 'is-storm-target'
+        : valid && side === 'player' && isHealPick
+          ? 'is-heal-target'
+          : valid && side === 'player'
+            ? 'is-shield-target'
+            : '';
   const actionable =
     side === 'player' &&
     battle.effectivePhase === 'pickMain' &&
@@ -449,7 +478,7 @@ function BattleUnitSlot({
     !!activeAttack &&
     ((activeAttack.fromSide === side && activeAttack.fromPosition === position) ||
       (activeAttack.toSide === side && activeAttack.toPosition === position) ||
-      (activeAttack.kind === 'dual' &&
+      ((activeAttack.kind === 'dual' || activeAttack.kind === 'storm') &&
         activeAttack.secondaryToPosition != null &&
         activeAttack.toSide === side &&
         activeAttack.secondaryToPosition === position));
@@ -462,6 +491,9 @@ function BattleUnitSlot({
   const attackFx = getAttackSlotFx(battle.playback, side, position);
   const healFx = getHealSlotFx(battle.playback, side, position);
   const poisonFx = getPoisonDotSlotFx(battle.turnStartPlayback, side, position);
+  const stormHitDisplay = unit
+    ? resolveStormHitDisplay(battle, side, position)
+    : false;
   const frozenDisplay = unit
     ? resolveFrozenDisplay(unit, battle, side, position)
     : { frozen: false, justApplied: false };
@@ -511,6 +543,10 @@ function BattleUnitSlot({
           }
           isFrozen={frozenDisplay.frozen}
           freezeJustApplied={frozenDisplay.justApplied}
+          stormUsesRemaining={
+            unit.attribute === 'storm' ? unit.stormUsesRemaining : undefined
+          }
+          stormSwirl={stormHitDisplay}
           poisonStackCount={poisonDisplay.count}
           poisonDamagePerTurn={poisonDisplay.damagePerTurn}
           poisonJustApplied={poisonDisplay.justApplied}
@@ -837,7 +873,7 @@ function BattleBoard({
           },
         ]
       : []),
-    ...(activeAttack?.kind === 'dual' &&
+    ...((activeAttack?.kind === 'dual' || activeAttack?.kind === 'storm') &&
     activeAttack.secondaryToPosition != null
       ? [
           {
@@ -902,7 +938,7 @@ function BattleBoard({
       });
     }
     if (
-      activeAttack.kind === 'dual' &&
+      (activeAttack.kind === 'dual' || activeAttack.kind === 'storm') &&
       activeAttack.secondaryToPosition != null &&
       (activeAttack.secondaryDamage ?? 0) > 0
     ) {
@@ -923,6 +959,46 @@ function BattleBoard({
       },
     [],
   );
+
+  useEffect(() => {
+    const stormActor = battle.pendingActor;
+    if (
+      battle.effectivePhase !== 'pickTarget' ||
+      stormActor == null ||
+      !battle.isStormPickPending()
+    ) {
+      return;
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+
+      const stormSlot = slotRefs.current[`player:${stormActor}`];
+      if (stormSlot?.contains(target)) return;
+
+      if (battle.availableActionsFor(stormActor).includes('meleeAttack')) {
+        for (const position of getMeleeTargets(battle.state.cpu)) {
+          if (slotRefs.current[`cpu:${position}`]?.contains(target)) return;
+        }
+      }
+
+      battle.cancelStormPick();
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => document.removeEventListener('pointerdown', onPointerDown, true);
+  }, [
+    battle.effectivePhase,
+    battle.pendingActor,
+    battle.pendingAction,
+    battle.state.cpu,
+    battle.cancelStormPick,
+    battle.isStormPickPending,
+    battle.availableActionsFor,
+  ]);
 
   return (
     <div className="formation-battle">

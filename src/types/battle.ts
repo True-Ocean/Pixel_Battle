@@ -49,8 +49,8 @@ export interface BattleUnit {
   healUsesRemaining: number;
   /** 弓カードの残り矢数（1戦闘あたり上限あり） */
   bowArrowsRemaining: number;
-  /** 嵐をこの戦闘で使用済みか（Phase 6） */
-  stormUsed: boolean;
+  /** 嵐カードの残り使用回数（1戦闘あたり上限あり） */
+  stormUsesRemaining: number;
   /** 忍初回無反撃を消費したか（Phase 8） */
   ninjaFirstStrikeUsed: boolean;
   /** tie-break 用 */

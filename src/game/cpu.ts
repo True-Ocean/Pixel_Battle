@@ -91,6 +91,13 @@ export function pickCpuAction(
         });
       }
     }
+    if (actions.includes('storm')) {
+      candidates.push({
+        type: 'storm',
+        actorPosition: position,
+        targetPosition: position,
+      });
+    }
   }
 
   const picked = pickRandom(candidates, random);

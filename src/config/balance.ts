@@ -96,6 +96,15 @@ export const HEAL_BP_RATIO = 0.6;
 /** 毒スタック1つあたりの DoT（付与時 currentBp 比）。ATTRIBUTE_SPEC §4.6 */
 export const POISON_DOT_RATIO = 0.3;
 
+/** 嵐属性の基本BP係数（弓より低め・魔法型）。ATTRIBUTE_SPEC §4.9 */
+export const STORM_BP_RATIO = 0.5;
+
+/** 嵐カード1枚あたりの嵐回数（1戦闘）。ATTRIBUTE_SPEC §4.9 */
+export const STORM_USES_PER_BATTLE = 2;
+
+/** 嵐の与ダメ（currentBp × 比率・各ヒット） */
+export const STORM_DAMAGE_RATIO = 0.7;
+
 /** 初回セットアップ・ユーザープロフィール */
 export const USER_INITIAL_LEVEL = 1;
 export const MAX_USER_LEVEL = 50;
@@ -137,6 +146,7 @@ export function getUserBaseBp(
   if (attribute === 'bow') return Math.round(attackBase * BOW_BP_RATIO);
   if (attribute === 'poison') return Math.round(attackBase * POISON_BP_RATIO);
   if (attribute === 'heal') return Math.round(attackBase * HEAL_BP_RATIO);
+  if (attribute === 'storm') return Math.round(attackBase * STORM_BP_RATIO);
   return attackBase;
 }
 
