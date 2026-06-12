@@ -75,6 +75,50 @@ describe('battle', () => {
       },
     }).state;
 
+    expect(state.player[0].currentBp).toBe(47);
+    expect(state.cpu[0].currentBp).toBe(0);
+  });
+
+  it('一方的近接では反撃ダメージが50%になる', () => {
+    let state = createBattleState(
+      [stubCard('P90', 'attack', 90), ...cards('P').slice(1)],
+      [stubCard('C86', 'attack', 86), ...cards('C').slice(1)],
+    );
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.player[0].currentBp).toBe(47);
+    expect(state.cpu[0].currentBp).toBe(0);
+  });
+
+  it('相打ち近接では反撃ダメージが100%になる', () => {
+    let state = createBattleState(
+      [stubCard('P90', 'attack', 90), ...cards('P').slice(1)],
+      [stubCard('C86', 'attack', 86), ...cards('C').slice(1)],
+    );
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+    }).state;
+
     expect(state.player[0].currentBp).toBe(4);
     expect(state.cpu[0].currentBp).toBe(0);
   });
@@ -105,7 +149,7 @@ describe('battle', () => {
       },
     }).state;
 
-    expect(state.player[0].currentBp).toBe(4);
+    expect(state.player[0].currentBp).toBe(47);
     expect(state.cpu[0].currentBp).toBe(86);
     expect(state.cpu[0].hasShield).toBe(false);
   });
@@ -138,7 +182,7 @@ describe('battle', () => {
 
     expect(state.player[0].currentBp).toBe(0);
     expect(state.cpu[0].currentBp).toBe(0);
-    expect(state.cpu[1].currentBp).toBe(30);
+    expect(state.cpu[1].currentBp).toBe(45);
   });
 
   it('攻撃側BPが高い順により生存カードが変わる', () => {
@@ -169,7 +213,7 @@ describe('battle', () => {
 
     expect(state.player[0].currentBp).toBe(0);
     expect(state.cpu[0].currentBp).toBe(0);
-    expect(state.cpu[1].currentBp).toBe(85);
+    expect(state.cpu[1].currentBp).toBe(64);
   });
 
   it('防御カードは開始時から盾を持つ', () => {

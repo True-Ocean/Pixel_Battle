@@ -6,6 +6,10 @@ import type {
   BattleUnit,
   BoardPosition,
 } from '../types/battle';
+import { createExtendedBattleUnitState } from './battleUnitState';
+import { getActionTypesForUnit } from './actions/getActionTypesForUnit';
+
+export { getActionTypesForUnit };
 
 export const BOARD_POSITIONS = [
   'frontLeft',
@@ -37,8 +41,7 @@ export function cardToBattleUnit(
     maxBp: card.bp,
     currentBp: card.bp,
     position,
-    defenseShieldUsed: false,
-    hasShield: card.attribute === 'defense',
+    ...createExtendedBattleUnitState(card),
   };
 }
 
@@ -143,24 +146,6 @@ export function canUseShieldAction(
 
 export function getMeleeTargets(enemyField: BattleUnit[]): BoardPosition[] {
   return FRONT_POSITIONS.filter((position) => !!getUnitAt(enemyField, position));
-}
-
-export function getActionTypesForUnit(
-  ownField: BattleUnit[],
-  enemyField: BattleUnit[],
-  position: BoardPosition,
-): ('meleeAttack' | 'grantShield')[] {
-  const unit = getUnitAt(ownField, position);
-  if (!unit) return [];
-
-  const actions: ('meleeAttack' | 'grantShield')[] = [];
-  if (isFrontPosition(position) && getMeleeTargets(enemyField).length > 0) {
-    actions.push('meleeAttack');
-  }
-  if (unit.attribute === 'defense' && canUseShieldAction(ownField, position)) {
-    actions.push('grantShield');
-  }
-  return actions;
 }
 
 export function getPromotableBackPositions(

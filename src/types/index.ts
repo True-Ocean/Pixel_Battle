@@ -1,5 +1,15 @@
-/** Lv0 属性 */
-export type Attribute = 'attack' | 'defense';
+/** 全10属性（docs/ATTRIBUTE_SPEC.md §3） */
+export type Attribute =
+  | 'attack'
+  | 'defense'
+  | 'power'
+  | 'bow'
+  | 'dual'
+  | 'poison'
+  | 'heal'
+  | 'ice'
+  | 'storm'
+  | 'ninja';
 
 /** カードレア度（v1 抽選: N / R / SR、将来: UR / L） */
 export type CardRarity = 'N' | 'R' | 'SR' | 'UR' | 'L';

@@ -1,4 +1,4 @@
-import type { Attribute } from './index';
+import type { Attribute, CardRarity, CardStars } from './index';
 
 export type BattleSide = 'player' | 'cpu';
 export type BoardPosition =
@@ -9,7 +9,20 @@ export type BoardPosition =
   | 'backRight';
 
 export type UnitPosition = BoardPosition | 'defeated';
-export type BattleActionType = 'meleeAttack' | 'grantShield';
+export type BattleActionType =
+  | 'meleeAttack'
+  | 'grantShield'
+  | 'bowAttack'
+  | 'dualAttack'
+  | 'heal'
+  | 'storm';
+
+/** 毒 DoT スタック（Phase 4 で付与処理） */
+export interface PoisonStack {
+  sourceCardId: string;
+  /** 付与時 maxBp × 20% */
+  damagePerTurn: number;
+}
 
 export interface BattleUnit {
   cardId: string;
@@ -25,6 +38,20 @@ export interface BattleUnit {
   defenseShieldUsed: boolean;
   /** 未使用の盾（1回だけダメージ0） */
   hasShield: boolean;
+  poisonStacks: PoisonStack[];
+  /** このターン番号まで行動不能（Phase 7） */
+  frozenUntilTurn: number | null;
+  /** 忍ステルス（Phase 8） */
+  stealthActive: boolean;
+  /** 癒カードの残使用回数（Phase 5） */
+  healUsesRemaining: number;
+  /** 嵐をこの戦闘で使用済みか（Phase 6） */
+  stormUsed: boolean;
+  /** 忍初回無反撃を消費したか（Phase 8） */
+  ninjaFirstStrikeUsed: boolean;
+  /** tie-break 用 */
+  rarity: CardRarity;
+  stars: CardStars;
 }
 
 export interface BattleEvent {

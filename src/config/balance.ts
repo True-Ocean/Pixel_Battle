@@ -114,8 +114,8 @@ export function getUserBaseBp(
 ): number {
   const level = clampUserLevel(userLevel);
   const attackBase = level * USER_BP_PER_LEVEL;
-  if (attribute === 'attack') return attackBase;
-  return Math.round(attackBase * DEFENSE_BP_RATIO);
+  if (attribute === 'defense') return Math.round(attackBase * DEFENSE_BP_RATIO);
+  return attackBase;
 }
 
 /** カード個別BP（レア適用前）のレンジ */
@@ -159,8 +159,16 @@ export function applyRarityToBp(
 export const ATTRIBUTE_POWER = {
   attack: { bpWeight: 1, flatBonus: 0 },
   defense: { bpWeight: 1, flatBonus: 20 },
+  power: { bpWeight: 1, flatBonus: 0 },
+  bow: { bpWeight: 1, flatBonus: 0 },
+  dual: { bpWeight: 1, flatBonus: 0 },
+  poison: { bpWeight: 1, flatBonus: 0 },
+  heal: { bpWeight: 1, flatBonus: 0 },
+  ice: { bpWeight: 1, flatBonus: 0 },
+  storm: { bpWeight: 1, flatBonus: 0 },
+  ninja: { bpWeight: 1, flatBonus: 0 },
 } as const satisfies Record<
-  'attack' | 'defense',
+  Attribute,
   { bpWeight: number; flatBonus: number }
 >;
 

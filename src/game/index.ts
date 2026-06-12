@@ -20,6 +20,8 @@ export {
   getPendingPromotionFronts,
   getEmptyFrontPositions,
 } from './battleState';
+export { compareActionOrder, ATTRIBUTE_PRIORITY } from '../config/attributePriority';
+export type { ResolveTurnResult, AttackPlayback, ShieldGrants, ShieldPlayback } from './turnResult';
 export { resolveTurn, promoteUnit } from './resolveTurn';
 export { pickCpuMainIndex, pickCpuAction, autoPromoteCpu } from './cpu';
 export {
