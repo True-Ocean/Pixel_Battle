@@ -78,6 +78,9 @@ export const CARD_BP_SPREAD = 0.15;
 /** 防御カードの基本BP係数（攻撃比） */
 export const DEFENSE_BP_RATIO = 0.85;
 
+/** 力属性の基本BP係数（攻撃比）。ATTRIBUTE_SPEC §4.3 */
+export const POWER_BP_RATIO = 1.5;
+
 /** 初回セットアップ・ユーザープロフィール */
 export const USER_INITIAL_LEVEL = 1;
 export const MAX_USER_LEVEL = 50;
@@ -86,7 +89,7 @@ export const MAX_USER_LEVEL = 50;
  * プロトタイプ検証用: true のときユーザーを常に最大レベルで扱う。
  * 本番・通常プレイ前に false に戻すこと。
  */
-export const DEV_FORCE_MAX_USER_LEVEL = true;
+export const DEV_FORCE_MAX_USER_LEVEL = false;
 
 /** @deprecated レベル連動BP以前の固定レンジ（参照用） */
 export const BP_RANGE: Record<'attack' | 'defense', { min: number; max: number }> = {
@@ -115,6 +118,7 @@ export function getUserBaseBp(
   const level = clampUserLevel(userLevel);
   const attackBase = level * USER_BP_PER_LEVEL;
   if (attribute === 'defense') return Math.round(attackBase * DEFENSE_BP_RATIO);
+  if (attribute === 'power') return Math.round(attackBase * POWER_BP_RATIO);
   return attackBase;
 }
 

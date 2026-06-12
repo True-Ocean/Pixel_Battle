@@ -6,6 +6,7 @@ import {
   applyRarityToBp,
   computeCardBaseBp,
 } from '../config/balance';
+import { getUnlockedAttributes } from '../config/attributeUnlock';
 import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import { gridSize } from '../canvas';
 import type { Attribute, Card, PixelGrid } from '../types';
@@ -64,24 +65,47 @@ function computeBpBlend(
   return ratios.density * 0.55 + hashBp * 0.45;
 }
 
+function attributeScore(
+  attribute: Attribute,
+  seed: string,
+  ratios: ColorRatios,
+): number {
+  switch (attribute) {
+    case 'attack': {
+      const colorAttack = ratios.r + ratios.b * BLACK_ATTACK_WEIGHT;
+      const hashAttack = hashToUnit(seed, 'attack');
+      return colorAttack * COLOR_WEIGHT + hashAttack * HASH_WEIGHT;
+    }
+    case 'defense': {
+      const colorDefense = ratios.w + ratios.b * (1 - BLACK_ATTACK_WEIGHT);
+      const hashDefense = hashToUnit(seed, 'defense');
+      return colorDefense * COLOR_WEIGHT + hashDefense * HASH_WEIGHT;
+    }
+    default:
+      return hashToUnit(seed, attribute);
+  }
+}
+
 function deriveAttribute(
   trimmed: string,
   pixels: PixelGrid,
   ratios: ColorRatios,
+  userLevel: number,
 ): Attribute {
   const seed = buildCardSeed(trimmed, pixels);
-  const hashAttack = hashToUnit(seed, 'attack');
-  const hashDefense = hashToUnit(seed, 'defense');
+  const candidates = getUnlockedAttributes(userLevel);
 
-  const colorAttack = ratios.r + ratios.b * BLACK_ATTACK_WEIGHT;
-  const colorDefense = ratios.w + ratios.b * (1 - BLACK_ATTACK_WEIGHT);
-
-  const finalAttack =
-    colorAttack * COLOR_WEIGHT + hashAttack * HASH_WEIGHT;
-  const finalDefense =
-    colorDefense * COLOR_WEIGHT + hashDefense * HASH_WEIGHT;
-
-  return finalAttack >= finalDefense ? 'attack' : 'defense';
+  let best = candidates[0]!;
+  let bestScore = attributeScore(best, seed, ratios);
+  for (let i = 1; i < candidates.length; i++) {
+    const attribute = candidates[i]!;
+    const score = attributeScore(attribute, seed, ratios);
+    if (score > bestScore) {
+      bestScore = score;
+      best = attribute;
+    }
+  }
+  return best;
 }
 
 export function deriveCardStats(
@@ -95,7 +119,7 @@ export function deriveCardStats(
     pixels,
     unlockedPaletteCount,
   );
-  const attribute = deriveAttribute(trimmed, pixels, ratios);
+  const attribute = deriveAttribute(trimmed, pixels, ratios, userLevel);
   const bpBlend = computeBpBlend(trimmed, pixels, ratios);
   const bp = computeCardBaseBp(bpBlend, userLevel, attribute);
 

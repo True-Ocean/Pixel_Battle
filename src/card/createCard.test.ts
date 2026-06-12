@@ -70,12 +70,46 @@ describe('deriveCardStats', () => {
 
   it('防御は攻撃より基本BPが低い', () => {
     const grid = fillGrid('#ffffff');
-    const stats = deriveCardStats('しろ', grid, 10);
+    const stats = deriveCardStats('しろ', grid, 1);
     expect(stats.attribute).toBe('defense');
-    const { min, max } = getCardBaseBpRange(10, 'defense');
+    const { min, max } = getCardBaseBpRange(1, 'defense');
     expect(stats.bp).toBeGreaterThanOrEqual(min);
     expect(stats.bp).toBeLessThanOrEqual(max);
     expect(getUserBaseBp(10, 'defense')).toBe(85);
+  });
+
+  it('Lv5以下では力属性は抽選されない', () => {
+    const grid = fillGrid('#ff0000');
+    for (let i = 0; i < 200; i++) {
+      const { attribute } = deriveCardStats(`lv5-${i}`, grid, 5);
+      expect(attribute).not.toBe('power');
+    }
+  });
+
+  it('Lv6以上では力属性が抽選されうる', () => {
+    const grid = fillGrid('#ff0000');
+    let foundPower = false;
+    for (let i = 0; i < 500; i++) {
+      const { attribute } = deriveCardStats(`lv6-${i}`, grid, 6);
+      if (attribute === 'power') {
+        foundPower = true;
+        break;
+      }
+    }
+    expect(foundPower).toBe(true);
+  });
+
+  it('力属性カードのBPは力レンジ内', () => {
+    const grid = fillGrid('#ff0000');
+    for (let i = 0; i < 500; i++) {
+      const stats = deriveCardStats(`power-bp-${i}`, grid, 10);
+      if (stats.attribute !== 'power') continue;
+      const { min, max } = getCardBaseBpRange(10, 'power');
+      expect(stats.bp).toBeGreaterThanOrEqual(min);
+      expect(stats.bp).toBeLessThanOrEqual(max);
+      return;
+    }
+    expect.fail('力属性のサンプルが見つからない');
   });
 });
 
