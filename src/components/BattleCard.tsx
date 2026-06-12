@@ -18,6 +18,12 @@ export interface BattleCardProps {
   focused?: boolean;
   cpuTurnFocus?: boolean;
   hasShield?: boolean;
+  /** 毒スタック数（0 なら非表示） */
+  poisonStackCount?: number;
+  /** 毎ターンの毒ダメージ合計（ツールチップ用） */
+  poisonDamagePerTurn?: number;
+  /** このターンに毒が付与された演出 */
+  poisonJustApplied?: boolean;
   defenseShieldUsed?: boolean;
   dead?: boolean;
   interactive?: boolean;
@@ -55,6 +61,9 @@ export function BattleCard({
   focused = false,
   cpuTurnFocus = false,
   hasShield = false,
+  poisonStackCount = 0,
+  poisonDamagePerTurn = 0,
+  poisonJustApplied = false,
   defenseShieldUsed = false,
   dead = false,
   interactive = false,
@@ -87,6 +96,8 @@ export function BattleCard({
     focused ? 'focused' : '',
     cpuTurnFocus ? 'cpu-focus' : '',
     hasShield ? 'has-shield' : '',
+    poisonStackCount > 0 ? 'has-poison' : '',
+    poisonJustApplied ? 'poison-just-applied' : '',
     interactive ? 'interactive' : '',
     selected ? 'selected' : '',
     clashAnim === 'player' ? 'clash-card-player' : '',
@@ -100,6 +111,10 @@ export function BattleCard({
     .join(' ');
 
   const shieldLabel = hasShield ? '（盾あり）' : '';
+  const poisonLabel =
+    poisonStackCount > 0
+      ? `（毒×${poisonStackCount}、毎ターン${poisonDamagePerTurn}）`
+      : '';
 
   const front = (
     <>
@@ -118,9 +133,19 @@ export function BattleCard({
           </span>
         )
       )}
-      {hasShield && (
+      {(hasShield || poisonStackCount > 0) && (
         <div className="battle-card-buffs" aria-hidden>
-          <span className="battle-card-buff-icon battle-card-buff-shield">🛡</span>
+          {hasShield && (
+            <span className="battle-card-buff-icon battle-card-buff-shield">🛡</span>
+          )}
+          {poisonStackCount > 0 && (
+            <span
+              className="battle-card-buff-icon battle-card-buff-poison"
+              title={`毒×${poisonStackCount}（毎ターン${poisonDamagePerTurn}）`}
+            >
+              ☠{poisonStackCount > 1 ? poisonStackCount : ''}
+            </span>
+          )}
         </div>
       )}
       {outcomeOverlay && (
@@ -150,7 +175,7 @@ export function BattleCard({
 
   const ariaLabel = faceDown
     ? '裏向きのカード'
-    : `${name} ${attrMeta.ariaName} BP${currentBp}${shieldLabel}`;
+    : `${name} ${attrMeta.ariaName} BP${currentBp}${shieldLabel}${poisonLabel}`;
 
   // 裏向きは CardBack を直接描画（iOS Safari で rotateY フリップが反転表示になるため）
   const content = faceDown ? (

@@ -8,6 +8,7 @@ import {
   getPromotableBackPositions,
 } from './battleState';
 import { promoteUnit, resolveTurn } from './resolveTurn';
+import { startNextTurn } from './startNextTurn';
 import { pickCpuAction } from './cpu';
 
 function stubCard(name: string, attr: Attribute, bp: number): Card {
@@ -505,6 +506,126 @@ describe('battle', () => {
     expect(state.cpu[0].hasShield).toBe(false);
     expect(state.cpu[0].currentBp).toBe(100);
     expect(state.cpu[1].currentBp).toBe(0);
+  });
+
+  it('毒属性は一方的な反撃でも攻撃側に毒を付与する', () => {
+    const playerDeck = [
+      stubCard('毒', 'poison', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+    }).state;
+
+    expect(state.cpu[0].poisonStacks).toHaveLength(1);
+    expect(state.cpu[0].poisonStacks[0]!.damagePerTurn).toBe(24);
+    expect(state.player[0].currentBp).toBe(0);
+    expect(state.cpu[0].currentBp).toBe(40);
+  });
+
+  it('毒属性の近接で主対象にスタックを付与する', () => {
+    const playerDeck = [
+      stubCard('毒', 'poison', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu[0].poisonStacks).toHaveLength(1);
+    expect(state.cpu[0].poisonStacks[0]!.damagePerTurn).toBe(24);
+  });
+
+  it('毒DoTは次ターン開始時に適用される', () => {
+    const playerDeck = [
+      stubCard('毒', 'poison', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+    expect(state.cpu[0].currentBp).toBe(20);
+
+    state = startNextTurn(state).stateAfterDot;
+
+    expect(state.cpu[0].currentBp).toBe(0);
+  });
+
+  it('毒スタックは付与者が撃破されても継続する', () => {
+    const playerDeck = [
+      stubCard('毒', 'poison', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    state.player[0].position = 'defeated';
+    state.player[0].currentBp = 0;
+
+    state = startNextTurn(state).stateAfterDot;
+
+    expect(state.cpu[0].poisonStacks).toHaveLength(1);
+    expect(state.cpu[0].currentBp).toBe(0);
   });
 
   it('弓が前衛に補充されてもBPは半減しない', () => {

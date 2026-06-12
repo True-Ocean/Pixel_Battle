@@ -5,11 +5,10 @@ import type {
   BoardPosition,
   TurnChoices,
 } from '../types/battle';
-import { appendLog, getUnitAt } from './battleState';
+import { getUnitAt } from './battleState';
 import { applyDefeated } from './turnPhases/defeated';
 import { resolveHeals } from './turnPhases/heals';
 import { resolveCombatAttacks } from './turnPhases/combatAttacks';
-import { applyPoisonDoT } from './turnPhases/poisonDoT';
 import { resolveShields } from './turnPhases/shields';
 import type { ResolveTurnResult } from './turnResult';
 
@@ -45,14 +44,12 @@ export function resolveTurn(
     ...state,
     player,
     cpu,
-    turn: state.turn + 1,
     log: [...state.log],
     events: [...state.events],
   };
-  next = appendLog(next, `--- TURN ${next.turn} ---`);
 
-  next = applyPoisonDoT(next);
   next = resolveHeals(next, choices);
+  const stateAfterTurnStart = cloneBattleState(next);
 
   const shieldResult = resolveShields(next, choices, player, cpu);
   next = shieldResult.state;
@@ -62,9 +59,11 @@ export function resolveTurn(
   next = combatResult.state;
 
   next = applyDefeated(next, player, cpu);
+  next = { ...next, turn: state.turn + 1 };
 
   return {
     state: next,
+    stateAfterTurnStart,
     shieldState,
     shieldGrants: shieldResult.shieldGrants,
     attacks: combatResult.attacks,

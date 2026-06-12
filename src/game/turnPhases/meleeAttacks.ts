@@ -6,6 +6,7 @@ import type {
   BoardPosition,
 } from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
+import { grantPoisonStack } from '../poisonCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
 import type { AttackPlayback } from '../turnResult';
 
@@ -120,6 +121,8 @@ export function applyMeleeBattle(
 
   const attackerBpFrom = attack.attacker.currentBp;
   const bpFrom = attack.target.currentBp;
+  const attackerBpAtMelee = attack.attacker.currentBp;
+  const targetBpAtMelee = attack.target.currentBp;
   const attackerShieldConsumed = attack.attacker.hasShield;
   const targetShieldConsumed = attack.target.hasShield;
   const blocked = targetShieldConsumed;
@@ -166,6 +169,29 @@ export function applyMeleeBattle(
   );
   attack.target.currentBp = Math.max(0, attack.target.currentBp - damageToTarget);
 
+  const poisonOnTarget = attack.attacker.attribute === 'poison';
+  const poisonOnAttacker =
+    attack.target.attribute === 'poison' &&
+    !attack.bidirectional &&
+    damageToAttacker > 0;
+
+  if (poisonOnTarget) {
+    grantPoisonStack(attack.target, attack.attacker, attackerBpAtMelee);
+    next = appendLog(
+      next,
+      `${attack.target.name} に毒が付与された（${attack.attacker.name}）`,
+    );
+  }
+  if (poisonOnAttacker) {
+    grantPoisonStack(attack.attacker, attack.target, targetBpAtMelee);
+    next = appendLog(
+      next,
+      `${attack.attacker.name} に毒が付与された（${attack.target.name}・反撃）`,
+    );
+  }
+
+  const poisonGranted = poisonOnTarget;
+  const poisonCounterGranted = poisonOnAttacker;
   const playback: AttackPlayback = {
     kind: 'melee',
     fromSide: attack.side,
@@ -180,6 +206,8 @@ export function applyMeleeBattle(
     attackerDamage: damageToAttacker,
     attackerBpFrom,
     attackerBpTo: attack.attacker.currentBp,
+    poisonGranted,
+    poisonCounterGranted,
     stateAfter: {
       ...next,
       player: player.map((u) => ({ ...u, poisonStacks: u.poisonStacks.map((s) => ({ ...s })) })),

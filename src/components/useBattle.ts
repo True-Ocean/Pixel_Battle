@@ -17,7 +17,9 @@ import {
   promoteUnit,
   pickCpuAction,
   resolveTurn,
+  startNextTurn,
 } from '../game';
+import type { PoisonDoTPlayback } from '../game/turnResult';
 import type { Card, BattleOutcome } from '../types';
 import type {
   BattleActionChoice,
@@ -29,6 +31,7 @@ import { CLASH_MS } from './battleClashTypes';
 
 export type BattleUiPhase =
   | 'opening'
+  | 'turnStartPoison'
   | 'pickMain'
   | 'pickTarget'
   | 'pickShield'
@@ -37,9 +40,16 @@ export type BattleUiPhase =
   | 'promoteSlot'
   | 'ended';
 
+export interface TurnStartPlayback {
+  poisonDots: PoisonDoTPlayback[];
+  stateAfter: BattleState;
+  poisonSubPhase: 'damage' | 'bp';
+}
+
 export interface BattlePlayback {
   attacks: ReturnType<typeof resolveTurn>['attacks'];
   shields: ReturnType<typeof resolveTurn>['shields'];
+  shieldState: BattleState;
   pendingNext: BattleState;
   attackIndex: number;
   attackSubPhase: 'damage' | 'bp';
@@ -65,12 +75,77 @@ export function useBattle(
   const [pendingPromoteFrom, setPendingPromoteFrom] =
     useState<BoardPosition | null>(null);
   const [playback, setPlayback] = useState<BattlePlayback | null>(null);
+  const [turnStartPlayback, setTurnStartPlayback] =
+    useState<TurnStartPlayback | null>(null);
+  /** 補充完了後: 戦闘後は新ターン開始、毒DoT後はカード選択へ */
+  const [postPromotion, setPostPromotion] = useState<'beginTurn' | 'pickMain'>(
+    'beginTurn',
+  );
   const outcomeSavedRef = useRef(false);
   const result = getBattleResult(state);
-  const effectivePhase: BattleUiPhase = result && !playback ? 'ended' : uiPhase;
+  const effectivePhase: BattleUiPhase =
+    result && !playback && !turnStartPlayback ? 'ended' : uiPhase;
   const playerAlive = state.player
     .map((u, i) => (u.currentBp > 0 && u.position !== 'defeated' ? i : -1))
     .filter((i) => i >= 0);
+
+  const enterPostTurnStart = useCallback((afterState: BattleState) => {
+    const promoted = autoPromoteCpu(afterState);
+    setState(promoted);
+    setTurnStartPlayback(null);
+    if (getBattleResult(promoted)) {
+      setUiPhase('ended');
+      return;
+    }
+    const pendingFronts = getPendingPromotionFronts(promoted.player);
+    if (pendingFronts.length > 0) {
+      setPostPromotion('pickMain');
+      setUiPhase('promoteUnit');
+      return;
+    }
+    setUiPhase('pickMain');
+  }, []);
+
+  const beginTurnSelection = useCallback(
+    (fromState: BattleState) => {
+      if (getBattleResult(fromState)) {
+        setUiPhase('ended');
+        return;
+      }
+      const turnStart = startNextTurn(fromState);
+      if (turnStart.poisonDots.length === 0) {
+        enterPostTurnStart(turnStart.stateAfterDot);
+        return;
+      }
+      setState(turnStart.stateBeforeDot);
+      setTurnStartPlayback({
+        poisonDots: turnStart.poisonDots,
+        stateAfter: turnStart.stateAfterDot,
+        poisonSubPhase: 'damage',
+      });
+      setUiPhase('turnStartPoison');
+    },
+    [enterPostTurnStart],
+  );
+
+  const finishPromotion = useCallback(
+    (nextState: BattleState) => {
+      setState(nextState);
+      setPendingPromoteFrom(null);
+      const pendingFronts = getPendingPromotionFronts(nextState.player);
+      if (pendingFronts.length > 0) {
+        setUiPhase('promoteUnit');
+        return;
+      }
+      if (postPromotion === 'pickMain') {
+        setPostPromotion('beginTurn');
+        setUiPhase(getBattleResult(nextState) ? 'ended' : 'pickMain');
+        return;
+      }
+      beginTurnSelection(nextState);
+    },
+    [postPromotion, beginTurnSelection],
+  );
 
   useEffect(() => {
     if (uiPhase !== 'opening') return;
@@ -82,7 +157,7 @@ export function useBattle(
       'backRight',
     ];
     if (revealedCpu.size >= order.length) {
-      const t = window.setTimeout(() => setUiPhase('pickMain'), 280);
+      const t = window.setTimeout(() => beginTurnSelection(state), 280);
       return () => window.clearTimeout(t);
     }
     const t = window.setTimeout(() => {
@@ -92,24 +167,32 @@ export function useBattle(
       }
     }, 360);
     return () => window.clearTimeout(t);
-  }, [uiPhase, revealedCpu]);
+  }, [uiPhase, revealedCpu, state, beginTurnSelection]);
 
-  const finishPlayback = useCallback((nextState: BattleState) => {
-    const promotedCpu = autoPromoteCpu(nextState);
-    setState(promotedCpu);
-    setPlayback(null);
-    setPendingActor(null);
-    setPendingAction(null);
-    const pendingFronts = getPendingPromotionFronts(promotedCpu.player);
-    setUiPhase(pendingFronts.length > 0 ? 'promoteUnit' : 'pickMain');
-  }, []);
+  const finishPlayback = useCallback(
+    (nextState: BattleState) => {
+      const promotedCpu = autoPromoteCpu(nextState);
+      setState(promotedCpu);
+      setPlayback(null);
+      setPendingActor(null);
+      setPendingAction(null);
+      const pendingFronts = getPendingPromotionFronts(promotedCpu.player);
+      if (pendingFronts.length > 0) {
+        setPostPromotion('beginTurn');
+        setUiPhase('promoteUnit');
+        return;
+      }
+      beginTurnSelection(promotedCpu);
+    },
+    [beginTurnSelection],
+  );
 
   useEffect(() => {
     if (uiPhase !== 'promoteUnit' || playback || result) return;
 
     const fronts = getPendingPromotionFronts(state.player);
     if (fronts.length === 0) {
-      setUiPhase('pickMain');
+      finishPromotion(state);
       return;
     }
 
@@ -122,15 +205,27 @@ export function useBattle(
 
     if (forced) {
       const next = promoteUnit(state, 'player', forced.backs[0]!, forced.front);
-      setState(next);
-      setPendingPromoteFrom(null);
-      setUiPhase(
-        getPendingPromotionFronts(next.player).length > 0
-          ? 'promoteUnit'
-          : 'pickMain',
-      );
+      finishPromotion(next);
     }
-  }, [uiPhase, playback, result, state]);
+  }, [uiPhase, playback, result, state, finishPromotion]);
+
+  useEffect(() => {
+    if (!turnStartPlayback || uiPhase !== 'turnStartPoison') return;
+    if (turnStartPlayback.poisonSubPhase === 'damage') {
+      const t = window.setTimeout(
+        () =>
+          setTurnStartPlayback((p) =>
+            p ? { ...p, poisonSubPhase: 'bp' } : null,
+          ),
+        CLASH_MS.damage,
+      );
+      return () => window.clearTimeout(t);
+    }
+    const t = window.setTimeout(() => {
+      enterPostTurnStart(turnStartPlayback.stateAfter);
+    }, CLASH_MS.bp);
+    return () => window.clearTimeout(t);
+  }, [turnStartPlayback, uiPhase, enterPostTurnStart]);
 
   useEffect(() => {
     if (!playback || uiPhase !== 'clash') return;
@@ -218,10 +313,15 @@ export function useBattle(
       setPlayback({
         attacks: result.attacks,
         shields: result.shields,
+        shieldState: result.shieldState,
         pendingNext: result.state,
         attackIndex: 0,
         attackSubPhase: 'damage',
-        phase: result.shields.length > 0 ? 'shield' : firstAttack ? 'attack' : 'done',
+        phase: result.shields.length > 0
+          ? 'shield'
+          : firstAttack
+            ? 'attack'
+            : 'done',
       });
       setUiPhase('clash');
     },
@@ -231,7 +331,13 @@ export function useBattle(
   const handlePlayerCardClick = useCallback(
     (position: BoardPosition | number) => {
       if (typeof position === 'number') return;
-      if (effectivePhase === 'clash' || effectivePhase === 'opening') return;
+      if (
+        effectivePhase === 'clash' ||
+        effectivePhase === 'opening' ||
+        effectivePhase === 'turnStartPoison'
+      ) {
+        return;
+      }
 
       if (effectivePhase === 'promoteUnit') {
         const fronts = getPendingPromotionFronts(state.player).filter((front) =>
@@ -265,13 +371,7 @@ export function useBattle(
         );
         if (!fronts.includes(position)) return;
         const next = promoteUnit(state, 'player', pendingPromoteFrom, position);
-        setState(next);
-        setPendingPromoteFrom(null);
-        setUiPhase(
-          getPendingPromotionFronts(next.player).length > 0
-            ? 'promoteUnit'
-            : 'pickMain',
-        );
+        finishPromotion(next);
         return;
       }
 
@@ -340,6 +440,7 @@ export function useBattle(
       pendingAction,
       commitTurn,
       availableActionsFor,
+      finishPromotion,
     ],
   );
 
@@ -505,6 +606,7 @@ export function useBattle(
   const hint = useMemo(() => {
     if (effectivePhase === 'ended') return null;
     if (effectivePhase === 'opening') return 'カードオープン';
+    if (effectivePhase === 'turnStartPoison') return '毒ダメージ';
     if (effectivePhase === 'clash' && playback) {
       if (playback.phase === 'shield') return '盾付与';
       if (playback.phase === 'attack') return '攻撃';
@@ -549,6 +651,7 @@ export function useBattle(
     playerAlive,
     clash: null,
     playback,
+    turnStartPlayback,
     revealedCpu,
     effectivePhase,
     pendingMain: null,

@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { DECK_MAX } from '../config/balance';
 import type { Card } from '../types';
 import type { BattleState } from '../types/battle';
+import { sumPoisonDotDamage } from '../game/poisonCombat';
 import { BattleCard } from './BattleCard';
 import { CardFlightLayer } from './CardFlightLayer';
 import type { ClashPlayback } from './battleClashTypes';
@@ -162,6 +163,8 @@ export function BattleBoard({
         fixedSize={embedded}
         dead={unit.currentBp <= 0}
         hasShield={unit.hasShield}
+        poisonStackCount={unit.poisonStacks.length}
+        poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}
         slotLabel={`${unitIndex + 1}`}
         dimmed={inClash}
@@ -192,6 +195,8 @@ export function BattleBoard({
         dead={unit.currentBp <= 0}
         focused={focused}
         hasShield={unit.hasShield}
+        poisonStackCount={unit.poisonStacks.length}
+        poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}
         interactive={interactive}
         onClick={() => onPlayerClick(unitIndex)}

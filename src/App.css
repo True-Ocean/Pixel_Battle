@@ -3329,6 +3329,45 @@ button.battle-card {
   color: #503a94;
 }
 
+.battle-card-buff-poison {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(145deg, #f4fff0, #9de878);
+  box-shadow:
+    0 1px 3px #0003,
+    0 0 0 1px #4aaa3a88;
+  color: #1f5c12;
+}
+
+.battle-card.has-poison {
+  box-shadow:
+    0 0 0 2px #6fdc4a99,
+    0 4px 14px #3a9a2a44;
+}
+
+.battle-card.has-poison.poison-just-applied {
+  animation: poison-applied-pulse 0.55s ease-out;
+}
+
+@keyframes poison-applied-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 #8fff6688,
+      0 4px 14px #3a9a2a44;
+  }
+  45% {
+    box-shadow:
+      0 0 0 6px #8fff6600,
+      0 0 18px 4px #7ae85a88;
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px #6fdc4a99,
+      0 4px 14px #3a9a2a44;
+  }
+}
+
 @keyframes shield-pop {
   from {
     opacity: 0;
@@ -3959,6 +3998,21 @@ button.battle-card {
   filter: drop-shadow(0 0 7px rgba(241, 90, 36, 0.95));
 }
 
+.formation-arrow-outline-secondary {
+  stroke-width: 5;
+}
+
+.formation-arrow-attack-secondary {
+  stroke: #f15a24;
+  stroke-width: 3.5;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 5px rgba(241, 90, 36, 0.8));
+}
+
+.formation-arrow-head-attack-secondary {
+  fill: #f15a24;
+}
+
 .formation-arrow-shield {
   stroke: #27b66f;
   stroke-width: 5;
@@ -4040,6 +4094,21 @@ button.battle-card {
     0 2px 6px rgba(120, 0, 0, 0.75),
     0 0 16px rgba(255, 70, 70, 0.85);
   animation: formation-damage-pop 0.34s cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+
+.formation-damage-float-poison {
+  background: linear-gradient(
+    165deg,
+    rgba(120, 220, 80, 0.96) 0%,
+    rgba(45, 140, 35, 0.96) 100%
+  );
+  border-color: rgba(240, 255, 230, 0.95);
+  box-shadow:
+    0 4px 16px rgba(60, 160, 40, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  text-shadow:
+    0 2px 6px rgba(20, 80, 10, 0.75),
+    0 0 16px rgba(140, 255, 100, 0.85);
 }
 
 @keyframes formation-damage-pop {

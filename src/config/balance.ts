@@ -84,6 +84,12 @@ export const POWER_BP_RATIO = 1.5;
 /** 弓属性の基本BP係数（攻撃比）。ATTRIBUTE_SPEC §4.4 */
 export const BOW_BP_RATIO = 0.6;
 
+/** 毒属性の基本BP係数（攻撃比）。近接＋DoT 分を抑えた値。ATTRIBUTE_SPEC §4.6 */
+export const POISON_BP_RATIO = 0.85;
+
+/** 毒スタック1つあたりの DoT（付与時 currentBp 比）。ATTRIBUTE_SPEC §4.6 */
+export const POISON_DOT_RATIO = 0.3;
+
 /** 初回セットアップ・ユーザープロフィール */
 export const USER_INITIAL_LEVEL = 1;
 export const MAX_USER_LEVEL = 50;
@@ -123,6 +129,7 @@ export function getUserBaseBp(
   if (attribute === 'defense') return Math.round(attackBase * DEFENSE_BP_RATIO);
   if (attribute === 'power') return Math.round(attackBase * POWER_BP_RATIO);
   if (attribute === 'bow') return Math.round(attackBase * BOW_BP_RATIO);
+  if (attribute === 'poison') return Math.round(attackBase * POISON_BP_RATIO);
   return attackBase;
 }
 

@@ -83,11 +83,11 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   poison: {
     label: '毒',
     ariaName: '毒属性',
-    description: '近接で毒スタック付与・DoT（Phase 4）',
+    description: '近接でダメージを与えた相手に毒を付与し、\n毎ターン毒ダメージが続く',
     battleGuide: [
-      '・前衛にいるときのみ近接攻撃（バトル未実装）',
-      '・近接した相手に毒スタックを付与',
-      '・毎ターン開始時、各スタックが付与時maxBp×20%のDoT',
+      '・前衛にいるときのみ近接攻撃できる（後衛は行動不可）',
+      '・近接でダメージを与えた相手に、毒の効果を付与する',
+      '・毎ターン開始時、毒を付与した時のBPの30%の毒ダメージを与える（重ねがけあり）',
     ].join('\n'),
     bg: '#8844aa',
     border: '#662288',

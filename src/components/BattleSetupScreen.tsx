@@ -17,6 +17,8 @@ import {
   getDefeated,
   getUnitAt,
 } from '../game';
+import { sumPoisonDotDamage } from '../game/poisonCombat';
+import type { BattleUnit } from '../types/battle';
 import { BattleCard } from './BattleCard';
 import { SetupFlightLayer } from './SetupFlightLayer';
 import { SETUP_MS } from './setupConstants';
@@ -28,7 +30,7 @@ type SlotKey = `${'cpu' | 'player'}:${BoardPosition}`;
 
 interface ArrowLine {
   key: string;
-  kind: 'attack' | 'shield';
+  kind: 'attack' | 'attack-secondary' | 'shield';
   fromSide: 'cpu' | 'player';
   fromPosition: BoardPosition;
   toSide: 'cpu' | 'player';
@@ -72,6 +74,7 @@ interface DamageMarker {
   side: 'cpu' | 'player';
   position: BoardPosition;
   label: string;
+  kind?: 'attack' | 'poison';
 }
 
 function FormationZoneBanner({
@@ -137,6 +140,65 @@ function orderedCards(slots: Record<BoardPosition, Card | null>): Card[] {
   return BOARD_POSITIONS.map((position) => slots[position]).filter(
     (card): card is Card => card != null,
   );
+}
+
+function getPoisonDotSlotFx(
+  turnStart: ReturnType<typeof useBattle>['turnStartPlayback'],
+  side: 'cpu' | 'player',
+  position: BoardPosition,
+) {
+  if (!turnStart || turnStart.poisonSubPhase !== 'bp') {
+    return null;
+  }
+  const dot = turnStart.poisonDots.find(
+    (d) => d.side === side && d.position === position,
+  );
+  if (!dot) return null;
+  return {
+    animatedBp: { from: dot.bpFrom, to: dot.bpTo, active: true as const },
+  };
+}
+
+function resolvePoisonDisplay(
+  unit: BattleUnit,
+  battle: ReturnType<typeof useBattle>,
+  side: 'cpu' | 'player',
+  position: BoardPosition,
+) {
+  const playback = battle.playback;
+  if (playback?.phase === 'attack') {
+    const attack = playback.attacks[playback.attackIndex];
+    if (attack) {
+      const isPoisonTarget =
+        attack.poisonGranted &&
+        attack.toSide === side &&
+        attack.toPosition === position;
+      const isPoisonCounterTarget =
+        attack.poisonCounterGranted &&
+        attack.fromSide === side &&
+        attack.fromPosition === position;
+      if (isPoisonTarget || isPoisonCounterTarget) {
+        const field =
+          side === 'player'
+            ? attack.stateAfter.player
+            : attack.stateAfter.cpu;
+        const after = getUnitAt(field, position);
+        if (after && after.poisonStacks.length > 0) {
+          return {
+            count: after.poisonStacks.length,
+            damagePerTurn: sumPoisonDotDamage(after.poisonStacks),
+            justApplied: true,
+          };
+        }
+      }
+    }
+  }
+
+  return {
+    count: unit.poisonStacks.length,
+    damagePerTurn: sumPoisonDotDamage(unit.poisonStacks),
+    justApplied: false,
+  };
 }
 
 function getAttackSlotFx(
@@ -328,6 +390,10 @@ function BattleUnitSlot({
     (s) => s.side === side && (s.fromPosition === position || s.toPosition === position),
   );
   const attackFx = getAttackSlotFx(battle.playback, side, position);
+  const poisonFx = getPoisonDotSlotFx(battle.turnStartPlayback, side, position);
+  const poisonDisplay = unit
+    ? resolvePoisonDisplay(unit, battle, side, position)
+    : { count: 0, damagePerTurn: 0, justApplied: false };
 
   return (
     <button
@@ -360,12 +426,15 @@ function BattleUnitSlot({
           fixedSize
           side={side}
           hasShield={unit.hasShield}
+          poisonStackCount={poisonDisplay.count}
+          poisonDamagePerTurn={poisonDisplay.damagePerTurn}
+          poisonJustApplied={poisonDisplay.justApplied}
           defenseShieldUsed={unit.defenseShieldUsed}
           faceDown={faceDown}
           flipEnabled
           hideBp={faceDown}
           selected={selected}
-          animatedBp={attackFx?.animatedBp}
+          animatedBp={attackFx?.animatedBp ?? poisonFx?.animatedBp}
         />
       ) : (
         <span className="formation-empty-label">
@@ -492,11 +561,29 @@ function FormationArrowLayer({
         >
           <path d="M 0 0 L 10 5 L 0 10 z" className="formation-arrow-head-shield" />
         </marker>
+        <marker
+          id="formation-arrow-attack-secondary"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="4"
+          markerHeight="4"
+          orient="auto-start-reverse"
+        >
+          <path
+            d="M 0 0 L 10 5 L 0 10 z"
+            className="formation-arrow-head-attack-secondary"
+          />
+        </marker>
       </defs>
       {segments.map((line) => (
         <g key={line.key}>
           <line
-            className="formation-arrow-outline"
+            className={
+              line.kind === 'attack-secondary'
+                ? 'formation-arrow-outline formation-arrow-outline-secondary'
+                : 'formation-arrow-outline'
+            }
             x1={line.x1}
             y1={line.y1}
             x2={line.x2}
@@ -570,7 +657,9 @@ function FormationDamageLayer({
       {labels.map((label) => (
         <span
           key={label.key}
-          className="formation-damage-float"
+          className={`formation-damage-float${
+            label.kind === 'poison' ? ' formation-damage-float-poison' : ''
+          }`}
           style={{ left: label.x, top: label.y }}
         >
           {label.label}
@@ -634,8 +723,35 @@ function BattleBoard({
           },
         ]
       : []),
+    ...(activeAttack?.kind === 'dual' &&
+    activeAttack.secondaryToPosition != null
+      ? [
+          {
+            key: `attack-secondary-${activeAttack.fromSide}-${activeAttack.fromPosition}-${activeAttack.toSide}-${activeAttack.secondaryToPosition}`,
+            kind: 'attack-secondary' as const,
+            fromSide: activeAttack.fromSide,
+            fromPosition: activeAttack.fromPosition,
+            toSide: activeAttack.toSide,
+            toPosition: activeAttack.secondaryToPosition,
+          },
+        ]
+      : []),
   ];
   const damageMarkers: DamageMarker[] = [];
+  if (
+    battle.effectivePhase === 'turnStartPoison' &&
+    battle.turnStartPlayback?.poisonSubPhase === 'damage'
+  ) {
+    for (const dot of battle.turnStartPlayback.poisonDots) {
+      damageMarkers.push({
+        key: `poison-${dot.side}-${dot.position}`,
+        side: dot.side,
+        position: dot.position,
+        label: `−${dot.damage}`,
+        kind: 'poison',
+      });
+    }
+  }
   if (
     activeAttack &&
     battle.playback?.phase === 'attack' &&

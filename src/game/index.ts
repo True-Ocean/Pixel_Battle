@@ -23,8 +23,16 @@ export {
   getEmptyFrontPositions,
 } from './battleState';
 export { compareActionOrder, ATTRIBUTE_PRIORITY } from '../config/attributePriority';
-export type { ResolveTurnResult, AttackPlayback, ShieldGrants, ShieldPlayback } from './turnResult';
+export type {
+  ResolveTurnResult,
+  AttackPlayback,
+  PoisonDoTPlayback,
+  ShieldGrants,
+  ShieldPlayback,
+} from './turnResult';
 export { resolveTurn, promoteUnit } from './resolveTurn';
+export { startNextTurn } from './startNextTurn';
+export type { StartTurnResult } from './startNextTurn';
 export { pickCpuMainIndex, pickCpuAction, autoPromoteCpu } from './cpu';
 export {
   buildCpuStarterCards,

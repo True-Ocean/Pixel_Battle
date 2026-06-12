@@ -20,7 +20,7 @@ export type BattleActionType =
 /** 毒 DoT スタック（Phase 4 で付与処理） */
 export interface PoisonStack {
   sourceCardId: string;
-  /** 付与時 maxBp × 20% */
+  /** 付与時 currentBp × 30%（固定値） */
   damagePerTurn: number;
 }
 
