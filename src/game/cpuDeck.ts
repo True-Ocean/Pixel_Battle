@@ -1,5 +1,5 @@
 import { createEmptyGrid } from '../canvas';
-import { createCardFromDrawing } from '../card';
+import { createCardFromDrawing, computeDeckPower } from '../card';
 import {
   DECK_MAX,
   FIELD_SIZE,
@@ -54,11 +54,14 @@ export type CpuDifficulty = 'even' | 'strong';
 
 interface DeckSummary {
   avgBp: number;
+  power: number;
   attacks: number;
   defenses: number;
 }
 
 interface DeckTargets {
+  powerMin: number;
+  powerMax: number;
   avgBpMin: number;
   avgBpMax: number;
   attackCount: number;
@@ -79,11 +82,12 @@ export function randomCpuName(random: () => number = Math.random): string {
 
 function summarizeDeck(deck: Card[]): DeckSummary {
   if (deck.length === 0) {
-    return { avgBp: 80, attacks: 2, defenses: 3 };
+    return { avgBp: 80, power: 400, attacks: 2, defenses: 3 };
   }
   const attacks = deck.filter((c) => c.attribute === 'attack').length;
   return {
     avgBp: deck.reduce((s, c) => s + c.bp, 0) / deck.length,
+    power: computeDeckPower(deck),
     attacks,
     defenses: deck.length - attacks,
   };
@@ -103,7 +107,11 @@ export function buildDeckTargets(
   const bpScale =
     difficulty === 'strong'
       ? { min: 1.05, max: 1.28 }
-      : { min: 0.9, max: 1.1 };
+      : { min: 0.95, max: 1.12 };
+  const powerScale =
+    difficulty === 'strong'
+      ? { min: 1.05, max: 1.2 }
+      : { min: 1.0, max: 1.1 };
 
   let attackCount = player.attacks;
   let defenseCount = player.defenses;
@@ -113,6 +121,8 @@ export function buildDeckTargets(
   }
 
   return {
+    powerMin: player.power * powerScale.min,
+    powerMax: player.power * powerScale.max,
     avgBpMin: player.avgBp * bpScale.min,
     avgBpMax: player.avgBp * bpScale.max,
     attackCount,
@@ -122,6 +132,9 @@ export function buildDeckTargets(
 
 function deckMatchesTargets(deck: Card[], targets: DeckTargets): boolean {
   const cpu = summarizeDeck(deck);
+  if (cpu.power < targets.powerMin || cpu.power > targets.powerMax) {
+    return false;
+  }
   if (cpu.avgBp < targets.avgBpMin || cpu.avgBp > targets.avgBpMax) {
     return false;
   }
@@ -260,18 +273,19 @@ export function pickCpuBattleLineup(
     return arr.slice(0, FIELD_SIZE);
   }
 
-  const playerAvg = summarizeDeck(playerDeck).avgBp;
-  const cpuAvg = summarizeDeck(cpuDeck).avgBp;
-  const targetBp =
-    cpuAvg > playerAvg * 1.03 ? playerAvg * 1.1 : playerAvg * 0.98;
+  const playerSummary = summarizeDeck(playerDeck);
+  const playerPower = playerSummary.power;
+  const cpuPower = summarizeDeck(cpuDeck).power;
+  const targetPower =
+    cpuPower > playerPower * 1.03 ? playerPower * 1.05 : playerPower;
 
   const combos = combinations3of5(cpuDeck);
   let best = combos[0]!;
   let bestScore = Infinity;
 
   for (const combo of combos) {
-    const avg = combo.reduce((s, c) => s + c.bp, 0) / combo.length;
-    const score = Math.abs(avg - targetBp) + random() * 1.5;
+    const comboPower = computeDeckPower(combo);
+    const score = Math.abs(comboPower - targetPower) + random() * 1.5;
     if (score < bestScore) {
       bestScore = score;
       best = combo;

@@ -182,7 +182,7 @@ export const USERNAME_MAX_LENGTH = 16;
 /** レベル L → L+1 に必要な EXP = EXP_LEVEL_BASE + L */
 export const EXP_LEVEL_BASE = 10;
 
-/** プロトタイプ CPU 対戦時の表示レベル */
+/** @deprecated 対戦相手レベル未指定時のフォールバック。通常はプレイヤーと同レベルを渡す */
 export const CPU_OPPONENT_LEVEL = 1;
 
 /** 上振れ勝利 EXP（相手デッキ戦力が高いとき・勝利時のみ） */

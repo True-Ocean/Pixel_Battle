@@ -4,7 +4,7 @@ import { getUnlockedCanvasSizes } from '../config/canvasUnlock';
 import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import { createEmptyGrid } from '../canvas';
 import type { Card } from '../types';
-import { createCardFromDrawing } from '../card';
+import { createCardFromDrawing, computeDeckPower } from '../card';
 import { pickCpuPattern } from './cpuPatterns';
 import {
   buildBalancedCpuDeck,
@@ -112,11 +112,23 @@ describe('buildBalancedCpuDeck', () => {
     expect(Math.abs(cpuAvg - playerAvg)).toBeLessThan(25);
   });
 
-  it('強敵は平均 BP ターゲットが高い', () => {
+  it('CPU戦力はプレイヤー同等以上（互角）', () => {
+    const player = stubPlayerDeck();
+    const playerPower = computeDeckPower(player);
+    const targets = buildDeckTargets(player, 'even');
+    const cpu = buildBalancedCpuDeck(player, () => 0.33, 10);
+    const cpuPower = computeDeckPower(cpu);
+    expect(cpuPower).toBeGreaterThanOrEqual(targets.powerMin - 15);
+    expect(cpuPower).toBeLessThanOrEqual(targets.powerMax + 15);
+    expect(cpuPower).toBeGreaterThanOrEqual(playerPower * 0.95);
+  });
+
+  it('強敵は戦力ターゲットが高い', () => {
     const player = stubPlayerDeck();
     const even = buildDeckTargets(player, 'even');
     const strong = buildDeckTargets(player, 'strong');
-    expect(strong.avgBpMin).toBeGreaterThan(even.avgBpMin);
+    expect(strong.powerMin).toBeGreaterThan(even.powerMin);
+    expect(strong.powerMax).toBeGreaterThan(even.powerMax);
   });
 
   it('追加色のみの模様でもクラッシュせず生成できる', () => {

@@ -31,7 +31,7 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   power: {
     label: '力',
     ariaName: '力属性',
-    description: '前衛近接のみ。作成時BPが他属性より高い',
+    description: '他属性より高いBPを持つ',
     bg: '#cc6622',
     border: '#994411',
   },

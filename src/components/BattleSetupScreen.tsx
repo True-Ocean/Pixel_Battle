@@ -780,11 +780,15 @@ export function BattleSetupScreen({
   playerDeck,
   cpuDeck,
   playerIdentity,
-  opponentIdentity = { name: 'CPU', level: CPU_OPPONENT_LEVEL },
+  opponentIdentity,
   onFinish,
   onGoToDeck,
   onNewBattle,
 }: BattleSetupScreenProps) {
+  const opponentProfile: BattleZoneProfile = opponentIdentity ?? {
+    name: 'CPU',
+    level: playerIdentity?.level ?? CPU_OPPONENT_LEVEL,
+  };
   const canBattle = playerDeck.length >= DECK_MAX;
   const [phase, setPhase] = useState<'setup' | 'battle'>('setup');
   const [timeLeft, setTimeLeft] = useState(SETUP_TIME_LIMIT_SEC);
@@ -861,10 +865,10 @@ export function BattleSetupScreen({
 
   const resolvedOpponentIdentity = useMemo(
     (): BattleZoneIdentity => ({
-      ...opponentIdentity,
+      ...opponentProfile,
       power: computeDeckPower(cpuDeck),
     }),
-    [opponentIdentity, cpuDeck],
+    [opponentProfile, cpuDeck],
   );
 
   const handleCpuFlightComplete = useCallback(() => {

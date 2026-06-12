@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { Card, ScreenId, UserProfile, BattleOutcome } from './types';
 import { DECK_MAX } from './config/balance';
 import { applyCardSurvivalRecords, recordCardRevive } from './card';
-import { buildBalancedCpuDeck } from './game/cpuDeck';
+import { buildBalancedCpuDeck, randomCpuName } from './game/cpuDeck';
 import { loadSave, saveSave } from './storage';
 import {
   applyDevUserProfile,
@@ -37,6 +37,10 @@ function App() {
       initialSave.user?.level ?? 1,
     ),
   );
+  const [cpuOpponent, setCpuOpponent] = useState(() => ({
+    name: randomCpuName(),
+    level: initialSave.user?.level ?? 1,
+  }));
   const [battleSetupKey, setBattleSetupKey] = useState(0);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
 
@@ -66,7 +70,9 @@ function App() {
   );
 
   const goToBattleSetup = useCallback(() => {
-    setCpuDeck(buildBalancedCpuDeck(deck, Math.random, user?.level ?? 1));
+    const level = user?.level ?? 1;
+    setCpuDeck(buildBalancedCpuDeck(deck, Math.random, level));
+    setCpuOpponent({ name: randomCpuName(), level });
     setBattleSetupKey((k) => k + 1);
     setScreen('battleSetup');
   }, [deck, user?.level]);
@@ -266,6 +272,7 @@ function App() {
                 ? { name: user.username, level: user.level }
                 : undefined
             }
+            opponentIdentity={cpuOpponent}
             onFinish={applyBattleOutcome}
             onGoToDeck={goToDeck}
             onNewBattle={goToBattleSetup}
