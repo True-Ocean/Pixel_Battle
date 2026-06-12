@@ -6,7 +6,7 @@ export interface ShieldGrants {
 }
 
 export interface AttackPlayback {
-  kind?: 'melee' | 'bow';
+  kind?: 'melee' | 'bow' | 'dual';
   fromSide: BattleSide;
   fromPosition: BoardPosition;
   toSide: BattleSide;
@@ -21,6 +21,12 @@ export interface AttackPlayback {
   attackerDamage: number;
   attackerBpFrom: number;
   attackerBpTo: number;
+  /** 両属性の副攻撃（§4.5） */
+  secondaryToPosition?: BoardPosition;
+  secondaryDamage?: number;
+  secondaryBlocked?: boolean;
+  secondaryBpFrom?: number;
+  secondaryBpTo?: number;
   stateAfter: BattleState;
 }
 

@@ -2,6 +2,7 @@ import type { Attribute } from '../../types';
 import type { BattleActionType } from '../../types/battle';
 import type { BoardPosition } from '../../types/battle';
 import { getBowTargets } from '../bowCombat';
+import { getDualTargets } from '../dualCombat';
 import {
   canUseShieldAction,
   getMeleeTargets,
@@ -14,7 +15,6 @@ const FRONT_MELEE_ATTRIBUTES: ReadonlySet<Attribute> = new Set([
   'attack',
   'defense',
   'power',
-  'dual',
   'poison',
   'ice',
   'ninja',
@@ -33,6 +33,13 @@ export function getActionTypesForUnit(
   if (unit.attribute === 'bow') {
     if (getBowTargets(ownField, enemyField, position).length > 0) {
       actions.push('bowAttack');
+    }
+    return actions;
+  }
+
+  if (unit.attribute === 'dual') {
+    if (isFrontPosition(position) && getDualTargets(enemyField).length > 0) {
+      actions.push('dualAttack');
     }
     return actions;
   }

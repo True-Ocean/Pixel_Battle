@@ -46,6 +46,17 @@ function battleKey(side: BattleSide, position: BoardPosition): string {
   return `${side}:${position}`;
 }
 
+export function battlePairKey(
+  fromSide: BattleSide,
+  fromPosition: BoardPosition,
+  toSide: BattleSide,
+  toPosition: BoardPosition,
+): string {
+  const aKey = battleKey(fromSide, fromPosition);
+  const tKey = battleKey(toSide, toPosition);
+  return [aKey, tKey].sort().join('|');
+}
+
 export function collectMeleeBattles(
   choices: { player: BattleActionChoice; cpu: BattleActionChoice },
   player: BattleUnit[],
@@ -77,9 +88,12 @@ export function collectMeleeBattles(
 
   const battles = new Map<string, MeleeBattleResolution>();
   for (const attack of attackInputs) {
-    const aKey = battleKey(attack.side, attack.action.actorPosition);
-    const tKey = battleKey(attack.targetSide, attack.action.targetPosition);
-    const key = [aKey, tKey].sort().join('|');
+    const key = battlePairKey(
+      attack.side,
+      attack.action.actorPosition,
+      attack.targetSide,
+      attack.action.targetPosition,
+    );
     const existing = battles.get(key);
     if (existing) {
       existing.bidirectional = true;

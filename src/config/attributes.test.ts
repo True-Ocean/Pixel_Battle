@@ -24,6 +24,6 @@ describe('attributes', () => {
 
   it('弓属性の説明とガイド', () => {
     expect(ATTRIBUTE_META.bow.description).toContain('反撃を受けない');
-    expect(ATTRIBUTE_META.bow.battleGuide).toContain('反撃を受けることなく');
+    expect(ATTRIBUTE_META.bow.battleGuide).toContain('反撃を受けない');
   });
 });

@@ -71,11 +71,11 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   dual: {
     label: '両',
     ariaName: '両属性',
-    description: '前衛近接＋副前衛50%追加攻撃（Phase 3）',
+    description: '前衛で近接＋もう一方の敵前衛へ50%副攻撃',
     battleGuide: [
-      '・前衛にいるときのみ近接攻撃（バトル未実装）',
+      '・前衛にいるときのみ攻撃できる（後衛は行動不可）',
       '・主対象へ通常近接＋もう一方の敵前衛へ50%副攻撃',
-      '・副攻撃は無反撃。毒・氷は主対象のみ',
+      '・副攻撃は反撃を受けない',
     ].join('\n'),
     bg: '#aa8844',
     border: '#886622',

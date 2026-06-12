@@ -369,6 +369,19 @@ export function useBattle(
 
       if (
         meleeTargets.includes(position) &&
+        (pendingAction === 'dualAttack' ||
+          (pendingAction == null && actor.attribute === 'dual'))
+      ) {
+        commitTurn({
+          type: 'dualAttack',
+          actorPosition: pendingActor,
+          targetPosition: position,
+        });
+        return;
+      }
+
+      if (
+        meleeTargets.includes(position) &&
         (pendingAction === 'meleeAttack' ||
           (pendingAction == null && actor.attribute === 'defense'))
       ) {
@@ -418,11 +431,17 @@ export function useBattle(
           if (pendingAction === 'bowAttack') {
             return bowTargets.includes(position);
           }
+          if (pendingAction === 'dualAttack') {
+            return meleeTargets.includes(position);
+          }
           if (pendingAction === 'meleeAttack') {
             return meleeTargets.includes(position);
           }
           if (actor.attribute === 'bow') {
             return bowTargets.includes(position);
+          }
+          if (actor.attribute === 'dual') {
+            return meleeTargets.includes(position);
           }
           return meleeTargets.includes(position);
         }
@@ -499,6 +518,15 @@ export function useBattle(
           getUnitAt(state.player, pendingActor)?.attribute === 'bow'))
     ) {
       return '弓の対象を選択';
+    }
+    if (
+      effectivePhase === 'pickTarget' &&
+      (pendingAction === 'dualAttack' ||
+        (pendingAction == null &&
+          pendingActor != null &&
+          getUnitAt(state.player, pendingActor)?.attribute === 'dual'))
+    ) {
+      return '両攻撃の主対象を選択';
     }
     if (effectivePhase === 'pickTarget' && pendingAction == null) {
       return '攻撃先か盾先を選択';

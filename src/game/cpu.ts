@@ -1,5 +1,6 @@
 import type { BattleActionChoice, BattleState, BoardPosition } from '../types/battle';
 import { getBowTargets } from './bowCombat';
+import { getDualTargets } from './dualCombat';
 import {
   FRONT_POSITIONS,
   getActionTypesForUnit,
@@ -41,6 +42,15 @@ export function pickCpuAction(
       for (const target of getBowTargets(state.cpu, state.player, position)) {
         candidates.push({
           type: 'bowAttack',
+          actorPosition: position,
+          targetPosition: target,
+        });
+      }
+    }
+    if (actions.includes('dualAttack')) {
+      for (const target of getDualTargets(state.player)) {
+        candidates.push({
+          type: 'dualAttack',
           actorPosition: position,
           targetPosition: target,
         });

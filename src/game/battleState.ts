@@ -11,6 +11,7 @@ import { getActionTypesForUnit } from './actions/getActionTypesForUnit';
 
 export { getActionTypesForUnit };
 export { getBowTargets, calcBowDamage, isBowTargetable } from './bowCombat';
+export { getDualTargets } from './dualCombat';
 
 export const BOARD_POSITIONS = [
   'frontLeft',

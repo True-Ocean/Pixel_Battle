@@ -151,10 +151,23 @@ function getAttackSlotFx(
   const isAttacker =
     attack.fromSide === side && attack.fromPosition === position;
   const isTarget = attack.toSide === side && attack.toPosition === position;
-  if (!isAttacker && !isTarget) return null;
+  const isSecondaryTarget =
+    attack.kind === 'dual' &&
+    attack.secondaryToPosition != null &&
+    attack.toSide === side &&
+    attack.secondaryToPosition === position;
+  if (!isAttacker && !isTarget && !isSecondaryTarget) return null;
 
-  const bpFrom = isAttacker ? attack.attackerBpFrom : attack.bpFrom;
-  const bpTo = isAttacker ? attack.attackerBpTo : attack.bpTo;
+  const bpFrom = isAttacker
+    ? attack.attackerBpFrom
+    : isSecondaryTarget
+      ? (attack.secondaryBpFrom ?? 0)
+      : attack.bpFrom;
+  const bpTo = isAttacker
+    ? attack.attackerBpTo
+    : isSecondaryTarget
+      ? (attack.secondaryBpTo ?? 0)
+      : attack.bpTo;
 
   return {
     animatedBp:
@@ -306,7 +319,11 @@ function BattleUnitSlot({
   const highlightedAttack =
     !!activeAttack &&
     ((activeAttack.fromSide === side && activeAttack.fromPosition === position) ||
-      (activeAttack.toSide === side && activeAttack.toPosition === position));
+      (activeAttack.toSide === side && activeAttack.toPosition === position) ||
+      (activeAttack.kind === 'dual' &&
+        activeAttack.secondaryToPosition != null &&
+        activeAttack.toSide === side &&
+        activeAttack.secondaryToPosition === position));
   const highlightedShield = battle.playback?.shields.some(
     (s) => s.side === side && (s.fromPosition === position || s.toPosition === position),
   );
@@ -638,6 +655,18 @@ function BattleBoard({
         side: activeAttack.toSide,
         position: activeAttack.toPosition,
         label: `−${activeAttack.damage}`,
+      });
+    }
+    if (
+      activeAttack.kind === 'dual' &&
+      activeAttack.secondaryToPosition != null &&
+      (activeAttack.secondaryDamage ?? 0) > 0
+    ) {
+      damageMarkers.push({
+        key: `secondary-${activeAttack.toSide}-${activeAttack.secondaryToPosition}`,
+        side: activeAttack.toSide,
+        position: activeAttack.secondaryToPosition,
+        label: `−${activeAttack.secondaryDamage}`,
       });
     }
   }

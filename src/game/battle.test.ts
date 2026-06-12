@@ -446,6 +446,67 @@ describe('battle', () => {
     expect(state.player[0].currentBp).toBe(60);
   });
 
+  it('両攻撃は主対象へ近接＋副前衛へ50%無反撃', () => {
+    const playerDeck = [
+      stubCard('両', 'dual', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+    state.cpu[1].currentBp = 50;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'dualAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontRight',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'backLeft',
+      },
+    }).state;
+
+    expect(state.cpu[1].currentBp).toBe(0);
+    expect(state.cpu[0].currentBp).toBe(60);
+    expect(state.player[0].currentBp).toBe(55);
+  });
+
+  it('両の副攻撃は盾で防げる', () => {
+    const playerDeck = [
+      stubCard('両', 'dual', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+    state.cpu[0].hasShield = true;
+    state.cpu[1].currentBp = 50;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'dualAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontRight',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'backLeft',
+      },
+    }).state;
+
+    expect(state.cpu[0].hasShield).toBe(false);
+    expect(state.cpu[0].currentBp).toBe(100);
+    expect(state.cpu[1].currentBp).toBe(0);
+  });
+
   it('弓が前衛に補充されてもBPは半減しない', () => {
     const playerDeck = [
       stubCard('P1', 'attack', 50),
