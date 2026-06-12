@@ -30,7 +30,8 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   },
 };
 
-// 将来追加予定: 弓・両・癒・毒・氷・嵐・忍・力
+// 解放順（Lv）: Lv6力 Lv11弓 Lv16両 Lv21毒 Lv26癒 Lv31氷 Lv36嵐 Lv41忍
+// 詳細: docs/ATTRIBUTE_SPEC.md
 
 export function getAttributeMeta(attribute: Attribute): AttributeMeta {
   return ATTRIBUTE_META[attribute];

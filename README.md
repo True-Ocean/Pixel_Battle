@@ -3,6 +3,8 @@
 ## ドキュメント
 
 - 開発指示書: [`docs/PROTOTYPE_DEVELOPMENT_SPEC.md`](docs/PROTOTYPE_DEVELOPMENT_SPEC.md)
+- 属性・戦闘効果: [`docs/ATTRIBUTE_SPEC.md`](docs/ATTRIBUTE_SPEC.md)
+- 経済・報酬: [`docs/ECONOMY_SPEC.md`](docs/ECONOMY_SPEC.md)
 
 ## セットアップ
 
