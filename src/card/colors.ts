@@ -33,21 +33,24 @@ export function normalizePixelColor(
 export function computeColorRatios(
   pixels: PixelGrid,
   totalCells: number,
+  unlockedPaletteCount = PALETTE_UNLOCKED_COUNT_LV0,
 ): ColorRatios | null {
   let red = 0;
   let white = 0;
   let black = 0;
+  let painted = 0;
 
   for (const row of pixels) {
     for (const cell of row) {
-      const c = normalizePixelColor(cell);
+      const c = normalizePixelColor(cell, unlockedPaletteCount);
+      if (c == null) continue;
+      painted++;
       if (c === RED) red++;
       else if (c === WHITE) white++;
       else if (c === BLACK) black++;
     }
   }
 
-  const painted = red + white + black;
   if (painted === 0) return null;
 
   return {

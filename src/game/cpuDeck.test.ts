@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { DECK_MAX, FIELD_SIZE, PALETTE_16 } from '../config/balance';
 import { getUnlockedCanvasSizes } from '../config/canvasUnlock';
 import { getUnlockedPaletteCount } from '../config/paletteUnlock';
+import { createEmptyGrid } from '../canvas';
 import type { Card } from '../types';
+import { createCardFromDrawing } from '../card';
 import { pickCpuPattern } from './cpuPatterns';
 import {
   buildBalancedCpuDeck,
@@ -115,6 +117,19 @@ describe('buildBalancedCpuDeck', () => {
     const even = buildDeckTargets(player, 'even');
     const strong = buildDeckTargets(player, 'strong');
     expect(strong.avgBpMin).toBeGreaterThan(even.avgBpMin);
+  });
+
+  it('追加色のみの模様でもクラッシュせず生成できる', () => {
+    const pixels = createEmptyGrid(24).map((row) =>
+      row.map(() => '#2222ff'),
+    );
+    expect(() =>
+      createCardFromDrawing('CPUテスト', pixels, {
+        userLevel: 20,
+        unlockedPaletteCount: 6,
+        canvasSize: 24,
+      }),
+    ).not.toThrow();
   });
 
   it('ユーザーレベルに応じたキャンバスサイズと色で生成する', () => {

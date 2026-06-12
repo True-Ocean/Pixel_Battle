@@ -37,6 +37,7 @@ export class CardCreationError extends Error {
 function validateDrawingInput(
   name: string,
   pixels: PixelGrid,
+  unlockedPaletteCount: number,
 ): { trimmed: string; ratios: ColorRatios } {
   const trimmed = name.trim();
   if (!trimmed) {
@@ -45,7 +46,7 @@ function validateDrawingInput(
 
   const size = gridSize(pixels);
   const totalCells = size * size;
-  const ratios = computeColorRatios(pixels, totalCells);
+  const ratios = computeColorRatios(pixels, totalCells, unlockedPaletteCount);
   if (!ratios) {
     throw new CardCreationError('1マス以上塗ってください');
   }
@@ -88,7 +89,12 @@ export function deriveCardStats(
   pixels: PixelGrid,
   userLevel: number = USER_INITIAL_LEVEL,
 ): CardDraft {
-  const { trimmed, ratios } = validateDrawingInput(name, pixels);
+  const unlockedPaletteCount = getUnlockedPaletteCount(userLevel);
+  const { trimmed, ratios } = validateDrawingInput(
+    name,
+    pixels,
+    unlockedPaletteCount,
+  );
   const attribute = deriveAttribute(trimmed, pixels, ratios);
   const bpBlend = computeBpBlend(trimmed, pixels, ratios);
   const bp = computeCardBaseBp(bpBlend, userLevel, attribute);
@@ -152,7 +158,11 @@ export function createCardFromDrawing(
 /** 既存カードの BP をユーザーレベルに合わせて再算出（絵・属性・レアは維持） */
 export function recalculateCardBp(card: Card, userLevel: number): number {
   const size = gridSize(card.pixels);
-  const ratios = computeColorRatios(card.pixels, size * size);
+  const ratios = computeColorRatios(
+    card.pixels,
+    size * size,
+    getUnlockedPaletteCount(userLevel),
+  );
   if (!ratios) return card.bp;
 
   const bpBlend = computeBpBlend(card.name.trim(), card.pixels, ratios);
@@ -176,7 +186,11 @@ export function updateCardFromDrawing(
   unlockedPaletteCount: number = getUnlockedPaletteCount(userLevel),
 ): Card {
   const normalized = normalizeGrid(pixels, unlockedPaletteCount);
-  const { trimmed, ratios } = validateDrawingInput(name, normalized);
+  const { trimmed, ratios } = validateDrawingInput(
+    name,
+    normalized,
+    unlockedPaletteCount,
+  );
   const bpBlend = computeBpBlend(trimmed, normalized, ratios);
   const baseBp = computeCardBaseBp(bpBlend, userLevel, existing.attribute);
   const bp = applyRarityToBp(

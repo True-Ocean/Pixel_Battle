@@ -49,12 +49,20 @@ interface EditorScreenProps {
 
 const MINI_PREVIEW_SIZE = 48;
 
-function validateDrawing(name: string, pixels: PixelGrid): string | null {
+function validateDrawing(
+  name: string,
+  pixels: PixelGrid,
+  userLevel: number,
+): string | null {
   if (!name.trim()) {
     return 'カード名を入力してください';
   }
   const size = gridSize(pixels);
-  const ratios = computeColorRatios(pixels, size * size);
+  const ratios = computeColorRatios(
+    pixels,
+    size * size,
+    getUnlockedPaletteCount(userLevel),
+  );
   if (!ratios) {
     return '1マス以上塗ってください';
   }
@@ -216,7 +224,7 @@ export function EditorScreen({
   };
 
   const handleCreateRequest = () => {
-    const validationError = validateDrawing(name, pixels);
+    const validationError = validateDrawing(name, pixels, userLevel);
     if (validationError) {
       setError(validationError);
       return;
@@ -230,7 +238,7 @@ export function EditorScreen({
   };
 
   const handleSave = () => {
-    const validationError = validateDrawing(name, pixels);
+    const validationError = validateDrawing(name, pixels, userLevel);
     if (validationError) {
       setError(validationError);
       return;
