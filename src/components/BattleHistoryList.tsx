@@ -1,0 +1,66 @@
+import { formatBattleHistoryWhen } from '../battleHistory';
+import type { BattleHistoryEntry, Card } from '../types';
+import { CardPreview } from './CardPreview';
+
+interface BattleHistoryListProps {
+  entries: BattleHistoryEntry[];
+  onSelect: (entry: BattleHistoryEntry) => void;
+}
+
+function OpponentDeckThumbnails({ cards }: { cards: Card[] }) {
+  return (
+    <div className="records-history-deck-thumbs" aria-hidden>
+      {cards.slice(0, 5).map((card) => (
+        <div key={card.id} className="records-history-deck-thumb">
+          <CardPreview pixels={card.pixels} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function BattleHistoryList({ entries, onSelect }: BattleHistoryListProps) {
+  if (entries.length === 0) {
+    return (
+      <div className="records-history-empty">
+        <p className="muted">対戦履歴がありません</p>
+        <p className="muted records-history-empty-hint">バトルをプレイするとここに表示されます</p>
+      </div>
+    );
+  }
+
+  return (
+    <ul className="records-history-list">
+      {entries.map((entry) => {
+        const won = entry.winner === 'player';
+        return (
+          <li key={entry.id}>
+            <button
+              type="button"
+              className="records-history-item"
+              onClick={() => onSelect(entry)}
+            >
+              <div className="records-history-item-main">
+                <span className="records-history-when">
+                  {formatBattleHistoryWhen(entry.playedAt)}
+                </span>
+                <span className="records-history-opponent">
+                  {entry.opponentName}
+                  <span className="records-history-opponent-level">
+                    Lv.{entry.opponentLevel}
+                  </span>
+                </span>
+              </div>
+              <OpponentDeckThumbnails cards={entry.opponentDeck} />
+              <span
+                className={`records-history-result records-history-result-${won ? 'win' : 'lose'}`}
+              >
+                {won ? '勝ち' : '負け'}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}

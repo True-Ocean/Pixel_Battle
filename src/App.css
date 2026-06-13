@@ -604,6 +604,373 @@
   pointer-events: none;
 }
 
+/* --- 戦績タブ --- */
+
+.screen-records {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.records-subtabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.records-subtab {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.records-subtab.is-active {
+  border-color: #646cff;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.records-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.records-history-item {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.75rem 0.8rem;
+  margin-bottom: 0.45rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.records-history-item:active {
+  background: #f8fafc;
+}
+
+.records-history-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.records-history-deck-thumbs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 0.15rem;
+}
+
+.records-history-deck-thumb {
+  flex: 0 0 auto;
+}
+
+.records-history-deck-thumb .card-preview {
+  width: 1.65rem;
+  height: 1.65rem;
+  border-width: 1px;
+  border-radius: 3px;
+}
+
+.records-history-when {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.records-history-opponent {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.records-history-opponent-level {
+  margin-left: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.records-history-result {
+  flex-shrink: 0;
+  min-width: 2.5rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.records-history-result-win {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.records-history-result-lose {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.records-history-empty,
+.records-ranking-placeholder {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 1rem 0.5rem;
+  text-align: center;
+}
+
+.records-history-empty-hint {
+  font-size: 0.82rem;
+}
+
+.records-ranking-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.records-history-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    max(0.5rem, env(safe-area-inset-top, 0px))
+    max(0.5rem, env(safe-area-inset-right, 0px))
+    max(0.5rem, env(safe-area-inset-bottom, 0px))
+    max(0.5rem, env(safe-area-inset-left, 0px));
+  background: rgba(0, 0, 0, 0.52);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.records-history-detail-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0;
+  width: min(100%, calc(var(--phone-shell-w, 26.5rem) - 1rem));
+  max-height: calc(
+    100dvh - max(0.5rem, env(safe-area-inset-top, 0px)) -
+      max(0.5rem, env(safe-area-inset-bottom, 0px))
+  );
+  min-height: 0;
+  margin: auto;
+  padding: 0.75rem;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.records-history-detail-header {
+  flex-shrink: 0;
+  margin-bottom: 0.55rem;
+}
+
+.records-history-detail-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.records-history-detail-meta,
+.records-history-detail-opponent,
+.records-history-detail-power {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.records-history-detail-opponent {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.records-history-result-win {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.records-history-result-lose {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.records-history-detail-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.records-history-detail-deck-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.records-history-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.records-history-card-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.45rem;
+  border-style: solid;
+  border-width: 1px;
+  border-color: var(--rarity-border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--rarity-bg, #fafafa);
+}
+
+.records-history-card-art .card-preview {
+  width: 3.25rem;
+  height: 3.25rem;
+  image-rendering: pixelated;
+}
+
+.records-history-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.records-history-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.records-history-card-rarity.rarity-badge--deck {
+  width: 1.65rem;
+  min-width: 1.65rem;
+  height: 1.65rem;
+  font-size: 0.78rem;
+}
+
+.records-history-card-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.records-history-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.records-history-card-bp {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #36405c;
+}
+
+.records-history-detail-actions {
+  flex-shrink: 0;
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.records-history-detail-rematch {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(180deg, #4a7cff 0%, #3562e8 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.records-history-detail-rematch-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.records-history-detail-notice {
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.records-history-detail-close {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #bbb;
+  background: #f0f0f4;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
 .app-footer {
   display: none;
 }
@@ -3152,6 +3519,19 @@
 
 .battle-end-actions-secondary:active {
   transform: translateY(1px);
+}
+
+.battle-practice-notice {
+  flex-shrink: 0;
+  margin: 0 0 0.35rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(100, 108, 255, 0.1);
+  color: #4f46e5;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.35;
 }
 
 .formation-battle-shell {

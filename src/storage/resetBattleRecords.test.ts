@@ -44,6 +44,7 @@ describe('resetBattleRecords', () => {
         { ...makeCard('a'), wins: 0, losses: 0 },
         { ...makeCard('b'), wins: 0, losses: 0 },
       ],
+      battleHistory: [],
     });
   });
 });

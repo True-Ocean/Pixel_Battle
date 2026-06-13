@@ -1,4 +1,4 @@
-import type { Card, CardRarity, CardStars, SaveData } from '../types';
+import type { BattleHistoryEntry, Card, CardRarity, CardStars, SaveData } from '../types';
 import { rescaleDeckBp } from '../card';
 import {
   CANVAS_SIZE_DEFAULT,
@@ -14,7 +14,7 @@ import { applyDevUserProfile, normalizeUserProfile } from '../user';
 const STORAGE_KEY = 'dot5-battle-save-v1';
 
 function emptySave(): SaveData {
-  return { user: null, deck: [] };
+  return { user: null, deck: [], battleHistory: [] };
 }
 
 function parseRarity(value: unknown): CardRarity {
@@ -105,6 +105,35 @@ function migrateDeck(deck: unknown[]): Card[] {
     .slice(0, DECK_MAX);
 }
 
+function migrateBattleHistory(raw: unknown): BattleHistoryEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const entries: BattleHistoryEntry[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const record = item as Record<string, unknown>;
+    if (typeof record.id !== 'string' || typeof record.playedAt !== 'string') continue;
+    if (record.winner !== 'player' && record.winner !== 'cpu') continue;
+    if (typeof record.opponentName !== 'string') continue;
+    if (typeof record.opponentLevel !== 'number') continue;
+    if (typeof record.opponentDeckPower !== 'number') continue;
+    if (typeof record.playerDeckPower !== 'number') continue;
+    if (!Array.isArray(record.opponentDeck)) continue;
+    const opponentDeck = migrateDeck(record.opponentDeck);
+    if (opponentDeck.length === 0) continue;
+    entries.push({
+      id: record.id,
+      playedAt: record.playedAt,
+      winner: record.winner,
+      opponentName: record.opponentName,
+      opponentLevel: Math.floor(record.opponentLevel),
+      opponentDeckPower: Math.floor(record.opponentDeckPower),
+      playerDeckPower: Math.floor(record.playerDeckPower),
+      opponentDeck,
+    });
+  }
+  return entries;
+}
+
 export function loadSave(): SaveData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -113,6 +142,7 @@ export function loadSave(): SaveData {
     if (!Array.isArray(parsed.deck)) return emptySave();
     const user = normalizeUserProfile(parsed.user);
     const deck = migrateDeck(parsed.deck);
+    const battleHistory = migrateBattleHistory(parsed.battleHistory);
     if (user) {
       const devAdjusted = applyDevUserProfile(user);
       const rescale = shouldRescaleDeckForDev();
@@ -124,11 +154,11 @@ export function loadSave(): SaveData {
         devAdjusted.exp !== user.exp ||
         (rescale && deckBpChanged(deck, finalDeck))
       ) {
-        saveSave({ user: devAdjusted, deck: finalDeck });
+        saveSave({ user: devAdjusted, deck: finalDeck, battleHistory });
       }
-      return { user: devAdjusted, deck: finalDeck };
+      return { user: devAdjusted, deck: finalDeck, battleHistory };
     }
-    return { user, deck };
+    return { user, deck, battleHistory };
   } catch {
     return emptySave();
   }
@@ -140,6 +170,7 @@ export function saveSave(data: SaveData): void {
     JSON.stringify({
       user: data.user,
       deck: data.deck.slice(0, DECK_MAX),
+      battleHistory: data.battleHistory ?? [],
     }),
   );
 }
@@ -161,6 +192,7 @@ export function resetBattleRecords(data: SaveData): SaveData {
       wins: 0,
       losses: 0,
     })),
+    battleHistory: [],
   };
 }
 

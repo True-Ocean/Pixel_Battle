@@ -50,6 +50,12 @@ export interface UserProfile {
 }
 
 /** バトル終了時に永続化へ渡す結果 */
+export interface BattleOpponentSnapshot {
+  name: string;
+  level: number;
+  deck: Card[];
+}
+
 export interface BattleOutcome {
   winner: 'player' | 'cpu';
   /** その戦に出撃した自軍カード ID */
@@ -60,11 +66,28 @@ export interface BattleOutcome {
   playerDeckPower: number;
   opponentDeckPower: number;
   fauxLostCardId: string | null;
+  opponent: BattleOpponentSnapshot;
+}
+
+/** useBattle が組み立てる結果（相手スナップショットは BattleSetupScreen が付与） */
+export type BattleOutcomeCore = Omit<BattleOutcome, 'opponent'>;
+
+/** 対戦履歴（最大20件・localStorage 永続化） */
+export interface BattleHistoryEntry {
+  id: string;
+  playedAt: string;
+  winner: 'player' | 'cpu';
+  opponentName: string;
+  opponentLevel: number;
+  opponentDeckPower: number;
+  playerDeckPower: number;
+  opponentDeck: Card[];
 }
 
 export interface SaveData {
   user: UserProfile | null;
   deck: Card[];
+  battleHistory?: BattleHistoryEntry[];
 }
 
 /** アプリ画面（ルーターなし・state で切替） */

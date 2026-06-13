@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import type { Card, ScreenId, UserProfile, BattleOutcome } from './types';
+import type { Card, ScreenId, UserProfile, BattleOutcome, BattleHistoryEntry } from './types';
+import { appendBattleHistory, createBattleHistoryEntry } from './battleHistory';
 import { DECK_MAX } from './config/balance';
 import { applyCardSurvivalRecords, recordCardRevive } from './card';
 import { buildBalancedCpuDeck, randomCpuName } from './game/cpuDeck';
@@ -16,6 +17,7 @@ import { DeckScreen } from './components/DeckScreen';
 import { EditorScreen } from './components/EditorScreen';
 import { BattleHubScreen } from './components/BattleHubScreen';
 import { BattleSetupScreen } from './components/BattleSetupScreen';
+import { RecordsScreen } from './components/RecordsScreen';
 import { PlaceholderScreen } from './components/PlaceholderScreen';
 import { SetupScreen } from './components/SetupScreen';
 import { TitleScreen } from './components/TitleScreen';
@@ -48,18 +50,31 @@ function App() {
   }));
   const [battleSetupKey, setBattleSetupKey] = useState(0);
   const [battleEndDock, setBattleEndDock] = useState(false);
+  const [isPracticeRematch, setIsPracticeRematch] = useState(false);
+  const [battleHistory, setBattleHistory] = useState<BattleHistoryEntry[]>(
+    () => initialSave.battleHistory ?? [],
+  );
   const [editingCard, setEditingCard] = useState<Card | null>(null);
 
   const userRef = useRef(user);
   const deckRef = useRef(deck);
+  const battleHistoryRef = useRef(battleHistory);
+  const isPracticeRematchRef = useRef(false);
+  const practiceRematchEntryRef = useRef<BattleHistoryEntry | null>(null);
   userRef.current = user;
   deckRef.current = deck;
+  battleHistoryRef.current = battleHistory;
 
   const persistSave = useCallback(
-    (next: { user?: UserProfile | null; deck?: Card[] }) => {
+    (next: {
+      user?: UserProfile | null;
+      deck?: Card[];
+      battleHistory?: BattleHistoryEntry[];
+    }) => {
       saveSave({
         user: next.user !== undefined ? next.user : user,
         deck: (next.deck ?? deck).slice(0, DECK_MAX),
+        battleHistory: next.battleHistory ?? battleHistoryRef.current,
       });
     },
     [deck, user],
@@ -75,14 +90,41 @@ function App() {
     [persistSave],
   );
 
+  const clearPracticeRematch = useCallback(() => {
+    setIsPracticeRematch(false);
+    isPracticeRematchRef.current = false;
+    practiceRematchEntryRef.current = null;
+  }, []);
+
   const goToBattleSetup = useCallback(() => {
+    clearPracticeRematch();
     const level = user?.level ?? 1;
     setCpuDeck(buildBalancedCpuDeck(deck, Math.random, level));
     setCpuOpponent({ name: randomCpuName(), level });
     setBattleSetupKey((k) => k + 1);
     setBattleEndDock(false);
     setScreen('battleSetup');
-  }, [deck, user?.level]);
+  }, [clearPracticeRematch, deck, user?.level]);
+
+  const goToPracticeRematch = useCallback((entry: BattleHistoryEntry) => {
+    setIsPracticeRematch(true);
+    isPracticeRematchRef.current = true;
+    practiceRematchEntryRef.current = entry;
+    setCpuDeck(structuredClone(entry.opponentDeck));
+    setCpuOpponent({ name: entry.opponentName, level: entry.opponentLevel });
+    setBattleSetupKey((k) => k + 1);
+    setBattleEndDock(false);
+    setScreen('battleSetup');
+  }, []);
+
+  const rematchSameOpponent = useCallback(() => {
+    const entry = practiceRematchEntryRef.current;
+    if (entry) {
+      goToPracticeRematch(entry);
+      return;
+    }
+    goToBattleSetup();
+  }, [goToBattleSetup, goToPracticeRematch]);
 
   const addCard = useCallback(
     (card: Card) => {
@@ -127,6 +169,9 @@ function App() {
   );
 
   const applyBattleOutcome = useCallback((outcome: BattleOutcome) => {
+    if (isPracticeRematchRef.current) {
+      return;
+    }
     setFauxLostCardId(outcome.fauxLostCardId);
     const prevUser = userRef.current;
     const prevDeck = deckRef.current;
@@ -143,9 +188,14 @@ function App() {
       outcome.playerCardIds,
       outcome.defeatedPlayerCardIds,
     );
-    saveSave({ user: nextUser, deck: nextDeck });
+    const nextHistory = appendBattleHistory(
+      battleHistoryRef.current,
+      createBattleHistoryEntry(outcome),
+    );
+    saveSave({ user: nextUser, deck: nextDeck, battleHistory: nextHistory });
     setUser(nextUser);
     setDeck(nextDeck);
+    setBattleHistory(nextHistory);
   }, []);
 
   const handleBattleEndedChange = useCallback((ended: boolean) => {
@@ -162,15 +212,21 @@ function App() {
   const showDock = isDockVisible(screen) || (screen === 'battleSetup' && battleEndDock);
   const activeTab: TabId =
     screen === 'battleSetup' && battleEndDock
-      ? 'battleHub'
+      ? isPracticeRematch
+        ? 'records'
+        : 'battleHub'
       : isTabId(screen)
         ? screen
         : 'deck';
 
-  const selectTab = useCallback((tab: TabId) => {
-    setBattleEndDock(false);
-    setScreen(tab);
-  }, []);
+  const selectTab = useCallback(
+    (tab: TabId) => {
+      setBattleEndDock(false);
+      clearPracticeRematch();
+      setScreen(tab);
+    },
+    [clearPracticeRematch],
+  );
 
   return (
     <div className={`app app-screen-${screen}${showDock ? ' has-dock' : ''}`}>
@@ -221,9 +277,10 @@ function App() {
           <BattleHubScreen deckCount={deck.length} onStartBattle={goToBattleSetup} />
         )}
         {screen === 'records' && (
-          <PlaceholderScreen
-            title="戦績"
-            description="ユーザー・カード別の勝敗履歴は準備中です"
+          <RecordsScreen
+            battleHistory={battleHistory}
+            deckCount={deck.length}
+            onPracticeRematch={goToPracticeRematch}
           />
         )}
         {screen === 'shop' && (
@@ -257,8 +314,9 @@ function App() {
                 : undefined
             }
             opponentIdentity={cpuOpponent}
+            isPracticeRematch={isPracticeRematch}
             onFinish={applyBattleOutcome}
-            onNewBattle={goToBattleSetup}
+            onNewBattle={isPracticeRematch ? rematchSameOpponent : goToBattleSetup}
             onBattleEndedChange={handleBattleEndedChange}
           />
         )}

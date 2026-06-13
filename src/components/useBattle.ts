@@ -24,7 +24,7 @@ import {
   startNextTurn,
 } from '../game';
 import type { PoisonDoTPlayback } from '../game/turnResult';
-import type { Card, BattleOutcome } from '../types';
+import type { Card, BattleOutcomeCore } from '../types';
 import type {
   BattleActionChoice,
   BattleActionType,
@@ -67,7 +67,7 @@ export interface BattlePlayback {
 export function useBattle(
   playerCards: Card[],
   cpuCards: Card[],
-  onFinish: (outcome: BattleOutcome) => void,
+  onFinish: (outcome: BattleOutcomeCore) => void,
 ) {
   const [state, setState] = useState<BattleState>(() =>
     createBattleState(playerCards, cpuCards),

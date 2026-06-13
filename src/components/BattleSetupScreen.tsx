@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { CPU_OPPONENT_LEVEL, DECK_MAX, SETUP_TIME_LIMIT_SEC } from '../config/balance';
 import { computeDeckPower } from '../card';
-import type { Card, BattleOutcome } from '../types';
+import type { Card, BattleOutcome, BattleOutcomeCore } from '../types';
 import type { BoardPosition } from '../types/battle';
 import {
   BACK_POSITIONS,
@@ -111,6 +111,7 @@ interface BattleSetupScreenProps {
   cpuDeck: Card[];
   playerIdentity?: BattleZoneProfile;
   opponentIdentity?: BattleZoneProfile;
+  isPracticeRematch?: boolean;
   onFinish: (outcome: BattleOutcome) => void;
   onNewBattle: () => void;
   onBattleEndedChange?: (ended: boolean) => void;
@@ -1303,7 +1304,7 @@ function BattleSession({
   cpuCards: Card[];
   opponentIdentity: BattleZoneIdentity;
   playerIdentity?: BattleZoneIdentity;
-  onFinish: BattleSetupScreenProps['onFinish'];
+  onFinish: (outcome: BattleOutcomeCore) => void;
   onEndedChange?: (ended: boolean) => void;
   view: 'play' | 'log';
 }) {
@@ -1344,6 +1345,7 @@ export function BattleSetupScreen({
   cpuDeck,
   playerIdentity,
   opponentIdentity,
+  isPracticeRematch = false,
   onFinish,
   onNewBattle,
   onBattleEndedChange,
@@ -1587,6 +1589,25 @@ export function BattleSetupScreen({
     setPhase('battle');
   };
 
+  const handleBattleFinish = useCallback(
+    (outcome: BattleOutcomeCore) => {
+      onFinish({
+        ...outcome,
+        opponent: {
+          name: resolvedOpponentIdentity.name,
+          level: resolvedOpponentIdentity.level,
+          deck: structuredClone(battleCards.cpu),
+        },
+      });
+    },
+    [
+      battleCards.cpu,
+      onFinish,
+      resolvedOpponentIdentity.level,
+      resolvedOpponentIdentity.name,
+    ],
+  );
+
   if (!canBattle) {
     return (
       <section className="screen">
@@ -1603,6 +1624,11 @@ export function BattleSetupScreen({
       className={`screen setup-reveal formation-screen${phase === 'reveal' ? ' is-reveal-phase' : ''}${phase === 'setup' ? ' is-setup-phase' : ''}${phase === 'battle' ? ' is-battle-active' : ''}${battleSubView === 'log' ? ' is-battle-log' : ''}${battleEnded ? ' has-end-actions' : ''}`}
     >
       <div className="formation-battle-shell">
+        {isPracticeRematch && (
+          <p className="battle-practice-notice" role="status">
+            練習再戦（履歴・報酬なし）
+          </p>
+        )}
         <div
           className={`formation-battle-body${phase === 'reveal' ? ' formation-reveal-body' : ''}${phase === 'battle' ? ' formation-battle-play-body' : ''}`}
         >
@@ -1612,7 +1638,7 @@ export function BattleSetupScreen({
               cpuCards={battleCards.cpu}
               opponentIdentity={resolvedOpponentIdentity}
               playerIdentity={resolvedPlayerIdentity}
-              onFinish={onFinish}
+              onFinish={handleBattleFinish}
               onEndedChange={setBattleEnded}
               view={battleSubView}
             />
@@ -1678,7 +1704,7 @@ export function BattleSetupScreen({
         <div className="battle-end-actions-overlay" aria-label="バトル終了">
           <div className="battle-end-actions-stack">
             <button type="button" className="battle-end-actions-primary" onClick={onNewBattle}>
-              新規バトル
+              {isPracticeRematch ? 'もう一度対戦する' : '新規バトル'}
             </button>
             <button
               type="button"
