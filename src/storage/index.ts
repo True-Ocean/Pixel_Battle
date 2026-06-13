@@ -31,6 +31,7 @@ function emptySave(): SaveData {
     user: null,
     decks: createEmptyDeckSlots(),
     activeDeckIndex: 0,
+    lastBattleDeckIndex: 0,
     unlockedDeckCount: DECK_SLOT_INITIAL_UNLOCKED,
     battleHistory: [],
   };
@@ -170,6 +171,13 @@ function migrateBattleHistory(raw: unknown): BattleHistoryEntry[] {
     if (!Array.isArray(record.opponentDeck)) continue;
     const opponentDeck = getDeckCards(migrateDeck(record.opponentDeck));
     if (opponentDeck.length === 0) continue;
+    const playerDeckRaw = Array.isArray(record.playerDeck)
+      ? getDeckCards(migrateDeck(record.playerDeck))
+      : undefined;
+    const playerLevel =
+      typeof record.playerLevel === 'number'
+        ? Math.floor(record.playerLevel)
+        : undefined;
     entries.push({
       id: record.id,
       playedAt: record.playedAt,
@@ -179,6 +187,10 @@ function migrateBattleHistory(raw: unknown): BattleHistoryEntry[] {
       opponentDeckPower: Math.floor(record.opponentDeckPower),
       playerDeckPower: Math.floor(record.playerDeckPower),
       opponentDeck,
+      ...(playerDeckRaw && playerDeckRaw.length > 0
+        ? { playerDeck: playerDeckRaw }
+        : {}),
+      ...(playerLevel != null ? { playerLevel } : {}),
     });
   }
   return entries;
@@ -186,10 +198,15 @@ function migrateBattleHistory(raw: unknown): BattleHistoryEntry[] {
 
 function normalizeSaveFields(parsed: Record<string, unknown>, decks: DeckLayout[]): Pick<
   SaveData,
-  'activeDeckIndex' | 'unlockedDeckCount' | 'deckNames'
+  'activeDeckIndex' | 'lastBattleDeckIndex' | 'unlockedDeckCount' | 'deckNames'
 > {
   const activeDeckIndex = clampDeckSlotIndex(
     typeof parsed.activeDeckIndex === 'number' ? parsed.activeDeckIndex : 0,
+  );
+  const lastBattleDeckIndex = clampDeckSlotIndex(
+    typeof parsed.lastBattleDeckIndex === 'number'
+      ? parsed.lastBattleDeckIndex
+      : activeDeckIndex,
   );
   const unlockedDeckCount = clampUnlockedDeckCount(
     typeof parsed.unlockedDeckCount === 'number'
@@ -203,7 +220,14 @@ function normalizeSaveFields(parsed: Record<string, unknown>, decks: DeckLayout[
     : undefined;
   const safeActiveIndex =
     activeDeckIndex < unlockedDeckCount ? activeDeckIndex : 0;
-  return { activeDeckIndex: safeActiveIndex, unlockedDeckCount, deckNames };
+  const safeLastBattleIndex =
+    lastBattleDeckIndex < unlockedDeckCount ? lastBattleDeckIndex : safeActiveIndex;
+  return {
+    activeDeckIndex: safeActiveIndex,
+    lastBattleDeckIndex: safeLastBattleIndex,
+    unlockedDeckCount,
+    deckNames,
+  };
 }
 
 function rescaleAllDecks(decks: DeckLayout[], level: number): DeckLayout[] {
@@ -233,15 +257,14 @@ export function loadSave(): SaveData {
     const user = normalizeUserProfile(parsed.user);
     const decks = normalizeDeckSlots(migrateDecks(parsed));
     const battleHistory = migrateBattleHistory(parsed.battleHistory);
-    const { activeDeckIndex, unlockedDeckCount, deckNames } = normalizeSaveFields(
-      parsed,
-      decks,
-    );
+    const { activeDeckIndex, lastBattleDeckIndex, unlockedDeckCount, deckNames } =
+      normalizeSaveFields(parsed, decks);
 
     const baseSave: SaveData = {
       user,
       decks,
       activeDeckIndex,
+      lastBattleDeckIndex,
       unlockedDeckCount,
       deckNames,
       battleHistory,
@@ -280,6 +303,9 @@ export function saveSave(data: SaveData): void {
       user: data.user,
       decks: normalizeDeckSlots(data.decks).map((deck) => deck.slice(0, DECK_MAX)),
       activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
+      lastBattleDeckIndex: clampDeckSlotIndex(
+        data.lastBattleDeckIndex ?? data.activeDeckIndex,
+      ),
       unlockedDeckCount: clampUnlockedDeckCount(data.unlockedDeckCount),
       deckNames: data.deckNames,
       battleHistory: data.battleHistory ?? [],
@@ -301,6 +327,9 @@ export function resetBattleRecords(data: SaveData): SaveData {
       : null,
     decks: resetAllDeckCardRecords(normalizeDeckSlots(data.decks)),
     activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
+    lastBattleDeckIndex: clampDeckSlotIndex(
+      data.lastBattleDeckIndex ?? data.activeDeckIndex,
+    ),
     unlockedDeckCount: clampUnlockedDeckCount(data.unlockedDeckCount),
     deckNames: data.deckNames,
     battleHistory: [],

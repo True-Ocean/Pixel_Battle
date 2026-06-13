@@ -85,6 +85,10 @@ export interface BattleHistoryEntry {
   opponentDeckPower: number;
   playerDeckPower: number;
   opponentDeck: Card[];
+  /** 出撃時点の自軍デッキ（5枚スナップショット） */
+  playerDeck?: Card[];
+  /** 出撃時点のユーザーレベル */
+  playerLevel?: number;
 }
 
 export interface SaveData {
@@ -93,6 +97,8 @@ export interface SaveData {
   decks: DeckLayout[];
   /** 現在選択中のデッキスロット（0〜4） */
   activeDeckIndex: number;
+  /** 直近 CPU 戦で使用したデッキスロット（0〜4） */
+  lastBattleDeckIndex: number;
   /** 解放済みデッキスロット数（1〜5） */
   unlockedDeckCount: number;
   /** 将来: デッキ名。未設定時はタブ番号を表示 */

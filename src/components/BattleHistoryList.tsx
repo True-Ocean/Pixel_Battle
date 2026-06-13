@@ -1,4 +1,4 @@
-import { formatBattleHistoryWhen } from '../battleHistory';
+import { formatBattleHistoryWhen, CPU_OPPONENT_LABEL } from '../battleHistory';
 import type { BattleHistoryEntry, Card } from '../types';
 import { CardPreview } from './CardPreview';
 
@@ -45,7 +45,7 @@ export function BattleHistoryList({ entries, onSelect }: BattleHistoryListProps)
                   {formatBattleHistoryWhen(entry.playedAt)}
                 </span>
                 <span className="records-history-opponent">
-                  {entry.opponentName}
+                  <span className="records-history-opponent-name">{CPU_OPPONENT_LABEL}</span>
                   <span className="records-history-opponent-level">
                     Lv.{entry.opponentLevel}
                   </span>

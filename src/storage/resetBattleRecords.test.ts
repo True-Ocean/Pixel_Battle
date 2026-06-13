@@ -35,6 +35,7 @@ describe('resetBattleRecords', () => {
       },
       decks,
       activeDeckIndex: 0,
+      lastBattleDeckIndex: 0,
       unlockedDeckCount: 1,
     };
 
@@ -60,6 +61,7 @@ describe('resetBattleRecords', () => {
         [null, null, null, null, null],
       ],
       activeDeckIndex: 0,
+      lastBattleDeckIndex: 0,
       unlockedDeckCount: 1,
       battleHistory: [],
     });

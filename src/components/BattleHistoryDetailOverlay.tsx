@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { DECK_MAX } from '../config/balance';
 import { getRarityMeta } from '../config/rarity';
 import type { BattleHistoryEntry, Card } from '../types';
-import { formatBattleHistoryWhen } from '../battleHistory';
+import { formatBattleHistoryWhen, CPU_OPPONENT_LABEL } from '../battleHistory';
 import { AttributeBadge } from './AttributeBadge';
 import { CardPreview } from './CardPreview';
 import { RarityBadge } from './RarityBadge';
@@ -115,7 +115,7 @@ export function BattleHistoryDetailOverlay({
             </span>
           </p>
           <p className="records-history-detail-opponent">
-            vs {entry.opponentName}
+            vs {CPU_OPPONENT_LABEL}
             <span className="records-history-opponent-level"> Lv.{entry.opponentLevel}</span>
           </p>
           <p className="records-history-detail-power muted">

@@ -14,6 +14,7 @@ import { computeColorRatios, normalizePixelColor } from './colors';
 import type { ColorRatios } from './colors';
 import { buildCardSeed, hashToUnit } from './hash';
 import { rollRarity } from './rarity';
+import { createId } from '../utils/createId';
 
 export interface CardDraft {
   attribute: Attribute;
@@ -143,14 +144,6 @@ function normalizeGrid(
   );
 }
 
-/** HTTP の LAN アクセスなど非セキュアコンテキストでも使える ID 生成 */
-function createCardId(): string {
-  if (typeof crypto?.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
-}
-
 export function createCardFromDrawing(
   name: string,
   pixels: PixelGrid,
@@ -174,7 +167,7 @@ export function createCardFromDrawing(
   const canvasSize = options.canvasSize ?? gridSize(normalized);
 
   return {
-    id: createCardId(),
+    id: createId(),
     name: name.trim(),
     pixels: normalized,
     canvasSize,

@@ -67,6 +67,32 @@ export function isDeckBattleReady(deck: readonly (Card | null)[]): boolean {
   return deck.length === DECK_MAX && deck.every((card) => card != null);
 }
 
+/** 5枚完成かつ解放済みのデッキスロット index 一覧 */
+export function getBattleReadyDeckIndices(
+  decks: readonly DeckLayout[],
+  unlockedDeckCount: number,
+): number[] {
+  const indices: number[] = [];
+  for (let i = 0; i < DECK_SLOT_COUNT; i++) {
+    if (!isDeckSlotUnlocked(i, unlockedDeckCount)) continue;
+    if (isDeckBattleReady(normalizeDeckLayout(decks[i] ?? []))) {
+      indices.push(i);
+    }
+  }
+  return indices;
+}
+
+/** Hub 初回選択: 1つなら自動、複数なら前回使用デッキが完成ならそれ、さもなければ null */
+export function resolveBattleHubDeckSelection(
+  readyIndices: readonly number[],
+  lastBattleDeckIndex: number,
+): number | null {
+  if (readyIndices.length === 0) return null;
+  if (readyIndices.length === 1) return readyIndices[0] ?? null;
+  if (readyIndices.includes(lastBattleDeckIndex)) return lastBattleDeckIndex;
+  return null;
+}
+
 export function getDeckCards(deck: readonly (Card | null)[]): Card[] {
   return deck.filter((card): card is Card => card != null);
 }

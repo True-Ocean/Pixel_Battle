@@ -1702,18 +1702,20 @@ export function BattleSetupScreen({
 
       {phase === 'battle' && battleEnded && battleSubView === 'play' && (
         <div className="battle-end-actions-overlay" aria-label="バトル終了">
-          <div className="battle-end-actions-stack">
-            <button type="button" className="battle-end-actions-primary" onClick={onNewBattle}>
-              {isPracticeRematch ? 'もう一度対戦する' : '新規バトル'}
-            </button>
-            <button
-              type="button"
-              className="battle-end-actions-secondary"
-              onClick={() => setBattleSubView('log')}
-            >
-              バトルログ
-            </button>
-          </div>
+          <button
+            type="button"
+            className="battle-end-actions-btn battle-end-actions-btn--primary"
+            onClick={onNewBattle}
+          >
+            {isPracticeRematch ? 'もう一度対戦する' : '新規バトル'}
+          </button>
+          <button
+            type="button"
+            className="battle-end-actions-btn battle-end-actions-btn--secondary"
+            onClick={() => setBattleSubView('log')}
+          >
+            バトルログ
+          </button>
         </div>
       )}
 

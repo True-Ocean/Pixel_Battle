@@ -544,6 +544,236 @@
   flex-direction: column;
 }
 
+.battle-hub-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.35rem 0.15rem 0.5rem;
+}
+
+.battle-hub-deck-list {
+  flex: 0 0 auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+}
+
+.battle-hub-deck-tile {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.42rem 0.55rem;
+  border-radius: 12px;
+  border: 2px solid #cbd5e1;
+  background: #f8fafc;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.battle-hub-deck-tile:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.battle-hub-deck-tile.is-locked {
+  background: #f1f5f9;
+  border-color: #dbe3ee;
+}
+
+.battle-hub-deck-tile.is-incomplete {
+  background: #f8fafc;
+  border-color: #d8e0ea;
+}
+
+.battle-hub-deck-tile.is-selected {
+  border-color: #646cff;
+  background: #eef2ff;
+  box-shadow: 0 0 0 2px #646cff33;
+}
+
+.battle-hub-deck-tile-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.battle-hub-deck-label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.battle-hub-deck-tile.is-selected .battle-hub-deck-label {
+  color: #4338ca;
+}
+
+.battle-hub-deck-power,
+.battle-hub-deck-status {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.battle-hub-deck-power strong,
+.battle-hub-deck-status strong {
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.battle-hub-deck-tile.is-selected .battle-hub-deck-power strong,
+.battle-hub-deck-tile.is-selected .battle-hub-deck-status strong {
+  color: #4338ca;
+}
+
+.battle-hub-deck-tile.is-locked .battle-hub-deck-label,
+.battle-hub-deck-tile.is-locked .battle-hub-deck-status,
+.battle-hub-deck-tile.is-incomplete .battle-hub-deck-label,
+.battle-hub-deck-tile.is-incomplete .battle-hub-deck-status {
+  color: #94a3b8;
+}
+
+.battle-hub-deck-tile.is-incomplete .battle-hub-deck-status strong {
+  color: #64748b;
+}
+
+.battle-hub-deck-lock {
+  font-size: 0.72rem;
+}
+
+.battle-hub-deck-icons {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.28rem;
+}
+
+.battle-hub-deck-icon {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.battle-hub-deck-icon .battle-card,
+.battle-hub-deck-icon .battle-card.setup-card-fixed {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  border: none;
+  border-radius: inherit;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.battle-hub-deck-icon .battle-card-art,
+.battle-hub-deck-icon .battle-card.setup-card-fixed .battle-card-art {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.battle-hub-deck-icon .battle-card-art .card-preview,
+.battle-hub-deck-icon .battle-card.setup-card-fixed .battle-card-art .card-preview {
+  aspect-ratio: 1;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  flex: 0 0 auto;
+}
+
+.battle-hub-deck-icon .battle-card-bp,
+.battle-hub-deck-icon .battle-card.setup-card-fixed .battle-card-bp {
+  font-size: clamp(0.54rem, 3vw, 0.68rem);
+  top: 0.04rem;
+  right: 0.04rem;
+  min-width: clamp(1.05rem, 5vw, 1.28rem);
+  padding: 0.05rem 0.14rem;
+  z-index: 3;
+}
+
+.battle-hub-deck-icon .battle-card-attr,
+.battle-hub-deck-icon .battle-card.setup-card-fixed .battle-card-attr {
+  left: 0.04rem;
+  bottom: 0.04rem;
+  display: inline-grid;
+  place-items: center;
+  width: clamp(0.95rem, 5.5vw, 1.2rem);
+  height: clamp(0.95rem, 5.5vw, 1.2rem);
+  font-size: clamp(0.58rem, 3.2vw, 0.68rem);
+  line-height: 1;
+  border-width: 1px;
+  border-radius: 3px;
+  padding: 0;
+  z-index: 3;
+}
+
+.battle-hub-deck-icon .battle-card-name,
+.battle-hub-deck-icon .battle-card.setup-card-fixed .battle-card-name,
+.battle-hub-deck-icon .battle-card-slot {
+  display: none !important;
+}
+
+.battle-hub-deck-icon--empty {
+  border-style: dashed;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.battle-hub-deck-icon--locked {
+  border-style: dashed;
+  border-color: #dbe3ee;
+  background: #eef2f6;
+}
+
+.battle-hub-deck-tile.is-incomplete .battle-hub-deck-icon:not(.battle-hub-deck-icon--empty) {
+  opacity: 0.82;
+}
+
+.battle-hub-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 1rem 0.75rem;
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.battle-hub-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.battle-hub-mode-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .battle-hub-center {
   flex: 1;
   min-height: 0;
@@ -653,10 +883,11 @@
 
 .records-history-item {
   box-sizing: border-box;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
+  column-gap: 0.45rem;
+  row-gap: 0.35rem;
   width: 100%;
   padding: 0.75rem 0.8rem;
   margin-bottom: 0.45rem;
@@ -678,17 +909,14 @@
   flex-direction: column;
   gap: 0.2rem;
   min-width: 0;
-  flex: 0 1 auto;
 }
 
 .records-history-deck-thumbs {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 0.12rem;
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 0 0.15rem;
+  flex-shrink: 0;
 }
 
 .records-history-deck-thumb {
@@ -708,13 +936,24 @@
 }
 
 .records-history-opponent {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  min-width: 0;
   font-size: 0.95rem;
   font-weight: 600;
   color: #1e293b;
 }
 
+.records-history-opponent-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
 .records-history-opponent-level {
-  margin-left: 0.35rem;
+  flex-shrink: 0;
   font-size: 0.82rem;
   font-weight: 600;
   color: #64748b;
@@ -3978,66 +4217,66 @@
   margin-top: 0.35rem;
 }
 
+.formation-screen.is-battle-active.has-end-actions {
+  flex: 1;
+  min-height: 0;
+}
+
+.app.has-dock .formation-screen.is-battle-active {
+  --formation-card-h: min(
+    7.85rem,
+    calc((100dvh - 12.5rem - var(--app-dock-h, 3.65rem)) / 4.15)
+  );
+}
+
 .battle-end-actions-overlay {
   position: absolute;
   inset: 0;
   z-index: 35;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding-inline: 0.2rem;
   pointer-events: none;
 }
 
-.battle-end-actions-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.65rem;
+.battle-end-actions-btn {
+  box-sizing: border-box;
   pointer-events: auto;
+  flex: 0 0 min(5.35rem, 27vw);
+  width: min(5.35rem, 27vw);
+  min-height: 2.85rem;
+  padding: 0.5rem 0.4rem;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
 }
 
-.battle-end-actions-primary {
-  box-sizing: border-box;
-  min-width: min(100%, 11rem);
-  min-height: 3.25rem;
-  padding: 0.75rem 2rem;
-  border-radius: 12px;
+.battle-end-actions-btn--primary {
   border: 1px solid #646cff;
   background: #646cff;
   color: #fff;
-  font: inherit;
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.2;
-  text-align: center;
-  cursor: pointer;
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.24);
 }
 
-.battle-end-actions-primary:active {
+.battle-end-actions-btn--primary:active {
   transform: translateY(1px);
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.18);
 }
 
-.battle-end-actions-secondary {
-  box-sizing: border-box;
-  min-width: min(100%, 9.5rem);
-  min-height: 2.45rem;
-  padding: 0.5rem 1.35rem;
-  border-radius: 10px;
+.battle-end-actions-btn--secondary {
   border: 1px solid rgba(255, 255, 255, 0.88);
   background: rgba(255, 255, 255, 0.94);
   color: #334155;
-  font: inherit;
-  font-size: 0.88rem;
-  font-weight: 600;
-  line-height: 1.2;
-  text-align: center;
-  cursor: pointer;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.16);
 }
 
-.battle-end-actions-secondary:active {
+.battle-end-actions-btn--secondary:active {
   transform: translateY(1px);
 }
 
@@ -6981,10 +7220,14 @@ button.battle-card {
 
 .formation-battle-log-back {
   flex-shrink: 0;
+  padding-top: 0.15rem;
+  padding-bottom: 0.1rem;
 }
 
-.app.has-dock .formation-battle-log-back {
-  margin-bottom: calc(var(--app-dock-h, 3.65rem) + 0.15rem);
+.formation-screen.is-battle-log .formation-battle-shell {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .formation-battle-log-back button {

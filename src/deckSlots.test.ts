@@ -4,11 +4,13 @@ import {
   clampUnlockedDeckCount,
   countDeckCards,
   createEmptyDeckSlots,
+  getBattleReadyDeckIndices,
   isDeckSlotUnlocked,
   moveCardBetweenDeckSlots,
   moveCardInLayout,
   normalizeDeckLayout,
   normalizeDeckSlots,
+  resolveBattleHubDeckSelection,
   updateDeckAtIndex,
 } from './deckSlots';
 
@@ -190,5 +192,22 @@ describe('deckSlots', () => {
       [null, null, null, null, null],
       [null, null, null, null, null],
     ]);
+  });
+
+  it('lists battle-ready deck indices among unlocked slots', () => {
+    const decks = createEmptyDeckSlots();
+    decks[0] = [card('a'), card('b'), card('c'), card('d'), card('e')];
+    decks[1] = [card('f'), null, null, null, null];
+    decks[2] = [card('g'), card('h'), card('i'), card('j'), card('k')];
+
+    expect(getBattleReadyDeckIndices(decks, 1)).toEqual([0]);
+    expect(getBattleReadyDeckIndices(decks, 3)).toEqual([0, 2]);
+  });
+
+  it('resolves hub deck selection from ready indices and last battle deck', () => {
+    expect(resolveBattleHubDeckSelection([], 0)).toBeNull();
+    expect(resolveBattleHubDeckSelection([2], 0)).toBe(2);
+    expect(resolveBattleHubDeckSelection([0, 2], 2)).toBe(2);
+    expect(resolveBattleHubDeckSelection([0, 2], 1)).toBeNull();
   });
 });
