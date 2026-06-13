@@ -10,10 +10,12 @@ import {
   isProfileComplete,
   recordUserBattleOutcome,
 } from './user';
+import { AppTitle } from './components/AppTitle';
 import { DeckScreen } from './components/DeckScreen';
 import { EditorScreen } from './components/EditorScreen';
 import { BattleSetupScreen } from './components/BattleSetupScreen';
 import { SetupScreen } from './components/SetupScreen';
+import { TitleScreen } from './components/TitleScreen';
 import { UserProfileBar } from './components/UserProfileBar';
 import './App.css';
 
@@ -23,9 +25,8 @@ function initialScreen(user: UserProfile | null): ScreenId {
 
 function App() {
   const initialSave = loadSave();
-  const [screen, setScreen] = useState<ScreenId>(() =>
-    initialScreen(initialSave.user),
-  );
+  const [screen, setScreen] = useState<ScreenId>('title');
+  const [enterFromTitle, setEnterFromTitle] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(initialSave.user);
   const [deck, setDeck] = useState<Card[]>(() => initialSave.deck);
   const [fauxLostCardId, setFauxLostCardId] = useState<string | null>(null);
@@ -143,8 +144,16 @@ function App() {
 
   const goToDeck = useCallback(() => setScreen('deck'), []);
 
+  const completeTitle = useCallback(() => {
+    setScreen(initialScreen(user));
+    setEnterFromTitle(true);
+  }, [user]);
+
   const showAppHeader =
-    screen !== 'editor' && screen !== 'battleSetup' && screen !== 'setup';
+    screen !== 'title' &&
+    screen !== 'editor' &&
+    screen !== 'battleSetup' &&
+    screen !== 'setup';
   const showProfileBar = showAppHeader && isProfileComplete(user);
 
   const navItems = (
@@ -186,17 +195,7 @@ function App() {
       {screen === 'setup' && (
         <header className="app-header app-header-setup">
           <div className="app-brand">
-            <h1 className="app-title" aria-label="簡単！真剣！お絵描きピクセルバトル！">
-              <span className="app-title-hooks">
-                <span className="app-title-easy">簡単！</span>
-                <span className="app-title-serious">真剣！</span>
-              </span>
-              <span className="app-title-main">
-                <span className="app-title-oekaki">お絵描き</span>
-                <span className="app-title-pixel">ピクセル</span>
-                <span className="app-title-battle">バトル！</span>
-              </span>
-            </h1>
+            <AppTitle />
           </div>
         </header>
       )}
@@ -204,24 +203,15 @@ function App() {
       {showAppHeader && (
         <header className="app-header">
           <div className="app-brand">
-            <h1 className="app-title" aria-label="簡単！真剣！お絵描きピクセルバトル！">
-              <span className="app-title-hooks">
-                <span className="app-title-easy">簡単！</span>
-                <span className="app-title-serious">真剣！</span>
-              </span>
-              <span className="app-title-main">
-                <span className="app-title-oekaki">お絵描き</span>
-                <span className="app-title-pixel">ピクセル</span>
-                <span className="app-title-battle">バトル！</span>
-              </span>
-            </h1>
+            <AppTitle />
             {showProfileBar && user && <UserProfileBar user={user} />}
           </div>
           {nav}
         </header>
       )}
 
-      <main>
+      <main className={enterFromTitle ? 'is-entering-from-title' : undefined}>
+        {screen === 'title' && <TitleScreen onComplete={completeTitle} />}
         {screen === 'setup' && <SetupScreen onComplete={completeSetup} />}
         {screen === 'deck' && (
           <DeckScreen
@@ -280,7 +270,7 @@ function App() {
         )}
       </main>
 
-      {screen !== 'setup' && (
+      {screen !== 'setup' && screen !== 'title' && (
         <footer className="app-footer">
           <span>
             仕様:{' '}

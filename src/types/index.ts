@@ -68,7 +68,13 @@ export interface SaveData {
 }
 
 /** アプリ画面（ルーターなし・state で切替） */
-export type ScreenId = 'setup' | 'deck' | 'editor' | 'battleSetup' | 'battle';
+export type ScreenId =
+  | 'title'
+  | 'setup'
+  | 'deck'
+  | 'editor'
+  | 'battleSetup'
+  | 'battle';
 
 export interface NavigationState {
   screen: ScreenId;
