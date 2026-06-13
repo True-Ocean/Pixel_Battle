@@ -14,6 +14,7 @@ import { AppTitle } from './components/AppTitle';
 import { AppDock } from './components/AppDock';
 import { DeckScreen } from './components/DeckScreen';
 import { EditorScreen } from './components/EditorScreen';
+import { BattleHubScreen } from './components/BattleHubScreen';
 import { BattleSetupScreen } from './components/BattleSetupScreen';
 import { PlaceholderScreen } from './components/PlaceholderScreen';
 import { SetupScreen } from './components/SetupScreen';
@@ -212,10 +213,7 @@ function App() {
           />
         )}
         {screen === 'battleHub' && (
-          <PlaceholderScreen
-            title="バトル"
-            description="バトルメニューは準備中です（Phase 2 で実装予定）"
-          />
+          <BattleHubScreen deckCount={deck.length} onStartBattle={goToBattleSetup} />
         )}
         {screen === 'records' && (
           <PlaceholderScreen

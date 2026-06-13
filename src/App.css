@@ -537,6 +537,47 @@
   margin-bottom: 0.35rem;
 }
 
+.screen-battle-hub {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.battle-hub-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.15rem;
+}
+
+.battle-hub-lead {
+  margin: 0;
+  text-align: center;
+  line-height: 1.55;
+}
+
+.battle-hub-notice {
+  margin: 0;
+  text-align: center;
+  line-height: 1.45;
+}
+
+.battle-hub-actions {
+  flex-shrink: 0;
+  padding-top: 0.25rem;
+}
+
+.battle-hub-actions .primary {
+  width: 100%;
+  min-height: 2.85rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .app-footer {
   display: none;
 }
