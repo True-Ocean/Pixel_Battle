@@ -21,7 +21,13 @@ function makeCard(id: string): Card {
 
 describe('applyCardSurvivalRecords', () => {
   it('increments wins for survivors and losses for defeated cards', () => {
-    const deck = [makeCard('a'), makeCard('b'), makeCard('c'), makeCard('d')];
+    const deck = [
+      makeCard('a'),
+      makeCard('b'),
+      makeCard('c'),
+      makeCard('d'),
+      null,
+    ];
     const next = applyCardSurvivalRecords(deck, ['a', 'b', 'c'], ['b']);
 
     expect(next[0]?.wins).toBe(1);
@@ -36,7 +42,7 @@ describe('applyCardSurvivalRecords', () => {
 
 describe('recordCardRevive', () => {
   it('increments reviveCount for the target card only', () => {
-    const deck = [makeCard('a'), makeCard('b')];
+    const deck = [makeCard('a'), makeCard('b'), null, null, null];
     deck[0]!.reviveCount = 2;
 
     const next = recordCardRevive(deck, 'a');

@@ -23,7 +23,7 @@ function makeCard(id: string): Card {
 describe('resetBattleRecords', () => {
   it('resets user level and card records while keeping deck content', () => {
     const decks = createEmptyDeckSlots();
-    decks[0] = [makeCard('a'), makeCard('b')];
+    decks[0] = [makeCard('a'), makeCard('b'), null, null, null];
 
     const save: SaveData = {
       user: {
@@ -46,10 +46,19 @@ describe('resetBattleRecords', () => {
         battleWins: 0,
         battleLosses: 0,
       },
-      decks: [[
-        { ...makeCard('a'), wins: 0, losses: 0 },
-        { ...makeCard('b'), wins: 0, losses: 0 },
-      ], [], [], [], []],
+      decks: [
+        [
+          { ...makeCard('a'), wins: 0, losses: 0 },
+          { ...makeCard('b'), wins: 0, losses: 0 },
+          null,
+          null,
+          null,
+        ],
+        [null, null, null, null, null],
+        [null, null, null, null, null],
+        [null, null, null, null, null],
+        [null, null, null, null, null],
+      ],
       activeDeckIndex: 0,
       unlockedDeckCount: 1,
       battleHistory: [],

@@ -3,9 +3,13 @@ import { rescaleDeckBp } from '../card';
 import {
   clampDeckSlotIndex,
   clampUnlockedDeckCount,
+  countDeckCards,
   createEmptyDeckSlots,
+  getDeckCards,
+  normalizeDeckLayout,
   normalizeDeckSlots,
   resetAllDeckCardRecords,
+  type DeckLayout,
 } from '../deckSlots';
 import {
   CANVAS_SIZE_DEFAULT,
@@ -105,26 +109,34 @@ function shouldRescaleDeckForDev(): boolean {
   );
 }
 
-function deckBpChanged(before: Card[], after: Card[]): boolean {
-  return after.some((card, index) => card.bp !== before[index]?.bp);
+function deckBpChanged(before: DeckLayout, after: DeckLayout): boolean {
+  return after.some((card, index) => card?.bp !== before[index]?.bp);
 }
 
-function anyDeckBpChanged(before: Card[][], after: Card[][]): boolean {
+function anyDeckBpChanged(before: DeckLayout[], after: DeckLayout[]): boolean {
   return after.some((deck, index) => deckBpChanged(before[index] ?? [], deck));
 }
 
-function migrateDeck(deck: unknown[]): Card[] {
-  return deck
-    .map((item) =>
-      item && typeof item === 'object'
-        ? migrateCard(item as Record<string, unknown>)
-        : null,
-    )
-    .filter((card): card is Card => card != null)
-    .slice(0, DECK_MAX);
+function migrateDeck(deck: unknown[]): DeckLayout {
+  const slots = Array.from({ length: DECK_MAX }, () => null) as DeckLayout;
+  const hasExplicitNull = deck.some((item) => item === null);
+  for (let i = 0; i < Math.min(deck.length, DECK_MAX); i++) {
+    const item = deck[i];
+    if (item === null) {
+      slots[i] = null;
+      continue;
+    }
+    if (item && typeof item === 'object') {
+      slots[i] = migrateCard(item as Record<string, unknown>);
+    }
+  }
+  if (hasExplicitNull || deck.length === DECK_MAX) {
+    return slots;
+  }
+  return normalizeDeckLayout(getDeckCards(slots));
 }
 
-function migrateDecks(parsed: Record<string, unknown>): Card[][] {
+function migrateDecks(parsed: Record<string, unknown>): DeckLayout[] {
   if (Array.isArray(parsed.decks)) {
     const slots = createEmptyDeckSlots();
     for (let i = 0; i < DECK_SLOT_COUNT; i++) {
@@ -156,7 +168,7 @@ function migrateBattleHistory(raw: unknown): BattleHistoryEntry[] {
     if (typeof record.opponentDeckPower !== 'number') continue;
     if (typeof record.playerDeckPower !== 'number') continue;
     if (!Array.isArray(record.opponentDeck)) continue;
-    const opponentDeck = migrateDeck(record.opponentDeck);
+    const opponentDeck = getDeckCards(migrateDeck(record.opponentDeck));
     if (opponentDeck.length === 0) continue;
     entries.push({
       id: record.id,
@@ -172,7 +184,7 @@ function migrateBattleHistory(raw: unknown): BattleHistoryEntry[] {
   return entries;
 }
 
-function normalizeSaveFields(parsed: Record<string, unknown>, decks: Card[][]): Pick<
+function normalizeSaveFields(parsed: Record<string, unknown>, decks: DeckLayout[]): Pick<
   SaveData,
   'activeDeckIndex' | 'unlockedDeckCount' | 'deckNames'
 > {
@@ -194,8 +206,19 @@ function normalizeSaveFields(parsed: Record<string, unknown>, decks: Card[][]): 
   return { activeDeckIndex: safeActiveIndex, unlockedDeckCount, deckNames };
 }
 
-function rescaleAllDecks(decks: Card[][], level: number): Card[][] {
-  return decks.map((deck) => rescaleDeckBp(deck, level));
+function rescaleAllDecks(decks: DeckLayout[], level: number): DeckLayout[] {
+  return decks.map((deck) => {
+    const cards = getDeckCards(deck);
+    const rescaled = rescaleDeckBp(cards, level);
+    const next = normalizeDeckLayout(deck);
+    let cursor = 0;
+    return next.map((card) => {
+      if (card == null) return null;
+      const updated = rescaled[cursor];
+      cursor += 1;
+      return updated ?? card;
+    });
+  });
 }
 
 export function loadSave(): SaveData {

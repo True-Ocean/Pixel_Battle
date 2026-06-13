@@ -49,6 +49,30 @@ export function findDeckDropIndex(
   return rows[rows.length - 1]!.index;
 }
 
+/** 指の座標からデッキタブ index を求める */
+export function findDeckTabIndexAtPoint(
+  clientX: number,
+  clientY: number,
+  tabsEl: HTMLElement,
+): number | null {
+  const tabs = Array.from(
+    tabsEl.querySelectorAll<HTMLElement>('[data-deck-tab-index]'),
+  );
+  for (const tab of tabs) {
+    const rect = tab.getBoundingClientRect();
+    if (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    ) {
+      const index = Number(tab.dataset.deckTabIndex);
+      return Number.isFinite(index) ? index : null;
+    }
+  }
+  return null;
+}
+
 /** @deprecated findDeckDropIndex を使用 */
 export function findDeckRowIndexAtY(
   clientY: number,

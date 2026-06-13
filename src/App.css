@@ -1351,9 +1351,122 @@
   color: #64748b;
 }
 
-.deck-slot-tab.is-blocked {
-  opacity: 0.45;
-  cursor: not-allowed;
+.deck-slot-tab.is-drop-eligible {
+  border-style: dashed;
+  border-color: #818cf8;
+  background: #f5f3ff;
+  color: #4338ca;
+  opacity: 1;
+  cursor: default;
+}
+
+.deck-slot-tab.is-drop-eligible .deck-slot-tab-count {
+  color: #6366f1;
+}
+
+.deck-slot-tabs-reordering .deck-slot-tab.is-active:not(.is-drop-target) {
+  cursor: default;
+}
+
+.deck-slot-tab.is-drop-target {
+  border-style: solid;
+  border-color: #646cff;
+  background: #e0e7ff;
+  color: #4338ca;
+  box-shadow: 0 0 0 2px #646cff44;
+  transform: scale(1.05);
+  opacity: 1;
+}
+
+.deck-slot-tab.is-drop-target .deck-slot-tab-count {
+  color: #4338ca;
+}
+
+.deck-slot-tabs-dragging .deck-slot-tab.is-active:not(.is-drop-target) {
+  opacity: 0.72;
+}
+
+.deck-cross-drop-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.deck-cross-drop-panel-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #4338ca;
+}
+
+.deck-cross-drop-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.deck-screen-deck-label--cross {
+  color: #4338ca;
+}
+
+.deck-cross-drop-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.deck-cross-drop-slot {
+  pointer-events: none;
+}
+
+.deck-cross-drop-slot.is-drop-slot-active {
+  border-color: #646cff !important;
+  background: #eef2ff !important;
+  box-shadow: 0 0 0 2px #646cff55;
+}
+
+.deck-cross-drop-slot-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 4.5rem;
+  border-radius: 10px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+}
+
+.deck-cross-drop-slot.is-drop-slot-active .deck-cross-drop-slot-inner {
+  border-color: #646cff;
+  background: #eef2ff;
+}
+
+.deck-cross-drop-slot-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.deck-cross-drop-slot.is-drop-slot-active .deck-cross-drop-slot-label {
+  color: #4338ca;
+}
+
+.deck-cross-drop-card {
+  pointer-events: none;
+  width: 100%;
+}
+
+.deck-drag-chip-float--cross-deck {
+  transform: scale(1.05);
+}
+
+.deck-drag-chip-float--slot-ready {
+  transform: scale(1.12);
+  filter: drop-shadow(0 4px 10px #646cff66);
 }
 
 .deck-slot-tab-label {
@@ -1518,12 +1631,78 @@
   pointer-events: none;
 }
 
+.deck-drag-chip-float {
+  position: fixed;
+  z-index: 1200;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.deck-drag-chip-float--over-tab {
+  transform: scale(1.08);
+}
+
+.deck-drag-chip {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 0.18rem;
+  border-style: solid;
+  border-width: var(--rarity-border-width, 1px);
+  border-color: var(--rarity-border, #cbd5e1);
+  border-radius: 10px;
+  background: var(--rarity-bg, #fff);
+  box-shadow:
+    0 10px 28px #00000028,
+    0 2px 8px #646cff44,
+    var(--rarity-shadow, none);
+  overflow: hidden;
+}
+
+.deck-drag-chip-rarity {
+  position: absolute;
+  top: 0.12rem;
+  left: 0.12rem;
+  z-index: 1;
+  transform: scale(0.72);
+  transform-origin: top left;
+}
+
+.deck-drag-chip-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.deck-drag-chip-art .card-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.deck-drag-chip-bp {
+  position: absolute;
+  right: 0.14rem;
+  bottom: 0.1rem;
+  z-index: 1;
+  padding: 0.04rem 0.28rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
 .screen-deck-dragging {
   user-select: none;
 }
 
 .screen-deck-dragging .card-list {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .deck-card-row-over {

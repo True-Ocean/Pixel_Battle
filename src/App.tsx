@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { Card, ScreenId, UserProfile, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry } from './battleHistory';
-import { DECK_MAX, MAX_USER_LEVEL } from './config/balance';
-import { updateDeckAtIndex, clampUnlockedDeckCount } from './deckSlots';
+import { MAX_USER_LEVEL } from './config/balance';
+import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlots, countDeckCards, getDeckCards, normalizeDeckLayout } from './deckSlots';
+import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, recordCardRevive, rescaleDeckBp } from './card';
 import { buildBalancedCpuDeck, randomCpuName } from './game/cpuDeck';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
@@ -37,7 +38,7 @@ function App() {
   const [screen, setScreen] = useState<ScreenId>('title');
   const [enterFromTitle, setEnterFromTitle] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(initialSave.user);
-  const [decks, setDecks] = useState<Card[][]>(() => initialSave.decks);
+  const [decks, setDecks] = useState<DeckLayout[]>(() => initialSave.decks);
   const [activeDeckIndex, setActiveDeckIndex] = useState(
     () => initialSave.activeDeckIndex,
   );
@@ -47,13 +48,18 @@ function App() {
   const [fauxLostCardId, setFauxLostCardId] = useState<string | null>(null);
 
   const activeDeck = useMemo(
-    () => decks[activeDeckIndex] ?? [],
+    () => normalizeDeckLayout(decks[activeDeckIndex] ?? []),
     [activeDeckIndex, decks],
+  );
+
+  const activeDeckCardCount = useMemo(
+    () => countDeckCards(activeDeck),
+    [activeDeck],
   );
 
   const [cpuDeck, setCpuDeck] = useState<Card[]>(() =>
     buildBalancedCpuDeck(
-      initialSave.decks[initialSave.activeDeckIndex] ?? [],
+      getDeckCards(initialSave.decks[initialSave.activeDeckIndex] ?? []),
       Math.random,
       initialSave.user?.level ?? 1,
     ),
@@ -71,6 +77,7 @@ function App() {
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [editorReturnToDetail, setEditorReturnToDetail] = useState(false);
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
+  const [deckReorderMode, setDeckReorderMode] = useState(false);
 
   const userRef = useRef(user);
   const decksRef = useRef(decks);
@@ -105,13 +112,13 @@ function App() {
   );
 
   const updateActiveDeck = useCallback(
-    (updater: (prev: Card[]) => Card[]) => {
+    (updater: (prev: DeckLayout) => DeckLayout) => {
       setDecks((prevDecks) => {
         const index = activeDeckIndexRef.current;
         const nextDecks = updateDeckAtIndex(
           prevDecks,
           index,
-          updater(prevDecks[index] ?? []),
+          updater(normalizeDeckLayout(prevDecks[index] ?? [])),
         );
         persistSave({ decks: nextDecks });
         return nextDecks;
@@ -139,7 +146,7 @@ function App() {
   const goToBattleSetup = useCallback(() => {
     clearPracticeRematch();
     const level = user?.level ?? 1;
-    const currentDeck = decksRef.current[activeDeckIndexRef.current] ?? [];
+    const currentDeck = getDeckCards(decksRef.current[activeDeckIndexRef.current] ?? []);
     setCpuDeck(buildBalancedCpuDeck(currentDeck, Math.random, level));
     setCpuOpponent({ name: randomCpuName(), level });
     setBattleSetupKey((k) => k + 1);
@@ -169,7 +176,13 @@ function App() {
 
   const addCard = useCallback(
     (card: Card) => {
-      updateActiveDeck((prev) => [...prev, card].slice(0, DECK_MAX));
+      updateActiveDeck((prev) => {
+        const next = normalizeDeckLayout(prev);
+        const emptyIndex = next.findIndex((slot) => slot == null);
+        if (emptyIndex < 0) return next;
+        next[emptyIndex] = card;
+        return next;
+      });
     },
     [updateActiveDeck],
   );
@@ -177,7 +190,7 @@ function App() {
   const updateCard = useCallback(
     (updated: Card) => {
       updateActiveDeck((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c)),
+        prev.map((c) => (c?.id === updated.id ? updated : c)),
       );
     },
     [updateActiveDeck],
@@ -185,14 +198,16 @@ function App() {
 
   const deleteCard = useCallback(
     (id: string) => {
-      updateActiveDeck((prev) => prev.filter((c) => c.id !== id));
+      updateActiveDeck((prev) =>
+        prev.map((c) => (c?.id === id ? null : c)),
+      );
       setFauxLostCardId((prev) => (prev === id ? null : prev));
     },
     [updateActiveDeck],
   );
 
   const reorderDeck = useCallback(
-    (ordered: Card[]) => {
+    (ordered: DeckLayout) => {
       setDecks((prevDecks) => {
         const nextDecks = updateDeckAtIndex(
           prevDecks,
@@ -200,6 +215,34 @@ function App() {
           ordered,
         );
         persistSave({ decks: nextDecks });
+        return nextDecks;
+      });
+    },
+    [persistSave],
+  );
+
+  const moveCardBetweenDecks = useCallback(
+    (
+      fromDeckIndex: number,
+      fromCardIndex: number,
+      toDeckIndex: number,
+      toCardIndex: number,
+    ) => {
+      setDecks((prevDecks) => {
+        const movedCardId = prevDecks[fromDeckIndex]?.[fromCardIndex]?.id;
+        const nextDecks = moveCardBetweenDeckSlots(
+          prevDecks,
+          fromDeckIndex,
+          fromCardIndex,
+          toDeckIndex,
+          toCardIndex,
+        );
+        if (!nextDecks) return prevDecks;
+        persistSave({ decks: nextDecks, activeDeckIndex: toDeckIndex });
+        setActiveDeckIndex(toDeckIndex);
+        if (movedCardId) {
+          setDetailCardId((id) => (id === movedCardId ? null : id));
+        }
         return nextDecks;
       });
     },
@@ -223,7 +266,7 @@ function App() {
     const prevUser = userRef.current;
     const prevDecks = decksRef.current;
     const deckIndex = activeDeckIndexRef.current;
-    const prevActiveDeck = prevDecks[deckIndex] ?? [];
+    const prevActiveDeck = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
     const nextUser = isProfileComplete(prevUser)
       ? recordUserBattleOutcome(prevUser, {
           cpuDefeatedCount: outcome.cpuDefeatedCount,
@@ -332,6 +375,9 @@ function App() {
     (tab: TabId) => {
       setBattleEndDock(false);
       clearPracticeRematch();
+      if (tab !== 'deck') {
+        setDeckReorderMode(false);
+      }
       setScreen(tab);
     },
     [clearPracticeRematch],
@@ -364,6 +410,8 @@ function App() {
             decks={decks}
             activeDeckIndex={activeDeckIndex}
             unlockedDeckCount={unlockedDeckCount}
+            reorderMode={deckReorderMode}
+            onReorderModeChange={setDeckReorderMode}
             fauxLostCardId={fauxLostCardId}
             detailCardId={detailCardId}
             onDetailCardIdChange={setDetailCardId}
@@ -372,6 +420,7 @@ function App() {
               setEditingCard(null);
               setEditorReturnToDetail(false);
               setDetailCardId(null);
+              setDeckReorderMode(false);
               setScreen('editor');
             }}
             onEditCard={(card, options) => {
@@ -380,6 +429,7 @@ function App() {
               if (!options?.returnToDetail) {
                 setDetailCardId(null);
               }
+              setDeckReorderMode(false);
               setScreen('editor');
             }}
             onDeleteCard={deleteCard}
@@ -388,15 +438,16 @@ function App() {
               setFauxLostCardId((prev) => (prev === id ? null : prev));
             }}
             onReorderDeck={reorderDeck}
+            onMoveCardBetweenDecks={moveCardBetweenDecks}
           />
         )}
         {screen === 'battleHub' && (
-          <BattleHubScreen deckCount={activeDeck.length} onStartBattle={goToBattleSetup} />
+          <BattleHubScreen deckCount={activeDeckCardCount} onStartBattle={goToBattleSetup} />
         )}
         {screen === 'records' && (
           <RecordsScreen
             battleHistory={battleHistory}
-            deckCount={activeDeck.length}
+            deckCount={activeDeckCardCount}
             onPracticeRematch={goToPracticeRematch}
           />
         )}
@@ -415,7 +466,7 @@ function App() {
         {screen === 'editor' && (
           <EditorScreen
             key={editingCard?.id ?? 'new'}
-            deckCount={activeDeck.length}
+            deckCount={activeDeckCardCount}
             userLevel={user?.level ?? 1}
             editTarget={editingCard}
             backLabel={editorReturnToDetail ? '戻る' : 'マイデッキに戻る'}
@@ -435,7 +486,7 @@ function App() {
         {screen === 'battleSetup' && (
           <BattleSetupScreen
             key={battleSetupKey}
-            playerDeck={activeDeck}
+            playerDeck={getDeckCards(activeDeck)}
             cpuDeck={cpuDeck}
             playerIdentity={
               isProfileComplete(user)

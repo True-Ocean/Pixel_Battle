@@ -38,6 +38,9 @@ export interface Card {
   createdAt: string;
 }
 
+/** 固定5スロットのデッキ配置（null = 空きスロット） */
+export type DeckLayout = (Card | null)[];
+
 /** ユーザープロフィール（localStorage 永続化） */
 export interface UserProfile {
   username: string;
@@ -86,8 +89,8 @@ export interface BattleHistoryEntry {
 
 export interface SaveData {
   user: UserProfile | null;
-  /** デッキスロット（最大5）。各スロットはカード最大5枚 */
-  decks: Card[][];
+  /** デッキスロット（最大5）。各スロットは固定5枠（null = 空き） */
+  decks: DeckLayout[];
   /** 現在選択中のデッキスロット（0〜4） */
   activeDeckIndex: number;
   /** 解放済みデッキスロット数（1〜5） */

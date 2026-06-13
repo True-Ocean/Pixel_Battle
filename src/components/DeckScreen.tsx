@@ -1,8 +1,14 @@
-import { useCallback, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import { useCallback, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
 import { computeDeckPower } from '../card';
 import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
-import { isDeckSlotUnlocked } from '../deckSlots';
-import type { Card } from '../types';
+import {
+  countDeckCards,
+  getDeckCards,
+  isDeckSlotUnlocked,
+  moveCardInLayout,
+  normalizeDeckLayout,
+} from '../deckSlots';
+import type { Card, DeckLayout } from '../types';
 import { getRarityMeta, type RarityMeta } from '../config/rarity';
 import { AttributeBadge } from './AttributeBadge';
 import { CardBattleRecord } from './CardBattleRecord';
@@ -14,15 +20,19 @@ import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
 import { DeckUnlockModal } from './DeckUnlockModal';
 import {
   findDeckDropIndex,
+  findDeckTabIndexAtPoint,
   getDeckRowShift,
-  reorderDeckItems,
 } from './deckReorder';
 
+const DECK_DRAG_CHIP_SIZE = 56;
+
 interface DeckScreenProps {
-  deck: Card[];
-  decks: Card[][];
+  deck: DeckLayout;
+  decks: DeckLayout[];
   activeDeckIndex: number;
   unlockedDeckCount: number;
+  reorderMode: boolean;
+  onReorderModeChange: (active: boolean) => void;
   fauxLostCardId: string | null;
   detailCardId: string | null;
   onDetailCardIdChange: (id: string | null) => void;
@@ -31,18 +41,31 @@ interface DeckScreenProps {
   onEditCard: (card: Card, options?: { returnToDetail?: boolean }) => void;
   onDeleteCard: (id: string) => void;
   onReviveFauxLost?: (id: string) => void;
-  onReorderDeck: (deck: Card[]) => void;
+  onReorderDeck: (deck: DeckLayout) => void;
+  onMoveCardBetweenDecks: (
+    fromDeckIndex: number,
+    fromCardIndex: number,
+    toDeckIndex: number,
+    toCardIndex: number,
+  ) => void;
 }
 
 interface DeckDragState {
   cardId: string;
+  sourceDeckIndex: number;
   fromIndex: number;
   dropIndex: number;
+  targetDeckIndex: number | null;
+  targetDropIndex: number | null;
   ghostLeft: number;
   ghostTop: number;
-  ghostWidth: number;
   rowHeight: number;
+  pointerOffsetX: number;
   pointerOffsetY: number;
+}
+
+function isPointInRect(x: number, y: number, rect: DOMRect): boolean {
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 }
 
 function deckRowStyle(rarityMeta: RarityMeta): CSSProperties {
@@ -52,6 +75,87 @@ function deckRowStyle(rarityMeta: RarityMeta): CSSProperties {
     '--rarity-border-width': rarityMeta.rowBorderWidth,
     '--rarity-shadow': rarityMeta.rowBoxShadow ?? 'none',
   } as CSSProperties;
+}
+
+function DeckDragChip({ card }: { card: Card }) {
+  const rarityMeta = getRarityMeta(card.rarity);
+  return (
+    <div
+      className={`deck-drag-chip deck-drag-chip--${card.rarity}`}
+      style={
+        {
+          '--rarity-border': rarityMeta.rowBorder,
+          '--rarity-bg': rarityMeta.rowBg,
+          '--rarity-border-width': rarityMeta.rowBorderWidth,
+          '--rarity-shadow': rarityMeta.rowBoxShadow ?? 'none',
+        } as CSSProperties
+      }
+    >
+      <RarityBadge rarity={card.rarity} size="deck" className="deck-drag-chip-rarity" />
+      <div className="deck-drag-chip-art">
+        <CardPreview pixels={card.pixels} />
+      </div>
+      <span className="deck-drag-chip-bp">{card.bp}</span>
+    </div>
+  );
+}
+
+function TargetDeckDropPanel({
+  deck,
+  targetDropIndex,
+  listRef,
+}: {
+  deck: DeckLayout;
+  targetDropIndex: number | null;
+  listRef: RefObject<HTMLUListElement | null>;
+}) {
+  const layout = normalizeDeckLayout(deck);
+  return (
+    <div className="deck-cross-drop-panel">
+      <ul ref={listRef} className="card-list deck-cross-drop-list">
+        {Array.from({ length: DECK_MAX }, (_, index) => {
+          const slotCard = layout[index];
+          const isActive = targetDropIndex === index;
+          if (!slotCard) {
+            return (
+              <li
+                key={`drop-empty-${index}`}
+                data-deck-index={index}
+                className={`deck-card-row deck-card-row--empty deck-cross-drop-slot${isActive ? ' is-drop-slot-active' : ''}`}
+              >
+                <div className="deck-cross-drop-slot-inner">
+                  <span className="deck-cross-drop-slot-label">
+                    スロット {index + 1}
+                  </span>
+                </div>
+              </li>
+            );
+          }
+
+          const rarityMeta = getRarityMeta(slotCard.rarity);
+          return (
+            <li
+              key={slotCard.id}
+              data-deck-index={index}
+              className={[
+                'deck-card-row',
+                `deck-card-row--${slotCard.rarity}`,
+                'deck-cross-drop-slot',
+                isActive ? 'is-drop-slot-active' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              style={deckRowStyle(rarityMeta)}
+            >
+              <div className="deck-card-main deck-cross-drop-card">
+                <DeckCardRowBody card={slotCard} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 function DeckCardRowBody({ card }: { card: Card }) {
@@ -96,6 +200,8 @@ export function DeckScreen({
   decks,
   activeDeckIndex,
   unlockedDeckCount,
+  reorderMode,
+  onReorderModeChange,
   fauxLostCardId,
   detailCardId,
   onDetailCardIdChange,
@@ -105,17 +211,22 @@ export function DeckScreen({
   onDeleteCard,
   onReviveFauxLost,
   onReorderDeck,
+  onMoveCardBetweenDecks,
 }: DeckScreenProps) {
-  const [reorderMode, setReorderMode] = useState(false);
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const targetDropListRef = useRef<HTMLUListElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
   const dragSessionRef = useRef<DeckDragState | null>(null);
+
+  const deckLayout = normalizeDeckLayout(deck);
+  const deckCardCount = countDeckCards(deckLayout);
 
   const selectedCard =
     detailCardId != null
-      ? deck.find((item) => item.id === detailCardId) ?? null
+      ? deckLayout.find((item) => item?.id === detailCardId) ?? null
       : null;
 
   const closeDetail = useCallback(() => {
@@ -123,17 +234,17 @@ export function DeckScreen({
   }, [onDetailCardIdChange]);
 
   const exitReorderMode = useCallback(() => {
-    setReorderMode(false);
+    onReorderModeChange(false);
     dragSessionRef.current = null;
     setDragState(null);
-  }, []);
+  }, [onReorderModeChange]);
 
   const moveCard = useCallback(
     (from: number, to: number) => {
-      if (from === to || to < 0 || to >= deck.length) return;
-      onReorderDeck(reorderDeckItems(deck, from, to));
+      if (from === to || from < 0 || from >= DECK_MAX || to < 0 || to >= DECK_MAX) return;
+      onReorderDeck(moveCardInLayout(deckLayout, from, to));
     },
-    [deck, onReorderDeck],
+    [deckLayout, onReorderDeck],
   );
 
   const handleDeleteRequest = useCallback(
@@ -148,10 +259,10 @@ export function DeckScreen({
     if (!pendingDelete) return;
     onDeleteCard(pendingDelete.id);
     setPendingDelete(null);
-    if (deck.length <= 1) {
+    if (deckCardCount <= 1) {
       exitReorderMode();
     }
-  }, [deck.length, exitReorderMode, onDeleteCard, pendingDelete]);
+  }, [deckCardCount, exitReorderMode, onDeleteCard, pendingDelete]);
 
   const handleDeleteCancel = useCallback(() => {
     setPendingDelete(null);
@@ -172,11 +283,24 @@ export function DeckScreen({
     (state: DeckDragState) => {
       dragSessionRef.current = null;
       setDragState(null);
+      if (
+        state.targetDeckIndex != null &&
+        state.targetDeckIndex !== state.sourceDeckIndex &&
+        state.targetDropIndex != null
+      ) {
+        onMoveCardBetweenDecks(
+          state.sourceDeckIndex,
+          state.fromIndex,
+          state.targetDeckIndex,
+          state.targetDropIndex,
+        );
+        return;
+      }
       if (state.fromIndex !== state.dropIndex) {
         moveCard(state.fromIndex, state.dropIndex);
       }
     },
-    [moveCard],
+    [moveCard, onMoveCardBetweenDecks],
   );
 
   const handleHandlePointerDown = useCallback(
@@ -191,14 +315,17 @@ export function DeckScreen({
       listRef.current.style.setProperty('--deck-row-shift', `${rect.height}px`);
 
       const session: DeckDragState = {
-        cardId: deck[index]?.id ?? '',
+        cardId: deckLayout[index]?.id ?? '',
+        sourceDeckIndex: activeDeckIndex,
         fromIndex: index,
         dropIndex: index,
-        ghostLeft: rect.left,
-        ghostTop: rect.top,
-        ghostWidth: rect.width,
+        targetDeckIndex: null,
+        targetDropIndex: null,
+        ghostLeft: event.clientX - DECK_DRAG_CHIP_SIZE / 2,
+        ghostTop: event.clientY - DECK_DRAG_CHIP_SIZE / 2,
         rowHeight: rect.height,
-        pointerOffsetY: event.clientY - rect.top,
+        pointerOffsetX: DECK_DRAG_CHIP_SIZE / 2,
+        pointerOffsetY: DECK_DRAG_CHIP_SIZE / 2,
       };
       dragSessionRef.current = session;
       setDragState(session);
@@ -206,14 +333,59 @@ export function DeckScreen({
       const onPointerMove = (moveEvent: globalThis.PointerEvent) => {
         const prev = dragSessionRef.current;
         const listEl = listRef.current;
-        if (!prev || !listEl) return;
+        const tabsEl = tabsRef.current;
+        const targetListEl = targetDropListRef.current;
+        if (!prev) return;
 
-        const dropIndex =
-          findDeckDropIndex(moveEvent.clientY, listEl) ?? prev.dropIndex;
+        const { clientX, clientY } = moveEvent;
+        let targetDeckIndex = prev.targetDeckIndex;
+        let targetDropIndex = prev.targetDropIndex;
+        let dropIndex = prev.dropIndex;
+
+        if (tabsEl) {
+          const tabIndex = findDeckTabIndexAtPoint(clientX, clientY, tabsEl);
+          if (tabIndex != null && isDeckSlotUnlocked(tabIndex, unlockedDeckCount)) {
+            if (tabIndex !== prev.sourceDeckIndex) {
+              if (targetDeckIndex !== tabIndex) {
+                targetDeckIndex = tabIndex;
+                targetDropIndex = null;
+              }
+            } else {
+              targetDeckIndex = null;
+              targetDropIndex = null;
+            }
+          }
+        }
+
+        const crossDeckTarget =
+          targetDeckIndex != null && targetDeckIndex !== prev.sourceDeckIndex;
+
+        if (
+          crossDeckTarget &&
+          targetListEl &&
+          isPointInRect(clientX, clientY, targetListEl.getBoundingClientRect())
+        ) {
+          targetDropIndex =
+            findDeckDropIndex(clientY, targetListEl) ?? targetDropIndex;
+          dropIndex = prev.fromIndex;
+        } else if (
+          !crossDeckTarget &&
+          listEl &&
+          isPointInRect(clientX, clientY, listEl.getBoundingClientRect())
+        ) {
+          dropIndex = findDeckDropIndex(clientY, listEl) ?? dropIndex;
+          targetDropIndex = null;
+        } else if (crossDeckTarget) {
+          dropIndex = prev.fromIndex;
+        }
+
         const next: DeckDragState = {
           ...prev,
-          ghostTop: moveEvent.clientY - prev.pointerOffsetY,
+          ghostLeft: clientX - prev.pointerOffsetX,
+          ghostTop: clientY - prev.pointerOffsetY,
           dropIndex,
+          targetDeckIndex,
+          targetDropIndex,
         };
         dragSessionRef.current = next;
         setDragState(next);
@@ -231,7 +403,7 @@ export function DeckScreen({
       window.addEventListener('pointerup', onPointerEnd);
       window.addEventListener('pointercancel', onPointerEnd);
     },
-    [deck, finishDrag, reorderMode],
+    [activeDeckIndex, deckLayout, finishDrag, reorderMode, unlockedDeckCount],
   );
 
   const toggleReorderMode = () => {
@@ -239,13 +411,13 @@ export function DeckScreen({
       exitReorderMode();
       return;
     }
-    if (deck.length === 0) return;
+    if (deckCardCount === 0) return;
     closeDetail();
-    setReorderMode(true);
+    onReorderModeChange(true);
   };
 
   const handleDeckTabSelect = (index: number) => {
-    if (reorderMode) return;
+    if (dragState) return;
     if (!isDeckSlotUnlocked(index, unlockedDeckCount)) {
       setUnlockModalSlot(index);
       return;
@@ -259,30 +431,66 @@ export function DeckScreen({
     selectedCard != null && selectedCard.id === fauxLostCardId;
 
   const draggedCard =
-    dragState != null ? deck.find((card) => card.id === dragState.cardId) : null;
+    dragState != null
+      ? decks[dragState.sourceDeckIndex]?.[dragState.fromIndex] ?? null
+      : null;
 
-  const deckPower = computeDeckPower(deck);
+  const crossDeckTargetIndex =
+    dragState?.targetDeckIndex != null &&
+    dragState.targetDeckIndex !== dragState.sourceDeckIndex
+      ? dragState.targetDeckIndex
+      : null;
+
+  const crossDeckTarget =
+    crossDeckTargetIndex != null
+      ? normalizeDeckLayout(decks[crossDeckTargetIndex] ?? [])
+      : [];
+
+  const deckPower = computeDeckPower(getDeckCards(deckLayout));
 
   return (
     <section className={`screen screen-deck${dragState ? ' screen-deck-dragging' : ''}`}>
-      <div className="deck-slot-tabs" role="tablist" aria-label="デッキ">
+      <div
+        ref={tabsRef}
+        className={`deck-slot-tabs${reorderMode ? ' deck-slot-tabs-reordering' : ''}${dragState ? ' deck-slot-tabs-dragging' : ''}`}
+        role="tablist"
+        aria-label="デッキ"
+      >
         {Array.from({ length: DECK_SLOT_COUNT }, (_, index) => {
           const unlocked = isDeckSlotUnlocked(index, unlockedDeckCount);
           const isActive = index === activeDeckIndex;
-          const slotDeck = decks[index] ?? [];
-          const slotCount = slotDeck.length;
+          const slotDeck = normalizeDeckLayout(decks[index] ?? []);
+          const slotCount = countDeckCards(slotDeck);
+          const sourceDeckIndex = dragState?.sourceDeckIndex ?? activeDeckIndex;
+          const isDropTarget =
+            dragState?.targetDeckIndex === index ||
+            crossDeckTargetIndex === index;
+          const isDropEligible =
+            reorderMode && unlocked && index !== sourceDeckIndex;
           const tabLabel = unlocked
-            ? `デッキ${index + 1} ${slotCount}/${DECK_MAX}枚`
+            ? isDropEligible
+              ? crossDeckTargetIndex === index
+                ? `デッキ${index + 1} ${slotCount}/${DECK_MAX}枚 — 配置先`
+                : `デッキ${index + 1} ${slotCount}/${DECK_MAX}枚 — タップで配置先表示`
+              : `デッキ${index + 1} ${slotCount}/${DECK_MAX}枚`
             : `デッキ${index + 1} 未解放`;
           return (
             <button
               key={index}
               type="button"
               role="tab"
+              data-deck-tab-index={index}
               aria-selected={isActive}
               aria-label={tabLabel}
-              aria-disabled={reorderMode && !isActive ? true : undefined}
-              className={`deck-slot-tab${isActive ? ' is-active' : ''}${!unlocked ? ' is-locked' : ''}${reorderMode && !isActive ? ' is-blocked' : ''}`}
+              className={[
+                'deck-slot-tab',
+                isActive ? 'is-active' : '',
+                !unlocked ? 'is-locked' : '',
+                isDropEligible ? 'is-drop-eligible' : '',
+                isDropTarget ? 'is-drop-target' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               onClick={() => handleDeckTabSelect(index)}
             >
               <span className="deck-slot-tab-label">{index + 1}</span>
@@ -299,21 +507,46 @@ export function DeckScreen({
       </div>
 
       <div className="deck-screen-header">
-        <div className="deck-screen-header-row">
-          <p className="deck-screen-deck-label">デッキ{activeDeckIndex + 1}</p>
-          <p className="deck-screen-card-count" aria-label={`${deck.length}枚 / ${DECK_MAX}枚`}>
-            {deck.length}/{DECK_MAX}枚
-          </p>
-        </div>
-        <p className="deck-screen-power" aria-label={`戦力 ${deckPower}`}>
-          戦力{' '}
-          <span className="deck-screen-power-value">{deckPower}</span>
-        </p>
+        {crossDeckTargetIndex != null ? (
+          <>
+            <div className="deck-screen-header-row">
+              <p className="deck-screen-deck-label deck-screen-deck-label--cross">
+                デッキ{crossDeckTargetIndex + 1}へ配置
+              </p>
+              <p className="deck-screen-card-count">
+                {countDeckCards(crossDeckTarget)}/{DECK_MAX}枚
+              </p>
+            </div>
+            <p className="muted deck-cross-drop-hint">
+              スロットを選んでドロップ（満杯のときだけ選んだカードと入れ替え）
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="deck-screen-header-row">
+              <p className="deck-screen-deck-label">デッキ{activeDeckIndex + 1}</p>
+              <p className="deck-screen-card-count" aria-label={`${deckCardCount}枚 / ${DECK_MAX}枚`}>
+                {deckCardCount}/{DECK_MAX}枚
+              </p>
+            </div>
+            <p className="deck-screen-power" aria-label={`戦力 ${deckPower}`}>
+              戦力{' '}
+              <span className="deck-screen-power-value">{deckPower}</span>
+            </p>
+          </>
+        )}
         {fauxLostCardId && (
           <p className="muted deck-screen-notice">仮ロスト演出中（データは保存済み）</p>
         )}
       </div>
 
+      {crossDeckTargetIndex != null ? (
+        <TargetDeckDropPanel
+          deck={crossDeckTarget}
+          targetDropIndex={dragState?.targetDropIndex ?? null}
+          listRef={targetDropListRef}
+        />
+      ) : (
       <ul
         ref={listRef}
         className={`card-list${reorderMode ? ' card-list-reordering' : ''}${
@@ -321,7 +554,7 @@ export function DeckScreen({
         }`}
       >
         {Array.from({ length: DECK_MAX }, (_, index) => {
-          const card = deck[index];
+          const card = deckLayout[index];
           if (!card) {
             return (
               <li
@@ -347,7 +580,7 @@ export function DeckScreen({
           const rarityMeta = getRarityMeta(card.rarity);
           const isDragSource = dragState?.fromIndex === index;
           const shift =
-            dragState != null
+            dragState != null && dragState.targetDeckIndex == null
               ? getDeckRowShift(index, dragState.fromIndex, dragState.dropIndex)
               : 0;
 
@@ -395,8 +628,8 @@ export function DeckScreen({
                   {reorderMode && (
                     <span
                       className="deck-card-drag-handle"
-                      aria-label="ドラッグで並べ替え"
-                      title="ドラッグで並べ替え"
+                      aria-label="ドラッグで並べ替え、他デッキタブへ移動"
+                      title="ドラッグで並べ替え、他デッキタブへ移動"
                       onPointerDown={(event) => handleHandlePointerDown(index, event)}
                     >
                       ≡
@@ -408,14 +641,15 @@ export function DeckScreen({
           );
         })}
       </ul>
+      )}
 
-      {deck.length > 0 && (
+      {(reorderMode || deckCardCount > 0) && (
         <div className="deck-screen-footer">
           <button
             type="button"
             className={`deck-reorder-toggle${reorderMode ? ' active' : ''}`}
             onClick={toggleReorderMode}
-            disabled={dragState != null}
+            disabled={dragState != null || (!reorderMode && deckCardCount === 0)}
           >
             {reorderMode ? '完了' : '並べ替え'}
           </button>
@@ -424,22 +658,18 @@ export function DeckScreen({
 
       {dragState && draggedCard && (
         <div
-          className={`deck-drag-ghost deck-card-row deck-card-row--${draggedCard.rarity}`}
+          className={`deck-drag-chip-float${
+            crossDeckTargetIndex != null ? ' deck-drag-chip-float--cross-deck' : ''
+          }${dragState.targetDropIndex != null ? ' deck-drag-chip-float--slot-ready' : ''}`}
           style={{
-            ...deckRowStyle(getRarityMeta(draggedCard.rarity)),
             left: dragState.ghostLeft,
             top: dragState.ghostTop,
-            width: dragState.ghostWidth,
-            height: dragState.rowHeight,
+            width: DECK_DRAG_CHIP_SIZE,
+            height: DECK_DRAG_CHIP_SIZE,
           }}
           aria-hidden
         >
-          <div className="deck-drag-ghost-inner deck-card-main">
-            <DeckCardRowBody card={draggedCard} />
-          </div>
-          <span className="deck-card-drag-handle deck-drag-ghost-spacer" aria-hidden>
-            ≡
-          </span>
+          <DeckDragChip card={draggedCard} />
         </div>
       )}
 
