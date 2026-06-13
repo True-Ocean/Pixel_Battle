@@ -72,6 +72,10 @@ export type ScreenId =
   | 'title'
   | 'setup'
   | 'deck'
+  | 'battleHub'
+  | 'records'
+  | 'shop'
+  | 'settings'
   | 'editor'
   | 'battleSetup'
   | 'battle';

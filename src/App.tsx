@@ -11,12 +11,15 @@ import {
   recordUserBattleOutcome,
 } from './user';
 import { AppTitle } from './components/AppTitle';
+import { AppDock } from './components/AppDock';
 import { DeckScreen } from './components/DeckScreen';
 import { EditorScreen } from './components/EditorScreen';
 import { BattleSetupScreen } from './components/BattleSetupScreen';
+import { PlaceholderScreen } from './components/PlaceholderScreen';
 import { SetupScreen } from './components/SetupScreen';
 import { TitleScreen } from './components/TitleScreen';
 import { UserProfileBar } from './components/UserProfileBar';
+import { isDockVisible, isTabId, type TabId } from './navigation/screenIds';
 import './App.css';
 
 function initialScreen(user: UserProfile | null): ScreenId {
@@ -155,43 +158,15 @@ function App() {
     screen !== 'battleSetup' &&
     screen !== 'setup';
   const showProfileBar = showAppHeader && isProfileComplete(user);
+  const showDock = isDockVisible(screen);
+  const activeTab: TabId = isTabId(screen) ? screen : 'deck';
 
-  const navItems = (
-    [
-      ['deck', 'デッキ'],
-      ['battleSetup', 'バトル'],
-    ] as const
-  ).filter(
-    ([id]) =>
-      !(screen === 'deck' && (id === 'deck' || id === 'battleSetup')),
-  );
-
-  const nav = navItems.length > 0 && (
-    <nav
-      className={`app-nav${navItems.length === 1 ? ' is-single' : ''}`}
-      aria-label="画面"
-    >
-      {navItems.map(([id, label]) => (
-        <button
-          key={id}
-          type="button"
-          className={
-            screen === id || (id === 'battleSetup' && screen === 'battle')
-              ? 'active'
-              : ''
-          }
-          onClick={() =>
-            id === 'battleSetup' ? goToBattleSetup() : setScreen(id)
-          }
-        >
-          {label}
-        </button>
-      ))}
-    </nav>
-  );
+  const selectTab = useCallback((tab: TabId) => {
+    setScreen(tab);
+  }, []);
 
   return (
-    <div className={`app app-screen-${screen}`}>
+    <div className={`app app-screen-${screen}${showDock ? ' has-dock' : ''}`}>
       {screen === 'setup' && (
         <header className="app-header app-header-setup">
           <div className="app-brand">
@@ -201,12 +176,11 @@ function App() {
       )}
 
       {showAppHeader && (
-        <header className="app-header">
+        <header className={`app-header${screen === 'deck' ? ' app-header--deck' : ''}`}>
           <div className="app-brand">
-            <AppTitle />
+            {screen !== 'deck' && <AppTitle />}
             {showProfileBar && user && <UserProfileBar user={user} />}
           </div>
-          {nav}
         </header>
       )}
 
@@ -221,7 +195,6 @@ function App() {
               setEditingCard(null);
               setScreen('editor');
             }}
-            onStartBattle={goToBattleSetup}
             onEditCard={(card) => {
               setEditingCard(card);
               setScreen('editor');
@@ -237,6 +210,24 @@ function App() {
             }}
             onReorderDeck={reorderDeck}
           />
+        )}
+        {screen === 'battleHub' && (
+          <PlaceholderScreen
+            title="バトル"
+            description="バトルメニューは準備中です（Phase 2 で実装予定）"
+          />
+        )}
+        {screen === 'records' && (
+          <PlaceholderScreen
+            title="戦績"
+            description="ユーザー・カード別の勝敗履歴は準備中です"
+          />
+        )}
+        {screen === 'shop' && (
+          <PlaceholderScreen title="ショップ" />
+        )}
+        {screen === 'settings' && (
+          <PlaceholderScreen title="設定" />
         )}
         {screen === 'editor' && (
           <EditorScreen
@@ -270,7 +261,9 @@ function App() {
         )}
       </main>
 
-      {screen !== 'setup' && screen !== 'title' && (
+      {showDock && <AppDock activeTab={activeTab} onSelect={selectTab} />}
+
+      {screen !== 'setup' && screen !== 'title' && !showDock && (
         <footer className="app-footer">
           <span>
             仕様:{' '}

@@ -20,7 +20,6 @@ interface DeckScreenProps {
   deck: Card[];
   fauxLostCardId: string | null;
   onCreateCard: () => void;
-  onStartBattle: () => void;
   onEditCard: (card: Card) => void;
   onDeleteCard: (id: string) => void;
   onReviveFauxLost?: (id: string) => void;
@@ -88,7 +87,6 @@ export function DeckScreen({
   deck,
   fauxLostCardId,
   onCreateCard,
-  onStartBattle,
   onEditCard,
   onDeleteCard,
   onReviveFauxLost,
@@ -239,7 +237,6 @@ export function DeckScreen({
     <section className={`screen screen-deck${dragState ? ' screen-deck-dragging' : ''}`}>
       <div className="deck-screen-header">
         <div className="deck-screen-header-main">
-          <h1>マイデッキ</h1>
           {deck.length > 0 && (
             <p className="deck-screen-power" aria-label={`戦力 ${computeDeckPower(deck)}`}>
               戦力{' '}
@@ -276,74 +273,90 @@ export function DeckScreen({
           dragState ? ' card-list-dragging' : ''
         }`}
       >
-        {deck.length === 0 ? (
-          <li className="empty">カードがありません</li>
-        ) : (
-          deck.map((card, index) => {
-            const rarityMeta = getRarityMeta(card.rarity);
-            const isDragSource = dragState?.fromIndex === index;
-            const shift =
-              dragState != null
-                ? getDeckRowShift(index, dragState.fromIndex, dragState.dropIndex)
-                : 0;
-
+        {Array.from({ length: DECK_MAX }, (_, index) => {
+          const card = deck[index];
+          if (!card) {
             return (
-              <li
-                key={card.id}
-                data-deck-index={index}
-                className={[
-                  'deck-card-row',
-                  `deck-card-row--${card.rarity}`,
-                  card.id === fauxLostCardId ? 'faux-lost' : '',
-                  reorderMode ? 'deck-card-row-reordering' : '',
-                  isDragSource ? 'deck-card-row-drag-source' : '',
-                  shift === -1 ? 'deck-card-row-shift-up' : '',
-                  shift === 1 ? 'deck-card-row-shift-down' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                style={deckRowStyle(rarityMeta)}
-              >
-                {isDragSource && dragState ? (
-                  <>
-                    <div
-                      className="deck-card-slot"
-                      style={{ minHeight: dragState.rowHeight }}
-                      aria-hidden
-                    />
+              <li key={`empty-${index}`} className="deck-card-row deck-card-row--empty">
+                <button
+                  type="button"
+                  className="deck-card-empty-slot"
+                  disabled={reorderMode}
+                  onClick={onCreateCard}
+                  aria-label="新規カードを作成"
+                >
+                  <span className="deck-card-empty-icon" aria-hidden>
+                    ＋
+                  </span>
+                  <span className="deck-card-empty-label">新規作成</span>
+                </button>
+              </li>
+            );
+          }
+
+          const rarityMeta = getRarityMeta(card.rarity);
+          const isDragSource = dragState?.fromIndex === index;
+          const shift =
+            dragState != null
+              ? getDeckRowShift(index, dragState.fromIndex, dragState.dropIndex)
+              : 0;
+
+          return (
+            <li
+              key={card.id}
+              data-deck-index={index}
+              className={[
+                'deck-card-row',
+                `deck-card-row--${card.rarity}`,
+                card.id === fauxLostCardId ? 'faux-lost' : '',
+                reorderMode ? 'deck-card-row-reordering' : '',
+                isDragSource ? 'deck-card-row-drag-source' : '',
+                shift === -1 ? 'deck-card-row-shift-up' : '',
+                shift === 1 ? 'deck-card-row-shift-down' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              style={deckRowStyle(rarityMeta)}
+            >
+              {isDragSource && dragState ? (
+                <>
+                  <div
+                    className="deck-card-slot"
+                    style={{ minHeight: dragState.rowHeight }}
+                    aria-hidden
+                  />
+                  <span
+                    className="deck-card-drag-handle deck-drag-ghost-spacer"
+                    aria-hidden
+                  >
+                    ≡
+                  </span>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="deck-card-main"
+                    disabled={reorderMode}
+                    onClick={() => setSelectedCard(card)}
+                  >
+                    <DeckCardRowBody card={card} />
+                  </button>
+                  {reorderMode && (
                     <span
-                      className="deck-card-drag-handle deck-drag-ghost-spacer"
-                      aria-hidden
+                      className="deck-card-drag-handle"
+                      aria-label="ドラッグで並べ替え"
+                      title="ドラッグで並べ替え"
+                      onPointerDown={(event) => handleHandlePointerDown(index, event)}
                     >
                       ≡
                     </span>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="deck-card-main"
-                      disabled={reorderMode}
-                      onClick={() => setSelectedCard(card)}
-                    >
-                      <DeckCardRowBody card={card} />
-                    </button>
-                    {reorderMode && (
-                      <span
-                        className="deck-card-drag-handle"
-                        aria-label="ドラッグで並べ替え"
-                        title="ドラッグで並べ替え"
-                        onPointerDown={(event) => handleHandlePointerDown(index, event)}
-                      >
-                        ≡
-                      </span>
-                    )}
-                  </>
-                )}
-              </li>
-            );
-          })
-        )}
+                  )}
+                </>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       {dragState && draggedCard && (
@@ -365,28 +378,6 @@ export function DeckScreen({
             ≡
           </span>
         </div>
-      )}
-
-      <div className="actions deck-actions">
-        <button
-          type="button"
-          onClick={onCreateCard}
-          disabled={reorderMode || deck.length >= 5}
-        >
-          新規カード作成
-        </button>
-        <button
-          type="button"
-          onClick={onStartBattle}
-          disabled={reorderMode || deck.length < DECK_MAX}
-        >
-          バトル
-        </button>
-      </div>
-      {!reorderMode && deck.length > 0 && deck.length < DECK_MAX && (
-        <p className="muted">
-          戦闘にはあと {DECK_MAX - deck.length} 枚必要です（合計 {DECK_MAX} 枚）
-        </p>
       )}
 
       {selectedCard && (

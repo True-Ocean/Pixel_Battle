@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { Card } from '../types';
 import { BattleCommonRules } from './BattleCommonRules';
 import { DeckCardDetailCard } from './DeckCardDetailCard';
@@ -19,7 +21,31 @@ export function DeckCardDetailOverlay({
   onDelete,
   onRevive,
 }: DeckCardDetailOverlayProps) {
-  return (
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    const { style } = document.body;
+    const prev = {
+      position: style.position,
+      top: style.top,
+      width: style.width,
+      overflow: style.overflow,
+    };
+
+    style.position = 'fixed';
+    style.top = `-${scrollY}px`;
+    style.width = '100%';
+    style.overflow = 'hidden';
+
+    return () => {
+      style.position = prev.position;
+      style.top = prev.top;
+      style.width = prev.width;
+      style.overflow = prev.overflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
+  return createPortal(
     <div className="deck-card-detail-backdrop" onClick={onClose}>
       <div
         className="deck-card-detail-panel"
@@ -32,9 +58,10 @@ export function DeckCardDetailOverlay({
           {card.name}
         </h2>
 
-        <DeckCardDetailCard card={card} isFauxLost={isFauxLost} />
-
-        <BattleCommonRules />
+        <div className="deck-card-detail-scroll">
+          <DeckCardDetailCard card={card} isFauxLost={isFauxLost} />
+          <BattleCommonRules />
+        </div>
 
         <div className="deck-card-detail-actions">
           {isFauxLost && onRevive ? (
@@ -54,6 +81,7 @@ export function DeckCardDetailOverlay({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
