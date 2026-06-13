@@ -5126,13 +5126,15 @@ button.battle-card {
   overflow: hidden;
 }
 
-.formation-screen.is-reveal-phase .formation-zone-player {
+.formation-screen.is-reveal-phase .formation-zone-player,
+.formation-screen.is-setup-phase .formation-zone-player {
   padding: 0.28rem 0 0;
   gap: 0;
   overflow: hidden;
 }
 
-.formation-screen.is-reveal-phase .formation-zone .formation-zone-banner {
+.formation-screen.is-reveal-phase .formation-zone .formation-zone-banner,
+.formation-screen.is-setup-phase .formation-zone .formation-zone-banner {
   min-height: auto;
   width: 100%;
   padding: 0.28rem 0.55rem;
@@ -5152,7 +5154,8 @@ button.battle-card {
   background: linear-gradient(90deg, #be185d 0%, #e11d74 32%, #ffa8c8 100%);
 }
 
-.formation-screen.is-reveal-phase .formation-zone-player .formation-zone-banner-player {
+.formation-screen.is-reveal-phase .formation-zone-player .formation-zone-banner-player,
+.formation-screen.is-setup-phase .formation-zone-player .formation-zone-banner-player {
   margin-top: 0.34rem;
   justify-content: flex-end;
   text-align: right;
@@ -5163,7 +5166,8 @@ button.battle-card {
   padding: 0.08rem 0.2rem 0;
 }
 
-.formation-screen.is-reveal-phase .formation-zone-player .formation-field-player {
+.formation-screen.is-reveal-phase .formation-zone-player .formation-field-player,
+.formation-screen.is-setup-phase .formation-zone-player .formation-field-player {
   padding: 0 0.2rem 0.08rem;
 }
 
@@ -5210,6 +5214,82 @@ button.battle-card {
 }
 
 .formation-screen.is-reveal-phase .setup-actions.formation-actions {
+  flex-shrink: 0;
+  padding-bottom: 0.15rem;
+}
+
+/* バトル準備（フェーズ2）: 自分の配置のみ中央に大きく表示 */
+.formation-screen.is-setup-phase {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  --formation-card-h: min(7.85rem, calc((100dvh - 11rem) / 3.35));
+  --formation-card-w: calc(var(--formation-card-h) * 5.25 / 7.75);
+}
+
+.formation-screen.is-setup-phase .formation-battle-shell {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.formation-screen.is-setup-phase .formation-battle-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.formation-screen.is-setup-phase .formation-setup-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.formation-screen.is-setup-phase .formation-setup-spacer {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.formation-screen.is-setup-phase .formation-setup-focus {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  align-items: stretch;
+}
+
+.formation-screen.is-setup-phase .formation-guide-setup {
+  flex-shrink: 0;
+}
+
+.formation-screen.is-setup-phase .formation-setup-player-zone {
+  flex-shrink: 0;
+}
+
+.formation-screen.is-setup-phase .formation-setup-player-zone .formation-row {
+  gap: calc(var(--formation-card-w) * 0.1);
+}
+
+.formation-screen.is-setup-phase .formation-setup-player-zone .formation-row-front {
+  padding-inline: calc(var(--formation-card-w) * 0.45);
+}
+
+.formation-screen.is-setup-phase .formation-setup-player-zone .formation-field {
+  gap: 0.14rem;
+}
+
+.formation-screen.is-setup-phase .formation-zone .formation-hand-player {
+  background: transparent;
+  min-height: 0;
+  height: auto;
+  padding: 0.16rem 0.2rem 0.06rem;
+}
+
+.formation-screen.is-setup-phase .setup-actions.formation-actions {
   flex-shrink: 0;
   padding-bottom: 0.15rem;
 }
