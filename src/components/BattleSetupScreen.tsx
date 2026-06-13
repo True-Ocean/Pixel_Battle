@@ -14,7 +14,6 @@ import {
   BACK_POSITIONS,
   BOARD_POSITIONS,
   FRONT_POSITIONS,
-  getDefeated,
   getHealTargets,
   getMeleeTargets,
   getSelectionTurn,
@@ -163,6 +162,14 @@ function getPoisonDotSlotFx(
   };
 }
 
+/** 撃破直後（currentBp=0）も含め、スロット上のユニットを参照する */
+function getUnitAtPosition(
+  field: BattleUnit[],
+  position: BoardPosition,
+): BattleUnit | undefined {
+  return field.find((u) => u.position === position);
+}
+
 function resolveStormHitDisplay(
   battle: ReturnType<typeof useBattle>,
   side: 'cpu' | 'player',
@@ -187,7 +194,7 @@ function resolveFrozenDisplay(
   position: BoardPosition,
 ): { frozen: boolean; justApplied: boolean } {
   const playback = battle.playback;
-  if (playback?.phase === 'attack' && playback.attackSubPhase === 'bp') {
+  if (playback?.phase === 'attack') {
     const attack = playback.attacks[playback.attackIndex];
     const isIceTarget =
       attack?.iceGranted &&
@@ -200,7 +207,7 @@ function resolveFrozenDisplay(
     if (isIceTarget || isIceCounterTarget) {
       const field =
         side === 'player' ? attack.stateAfter.player : attack.stateAfter.cpu;
-      const after = getUnitAt(field, position);
+      const after = getUnitAtPosition(field, position);
       if (after?.frozenUntilTurn != null) {
         return { frozen: true, justApplied: true };
       }
@@ -243,7 +250,7 @@ function resolvePoisonDisplay(
           side === 'player'
             ? attack.stateAfter.player
             : attack.stateAfter.cpu;
-        const after = getUnitAt(field, position);
+        const after = getUnitAtPosition(field, position);
         if (after && after.poisonStacks.length > 0) {
           return {
             count: after.poisonStacks.length,
@@ -623,10 +630,6 @@ function BattleUnitSlot({
   const unit = getUnitAt(field, position);
   const cards = side === 'player' ? battle.playerCards : battle.cpuCards;
   const card = unit ? cards.find((c) => c.id === unit.cardId) : null;
-  const faceDown =
-    side === 'cpu' &&
-    battle.effectivePhase === 'opening' &&
-    !battle.revealedCpu.has(position);
   const selected =
     side === 'player' &&
     (battle.pendingActor === position || battle.pendingPromoteFrom === position);
@@ -697,7 +700,7 @@ function BattleUnitSlot({
       ref={registerSlot(side, position)}
       type="button"
       className={`formation-slot battle-formation-slot ${
-        unit ? 'has-card' : ''
+        unit ? 'has-card' : 'is-subtle-empty'
       } ${unit ? 'is-frameless' : ''} ${stealthActive ? 'has-stealth-unit' : ''} ${
         selected ? 'is-selected' : ''
       } ${
@@ -745,20 +748,14 @@ function BattleUnitSlot({
           poisonDamagePerTurn={poisonDisplay.damagePerTurn}
           poisonJustApplied={poisonDisplay.justApplied}
           defenseShieldUsed={unit.defenseShieldUsed}
-          faceDown={faceDown}
           flipEnabled
-          hideBp={faceDown}
           selected={selected}
           animatedBp={
             attackFx?.animatedBp ?? healFx?.animatedBp ?? poisonFx?.animatedBp
           }
           healSparkle={healFx?.sparkle ?? false}
         />
-      ) : (
-        <span className="formation-empty-label">
-          {position.startsWith('front') ? '前衛' : '後衛'}
-        </span>
-      )}
+      ) : null}
     </button>
   );
 }
@@ -1004,13 +1001,15 @@ function FormationDamageLayer({
 
 function BattleBoard({
   battle,
+  opponentIdentity,
+  playerIdentity,
 }: {
   battle: ReturnType<typeof useBattle>;
+  opponentIdentity: BattleZoneIdentity;
+  playerIdentity?: BattleZoneIdentity;
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
   const slotRefs = useRef<Partial<Record<SlotKey, HTMLButtonElement>>>({});
-  const playerDefeated = getDefeated(battle.state.player);
-  const cpuDefeated = getDefeated(battle.state.cpu);
   const result = battle.result;
   const showOutcome =
     battle.effectivePhase === 'ended' && result != null;
@@ -1195,101 +1194,97 @@ function BattleBoard({
   ]);
 
   return (
-    <div className="formation-battle">
-      <div ref={boardRef} className="formation-board">
-        <FormationArrowLayer
-          boardRef={boardRef}
-          slotRefs={slotRefs}
-          lines={arrowLines}
-        />
-        <FormationDamageLayer
-          boardRef={boardRef}
-          slotRefs={slotRefs}
-          markers={damageMarkers}
-        />
+    <div className="formation-battle-body-inner">
+      <div className="formation-battle-spacer" aria-hidden />
+      <div className="formation-battle-focus">
+        <div ref={boardRef} className="formation-board formation-board-battle">
+          <FormationArrowLayer
+            boardRef={boardRef}
+            slotRefs={slotRefs}
+            lines={arrowLines}
+          />
+          <FormationDamageLayer
+            boardRef={boardRef}
+            slotRefs={slotRefs}
+            markers={damageMarkers}
+          />
 
-        <div className="formation-field formation-field-cpu">
-          <div className="formation-grave formation-grave-cpu">
-            {cpuDefeated.map((unit) => {
-              const card = battle.cpuCards.find((c) => c.id === unit.cardId);
-              return card ? (
-                <TinyCard key={unit.cardId} card={card} side="cpu" defeated />
-              ) : null;
-            })}
+          <div className="formation-zone formation-zone-cpu">
+            <FormationZoneBanner identity={opponentIdentity} side="cpu" />
+            <div className="formation-field formation-field-cpu">
+              <div className="formation-row formation-row-back">
+                {BACK_POSITIONS.map((position) => (
+                  <BattleUnitSlot
+                    key={`cpu-${position}`}
+                    battle={battle}
+                    side="cpu"
+                    position={position}
+                    registerSlot={registerSlot}
+                  />
+                ))}
+              </div>
+              <div className="formation-row formation-row-front">
+                {FRONT_POSITIONS.map((position) => (
+                  <BattleUnitSlot
+                    key={`cpu-front-${position}`}
+                    battle={battle}
+                    side="cpu"
+                    position={position}
+                    registerSlot={registerSlot}
+                  />
+                ))}
+              </div>
+              {showOutcome && (
+                <FormationZoneOutcome battleResult={result} side="cpu" />
+              )}
+            </div>
           </div>
-          <div className="formation-row formation-row-back">
-            {BACK_POSITIONS.map((position) => (
-              <BattleUnitSlot
-                key={`cpu-${position}`}
-                battle={battle}
-                side="cpu"
-                position={position}
-                registerSlot={registerSlot}
-              />
-            ))}
-          </div>
-          <div className="formation-row formation-row-front">
-            {FRONT_POSITIONS.map((position) => (
-              <BattleUnitSlot
-                key={`cpu-${position}`}
-                battle={battle}
-                side="cpu"
-                position={position}
-                registerSlot={registerSlot}
-              />
-            ))}
-          </div>
-          {showOutcome && (
-            <FormationZoneOutcome battleResult={result} side="cpu" />
-          )}
-        </div>
 
-        <div className="formation-guide">
-          <div className="formation-hint formation-guide-line">
-            {formatBattleGuideLine(
-              battle.turnLabel,
-              battle.hint,
-              showOutcome ? result : null,
+          <div className="formation-guide formation-guide-battle">
+            <div className="formation-hint formation-guide-line">
+              {formatBattleGuideLine(
+                battle.turnLabel,
+                battle.hint,
+                showOutcome ? result : null,
+              )}
+            </div>
+          </div>
+
+          <div className="formation-zone formation-zone-player">
+            <div className="formation-field formation-field-player">
+              <div className="formation-row formation-row-front">
+                {FRONT_POSITIONS.map((position) => (
+                  <BattleUnitSlot
+                    key={`player-${position}`}
+                    battle={battle}
+                    side="player"
+                    position={position}
+                    registerSlot={registerSlot}
+                  />
+                ))}
+              </div>
+              <div className="formation-row formation-row-back">
+                {BACK_POSITIONS.map((position) => (
+                  <BattleUnitSlot
+                    key={`player-back-${position}`}
+                    battle={battle}
+                    side="player"
+                    position={position}
+                    registerSlot={registerSlot}
+                  />
+                ))}
+              </div>
+              {showOutcome && (
+                <FormationZoneOutcome battleResult={result} side="player" />
+              )}
+            </div>
+            {playerIdentity && (
+              <FormationZoneBanner identity={playerIdentity} side="player" />
             )}
           </div>
         </div>
-
-        <div className="formation-field formation-field-player">
-          <div className="formation-row formation-row-front">
-            {FRONT_POSITIONS.map((position) => (
-              <BattleUnitSlot
-                key={`player-${position}`}
-                battle={battle}
-                side="player"
-                position={position}
-                registerSlot={registerSlot}
-              />
-            ))}
-          </div>
-          <div className="formation-row formation-row-back">
-            {BACK_POSITIONS.map((position) => (
-              <BattleUnitSlot
-                key={`player-${position}`}
-                battle={battle}
-                side="player"
-                position={position}
-                registerSlot={registerSlot}
-              />
-            ))}
-          </div>
-          <div className="formation-grave formation-grave-player">
-            {playerDefeated.map((unit) => {
-              const card = battle.playerCards.find((c) => c.id === unit.cardId);
-              return card ? (
-                <TinyCard key={unit.cardId} card={card} side="player" defeated />
-              ) : null;
-            })}
-          </div>
-          {showOutcome && (
-            <FormationZoneOutcome battleResult={result} side="player" />
-          )}
-        </div>
       </div>
+      <div className="formation-battle-spacer" aria-hidden />
     </div>
   );
 }
@@ -1297,11 +1292,15 @@ function BattleBoard({
 function BattleSession({
   playerCards,
   cpuCards,
+  opponentIdentity,
+  playerIdentity,
   onFinish,
   onEndedChange,
 }: {
   playerCards: Card[];
   cpuCards: Card[];
+  opponentIdentity: BattleZoneIdentity;
+  playerIdentity?: BattleZoneIdentity;
   onFinish: BattleSetupScreenProps['onFinish'];
   onEndedChange?: (ended: boolean) => void;
 }) {
@@ -1316,7 +1315,13 @@ function BattleSession({
     onEndedChange?.(ended);
   }, [ended, onEndedChange]);
 
-  return <BattleBoard battle={battle} />;
+  return (
+    <BattleBoard
+      battle={battle}
+      opponentIdentity={opponentIdentity}
+      playerIdentity={playerIdentity}
+    />
+  );
 }
 
 export function BattleSetupScreen({
@@ -1571,19 +1576,15 @@ export function BattleSetupScreen({
       className={`screen setup-reveal formation-screen${phase === 'reveal' ? ' is-reveal-phase' : ''}${phase === 'setup' ? ' is-setup-phase' : ''}${phase === 'battle' ? ' is-battle-active' : ''}${battleEnded ? ' has-end-actions' : ''}`}
     >
       <div className="formation-battle-shell">
-        {phase === 'battle' && (
-          <FormationZoneBanner
-            identity={resolvedOpponentIdentity}
-            side="cpu"
-          />
-        )}
         <div
-          className={`formation-battle-body${phase === 'reveal' ? ' formation-reveal-body' : ''}`}
+          className={`formation-battle-body${phase === 'reveal' ? ' formation-reveal-body' : ''}${phase === 'battle' ? ' formation-battle-play-body' : ''}`}
         >
           {phase === 'battle' ? (
             <BattleSession
               playerCards={battleCards.player}
               cpuCards={battleCards.cpu}
+              opponentIdentity={resolvedOpponentIdentity}
+              playerIdentity={resolvedPlayerIdentity}
               onFinish={onFinish}
               onEndedChange={setBattleEnded}
             />
@@ -1610,13 +1611,6 @@ export function BattleSetupScreen({
             />
           )}
         </div>
-
-        {phase === 'battle' && resolvedPlayerIdentity && (
-          <FormationZoneBanner
-            identity={resolvedPlayerIdentity}
-            side="player"
-          />
-        )}
 
         {phase === 'reveal' && (
           <div className="actions setup-actions formation-actions">

@@ -72,10 +72,8 @@ export function useBattle(
   const [state, setState] = useState<BattleState>(() =>
     createBattleState(playerCards, cpuCards),
   );
-  const [uiPhase, setUiPhase] = useState<BattleUiPhase>('opening');
-  const [revealedCpu, setRevealedCpu] = useState<Set<BoardPosition>>(
-    () => new Set(),
-  );
+  const [uiPhase, setUiPhase] = useState<BattleUiPhase>('pickMain');
+  const battleBegunRef = useRef(false);
   const [pendingActor, setPendingActor] = useState<BoardPosition | null>(null);
   const [pendingAction, setPendingAction] = useState<BattleActionType | null>(
     null,
@@ -156,26 +154,10 @@ export function useBattle(
   );
 
   useEffect(() => {
-    if (uiPhase !== 'opening') return;
-    const order: BoardPosition[] = [
-      'frontLeft',
-      'frontRight',
-      'backLeft',
-      'backCenter',
-      'backRight',
-    ];
-    if (revealedCpu.size >= order.length) {
-      const t = window.setTimeout(() => beginTurnSelection(state), 280);
-      return () => window.clearTimeout(t);
-    }
-    const t = window.setTimeout(() => {
-      const position = order[revealedCpu.size];
-      if (position) {
-        setRevealedCpu((prev) => new Set(prev).add(position));
-      }
-    }, 360);
-    return () => window.clearTimeout(t);
-  }, [uiPhase, revealedCpu, state, beginTurnSelection]);
+    if (battleBegunRef.current) return;
+    battleBegunRef.current = true;
+    beginTurnSelection(state);
+  }, [beginTurnSelection, state]);
 
   const finishPlayback = useCallback(
     (nextState: BattleState) => {
@@ -430,7 +412,6 @@ export function useBattle(
       if (typeof position === 'number') return;
       if (
         effectivePhase === 'clash' ||
-        effectivePhase === 'opening' ||
         effectivePhase === 'turnStartPoison'
       ) {
         return;
@@ -828,16 +809,18 @@ export function useBattle(
 
   const hint = useMemo(() => {
     if (effectivePhase === 'ended') return null;
-    if (effectivePhase === 'opening') return 'カードオープン';
     if (effectivePhase === 'turnStartPoison') return '毒ダメージ';
     if (effectivePhase === 'clash' && playback) {
       if (playback.phase === 'heal') return '回復';
       if (playback.phase === 'shield') return '盾付与';
-      if (playback.phase === 'attack') return '攻撃';
-      return '判定中';
+      if (playback.phase === 'attack') return '攻撃判定中';
+      return '攻撃判定中';
     }
-    if (effectivePhase === 'pickTarget' && pendingAction === 'bowAttack') {
-      return '弓の対象を選択';
+    if (
+      effectivePhase === 'pickTarget' &&
+      (pendingAction === 'bowAttack' || pendingAction === 'meleeAttack')
+    ) {
+      return '攻撃先をタップ';
     }
     if (
       effectivePhase === 'pickTarget' &&
@@ -852,35 +835,45 @@ export function useBattle(
       const actor = pendingActor
         ? getUnitAt(state.player, pendingActor)
         : null;
-      if (actor?.attribute === 'heal') return '攻撃先か回復先を選択';
+      if (actor?.attribute === 'heal') return '攻撃先か回復先をタップ';
       if (pendingActor) {
         const actorActions = availableActionsFor(pendingActor);
         if (
           actorActions.includes('storm') &&
           actorActions.includes('meleeAttack')
         ) {
-          return '嵐は自分再タップ、近接は敵前衛、嵐以外のどこでも解除';
+          return '再タップで嵐、敵タップで近接攻撃\nそれ以外をタップで解除';
         }
         if (actorActions.includes('storm') && actorActions.length === 1) {
-          return 'もう一度自分をタップで嵐、それ以外をタップで解除';
+          return '再タップで嵐、それ以外をタップで解除';
+        }
+        if (
+          actor?.attribute === 'defense' &&
+          actorActions.includes('grantShield') &&
+          actorActions.includes('meleeAttack')
+        ) {
+          return '味方タップで盾付与、敵タップで近接攻撃';
         }
       }
-      return '攻撃先か盾先を選択';
     }
-    if (effectivePhase === 'pickTarget' && pendingAction === 'storm') {
-      return 'もう一度自分をタップで嵐、それ以外をタップで解除';
-    }
-    if (effectivePhase === 'pickTarget') return '攻撃対象を選択';
-    if (effectivePhase === 'pickShield') return '盾対象を選択';
+    if (effectivePhase === 'pickTarget') return '攻撃先をタップ';
+    if (effectivePhase === 'pickShield') return '味方タップで盾付与';
     if (effectivePhase === 'pickHeal') return '回復対象を選択';
     if (effectivePhase === 'promoteUnit') {
       return '前衛に移動する後衛カードを選択';
     }
     if (effectivePhase === 'promoteSlot') return '移動先の前衛スロットを選択';
-    return 'カードを選択';
-  }, [effectivePhase, playback, pendingAction, pendingActor, state, availableActionsFor]);
+    return '行動カードを選択';
+  }, [
+    effectivePhase,
+    playback,
+    pendingAction,
+    pendingActor,
+    state,
+    availableActionsFor,
+  ]);
 
-  const turnLabel = effectivePhase === 'opening' ? null : `TURN ${state.turn + 1}`;
+  const turnLabel = `TURN ${state.turn + 1}`;
 
   return {
     state,
@@ -890,7 +883,6 @@ export function useBattle(
     clash: null,
     playback,
     turnStartPlayback,
-    revealedCpu,
     effectivePhase,
     pendingMain: null,
     pendingActor,
