@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { MAX_USER_LEVEL } from '../config/balance';
+import { DECK_SLOT_COUNT, MAX_USER_LEVEL } from '../config/balance';
+import { clampUnlockedDeckCount } from '../deckSlots';
 import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
 import { getLevelProgress } from '../user';
 import type { UserProfile } from '../types';
@@ -7,8 +8,10 @@ import { ConfirmDialog } from './ConfirmDialog';
 
 interface SettingsScreenProps {
   user: UserProfile | null;
+  unlockedDeckCount: number;
   onResetBattleRecords: () => void;
   onDevSetLevel: (level: number) => void;
+  onDevSetUnlockedDeckCount: (count: number) => void;
 }
 
 interface PlaceholderRow {
@@ -59,14 +62,20 @@ function SettingsRow({
 
 export function SettingsScreen({
   user,
+  unlockedDeckCount,
   onResetBattleRecords,
   onDevSetLevel,
+  onDevSetUnlockedDeckCount,
 }: SettingsScreenProps) {
   const [resetOpen, setResetOpen] = useState(false);
   const [devLevelInput, setDevLevelInput] = useState(
     () => String(user?.level ?? 1),
   );
+  const [devDeckUnlockInput, setDevDeckUnlockInput] = useState(
+    () => String(unlockedDeckCount),
+  );
   const [devNotice, setDevNotice] = useState<string | null>(null);
+  const [devDeckNotice, setDevDeckNotice] = useState<string | null>(null);
   const isDev = import.meta.env.DEV;
 
   if (!user) {
@@ -90,6 +99,20 @@ export function SettingsScreen({
     }
     onDevSetLevel(parsed);
     setDevNotice(`Lv.${parsed} に変更しました。既存カードの BP も再算出されます。`);
+  };
+
+  const handleDevDeckUnlockApply = () => {
+    const parsed = Number.parseInt(devDeckUnlockInput, 10);
+    if (!Number.isFinite(parsed) || parsed < 1 || parsed > DECK_SLOT_COUNT) {
+      setDevDeckNotice(
+        `デッキ解放数は 1〜${DECK_SLOT_COUNT} の整数を入力してください。`,
+      );
+      return;
+    }
+    const clamped = clampUnlockedDeckCount(parsed);
+    onDevSetUnlockedDeckCount(clamped);
+    setDevDeckUnlockInput(String(clamped));
+    setDevDeckNotice(`デッキ解放数を ${clamped} に変更しました。`);
   };
 
   return (
@@ -168,14 +191,47 @@ export function SettingsScreen({
                 </button>
               </div>
             </div>
+            <div className="settings-dev-level">
+              <label
+                className="settings-dev-level-label"
+                htmlFor="settings-dev-deck-unlock"
+              >
+                デッキ解放数
+              </label>
+              <div className="settings-dev-level-row">
+                <input
+                  id="settings-dev-deck-unlock"
+                  type="number"
+                  min={1}
+                  max={DECK_SLOT_COUNT}
+                  step={1}
+                  className="settings-dev-level-input"
+                  value={devDeckUnlockInput}
+                  onChange={(event) => setDevDeckUnlockInput(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className="settings-dev-level-apply"
+                  onClick={handleDevDeckUnlockApply}
+                >
+                  適用
+                </button>
+              </div>
+            </div>
             {devNotice && (
               <p className="settings-dev-notice" role="status">
                 {devNotice}
               </p>
             )}
+            {devDeckNotice && (
+              <p className="settings-dev-notice" role="status">
+                {devDeckNotice}
+              </p>
+            )}
             <p className="settings-section-note muted">
               開発ビルドのみ表示。適用でセーブデータのレベル・EXP・カード BP
-              を更新します。永続的な上書きは dev-user-level スキルを使用してください。
+              またはデッキ解放数を更新します。永続的な上書きは dev-user-level
+              スキルを使用してください。
             </p>
           </SettingsSection>
         )}

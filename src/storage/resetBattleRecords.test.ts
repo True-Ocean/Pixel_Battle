@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createEmptyDeckSlots } from '../deckSlots';
 import type { Card, SaveData } from '../types';
 import { resetBattleRecords } from './index';
 
@@ -21,6 +22,9 @@ function makeCard(id: string): Card {
 
 describe('resetBattleRecords', () => {
   it('resets user level and card records while keeping deck content', () => {
+    const decks = createEmptyDeckSlots();
+    decks[0] = [makeCard('a'), makeCard('b')];
+
     const save: SaveData = {
       user: {
         username: 'test',
@@ -29,7 +33,9 @@ describe('resetBattleRecords', () => {
         battleWins: 10,
         battleLosses: 3,
       },
-      deck: [makeCard('a'), makeCard('b')],
+      decks,
+      activeDeckIndex: 0,
+      unlockedDeckCount: 1,
     };
 
     expect(resetBattleRecords(save)).toEqual({
@@ -40,10 +46,12 @@ describe('resetBattleRecords', () => {
         battleWins: 0,
         battleLosses: 0,
       },
-      deck: [
+      decks: [[
         { ...makeCard('a'), wins: 0, losses: 0 },
         { ...makeCard('b'), wins: 0, losses: 0 },
-      ],
+      ], [], [], [], []],
+      activeDeckIndex: 0,
+      unlockedDeckCount: 1,
       battleHistory: [],
     });
   });

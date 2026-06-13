@@ -1,9 +1,18 @@
 import type { BattleHistoryEntry, Card, CardRarity, CardStars, SaveData } from '../types';
 import { rescaleDeckBp } from '../card';
 import {
+  clampDeckSlotIndex,
+  clampUnlockedDeckCount,
+  createEmptyDeckSlots,
+  normalizeDeckSlots,
+  resetAllDeckCardRecords,
+} from '../deckSlots';
+import {
   CANVAS_SIZE_DEFAULT,
-  DEV_FORCE_MAX_USER_LEVEL,
   DECK_MAX,
+  DECK_SLOT_COUNT,
+  DECK_SLOT_INITIAL_UNLOCKED,
+  DEV_FORCE_MAX_USER_LEVEL,
   USER_INITIAL_EXP,
   USER_INITIAL_LEVEL,
 } from '../config/balance';
@@ -14,7 +23,13 @@ import { applyDevUserProfile, normalizeUserProfile } from '../user';
 const STORAGE_KEY = 'dot5-battle-save-v1';
 
 function emptySave(): SaveData {
-  return { user: null, deck: [], battleHistory: [] };
+  return {
+    user: null,
+    decks: createEmptyDeckSlots(),
+    activeDeckIndex: 0,
+    unlockedDeckCount: DECK_SLOT_INITIAL_UNLOCKED,
+    battleHistory: [],
+  };
 }
 
 function parseRarity(value: unknown): CardRarity {
@@ -94,6 +109,10 @@ function deckBpChanged(before: Card[], after: Card[]): boolean {
   return after.some((card, index) => card.bp !== before[index]?.bp);
 }
 
+function anyDeckBpChanged(before: Card[][], after: Card[][]): boolean {
+  return after.some((deck, index) => deckBpChanged(before[index] ?? [], deck));
+}
+
 function migrateDeck(deck: unknown[]): Card[] {
   return deck
     .map((item) =>
@@ -103,6 +122,25 @@ function migrateDeck(deck: unknown[]): Card[] {
     )
     .filter((card): card is Card => card != null)
     .slice(0, DECK_MAX);
+}
+
+function migrateDecks(parsed: Record<string, unknown>): Card[][] {
+  if (Array.isArray(parsed.decks)) {
+    const slots = createEmptyDeckSlots();
+    for (let i = 0; i < DECK_SLOT_COUNT; i++) {
+      const raw = parsed.decks[i];
+      if (Array.isArray(raw)) {
+        slots[i] = migrateDeck(raw);
+      }
+    }
+    return slots;
+  }
+  if (Array.isArray(parsed.deck)) {
+    const slots = createEmptyDeckSlots();
+    slots[0] = migrateDeck(parsed.deck);
+    return slots;
+  }
+  return createEmptyDeckSlots();
 }
 
 function migrateBattleHistory(raw: unknown): BattleHistoryEntry[] {
@@ -134,31 +172,79 @@ function migrateBattleHistory(raw: unknown): BattleHistoryEntry[] {
   return entries;
 }
 
+function normalizeSaveFields(parsed: Record<string, unknown>, decks: Card[][]): Pick<
+  SaveData,
+  'activeDeckIndex' | 'unlockedDeckCount' | 'deckNames'
+> {
+  const activeDeckIndex = clampDeckSlotIndex(
+    typeof parsed.activeDeckIndex === 'number' ? parsed.activeDeckIndex : 0,
+  );
+  const unlockedDeckCount = clampUnlockedDeckCount(
+    typeof parsed.unlockedDeckCount === 'number'
+      ? parsed.unlockedDeckCount
+      : DECK_SLOT_INITIAL_UNLOCKED,
+  );
+  const deckNames = Array.isArray(parsed.deckNames)
+    ? parsed.deckNames
+        .slice(0, DECK_SLOT_COUNT)
+        .map((name) => (typeof name === 'string' ? name : ''))
+    : undefined;
+  const safeActiveIndex =
+    activeDeckIndex < unlockedDeckCount ? activeDeckIndex : 0;
+  return { activeDeckIndex: safeActiveIndex, unlockedDeckCount, deckNames };
+}
+
+function rescaleAllDecks(decks: Card[][], level: number): Card[][] {
+  return decks.map((deck) => rescaleDeckBp(deck, level));
+}
+
 export function loadSave(): SaveData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return emptySave();
-    const parsed = JSON.parse(raw) as Partial<SaveData>;
-    if (!Array.isArray(parsed.deck)) return emptySave();
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const hasLegacyDeck = Array.isArray(parsed.deck);
+    const hasDecks = Array.isArray(parsed.decks);
+    if (!hasLegacyDeck && !hasDecks) return emptySave();
+
     const user = normalizeUserProfile(parsed.user);
-    const deck = migrateDeck(parsed.deck);
+    const decks = normalizeDeckSlots(migrateDecks(parsed));
     const battleHistory = migrateBattleHistory(parsed.battleHistory);
+    const { activeDeckIndex, unlockedDeckCount, deckNames } = normalizeSaveFields(
+      parsed,
+      decks,
+    );
+
+    const baseSave: SaveData = {
+      user,
+      decks,
+      activeDeckIndex,
+      unlockedDeckCount,
+      deckNames,
+      battleHistory,
+    };
+
     if (user) {
       const devAdjusted = applyDevUserProfile(user);
       const rescale = shouldRescaleDeckForDev();
-      const finalDeck = rescale
-        ? rescaleDeckBp(deck, devAdjusted.level)
-        : deck;
+      const finalDecks = rescale
+        ? rescaleAllDecks(decks, devAdjusted.level)
+        : decks;
+      const finalSave: SaveData = {
+        ...baseSave,
+        user: devAdjusted,
+        decks: finalDecks,
+      };
       if (
         devAdjusted.level !== user.level ||
         devAdjusted.exp !== user.exp ||
-        (rescale && deckBpChanged(deck, finalDeck))
+        (rescale && anyDeckBpChanged(decks, finalDecks))
       ) {
-        saveSave({ user: devAdjusted, deck: finalDeck, battleHistory });
+        saveSave(finalSave);
       }
-      return { user: devAdjusted, deck: finalDeck, battleHistory };
+      return finalSave;
     }
-    return { user, deck, battleHistory };
+    return baseSave;
   } catch {
     return emptySave();
   }
@@ -169,7 +255,10 @@ export function saveSave(data: SaveData): void {
     STORAGE_KEY,
     JSON.stringify({
       user: data.user,
-      deck: data.deck.slice(0, DECK_MAX),
+      decks: normalizeDeckSlots(data.decks).map((deck) => deck.slice(0, DECK_MAX)),
+      activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
+      unlockedDeckCount: clampUnlockedDeckCount(data.unlockedDeckCount),
+      deckNames: data.deckNames,
       battleHistory: data.battleHistory ?? [],
     }),
   );
@@ -187,17 +276,18 @@ export function resetBattleRecords(data: SaveData): SaveData {
           battleLosses: 0,
         }
       : null,
-    deck: data.deck.map((card) => ({
-      ...card,
-      wins: 0,
-      losses: 0,
-    })),
+    decks: resetAllDeckCardRecords(normalizeDeckSlots(data.decks)),
+    activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
+    unlockedDeckCount: clampUnlockedDeckCount(data.unlockedDeckCount),
+    deckNames: data.deckNames,
     battleHistory: [],
   };
 }
 
 /** @deprecated saveSave を使用 */
-export function saveDeck(deck: SaveData['deck']): void {
+export function saveDeck(deck: Card[]): void {
   const current = loadSave();
-  saveSave({ ...current, deck: deck.slice(0, DECK_MAX) });
+  const nextDecks = normalizeDeckSlots(current.decks);
+  nextDecks[clampDeckSlotIndex(current.activeDeckIndex)] = deck.slice(0, DECK_MAX);
+  saveSave({ ...current, decks: nextDecks });
 }

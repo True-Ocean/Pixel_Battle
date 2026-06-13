@@ -10,6 +10,9 @@ export const CANVAS_SIZE_DEFAULT = 16;
 /** @deprecated CANVAS_SIZE_DEFAULT を使用 */
 export const CANVAS_SIZE = CANVAS_SIZE_DEFAULT;
 export const DECK_MAX = 5;
+/** ユーザーが持てるデッキスロット数（各スロット最大 DECK_MAX 枚） */
+export const DECK_SLOT_COUNT = 5;
+export const DECK_SLOT_INITIAL_UNLOCKED = 1;
 export const FRONT_SIZE = 2;
 export const BACK_SIZE = 3;
 export const FIELD_SIZE = 3;

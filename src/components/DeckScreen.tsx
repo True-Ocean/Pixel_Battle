@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { computeDeckPower } from '../card';
-import { DECK_MAX } from '../config/balance';
+import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
+import { isDeckSlotUnlocked } from '../deckSlots';
 import type { Card } from '../types';
 import { getRarityMeta, type RarityMeta } from '../config/rarity';
 import { AttributeBadge } from './AttributeBadge';
@@ -10,6 +11,7 @@ import { RarityBadge } from './RarityBadge';
 import { CardPreview } from './CardPreview';
 import { ConfirmDialog } from './ConfirmDialog';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
+import { DeckUnlockModal } from './DeckUnlockModal';
 import {
   findDeckDropIndex,
   getDeckRowShift,
@@ -18,9 +20,12 @@ import {
 
 interface DeckScreenProps {
   deck: Card[];
+  activeDeckIndex: number;
+  unlockedDeckCount: number;
   fauxLostCardId: string | null;
   detailCardId: string | null;
   onDetailCardIdChange: (id: string | null) => void;
+  onSelectDeckIndex: (index: number) => void;
   onCreateCard: () => void;
   onEditCard: (card: Card, options?: { returnToDetail?: boolean }) => void;
   onDeleteCard: (id: string) => void;
@@ -87,9 +92,12 @@ function DeckCardRowBody({ card }: { card: Card }) {
 
 export function DeckScreen({
   deck,
+  activeDeckIndex,
+  unlockedDeckCount,
   fauxLostCardId,
   detailCardId,
   onDetailCardIdChange,
+  onSelectDeckIndex,
   onCreateCard,
   onEditCard,
   onDeleteCard,
@@ -99,6 +107,7 @@ export function DeckScreen({
   const [reorderMode, setReorderMode] = useState(false);
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
+  const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const dragSessionRef = useRef<DeckDragState | null>(null);
 
@@ -233,43 +242,59 @@ export function DeckScreen({
     setReorderMode(true);
   };
 
-  const draggedCard =
-    dragState != null ? deck.find((card) => card.id === dragState.cardId) : null;
+  const handleDeckTabSelect = (index: number) => {
+    if (reorderMode) return;
+    if (!isDeckSlotUnlocked(index, unlockedDeckCount)) {
+      setUnlockModalSlot(index);
+      return;
+    }
+    if (index === activeDeckIndex) return;
+    closeDetail();
+    onSelectDeckIndex(index);
+  };
 
   const selectedIsFauxLost =
     selectedCard != null && selectedCard.id === fauxLostCardId;
 
+  const draggedCard =
+    dragState != null ? deck.find((card) => card.id === dragState.cardId) : null;
+
   return (
     <section className={`screen screen-deck${dragState ? ' screen-deck-dragging' : ''}`}>
-      <div className="deck-screen-header">
-        <div className="deck-screen-header-main">
-          {deck.length > 0 && (
-            <p className="deck-screen-power" aria-label={`戦力 ${computeDeckPower(deck)}`}>
-              戦力{' '}
-              <span className="deck-screen-power-value">{computeDeckPower(deck)}</span>
-            </p>
-          )}
-          {fauxLostCardId && (
-            <p className="muted deck-screen-notice">仮ロスト演出中（データは保存済み）</p>
-          )}
-          {reorderMode && (
-            <p className="muted deck-screen-hint deck-screen-hint-left">ドラッグで並べ替え</p>
-          )}
-        </div>
-        {deck.length > 0 && (
-          <div className="deck-screen-header-actions">
+      <div className="deck-slot-tabs" role="tablist" aria-label="デッキ">
+        {Array.from({ length: DECK_SLOT_COUNT }, (_, index) => {
+          const unlocked = isDeckSlotUnlocked(index, unlockedDeckCount);
+          const isActive = index === activeDeckIndex;
+          return (
             <button
+              key={index}
               type="button"
-              className={`deck-reorder-toggle${reorderMode ? ' active' : ''}`}
-              onClick={toggleReorderMode}
-              disabled={dragState != null}
+              role="tab"
+              aria-selected={isActive}
+              aria-disabled={reorderMode && !isActive ? true : undefined}
+              className={`deck-slot-tab${isActive ? ' is-active' : ''}${!unlocked ? ' is-locked' : ''}${reorderMode && !isActive ? ' is-blocked' : ''}`}
+              onClick={() => handleDeckTabSelect(index)}
             >
-              {reorderMode ? '完了' : '並べ替え'}
+              <span className="deck-slot-tab-label">{index + 1}</span>
+              {!unlocked && (
+                <span className="deck-slot-tab-lock" aria-hidden>
+                  🔒
+                </span>
+              )}
             </button>
-            {!reorderMode && (
-              <p className="muted deck-screen-hint">タップで詳細</p>
-            )}
-          </div>
+          );
+        })}
+      </div>
+
+      <div className="deck-screen-header">
+        {deck.length > 0 && (
+          <p className="deck-screen-power" aria-label={`戦力 ${computeDeckPower(deck)}`}>
+            戦力{' '}
+            <span className="deck-screen-power-value">{computeDeckPower(deck)}</span>
+          </p>
+        )}
+        {fauxLostCardId && (
+          <p className="muted deck-screen-notice">仮ロスト演出中（データは保存済み）</p>
         )}
       </div>
 
@@ -368,6 +393,19 @@ export function DeckScreen({
         })}
       </ul>
 
+      {deck.length > 0 && (
+        <div className="deck-screen-footer">
+          <button
+            type="button"
+            className={`deck-reorder-toggle${reorderMode ? ' active' : ''}`}
+            onClick={toggleReorderMode}
+            disabled={dragState != null}
+          >
+            {reorderMode ? '完了' : '並べ替え'}
+          </button>
+        </div>
+      )}
+
       {dragState && draggedCard && (
         <div
           className={`deck-drag-ghost deck-card-row deck-card-row--${draggedCard.rarity}`}
@@ -401,6 +439,13 @@ export function DeckScreen({
               ? handleReviveFromDetail
               : undefined
           }
+        />
+      )}
+
+      {unlockModalSlot != null && (
+        <DeckUnlockModal
+          slotNumber={unlockModalSlot + 1}
+          onClose={() => setUnlockModalSlot(null)}
         />
       )}
 
