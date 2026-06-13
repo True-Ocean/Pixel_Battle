@@ -36,7 +36,10 @@ export function onNinjaMeleeAttack(attacker: BattleUnit): void {
   attacker.ninjaFirstStrikeUsed = true;
 }
 
-/** 外部効果（ダメージ・回復・盾・凍結など）でステルス解除 */
+/** 外部効果（ダメージ・回復・盾・凍結など）でステルス解除。初回無反撃の権利も失う（§4.10） */
 export function onExternalEffectToUnit(unit: BattleUnit): void {
+  if (unit.attribute === 'ninja') {
+    unit.ninjaFirstStrikeUsed = true;
+  }
   breakStealth(unit);
 }

@@ -532,7 +532,7 @@ describe('battle', () => {
     expect(state.player[0].currentBp).toBe(60);
   });
 
-  it('両攻撃は主対象へ近接＋副前衛へ50%無反撃', () => {
+  it('両攻撃は主対象へ近接＋副前衛へ55%無反撃', () => {
     const playerDeck = [
       stubCard('両', 'dual', 80),
       stubCard('P2', 'attack', 50),
@@ -558,7 +558,7 @@ describe('battle', () => {
     }).state;
 
     expect(state.cpu[1].currentBp).toBe(0);
-    expect(state.cpu[0].currentBp).toBe(60);
+    expect(state.cpu[0].currentBp).toBe(56);
     expect(state.player[0].currentBp).toBe(55);
   });
 
@@ -711,6 +711,110 @@ describe('battle', () => {
 
     expect(state.cpu[0].poisonStacks).toHaveLength(1);
     expect(state.cpu[0].poisonStacks[0]!.damagePerTurn).toBe(24);
+  });
+
+  it('毒属性は相打ち近接でも攻撃側に毒を付与する', () => {
+    const playerDeck = [
+      stubCard('毒', 'poison', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('C1', 'attack', 86),
+      ...cards('C').slice(1),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+    }).state;
+
+    expect(state.cpu[0].poisonStacks).toHaveLength(1);
+    expect(state.cpu[0].poisonStacks[0]!.damagePerTurn).toBe(24);
+    expect(state.cpu[0].currentBp).toBe(6);
+    expect(state.player[0].currentBp).toBe(0);
+  });
+
+  it('氷が毒に近接すると毒は凍結され氷には毒が付かない', () => {
+    const playerDeck = [
+      stubCard('氷', 'ice', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('毒', 'poison', 100),
+      ...cards('C').slice(1),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    const ice = state.player[0]!;
+    const poison = state.cpu[0]!;
+    expect(poison.frozenUntilTurn).toBe(2);
+    expect(poison.currentBp).toBe(20);
+    expect(isFrozen(poison, getSelectionTurn(state))).toBe(true);
+    expect(ice.poisonStacks).toHaveLength(0);
+    expect(poison.poisonStacks).toHaveLength(0);
+  });
+
+  it('毒が氷に近接すると毒は凍結され氷には毒が付かない', () => {
+    const playerDeck = [
+      stubCard('毒', 'poison', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('氷', 'ice', 80),
+      ...cards('C').slice(1),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    const poison = state.player[0]!;
+    const ice = state.cpu[0]!;
+    expect(poison.frozenUntilTurn).toBe(2);
+    expect(isFrozen(poison, getSelectionTurn(state))).toBe(true);
+    expect(ice.poisonStacks).toHaveLength(0);
+    expect(poison.poisonStacks).toHaveLength(0);
   });
 
   it('毒DoTは次ターン開始時に適用される', () => {
@@ -1210,7 +1314,7 @@ describe('battle', () => {
     ).not.toContain('meleeAttack');
   });
 
-  it('嵐はcurrentBpの70%を最大2体の敵に与える', () => {
+  it('嵐はcurrentBpの78%を最大2体の敵に与える', () => {
     const playerDeck = [
       stubCard('P1', 'attack', 50),
       stubCard('P2', 'attack', 50),
@@ -1241,8 +1345,8 @@ describe('battle', () => {
 
     const storm = state.player.find((u) => u.attribute === 'storm')!;
     expect(storm.stormUsesRemaining).toBe(1);
-    expect(state.cpu[0].currentBp).toBe(44);
-    expect(state.cpu[1].currentBp).toBe(44);
+    expect(state.cpu[0].currentBp).toBe(38);
+    expect(state.cpu[1].currentBp).toBe(38);
   });
 
   it('嵐は盾でダメージを防げる', () => {
@@ -1277,7 +1381,7 @@ describe('battle', () => {
 
     expect(state.cpu[0].hasShield).toBe(false);
     expect(state.cpu[0].currentBp).toBe(100);
-    expect(state.cpu[1].currentBp).toBe(44);
+    expect(state.cpu[1].currentBp).toBe(38);
   });
 
   it('嵐は1戦闘2回まで', () => {
@@ -1510,7 +1614,58 @@ describe('battle', () => {
 
     const ninjaAfter = state.cpu.find((u) => u.attribute === 'ninja')!;
     expect(ninjaAfter.stealthActive).toBe(false);
-    expect(ninjaAfter.currentBp).toBe(10);
+    expect(ninjaAfter.currentBp).toBe(2);
+  });
+
+  it('嵐でステルス解除された忍の初回近接は反撃を受ける', () => {
+    const playerDeck = [
+      stubCard('嵐', 'storm', 110),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('忍', 'ninja', 100),
+      stubCard('C2', 'attack', 50),
+      stubCard('C3', 'attack', 50),
+      stubCard('C4', 'attack', 50),
+      stubCard('C5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+    const ninja = state.cpu.find((u) => u.attribute === 'ninja')!;
+    ninja.position = 'frontLeft';
+    ninja.stealthActive = true;
+    for (const unit of state.cpu) {
+      if (unit.cardId !== ninja.cardId) {
+        unit.currentBp = 0;
+        unit.position = 'defeated';
+      }
+    }
+
+    state = resolveTurn(
+      state,
+      {
+        player: {
+          type: 'storm',
+          actorPosition: 'frontLeft',
+          targetPosition: 'frontLeft',
+        },
+        cpu: {
+          type: 'meleeAttack',
+          actorPosition: 'frontLeft',
+          targetPosition: 'frontLeft',
+        },
+      },
+      { random: () => 0 },
+    ).state;
+
+    const storm = state.player.find((u) => u.attribute === 'storm')!;
+    const ninjaAfter = state.cpu.find((u) => u.attribute === 'ninja')!;
+    expect(ninjaAfter.stealthActive).toBe(false);
+    expect(ninjaAfter.ninjaFirstStrikeUsed).toBe(true);
+    expect(ninjaAfter.currentBp).toBe(0);
+    expect(storm.currentBp).toBe(96);
   });
 
   it('弓が前衛に補充されてもBPは半減しない', () => {

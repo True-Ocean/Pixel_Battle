@@ -4,6 +4,7 @@ import {
   breakStealth,
   isMeleeTargetable,
   isStealthed,
+  onExternalEffectToUnit,
   onNinjaMeleeAttack,
   shouldApplyNinjaFirstStrike,
   shouldStartInStealth,
@@ -64,5 +65,13 @@ describe('ninjaCombat', () => {
     breakStealth(ninja);
     breakStealth(ninja);
     expect(ninja.stealthActive).toBe(false);
+  });
+
+  it('外部効果でステルス解除すると初回無反撃の権利も失う', () => {
+    const ninja = unit();
+    onExternalEffectToUnit(ninja);
+    expect(ninja.stealthActive).toBe(false);
+    expect(ninja.ninjaFirstStrikeUsed).toBe(true);
+    expect(shouldApplyNinjaFirstStrike(ninja, false)).toBe(false);
   });
 });

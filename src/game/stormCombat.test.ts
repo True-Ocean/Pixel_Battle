@@ -33,9 +33,9 @@ function unit(
 }
 
 describe('stormCombat', () => {
-  it('ダメージはcurrentBpの70%', () => {
-    expect(calcStormDamage(80)).toBe(56);
-    expect(calcStormDamage(100)).toBe(70);
+  it('ダメージはcurrentBpの78%', () => {
+    expect(calcStormDamage(80)).toBe(62);
+    expect(calcStormDamage(100)).toBe(78);
   });
 
   it('残り回数がある嵐属性のみ嵐を選べる', () => {

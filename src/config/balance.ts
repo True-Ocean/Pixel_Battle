@@ -79,10 +79,10 @@ export const CARD_BP_SPREAD = 0.15;
 export const DEFENSE_BP_RATIO = 0.85;
 
 /** 力属性の基本BP係数（攻撃比）。ATTRIBUTE_SPEC §4.3 */
-export const POWER_BP_RATIO = 1.5;
+export const POWER_BP_RATIO = 1.28;
 
 /** 弓属性の基本BP係数（攻撃比）。ATTRIBUTE_SPEC §4.4 */
-export const BOW_BP_RATIO = 0.6;
+export const BOW_BP_RATIO = 0.52;
 
 /** 弓カード1枚あたりの弓矢数（1戦闘）。ATTRIBUTE_SPEC §4.4 */
 export const BOW_ARROWS_PER_BATTLE = 2;
@@ -96,14 +96,17 @@ export const HEAL_BP_RATIO = 0.6;
 /** 毒スタック1つあたりの DoT（付与時 currentBp 比）。ATTRIBUTE_SPEC §4.6 */
 export const POISON_DOT_RATIO = 0.3;
 
-/** 嵐属性の基本BP係数（弓より低め・魔法型）。ATTRIBUTE_SPEC §4.9 */
-export const STORM_BP_RATIO = 0.5;
+/** 氷属性の基本BP係数（攻撃比）。凍結の付加価値分を抑えた値。ATTRIBUTE_SPEC §4.8 */
+export const ICE_BP_RATIO = 0.88;
+
+/** 嵐属性の基本BP係数（後半属性・範囲攻撃型）。ATTRIBUTE_SPEC §4.9 */
+export const STORM_BP_RATIO = 0.68;
 
 /** 嵐カード1枚あたりの嵐回数（1戦闘）。ATTRIBUTE_SPEC §4.9 */
 export const STORM_USES_PER_BATTLE = 2;
 
 /** 嵐の与ダメ（currentBp × 比率・各ヒット） */
-export const STORM_DAMAGE_RATIO = 0.7;
+export const STORM_DAMAGE_RATIO = 0.78;
 
 /** 初回セットアップ・ユーザープロフィール */
 export const USER_INITIAL_LEVEL = 1;
@@ -146,6 +149,7 @@ export function getUserBaseBp(
   if (attribute === 'bow') return Math.round(attackBase * BOW_BP_RATIO);
   if (attribute === 'poison') return Math.round(attackBase * POISON_BP_RATIO);
   if (attribute === 'heal') return Math.round(attackBase * HEAL_BP_RATIO);
+  if (attribute === 'ice') return Math.round(attackBase * ICE_BP_RATIO);
   if (attribute === 'storm') return Math.round(attackBase * STORM_BP_RATIO);
   return attackBase;
 }

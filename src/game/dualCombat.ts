@@ -2,7 +2,7 @@ import type { BattleUnit, BoardPosition } from '../types/battle';
 import { FRONT_POSITIONS, getUnitAt } from './battleState';
 
 /** 副攻撃の与ダメ倍率（ATTRIBUTE_SPEC §4.5） */
-export const DUAL_SECONDARY_DAMAGE_RATIO = 0.5;
+export const DUAL_SECONDARY_DAMAGE_RATIO = 0.55;
 
 export function isDualTargetable(unit: BattleUnit): boolean {
   return unit.currentBp > 0 && unit.position !== 'defeated' && !unit.stealthActive;

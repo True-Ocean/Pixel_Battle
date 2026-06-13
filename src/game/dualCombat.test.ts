@@ -6,8 +6,8 @@ import {
 } from './dualCombat';
 
 describe('dualCombat', () => {
-  it('副攻撃は50%', () => {
-    expect(calcDualSecondaryDamage(80)).toBe(40);
+  it('副攻撃は55%', () => {
+    expect(calcDualSecondaryDamage(80)).toBe(44);
   });
 
   it('主対象の反対側前衛を副対象にする', () => {
