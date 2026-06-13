@@ -2299,7 +2299,9 @@
   color: #38bdf8;
   -webkit-text-stroke: 3px #4338ca;
   paint-order: stroke fill;
-  text-shadow: none;
+  text-shadow:
+    0 2px 4px rgba(30, 27, 75, 0.45),
+    0 4px 12px rgba(67, 56, 202, 0.58);
 }
 
 .battle-zone-outcome-lose {
@@ -2307,17 +2309,25 @@
   color: #ff5252;
   -webkit-text-stroke: 3px #b91c1c;
   paint-order: stroke fill;
-  text-shadow: none;
+  text-shadow:
+    0 2px 4px rgba(69, 10, 10, 0.42),
+    0 4px 12px rgba(185, 28, 28, 0.58);
 }
 
 .formation-field .battle-zone-outcome-win {
   font-size: clamp(2.75rem, 18vw, 4.6rem);
   -webkit-text-stroke: 4px #4338ca;
+  text-shadow:
+    0 2px 5px rgba(30, 27, 75, 0.48),
+    0 5px 14px rgba(67, 56, 202, 0.62);
 }
 
 .formation-field .battle-zone-outcome-lose {
   font-size: clamp(2.75rem, 18vw, 4.6rem);
   -webkit-text-stroke: 4px #b91c1c;
+  text-shadow:
+    0 2px 5px rgba(69, 10, 10, 0.45),
+    0 5px 14px rgba(185, 28, 28, 0.62);
 }
 
 .setup-board.is-compact {
@@ -3963,15 +3973,17 @@ button.battle-card {
   font-size: clamp(1.75rem, 9vw, 2.75rem);
   color: #7dd3fc;
   text-shadow:
-    0 2px 10px rgba(0, 0, 0, 0.75),
-    0 0 22px rgba(56, 189, 248, 0.75);
+    0 1px 3px rgba(30, 27, 75, 0.4),
+    0 3px 8px rgba(67, 56, 202, 0.52);
   background: rgba(0, 0, 0, 0.18);
 }
 
 .battle-card-outcome-lose {
   font-size: clamp(1.5rem, 8vw, 2.35rem);
   color: #b8b8c8;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  text-shadow:
+    0 1px 3px rgba(69, 10, 10, 0.38),
+    0 3px 8px rgba(185, 28, 28, 0.5);
   background: rgba(0, 0, 0, 0.28);
 }
 
