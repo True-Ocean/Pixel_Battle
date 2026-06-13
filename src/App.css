@@ -3114,7 +3114,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  width: 1.05rem;
+  width: 0.85rem;
   height: 1.35rem;
   transform: rotate(-22deg);
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28));
@@ -3423,8 +3423,13 @@
 }
 
 .editor-tool-strip .palette-eraser-icon {
-  width: 0.72rem;
+  width: 0.58rem;
   height: 0.92rem;
+}
+
+.editor-tool-strip .palette-emoji-icon {
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .editor-tool-strip .palette-fill-icon {

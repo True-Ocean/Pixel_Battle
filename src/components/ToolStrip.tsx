@@ -193,7 +193,9 @@ export function ToolStrip({
               label="ペン"
               onClick={() => onSelectTool('pen')}
             >
-              <span className="palette-pen-icon" aria-hidden />
+              <span className="palette-emoji-icon" aria-hidden>
+                ✏️
+              </span>
             </EditorToolButton>
           );
         }
@@ -228,7 +230,9 @@ export function ToolStrip({
               label="塗りつぶし"
               onClick={() => onSelectTool('fill')}
             >
-              <span className="palette-fill-icon" aria-hidden />
+              <span className="palette-emoji-icon" aria-hidden>
+                🪣
+              </span>
             </EditorToolButton>
           );
         }
