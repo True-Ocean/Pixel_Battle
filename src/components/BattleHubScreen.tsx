@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { DECK_MAX } from '../config/balance';
 
 interface BattleHubScreenProps {
@@ -7,28 +8,37 @@ interface BattleHubScreenProps {
 
 export function BattleHubScreen({ deckCount, onStartBattle }: BattleHubScreenProps) {
   const canStart = deckCount >= DECK_MAX;
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (canStart) {
+      setNotice(null);
+    }
+  }, [canStart]);
+
+  const handleCpuBattle = () => {
+    if (canStart) {
+      onStartBattle();
+      return;
+    }
+    setNotice(
+      `デッキが${DECK_MAX}枚揃っていません。あと ${DECK_MAX - deckCount} 枚必要です（現在 ${deckCount}/${DECK_MAX} 枚）。`,
+    );
+  };
 
   return (
     <section className="screen screen-battle-hub">
-      <div className="battle-hub-body">
-        <p className="battle-hub-lead muted">
-          CPU とのバトルに挑戦します。デッキを {DECK_MAX} 枚そろえてから開始してください。
-        </p>
-        {!canStart && (
-          <p className="battle-hub-notice muted">
-            あと {DECK_MAX - deckCount} 枚必要です（現在 {deckCount}/{DECK_MAX} 枚）
-          </p>
-        )}
-      </div>
-      <div className="actions battle-hub-actions">
-        <button
-          type="button"
-          className="primary"
-          disabled={!canStart}
-          onClick={onStartBattle}
-        >
-          バトル開始
-        </button>
+      <div className="battle-hub-center">
+        <div className="battle-hub-mode-wrap">
+          <button type="button" className="battle-hub-mode-btn" onClick={handleCpuBattle}>
+            CPU戦
+          </button>
+          {notice && (
+            <p className="battle-hub-notice" role="status">
+              {notice}
+            </p>
+          )}
+        </div>
       </div>
     </section>
   );

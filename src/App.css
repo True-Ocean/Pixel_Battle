@@ -544,38 +544,64 @@
   flex-direction: column;
 }
 
-.battle-hub-body {
+.battle-hub-center {
   flex: 1;
   min-height: 0;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  padding: 0.25rem 0.15rem;
+  padding: 0.5rem 0.15rem;
 }
 
-.battle-hub-lead {
-  margin: 0;
+.battle-hub-mode-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.battle-hub-mode-btn {
+  box-sizing: border-box;
+  min-width: min(100%, 11rem);
+  min-height: 3.25rem;
+  padding: 0.75rem 2rem;
+  border-radius: 12px;
+  border: 1px solid #646cff;
+  background: #646cff;
+  color: #fff;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
   text-align: center;
-  line-height: 1.55;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(100, 108, 255, 0.28);
+}
+
+.battle-hub-mode-btn:not(:disabled):active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 8px rgba(100, 108, 255, 0.22);
 }
 
 .battle-hub-notice {
+  position: absolute;
+  top: calc(100% + 0.85rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(calc(100vw - 2rem), 18rem);
   margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
   text-align: center;
   line-height: 1.45;
-}
-
-.battle-hub-actions {
-  flex-shrink: 0;
-  padding-top: 0.25rem;
-}
-
-.battle-hub-actions .primary {
-  width: 100%;
-  min-height: 2.85rem;
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  color: #b45309;
+  pointer-events: none;
 }
 
 .app-footer {
@@ -1412,6 +1438,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  --deck-card-slot-h: calc(4.35rem + 0.48rem);
 }
 
 .screen-deck h1 {
@@ -1445,12 +1472,13 @@
 }
 
 .screen-deck .deck-card-main {
-  min-height: 4.15rem;
+  min-height: var(--deck-card-slot-h);
+  height: var(--deck-card-slot-h);
 }
 
 .deck-card-row--empty {
-  padding: 0.26rem 0.3rem;
-  margin-bottom: 0.32rem;
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
 }
 
 .deck-card-empty-slot {
@@ -1461,25 +1489,28 @@
   justify-content: center;
   gap: 0.2rem;
   width: 100%;
-  min-height: 4.15rem;
-  padding: 0.65rem 0.75rem;
-  border: 2px dashed #cbd5e1;
-  border-radius: 10px;
-  background: #f8fafc;
+  min-height: var(--deck-card-slot-h, calc(4.35rem + 0.48rem));
+  height: var(--deck-card-slot-h, calc(4.35rem + 0.48rem));
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: #64748b;
   cursor: pointer;
   font: inherit;
   line-height: 1.2;
   text-align: center;
   transition:
-    border-color 0.15s ease,
-    background 0.15s ease,
-    color 0.15s ease;
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.deck-card-row--empty:hover:not(.deck-card-row--empty-disabled) {
+  border-color: #646cff;
+  background: #eef2ff;
 }
 
 .deck-card-empty-slot:not(:disabled):hover {
-  border-color: #646cff;
-  background: #eef2ff;
   color: #4338ca;
 }
 
@@ -1511,7 +1542,8 @@
 
 .screen-deck .deck-card-content {
   gap: 0.55rem;
-  min-height: 4.15rem;
+  min-height: var(--deck-card-slot-h);
+  height: var(--deck-card-slot-h);
   padding: 0.24rem 2.55rem 0.24rem 2.3rem;
 }
 
@@ -3059,35 +3091,67 @@
   margin-top: 0.35rem;
 }
 
-.setup-battle-end-actions {
-  margin-top: 0.35rem;
-  flex-shrink: 0;
-  padding-bottom: 0.2rem;
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1.35fr) minmax(0, 0.85fr);
-  gap: 0.5rem;
-  width: 100%;
+.battle-end-actions-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
-.setup-battle-end-actions button {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 2.5rem;
-  font: inherit;
-  font-size: inherit;
-  line-height: 1.2;
-  text-align: center;
-}
-
-.setup-battle-end-actions .setup-battle-end-log {
-  padding-inline: 0.45rem;
-  font-size: 0.88rem;
-}
-
-.formation-screen.is-battle-active:has(.setup-battle-end-actions) {
+.battle-end-actions-stack {
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  align-items: center;
+  gap: 0.65rem;
+  pointer-events: auto;
+}
+
+.battle-end-actions-primary {
+  box-sizing: border-box;
+  min-width: min(100%, 11rem);
+  min-height: 3.25rem;
+  padding: 0.75rem 2rem;
+  border-radius: 12px;
+  border: 1px solid #646cff;
+  background: #646cff;
+  color: #fff;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.24);
+}
+
+.battle-end-actions-primary:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.18);
+}
+
+.battle-end-actions-secondary {
+  box-sizing: border-box;
+  min-width: min(100%, 9.5rem);
+  min-height: 2.45rem;
+  padding: 0.5rem 1.35rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.94);
+  color: #334155;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.16);
+}
+
+.battle-end-actions-secondary:active {
+  transform: translateY(1px);
 }
 
 .formation-battle-shell {
@@ -6017,6 +6081,10 @@ button.battle-card {
 
 .formation-battle-log-back {
   flex-shrink: 0;
+}
+
+.app.has-dock .formation-battle-log-back {
+  margin-bottom: calc(var(--app-dock-h, 3.65rem) + 0.15rem);
 }
 
 .formation-battle-log-back button {

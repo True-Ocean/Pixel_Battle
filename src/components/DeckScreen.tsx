@@ -277,7 +277,10 @@ export function DeckScreen({
           const card = deck[index];
           if (!card) {
             return (
-              <li key={`empty-${index}`} className="deck-card-row deck-card-row--empty">
+              <li
+                key={`empty-${index}`}
+                className={`deck-card-row deck-card-row--empty${reorderMode ? ' deck-card-row--empty-disabled' : ''}`}
+              >
                 <button
                   type="button"
                   className="deck-card-empty-slot"

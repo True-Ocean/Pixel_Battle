@@ -112,8 +112,8 @@ interface BattleSetupScreenProps {
   playerIdentity?: BattleZoneProfile;
   opponentIdentity?: BattleZoneProfile;
   onFinish: (outcome: BattleOutcome) => void;
-  onGoToDeck: () => void;
   onNewBattle: () => void;
+  onBattleEndedChange?: (ended: boolean) => void;
 }
 
 type SelectedSetupCard =
@@ -1345,8 +1345,8 @@ export function BattleSetupScreen({
   playerIdentity,
   opponentIdentity,
   onFinish,
-  onGoToDeck,
   onNewBattle,
+  onBattleEndedChange,
 }: BattleSetupScreenProps) {
   const opponentProfile: BattleZoneProfile = opponentIdentity ?? {
     name: 'CPU',
@@ -1384,6 +1384,11 @@ export function BattleSetupScreen({
   const [selected, setSelected] = useState<SelectedSetupCard | null>(null);
   const [battleEnded, setBattleEnded] = useState(false);
   const [battleSubView, setBattleSubView] = useState<'play' | 'log'>('play');
+
+  useEffect(() => {
+    onBattleEndedChange?.(battleEnded);
+    return () => onBattleEndedChange?.(false);
+  }, [battleEnded, onBattleEndedChange]);
 
   const formationScreenRef = useRef<HTMLElement>(null);
   const cpuHandRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -1660,23 +1665,6 @@ export function BattleSetupScreen({
             </button>
           </div>
         )}
-        {phase === 'battle' && battleEnded && battleSubView === 'play' && (
-          <div className="actions deck-actions setup-battle-end-actions">
-            <button type="button" onClick={onGoToDeck}>
-              マイデッキ
-            </button>
-            <button type="button" className="primary" onClick={onNewBattle}>
-              新規バトル
-            </button>
-            <button
-              type="button"
-              className="setup-battle-end-log"
-              onClick={() => setBattleSubView('log')}
-            >
-              バトルログ
-            </button>
-          </div>
-        )}
         {phase === 'battle' && !battleEnded && (
           <div className="actions setup-actions formation-actions formation-footer-reserve" aria-hidden="true">
             <button type="button" className="primary" tabIndex={-1} disabled>
@@ -1685,6 +1673,23 @@ export function BattleSetupScreen({
           </div>
         )}
       </div>
+
+      {phase === 'battle' && battleEnded && battleSubView === 'play' && (
+        <div className="battle-end-actions-overlay" aria-label="バトル終了">
+          <div className="battle-end-actions-stack">
+            <button type="button" className="battle-end-actions-primary" onClick={onNewBattle}>
+              新規バトル
+            </button>
+            <button
+              type="button"
+              className="battle-end-actions-secondary"
+              onClick={() => setBattleSubView('log')}
+            >
+              バトルログ
+            </button>
+          </div>
+        </div>
+      )}
 
       {phase === 'setup' && cpuFlight && (
         <SetupFlightLayer

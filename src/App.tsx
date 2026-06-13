@@ -47,6 +47,7 @@ function App() {
     level: initialSave.user?.level ?? 1,
   }));
   const [battleSetupKey, setBattleSetupKey] = useState(0);
+  const [battleEndDock, setBattleEndDock] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
 
   const userRef = useRef(user);
@@ -79,6 +80,7 @@ function App() {
     setCpuDeck(buildBalancedCpuDeck(deck, Math.random, level));
     setCpuOpponent({ name: randomCpuName(), level });
     setBattleSetupKey((k) => k + 1);
+    setBattleEndDock(false);
     setScreen('battleSetup');
   }, [deck, user?.level]);
 
@@ -146,23 +148,27 @@ function App() {
     setDeck(nextDeck);
   }, []);
 
-  const goToDeck = useCallback(() => setScreen('deck'), []);
+  const handleBattleEndedChange = useCallback((ended: boolean) => {
+    setBattleEndDock(ended);
+  }, []);
 
   const completeTitle = useCallback(() => {
     setScreen(initialScreen(user));
     setEnterFromTitle(true);
   }, [user]);
 
-  const showAppHeader =
-    screen !== 'title' &&
-    screen !== 'editor' &&
-    screen !== 'battleSetup' &&
-    screen !== 'setup';
+  const showAppHeader = screen === 'deck';
   const showProfileBar = showAppHeader && isProfileComplete(user);
-  const showDock = isDockVisible(screen);
-  const activeTab: TabId = isTabId(screen) ? screen : 'deck';
+  const showDock = isDockVisible(screen) || (screen === 'battleSetup' && battleEndDock);
+  const activeTab: TabId =
+    screen === 'battleSetup' && battleEndDock
+      ? 'battleHub'
+      : isTabId(screen)
+        ? screen
+        : 'deck';
 
   const selectTab = useCallback((tab: TabId) => {
+    setBattleEndDock(false);
     setScreen(tab);
   }, []);
 
@@ -177,9 +183,8 @@ function App() {
       )}
 
       {showAppHeader && (
-        <header className={`app-header${screen === 'deck' ? ' app-header--deck' : ''}`}>
+        <header className="app-header app-header--deck">
           <div className="app-brand">
-            {screen !== 'deck' && <AppTitle />}
             {showProfileBar && user && <UserProfileBar user={user} />}
           </div>
         </header>
@@ -253,8 +258,8 @@ function App() {
             }
             opponentIdentity={cpuOpponent}
             onFinish={applyBattleOutcome}
-            onGoToDeck={goToDeck}
             onNewBattle={goToBattleSetup}
+            onBattleEndedChange={handleBattleEndedChange}
           />
         )}
       </main>
