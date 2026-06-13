@@ -1244,6 +1244,31 @@
 .deck-screen-header {
   flex-shrink: 0;
   margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.deck-screen-header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.deck-screen-deck-label {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.deck-screen-card-count {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
 }
 
 .deck-screen-header h1 {
@@ -1293,11 +1318,12 @@
 .deck-slot-tab {
   box-sizing: border-box;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.15rem;
-  min-height: 2.15rem;
-  padding: 0.3rem 0.25rem;
+  gap: 0.08rem;
+  min-height: 2.45rem;
+  padding: 0.28rem 0.2rem;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
   background: #f8fafc;
@@ -1332,6 +1358,19 @@
 
 .deck-slot-tab-label {
   line-height: 1;
+  font-size: 0.92rem;
+}
+
+.deck-slot-tab-count {
+  line-height: 1;
+  font-size: 0.62rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.88;
+}
+
+.deck-slot-tab.is-active .deck-slot-tab-count {
+  color: #4338ca;
 }
 
 .deck-slot-tab-lock {

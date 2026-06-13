@@ -361,6 +361,7 @@ function App() {
         {screen === 'deck' && (
           <DeckScreen
             deck={activeDeck}
+            decks={decks}
             activeDeckIndex={activeDeckIndex}
             unlockedDeckCount={unlockedDeckCount}
             fauxLostCardId={fauxLostCardId}

@@ -20,6 +20,7 @@ import {
 
 interface DeckScreenProps {
   deck: Card[];
+  decks: Card[][];
   activeDeckIndex: number;
   unlockedDeckCount: number;
   fauxLostCardId: string | null;
@@ -92,6 +93,7 @@ function DeckCardRowBody({ card }: { card: Card }) {
 
 export function DeckScreen({
   deck,
+  decks,
   activeDeckIndex,
   unlockedDeckCount,
   fauxLostCardId,
@@ -259,24 +261,34 @@ export function DeckScreen({
   const draggedCard =
     dragState != null ? deck.find((card) => card.id === dragState.cardId) : null;
 
+  const deckPower = computeDeckPower(deck);
+
   return (
     <section className={`screen screen-deck${dragState ? ' screen-deck-dragging' : ''}`}>
       <div className="deck-slot-tabs" role="tablist" aria-label="デッキ">
         {Array.from({ length: DECK_SLOT_COUNT }, (_, index) => {
           const unlocked = isDeckSlotUnlocked(index, unlockedDeckCount);
           const isActive = index === activeDeckIndex;
+          const slotDeck = decks[index] ?? [];
+          const slotCount = slotDeck.length;
+          const tabLabel = unlocked
+            ? `デッキ${index + 1} ${slotCount}/${DECK_MAX}枚`
+            : `デッキ${index + 1} 未解放`;
           return (
             <button
               key={index}
               type="button"
               role="tab"
               aria-selected={isActive}
+              aria-label={tabLabel}
               aria-disabled={reorderMode && !isActive ? true : undefined}
               className={`deck-slot-tab${isActive ? ' is-active' : ''}${!unlocked ? ' is-locked' : ''}${reorderMode && !isActive ? ' is-blocked' : ''}`}
               onClick={() => handleDeckTabSelect(index)}
             >
               <span className="deck-slot-tab-label">{index + 1}</span>
-              {!unlocked && (
+              {unlocked ? (
+                <span className="deck-slot-tab-count">{slotCount}/{DECK_MAX}</span>
+              ) : (
                 <span className="deck-slot-tab-lock" aria-hidden>
                   🔒
                 </span>
@@ -287,12 +299,16 @@ export function DeckScreen({
       </div>
 
       <div className="deck-screen-header">
-        {deck.length > 0 && (
-          <p className="deck-screen-power" aria-label={`戦力 ${computeDeckPower(deck)}`}>
-            戦力{' '}
-            <span className="deck-screen-power-value">{computeDeckPower(deck)}</span>
+        <div className="deck-screen-header-row">
+          <p className="deck-screen-deck-label">デッキ{activeDeckIndex + 1}</p>
+          <p className="deck-screen-card-count" aria-label={`${deck.length}枚 / ${DECK_MAX}枚`}>
+            {deck.length}/{DECK_MAX}枚
           </p>
-        )}
+        </div>
+        <p className="deck-screen-power" aria-label={`戦力 ${deckPower}`}>
+          戦力{' '}
+          <span className="deck-screen-power-value">{deckPower}</span>
+        </p>
         {fauxLostCardId && (
           <p className="muted deck-screen-notice">仮ロスト演出中（データは保存済み）</p>
         )}
