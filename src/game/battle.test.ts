@@ -1424,7 +1424,7 @@ describe('battle', () => {
     ).not.toContain('meleeAttack');
   });
 
-  it('嵐はcurrentBpの78%を最大2体の敵に与える', () => {
+  it('嵐はcurrentBpの50%を最大2体の敵に与える', () => {
     const playerDeck = [
       stubCard('P1', 'attack', 50),
       stubCard('P2', 'attack', 50),
@@ -1455,8 +1455,8 @@ describe('battle', () => {
 
     const storm = state.player.find((u) => u.attribute === 'storm')!;
     expect(storm.stormUsesRemaining).toBe(1);
-    expect(state.cpu[0].currentBp).toBe(38);
-    expect(state.cpu[1].currentBp).toBe(38);
+    expect(state.cpu[0].currentBp).toBe(60);
+    expect(state.cpu[1].currentBp).toBe(60);
   });
 
   it('嵐は盾でダメージを防げる', () => {
@@ -1491,7 +1491,7 @@ describe('battle', () => {
 
     expect(state.cpu[0].hasShield).toBe(false);
     expect(state.cpu[0].currentBp).toBe(100);
-    expect(state.cpu[1].currentBp).toBe(38);
+    expect(state.cpu[1].currentBp).toBe(60);
   });
 
   it('嵐は1戦闘2回まで', () => {
@@ -1724,7 +1724,7 @@ describe('battle', () => {
 
     const ninjaAfter = state.cpu.find((u) => u.attribute === 'ninja')!;
     expect(ninjaAfter.stealthActive).toBe(false);
-    expect(ninjaAfter.currentBp).toBe(2);
+    expect(ninjaAfter.currentBp).toBe(30);
   });
 
   it('嵐でステルス解除された忍の初回近接は反撃を受ける', () => {
@@ -1775,7 +1775,7 @@ describe('battle', () => {
     expect(ninjaAfter.stealthActive).toBe(false);
     expect(ninjaAfter.ninjaFirstStrikeUsed).toBe(true);
     expect(ninjaAfter.currentBp).toBe(0);
-    expect(storm.currentBp).toBe(96);
+    expect(storm.currentBp).toBe(65);
   });
 
   it('弓が前衛に補充されてもBPは半減しない', () => {

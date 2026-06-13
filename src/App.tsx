@@ -242,8 +242,12 @@ function App() {
       goToPracticeRematch(entry);
       return;
     }
-    goToBattleSetup();
+    goToBattleSetup(lastBattleDeckIndexRef.current);
   }, [goToBattleSetup, goToPracticeRematch]);
+
+  const restartBattleFromEnd = useCallback(() => {
+    goToBattleSetup(lastBattleDeckIndexRef.current);
+  }, [goToBattleSetup]);
 
   const addCard = useCallback(
     (card: Card) => {
@@ -375,6 +379,8 @@ function App() {
       battleHistory: nextHistory,
     });
     setLastBattleDeckIndex(lastBattleIndex);
+    lastBattleDeckIndexRef.current = lastBattleIndex;
+    decksRef.current = nextDecks;
     battleStartSnapshotRef.current = null;
     setUser(nextUser);
     setDecks(nextDecks);
@@ -632,7 +638,9 @@ function App() {
             opponentIdentity={cpuOpponent}
             isPracticeRematch={isPracticeRematch}
             onFinish={applyBattleOutcome}
-            onNewBattle={isPracticeRematch ? rematchSameOpponent : goToBattleSetup}
+            onNewBattle={
+              isPracticeRematch ? rematchSameOpponent : restartBattleFromEnd
+            }
             onBattleEndedChange={handleBattleEndedChange}
           />
         )}

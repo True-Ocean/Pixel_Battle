@@ -111,7 +111,7 @@ export const STORM_BP_RATIO = 0.68;
 export const STORM_USES_PER_BATTLE = 2;
 
 /** 嵐の与ダメ（currentBp × 比率・各ヒット） */
-export const STORM_DAMAGE_RATIO = 0.78;
+export const STORM_DAMAGE_RATIO = 0.5;
 
 /** 初回セットアップ・ユーザープロフィール */
 export const USER_INITIAL_LEVEL = 1;

@@ -693,7 +693,10 @@ function BattleUnitSlot({
     ? resolvePoisonDisplay(unit, battle, side, position)
     : { count: 0, damagePerTurn: 0, justApplied: false };
   const stealthActive = unit?.stealthActive ?? false;
+  const battleEnded =
+    battle.effectivePhase === 'ended' && battle.result != null;
   const cpuClickable =
+    !battleEnded &&
     battle.effectivePhase === 'pickTarget' &&
     (valid || battle.isStormPickPending());
 
@@ -701,6 +704,7 @@ function BattleUnitSlot({
     <button
       ref={registerSlot(side, position)}
       type="button"
+      tabIndex={battleEnded ? -1 : undefined}
       className={`formation-slot battle-formation-slot ${
         unit ? 'has-card' : 'is-subtle-empty'
       } ${unit ? 'is-frameless' : ''} ${stealthActive ? 'has-stealth-unit' : ''} ${
@@ -715,11 +719,13 @@ function BattleUnitSlot({
         highlightedAttack ? 'is-shaking' : ''
       } ${targetKind}`}
       onClick={
-        side === 'player'
-          ? () => battle.handlePlayerCardClick(position)
-          : cpuClickable
-            ? () => battle.handleCpuCardClick(position)
-            : undefined
+        battleEnded
+          ? undefined
+          : side === 'player'
+            ? () => battle.handlePlayerCardClick(position)
+            : cpuClickable
+              ? () => battle.handleCpuCardClick(position)
+              : undefined
       }
     >
       {unit && card ? (
@@ -1005,10 +1011,16 @@ function BattleBoard({
   battle,
   opponentIdentity,
   playerIdentity,
+  endActions,
 }: {
   battle: ReturnType<typeof useBattle>;
   opponentIdentity: BattleZoneIdentity;
   playerIdentity?: BattleZoneIdentity;
+  endActions?: {
+    onNewBattle: () => void;
+    onOpenLog: () => void;
+    newBattleLabel: string;
+  };
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
   const slotRefs = useRef<Partial<Record<SlotKey, HTMLButtonElement>>>({});
@@ -1242,14 +1254,44 @@ function BattleBoard({
             </div>
           </div>
 
-          <div className="formation-guide formation-guide-battle">
-            <div className="formation-hint formation-guide-line">
-              {formatBattleGuideLine(
-                battle.turnLabel,
-                battle.hint,
-                showOutcome ? result : null,
-              )}
-            </div>
+          <div
+            className={`formation-guide formation-guide-battle${
+              showOutcome && endActions ? ' formation-guide-battle--ended' : ''
+            }`}
+          >
+            {showOutcome && endActions ? (
+              <>
+                <button
+                  type="button"
+                  className="battle-end-actions-btn battle-end-actions-btn--primary"
+                  onClick={endActions.onNewBattle}
+                >
+                  {endActions.newBattleLabel}
+                </button>
+                <div className="formation-hint formation-guide-line">
+                  {formatBattleGuideLine(
+                    battle.turnLabel,
+                    battle.hint,
+                    result,
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="battle-end-actions-btn battle-end-actions-btn--secondary"
+                  onClick={endActions.onOpenLog}
+                >
+                  バトルログ
+                </button>
+              </>
+            ) : (
+              <div className="formation-hint formation-guide-line">
+                {formatBattleGuideLine(
+                  battle.turnLabel,
+                  battle.hint,
+                  showOutcome ? result : null,
+                )}
+              </div>
+            )}
           </div>
 
           <div className="formation-zone formation-zone-player">
@@ -1299,6 +1341,7 @@ function BattleSession({
   onFinish,
   onEndedChange,
   view,
+  endActions,
 }: {
   playerCards: Card[];
   cpuCards: Card[];
@@ -1307,6 +1350,11 @@ function BattleSession({
   onFinish: (outcome: BattleOutcomeCore) => void;
   onEndedChange?: (ended: boolean) => void;
   view: 'play' | 'log';
+  endActions?: {
+    onNewBattle: () => void;
+    onOpenLog: () => void;
+    newBattleLabel: string;
+  };
 }) {
   const battle = useBattle(playerCards, cpuCards, onFinish);
   const ended = battle.effectivePhase === 'ended' && battle.result != null;
@@ -1336,6 +1384,7 @@ function BattleSession({
       battle={battle}
       opponentIdentity={opponentIdentity}
       playerIdentity={playerIdentity}
+      endActions={endActions}
     />
   );
 }
@@ -1641,6 +1690,13 @@ export function BattleSetupScreen({
               onFinish={handleBattleFinish}
               onEndedChange={setBattleEnded}
               view={battleSubView}
+              endActions={{
+                onNewBattle,
+                onOpenLog: () => setBattleSubView('log'),
+                newBattleLabel: isPracticeRematch
+                  ? 'もう一度対戦する'
+                  : '新規バトル',
+              }}
             />
           ) : phase === 'reveal' ? (
             <>
@@ -1691,7 +1747,7 @@ export function BattleSetupScreen({
             </button>
           </div>
         )}
-        {phase === 'battle' && !battleEnded && (
+        {phase === 'battle' && battleSubView === 'play' && (
           <div className="actions setup-actions formation-actions formation-footer-reserve" aria-hidden="true">
             <button type="button" className="primary" tabIndex={-1} disabled>
               準備完了
@@ -1699,25 +1755,6 @@ export function BattleSetupScreen({
           </div>
         )}
       </div>
-
-      {phase === 'battle' && battleEnded && battleSubView === 'play' && (
-        <div className="battle-end-actions-overlay" aria-label="バトル終了">
-          <button
-            type="button"
-            className="battle-end-actions-btn battle-end-actions-btn--primary"
-            onClick={onNewBattle}
-          >
-            {isPracticeRematch ? 'もう一度対戦する' : '新規バトル'}
-          </button>
-          <button
-            type="button"
-            className="battle-end-actions-btn battle-end-actions-btn--secondary"
-            onClick={() => setBattleSubView('log')}
-          >
-            バトルログ
-          </button>
-        </div>
-      )}
 
       {phase === 'setup' && cpuFlight && (
         <SetupFlightLayer
