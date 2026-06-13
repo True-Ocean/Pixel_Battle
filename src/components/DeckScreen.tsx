@@ -4,6 +4,8 @@ import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
 import {
   countDeckCards,
   getDeckCards,
+  getDeckDisplayName,
+  getDeckTabShortLabel,
   isDeckSlotUnlocked,
   moveCardInLayout,
   normalizeDeckLayout,
@@ -17,6 +19,7 @@ import { RarityBadge } from './RarityBadge';
 import { CardPreview } from './CardPreview';
 import { ConfirmDialog } from './ConfirmDialog';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
+import { DeckRenameDialog } from './DeckRenameDialog';
 import { DeckUnlockModal } from './DeckUnlockModal';
 import {
   findDeckDropIndex,
@@ -25,12 +28,15 @@ import {
 } from './deckReorder';
 
 const DECK_DRAG_CHIP_SIZE = 56;
+const DECK_TAB_LONG_PRESS_MS = 500;
+const DECK_TAB_DOUBLE_TAP_MS = 320;
 
 interface DeckScreenProps {
   deck: DeckLayout;
   decks: DeckLayout[];
   activeDeckIndex: number;
   unlockedDeckCount: number;
+  deckNames?: string[];
   reorderMode: boolean;
   onReorderModeChange: (active: boolean) => void;
   fauxLostCardId: string | null;
@@ -48,6 +54,8 @@ interface DeckScreenProps {
     toDeckIndex: number,
     toCardIndex: number,
   ) => void;
+  onPrototypeUnlockDeck?: () => void;
+  onRenameDeck?: (deckIndex: number, name: string) => void;
 }
 
 interface DeckDragState {
@@ -200,6 +208,7 @@ export function DeckScreen({
   decks,
   activeDeckIndex,
   unlockedDeckCount,
+  deckNames,
   reorderMode,
   onReorderModeChange,
   fauxLostCardId,
@@ -212,10 +221,16 @@ export function DeckScreen({
   onReviveFauxLost,
   onReorderDeck,
   onMoveCardBetweenDecks,
+  onPrototypeUnlockDeck,
+  onRenameDeck,
 }: DeckScreenProps) {
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
+  const [renameDeckIndex, setRenameDeckIndex] = useState<number | null>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const lastTabTapRef = useRef<{ index: number; at: number } | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const targetDropListRef = useRef<HTMLUListElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -416,13 +431,72 @@ export function DeckScreen({
     onReorderModeChange(true);
   };
 
+  const clearDeckTabLongPress = useCallback(() => {
+    if (longPressTimerRef.current != null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const openDeckRenameDialog = useCallback(
+    (index: number) => {
+      if (!onRenameDeck || reorderMode || dragState) return;
+      if (!isDeckSlotUnlocked(index, unlockedDeckCount)) return;
+      longPressTriggeredRef.current = true;
+      setRenameDeckIndex(index);
+    },
+    [dragState, onRenameDeck, reorderMode, unlockedDeckCount],
+  );
+
+  const handleDeckTabPointerDown = useCallback(
+    (index: number) => {
+      if (!onRenameDeck || reorderMode || dragState) return;
+      if (!isDeckSlotUnlocked(index, unlockedDeckCount)) return;
+      longPressTriggeredRef.current = false;
+      clearDeckTabLongPress();
+      longPressTimerRef.current = window.setTimeout(() => {
+        longPressTimerRef.current = null;
+        openDeckRenameDialog(index);
+      }, DECK_TAB_LONG_PRESS_MS);
+    },
+    [
+      clearDeckTabLongPress,
+      dragState,
+      onRenameDeck,
+      openDeckRenameDialog,
+      reorderMode,
+      unlockedDeckCount,
+    ],
+  );
+
+  const handleDeckTabPointerUp = useCallback(() => {
+    clearDeckTabLongPress();
+  }, [clearDeckTabLongPress]);
+
   const handleDeckTabSelect = (index: number) => {
+    if (longPressTriggeredRef.current) {
+      longPressTriggeredRef.current = false;
+      return;
+    }
     if (dragState) return;
     if (!isDeckSlotUnlocked(index, unlockedDeckCount)) {
       setUnlockModalSlot(index);
       return;
     }
-    if (index === activeDeckIndex) return;
+    if (index === activeDeckIndex) {
+      if (onRenameDeck) {
+        const now = Date.now();
+        const lastTap = lastTabTapRef.current;
+        if (lastTap?.index === index && now - lastTap.at <= DECK_TAB_DOUBLE_TAP_MS) {
+          lastTabTapRef.current = null;
+          openDeckRenameDialog(index);
+          return;
+        }
+        lastTabTapRef.current = { index, at: now };
+      }
+      return;
+    }
+    lastTabTapRef.current = null;
     closeDetail();
     onSelectDeckIndex(index);
   };
@@ -465,15 +539,17 @@ export function DeckScreen({
           const isDropTarget =
             dragState?.targetDeckIndex === index ||
             crossDeckTargetIndex === index;
+          const customTabName = deckNames?.[index]?.trim();
           const isDropEligible =
             reorderMode && unlocked && index !== sourceDeckIndex;
+          const displayName = getDeckDisplayName(index, deckNames);
           const tabLabel = unlocked
             ? isDropEligible
               ? crossDeckTargetIndex === index
-                ? `デッキ${index + 1} ${slotCount}/${DECK_MAX}枚 — 配置先`
-                : `デッキ${index + 1} ${slotCount}/${DECK_MAX}枚 — タップで配置先表示`
-              : `デッキ${index + 1} ${slotCount}/${DECK_MAX}枚`
-            : `デッキ${index + 1} 未解放`;
+                ? `${displayName} ${slotCount}/${DECK_MAX}枚 — 配置先`
+                : `${displayName} ${slotCount}/${DECK_MAX}枚 — タップで配置先表示`
+              : `${displayName} ${slotCount}/${DECK_MAX}枚`
+            : `${displayName} 未解放`;
           return (
             <button
               key={index}
@@ -481,19 +557,48 @@ export function DeckScreen({
               role="tab"
               data-deck-tab-index={index}
               aria-selected={isActive}
-              aria-label={tabLabel}
+              aria-label={
+                unlocked && onRenameDeck && !reorderMode
+                  ? `${tabLabel}。長押しまたは選択中にダブルタップで名前を変更`
+                  : tabLabel
+              }
+              title={
+                unlocked && onRenameDeck && !reorderMode
+                  ? '長押しで名前を変更'
+                  : undefined
+              }
               className={[
                 'deck-slot-tab',
                 isActive ? 'is-active' : '',
                 !unlocked ? 'is-locked' : '',
+                customTabName ? 'has-deck-name' : '',
                 isDropEligible ? 'is-drop-eligible' : '',
                 isDropTarget ? 'is-drop-target' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
               onClick={() => handleDeckTabSelect(index)}
+              onPointerDown={() => handleDeckTabPointerDown(index)}
+              onPointerUp={handleDeckTabPointerUp}
+              onPointerCancel={handleDeckTabPointerUp}
+              onPointerLeave={handleDeckTabPointerUp}
+              onContextMenu={(event) => {
+                if (!onRenameDeck || reorderMode || dragState) return;
+                if (!isDeckSlotUnlocked(index, unlockedDeckCount)) return;
+                event.preventDefault();
+                openDeckRenameDialog(index);
+              }}
             >
-              <span className="deck-slot-tab-label">{index + 1}</span>
+              <span
+                className={[
+                  'deck-slot-tab-label',
+                  customTabName ? 'deck-slot-tab-label--name' : 'deck-slot-tab-label--index',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {getDeckTabShortLabel(index, deckNames)}
+              </span>
               {unlocked ? (
                 <span className="deck-slot-tab-count">{slotCount}/{DECK_MAX}</span>
               ) : (
@@ -511,7 +616,7 @@ export function DeckScreen({
           <>
             <div className="deck-screen-header-row">
               <p className="deck-screen-deck-label deck-screen-deck-label--cross">
-                デッキ{crossDeckTargetIndex + 1}へ配置
+                {getDeckDisplayName(crossDeckTargetIndex, deckNames)}へ配置
               </p>
               <p className="deck-screen-card-count">
                 {countDeckCards(crossDeckTarget)}/{DECK_MAX}枚
@@ -524,7 +629,9 @@ export function DeckScreen({
         ) : (
           <>
             <div className="deck-screen-header-row">
-              <p className="deck-screen-deck-label">デッキ{activeDeckIndex + 1}</p>
+              <p className="deck-screen-deck-label">
+                {getDeckDisplayName(activeDeckIndex, deckNames)}
+              </p>
               <p className="deck-screen-card-count" aria-label={`${deckCardCount}枚 / ${DECK_MAX}枚`}>
                 {deckCardCount}/{DECK_MAX}枚
               </p>
@@ -688,10 +795,29 @@ export function DeckScreen({
         />
       )}
 
+      {renameDeckIndex != null && onRenameDeck && (
+        <DeckRenameDialog
+          deckIndex={renameDeckIndex}
+          deckNames={deckNames}
+          onSave={onRenameDeck}
+          onClose={() => setRenameDeckIndex(null)}
+        />
+      )}
+
       {unlockModalSlot != null && (
         <DeckUnlockModal
-          slotNumber={unlockModalSlot + 1}
+          slotIndex={unlockModalSlot}
+          unlockedDeckCount={unlockedDeckCount}
+          deckNames={deckNames}
           onClose={() => setUnlockModalSlot(null)}
+          onPrototypeUnlock={
+            onPrototypeUnlockDeck
+              ? () => {
+                  onPrototypeUnlockDeck();
+                  setUnlockModalSlot(null);
+                }
+              : undefined
+          }
         />
       )}
 

@@ -4,6 +4,7 @@ import {
   countDeckCards,
   getBattleReadyDeckIndices,
   getDeckCards,
+  getDeckDisplayName,
   isDeckBattleReady,
   isDeckSlotUnlocked,
   normalizeDeckLayout,
@@ -18,6 +19,7 @@ type BattleHubDeckStatus = 'ready' | 'incomplete' | 'locked';
 
 interface BattleHubScreenProps {
   decks: DeckLayout[];
+  deckNames?: string[];
   unlockedDeckCount: number;
   lastBattleDeckIndex: number;
   onStartBattle: (deckIndex: number) => void;
@@ -25,6 +27,7 @@ interface BattleHubScreenProps {
 
 export function BattleHubScreen({
   decks,
+  deckNames,
   unlockedDeckCount,
   lastBattleDeckIndex,
   onStartBattle,
@@ -78,6 +81,7 @@ export function BattleHubScreen({
       <div className="battle-hub-body">
         <ul className="battle-hub-deck-list" aria-label="バトル用デッキ">
           {deckRows.map(({ index, layout, status, cardCount, power }) => {
+            const deckLabel = getDeckDisplayName(index, deckNames);
             const isSelected = status === 'ready' && selectedIndex === index;
             const isSelectable = status === 'ready';
             const statusLabel =
@@ -88,10 +92,10 @@ export function BattleHubScreen({
                   : `戦力 ${power}`;
             const tileLabel =
               status === 'ready'
-                ? `デッキ${index + 1} 戦力${power}`
+                ? `${deckLabel} 戦力${power}`
                 : status === 'locked'
-                  ? `デッキ${index + 1} 未解放`
-                  : `デッキ${index + 1} ${cardCount}/${DECK_MAX}枚`;
+                  ? `${deckLabel} 未解放`
+                  : `${deckLabel} ${cardCount}/${DECK_MAX}枚`;
 
             return (
               <li key={index}>
@@ -116,7 +120,7 @@ export function BattleHubScreen({
                   }}
                 >
                   <div className="battle-hub-deck-tile-head">
-                    <span className="battle-hub-deck-label">デッキ{index + 1}</span>
+                    <span className="battle-hub-deck-label">{deckLabel}</span>
                     <span className="battle-hub-deck-status">
                       {status === 'ready' ? (
                         <>

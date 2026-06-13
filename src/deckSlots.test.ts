@@ -5,12 +5,16 @@ import {
   countDeckCards,
   createEmptyDeckSlots,
   getBattleReadyDeckIndices,
+  getDeckDisplayName,
+  getDeckTabShortLabel,
   isDeckSlotUnlocked,
   moveCardBetweenDeckSlots,
   moveCardInLayout,
   normalizeDeckLayout,
+  normalizeDeckNames,
   normalizeDeckSlots,
   resolveBattleHubDeckSelection,
+  setDeckNameAt,
   updateDeckAtIndex,
 } from './deckSlots';
 
@@ -30,6 +34,42 @@ function card(id: string): Card {
     createdAt: '2026-01-01T00:00:00.000Z',
   };
 }
+
+describe('deck display names', () => {
+  it('returns default label when name is unset', () => {
+    expect(getDeckDisplayName(0)).toBe('デッキ1');
+    expect(getDeckTabShortLabel(2)).toBe('3');
+  });
+
+  it('uses custom name when set', () => {
+    const names = ['攻撃', '', '守備'];
+    expect(getDeckDisplayName(0, names)).toBe('攻撃');
+    expect(getDeckDisplayName(1, names)).toBe('デッキ2');
+    expect(getDeckTabShortLabel(0, names)).toBe('攻撃');
+    expect(getDeckTabShortLabel(2, names)).toBe('守備');
+  });
+
+  it('returns full custom name for tab label', () => {
+    expect(getDeckTabShortLabel(0, ['おちゃらけ'])).toBe('おちゃらけ');
+  });
+
+  it('updates a single deck name', () => {
+    expect(setDeckNameAt(undefined, 0, '攻撃')).toEqual(['攻撃', '', '', '', '']);
+    expect(setDeckNameAt(['攻撃', '', '', '', ''], 0, '')).toBeUndefined();
+    expect(setDeckNameAt(['攻撃', '守備', '', '', ''], 1, '  メイン  ')).toEqual([
+      '攻撃',
+      'メイン',
+      '',
+      '',
+      '',
+    ]);
+  });
+
+  it('normalizes deck names array', () => {
+    expect(normalizeDeckNames([' 攻撃 ', '', '守備'])).toEqual(['攻撃', '', '守備']);
+    expect(normalizeDeckNames(['', '   '])).toBeUndefined();
+  });
+});
 
 describe('deckSlots', () => {
   it('creates five empty deck slots', () => {

@@ -3,7 +3,7 @@ import type { Card, ScreenId, UserProfile, BattleOutcome, BattleHistoryEntry } f
 import { appendBattleHistory, createBattleHistoryEntry } from './battleHistory';
 import { MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
-import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlots, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady } from './deckSlots';
+import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlots, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt } from './deckSlots';
 import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, recordCardRevive, rescaleDeckBp } from './card';
 import { buildBalancedCpuDeck } from './game/cpuDeck';
@@ -49,6 +49,9 @@ function App() {
   );
   const [unlockedDeckCount, setUnlockedDeckCount] = useState(
     () => initialSave.unlockedDeckCount,
+  );
+  const [deckNames, setDeckNames] = useState<string[] | undefined>(
+    () => initialSave.deckNames,
   );
   const [fauxLostCardId, setFauxLostCardId] = useState<string | null>(null);
 
@@ -118,6 +121,7 @@ function App() {
       lastBattleDeckIndex?: number;
       unlockedDeckCount?: number;
       battleHistory?: BattleHistoryEntry[];
+      deckNames?: string[];
       devPreferSavedLevel?: boolean;
       devFileOverrideLevel?: number | null;
     }) => {
@@ -134,6 +138,7 @@ function App() {
         lastBattleDeckIndex: next.lastBattleDeckIndex ?? lastBattleDeckIndex,
         unlockedDeckCount: next.unlockedDeckCount ?? unlockedDeckCount,
         battleHistory: next.battleHistory ?? battleHistoryRef.current,
+        deckNames: next.deckNames !== undefined ? next.deckNames : deckNames,
         ...(devPreferSavedLevelRef.current
           ? {
               devPreferSavedLevel: true as const,
@@ -143,7 +148,7 @@ function App() {
           : {}),
       });
     },
-    [activeDeckIndex, decks, lastBattleDeckIndex, unlockedDeckCount, user],
+    [activeDeckIndex, deckNames, decks, lastBattleDeckIndex, unlockedDeckCount, user],
   );
 
   const updateActiveDeck = useCallback(
@@ -387,6 +392,7 @@ function App() {
       activeDeckIndex,
       lastBattleDeckIndex,
       unlockedDeckCount,
+      deckNames,
       battleHistory,
     });
     persistSave(next);
@@ -397,7 +403,7 @@ function App() {
     setUnlockedDeckCount(next.unlockedDeckCount);
     setBattleHistory(next.battleHistory ?? []);
     setFauxLostCardId(null);
-  }, [activeDeckIndex, battleHistory, decks, lastBattleDeckIndex, persistSave, unlockedDeckCount, user]);
+  }, [activeDeckIndex, battleHistory, deckNames, decks, lastBattleDeckIndex, persistSave, unlockedDeckCount, user]);
 
   const handleDevSetLevel = useCallback(
     (level: number) => {
@@ -451,6 +457,28 @@ function App() {
       });
     },
     [activeDeckIndex, persistSave],
+  );
+
+  const handlePrototypeUnlockNextDeck = useCallback(() => {
+    if (!import.meta.env.DEV) return;
+    const nextCount = clampUnlockedDeckCount(unlockedDeckCountRef.current + 1);
+    const nextIndex = nextCount - 1;
+    setUnlockedDeckCount(nextCount);
+    setActiveDeckIndex(nextIndex);
+    setDetailCardId(null);
+    persistSave({
+      unlockedDeckCount: nextCount,
+      activeDeckIndex: nextIndex,
+    });
+  }, [persistSave]);
+
+  const handleRenameDeck = useCallback(
+    (deckIndex: number, name: string) => {
+      const nextDeckNames = setDeckNameAt(deckNames, deckIndex, name);
+      setDeckNames(nextDeckNames);
+      persistSave({ deckNames: nextDeckNames });
+    },
+    [deckNames, persistSave],
   );
 
   const completeTitle = useCallback(() => {
@@ -509,6 +537,7 @@ function App() {
             decks={decks}
             activeDeckIndex={activeDeckIndex}
             unlockedDeckCount={unlockedDeckCount}
+            deckNames={deckNames}
             reorderMode={deckReorderMode}
             onReorderModeChange={setDeckReorderMode}
             fauxLostCardId={fauxLostCardId}
@@ -538,11 +567,14 @@ function App() {
             }}
             onReorderDeck={reorderDeck}
             onMoveCardBetweenDecks={moveCardBetweenDecks}
+            onPrototypeUnlockDeck={handlePrototypeUnlockNextDeck}
+            onRenameDeck={handleRenameDeck}
           />
         )}
         {screen === 'battleHub' && (
           <BattleHubScreen
             decks={decks}
+            deckNames={deckNames}
             unlockedDeckCount={unlockedDeckCount}
             lastBattleDeckIndex={lastBattleDeckIndex}
             onStartBattle={goToBattleSetup}

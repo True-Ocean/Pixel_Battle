@@ -1,5 +1,6 @@
 import {
   DECK_MAX,
+  DECK_NAME_MAX_LENGTH,
   DECK_SLOT_COUNT,
   DECK_SLOT_INITIAL_UNLOCKED,
 } from './config/balance';
@@ -25,6 +26,51 @@ export function clampUnlockedDeckCount(count: number): number {
     DECK_SLOT_INITIAL_UNLOCKED,
     Math.min(DECK_SLOT_COUNT, Math.floor(count)),
   );
+}
+
+/** デッキ名配列を正規化（空のみの場合は undefined） */
+export function normalizeDeckNames(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const names = raw
+    .slice(0, DECK_SLOT_COUNT)
+    .map((name) =>
+      typeof name === 'string'
+        ? name.trim().slice(0, DECK_NAME_MAX_LENGTH)
+        : '',
+    );
+  return names.some((name) => name.length > 0) ? names : undefined;
+}
+
+/** 1スロット分の名前を更新 */
+export function setDeckNameAt(
+  deckNames: string[] | undefined,
+  deckIndex: number,
+  rawName: string,
+): string[] | undefined {
+  const next = Array.from({ length: DECK_SLOT_COUNT }, (_, i) =>
+    i === deckIndex
+      ? sanitizeDeckNameInput(rawName)
+      : deckNames?.[i]?.trim() ?? '',
+  );
+  return next.some((name) => name.length > 0) ? next : undefined;
+}
+
+export function sanitizeDeckNameInput(raw: string): string {
+  return raw.trim().slice(0, DECK_NAME_MAX_LENGTH);
+}
+
+/** ヘッダー・Hub 等の表示名（未設定時は「デッキN」） */
+export function getDeckDisplayName(index: number, deckNames?: string[]): string {
+  const custom = deckNames?.[index]?.trim();
+  if (custom) return custom;
+  return `デッキ${index + 1}`;
+}
+
+/** タブ上のラベル（未設定時は数字。名前は CSS で省略） */
+export function getDeckTabShortLabel(index: number, deckNames?: string[]): string {
+  const custom = deckNames?.[index]?.trim();
+  if (custom) return custom;
+  return String(index + 1);
 }
 
 export function isDeckSlotUnlocked(

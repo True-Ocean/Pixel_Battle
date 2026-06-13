@@ -13,6 +13,8 @@ export const DECK_MAX = 5;
 /** ユーザーが持てるデッキスロット数（各スロット最大 DECK_MAX 枚） */
 export const DECK_SLOT_COUNT = 5;
 export const DECK_SLOT_INITIAL_UNLOCKED = 1;
+/** デッキ名の最大文字数（タブ・Hub 表示用） */
+export const DECK_NAME_MAX_LENGTH = 12;
 export const FRONT_SIZE = 2;
 export const BACK_SIZE = 3;
 export const FIELD_SIZE = 3;
