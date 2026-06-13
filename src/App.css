@@ -7278,9 +7278,16 @@ button.battle-card {
 }
 
 .formation-screen.is-battle-log .formation-battle-play-body {
-  flex: 1;
+  flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 終了後ログ表示では body の pointer-events:none を解除（タッチスクロール可） */
+.formation-screen.has-end-actions.is-battle-log .formation-battle-body {
+  pointer-events: auto;
 }
 
 .formation-battle-log-body {
@@ -7290,6 +7297,14 @@ button.battle-card {
   flex-direction: column;
   overflow: hidden;
   padding: 0.35rem 0.5rem 0.15rem;
+}
+
+.formation-screen.is-battle-log .formation-battle-log-body {
+  flex: 1 1 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .formation-battle-log {
@@ -7315,12 +7330,13 @@ button.battle-card {
 }
 
 .formation-battle-log-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  flex: none;
   padding: 0.15rem 0.25rem 0.35rem;
+}
+
+.formation-screen.is-battle-log .formation-battle-log {
+  flex: none;
+  min-height: min-content;
 }
 
 .formation-battle-log-turn + .formation-battle-log-turn {
