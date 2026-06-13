@@ -28,19 +28,68 @@ function clampDevUserLevel(level: number): number {
   return Math.max(USER_INITIAL_LEVEL, Math.min(MAX_USER_LEVEL, Math.floor(level)));
 }
 
+function applyDevUserLevelAt(user: UserProfile, level: number): UserProfile {
+  const clamped = clampDevUserLevel(level);
+  return { ...user, level: clamped, exp: totalExpForLevel(clamped) };
+}
+
 /** 開発用: DEV_USER_LEVEL_OVERRIDE でレベル・EXP を上書き */
 export function applyDevUserLevelOverride(user: UserProfile): UserProfile {
   if (!import.meta.env.DEV || DEV_USER_LEVEL_OVERRIDE == null) return user;
-  const level = clampDevUserLevel(DEV_USER_LEVEL_OVERRIDE);
-  return { ...user, level, exp: totalExpForLevel(level) };
+  return applyDevUserLevelAt(user, DEV_USER_LEVEL_OVERRIDE);
+}
+
+export interface DevUserLoadOptions {
+  fileOverrideLevel: number | null;
+  preferSavedLevel: boolean;
+  savedFileOverrideLevel: number | null | undefined;
+}
+
+/** 開発: ファイル上書きが変わったら設定画面の優先フラグを無効化 */
+export function effectiveDevPreferSavedLevel(
+  preferSavedLevel: boolean,
+  fileOverrideLevel: number | null,
+  savedFileOverrideLevel: number | null | undefined,
+): boolean {
+  if (!preferSavedLevel) return false;
+  if (
+    fileOverrideLevel != null &&
+    savedFileOverrideLevel != null &&
+    fileOverrideLevel !== savedFileOverrideLevel
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/** 開発用: セーブ読込時にファイル上書きと設定画面のテスト用レベルを解決 */
+export function resolveDevUserProfileOnLoad(
+  user: UserProfile,
+  options: DevUserLoadOptions,
+): UserProfile {
+  const { fileOverrideLevel, preferSavedLevel, savedFileOverrideLevel } = options;
+  const usePreferSaved = effectiveDevPreferSavedLevel(
+    preferSavedLevel,
+    fileOverrideLevel,
+    savedFileOverrideLevel,
+  );
+
+  if (usePreferSaved) {
+    return applyDevUserLevelAt(user, user.level);
+  }
+  if (import.meta.env.DEV && fileOverrideLevel != null) {
+    return applyDevUserLevelAt(user, fileOverrideLevel);
+  }
+  return applyDevMaxUserLevel(user);
 }
 
 /** 開発用: レベル上書きがあれば優先。なければ最大レベル強制を適用 */
 export function applyDevUserProfile(user: UserProfile): UserProfile {
-  if (import.meta.env.DEV && DEV_USER_LEVEL_OVERRIDE != null) {
-    return applyDevUserLevelOverride(user);
-  }
-  return applyDevMaxUserLevel(user);
+  return resolveDevUserProfileOnLoad(user, {
+    fileOverrideLevel: DEV_USER_LEVEL_OVERRIDE,
+    preferSavedLevel: false,
+    savedFileOverrideLevel: undefined,
+  });
 }
 
 export function isProfileComplete(user: UserProfile | null): user is UserProfile {

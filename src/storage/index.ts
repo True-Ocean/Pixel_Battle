@@ -22,7 +22,7 @@ import {
 } from '../config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
 import { gridSize } from '../canvas';
-import { applyDevUserProfile, normalizeUserProfile } from '../user';
+import { effectiveDevPreferSavedLevel, normalizeUserProfile, resolveDevUserProfileOnLoad } from '../user';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
 
@@ -196,7 +196,35 @@ function migrateBattleHistory(raw: unknown): BattleHistoryEntry[] {
   return entries;
 }
 
-function normalizeSaveFields(parsed: Record<string, unknown>, decks: DeckLayout[]): Pick<
+function parseDevSaveFields(parsed: Record<string, unknown>): Pick<
+  SaveData,
+  'devPreferSavedLevel' | 'devFileOverrideLevel'
+> {
+  const devPreferSavedLevel = parsed.devPreferSavedLevel === true;
+  const rawFileOverride = parsed.devFileOverrideLevel;
+  const devFileOverrideLevel =
+    typeof rawFileOverride === 'number'
+      ? rawFileOverride
+      : rawFileOverride === null
+        ? null
+        : undefined;
+  return { devPreferSavedLevel, devFileOverrideLevel };
+}
+
+function buildDevSaveFields(
+  preferSaved: boolean,
+  savedFileOverrideLevel: number | null | undefined,
+): Pick<SaveData, 'devPreferSavedLevel' | 'devFileOverrideLevel'> {
+  if (!preferSaved) {
+    return {};
+  }
+  return {
+    devPreferSavedLevel: true,
+    devFileOverrideLevel: savedFileOverrideLevel ?? DEV_USER_LEVEL_OVERRIDE ?? null,
+  };
+}
+
+function normalizeSaveFields(parsed: Record<string, unknown>, _decks: DeckLayout[]): Pick<
   SaveData,
   'activeDeckIndex' | 'lastBattleDeckIndex' | 'unlockedDeckCount' | 'deckNames'
 > {
@@ -259,6 +287,12 @@ export function loadSave(): SaveData {
     const battleHistory = migrateBattleHistory(parsed.battleHistory);
     const { activeDeckIndex, lastBattleDeckIndex, unlockedDeckCount, deckNames } =
       normalizeSaveFields(parsed, decks);
+    const { devPreferSavedLevel, devFileOverrideLevel } = parseDevSaveFields(parsed);
+    const preferSaved = effectiveDevPreferSavedLevel(
+      devPreferSavedLevel === true,
+      DEV_USER_LEVEL_OVERRIDE,
+      devFileOverrideLevel,
+    );
 
     const baseSave: SaveData = {
       user,
@@ -268,11 +302,16 @@ export function loadSave(): SaveData {
       unlockedDeckCount,
       deckNames,
       battleHistory,
+      ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
     };
 
     if (user) {
-      const devAdjusted = applyDevUserProfile(user);
-      const rescale = shouldRescaleDeckForDev();
+      const devAdjusted = resolveDevUserProfileOnLoad(user, {
+        fileOverrideLevel: DEV_USER_LEVEL_OVERRIDE,
+        preferSavedLevel: preferSaved,
+        savedFileOverrideLevel: devFileOverrideLevel,
+      });
+      const rescale = shouldRescaleDeckForDev() || preferSaved;
       const finalDecks = rescale
         ? rescaleAllDecks(decks, devAdjusted.level)
         : decks;
@@ -280,11 +319,13 @@ export function loadSave(): SaveData {
         ...baseSave,
         user: devAdjusted,
         decks: finalDecks,
+        ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
       };
       if (
         devAdjusted.level !== user.level ||
         devAdjusted.exp !== user.exp ||
-        (rescale && anyDeckBpChanged(decks, finalDecks))
+        (rescale && anyDeckBpChanged(decks, finalDecks)) ||
+        (parsed.devPreferSavedLevel === true && !preferSaved)
       ) {
         saveSave(finalSave);
       }
@@ -297,20 +338,23 @@ export function loadSave(): SaveData {
 }
 
 export function saveSave(data: SaveData): void {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({
-      user: data.user,
-      decks: normalizeDeckSlots(data.decks).map((deck) => deck.slice(0, DECK_MAX)),
-      activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
-      lastBattleDeckIndex: clampDeckSlotIndex(
-        data.lastBattleDeckIndex ?? data.activeDeckIndex,
-      ),
-      unlockedDeckCount: clampUnlockedDeckCount(data.unlockedDeckCount),
-      deckNames: data.deckNames,
-      battleHistory: data.battleHistory ?? [],
-    }),
-  );
+  const payload: Record<string, unknown> = {
+    user: data.user,
+    decks: normalizeDeckSlots(data.decks).map((deck) => deck.slice(0, DECK_MAX)),
+    activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
+    lastBattleDeckIndex: clampDeckSlotIndex(
+      data.lastBattleDeckIndex ?? data.activeDeckIndex,
+    ),
+    unlockedDeckCount: clampUnlockedDeckCount(data.unlockedDeckCount),
+    deckNames: data.deckNames,
+    battleHistory: data.battleHistory ?? [],
+  };
+  if (data.devPreferSavedLevel === true) {
+    payload.devPreferSavedLevel = true;
+    payload.devFileOverrideLevel =
+      data.devFileOverrideLevel ?? DEV_USER_LEVEL_OVERRIDE ?? null;
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
 
 /** ユーザー戦績とカード勝敗のみ初期化（デッキ内容・ユーザー名は維持） */

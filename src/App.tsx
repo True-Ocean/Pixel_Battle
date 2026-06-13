@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import type { Card, ScreenId, UserProfile, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry } from './battleHistory';
 import { MAX_USER_LEVEL, DECK_MAX } from './config/balance';
+import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlots, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady } from './deckSlots';
 import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, recordCardRevive, rescaleDeckBp } from './card';
@@ -104,6 +105,11 @@ function App() {
   unlockedDeckCountRef.current = unlockedDeckCount;
   battleHistoryRef.current = battleHistory;
 
+  const devPreferSavedLevelRef = useRef(initialSave.devPreferSavedLevel === true);
+  const devFileOverrideLevelRef = useRef<number | null | undefined>(
+    initialSave.devFileOverrideLevel,
+  );
+
   const persistSave = useCallback(
     (next: {
       user?: UserProfile | null;
@@ -112,7 +118,15 @@ function App() {
       lastBattleDeckIndex?: number;
       unlockedDeckCount?: number;
       battleHistory?: BattleHistoryEntry[];
+      devPreferSavedLevel?: boolean;
+      devFileOverrideLevel?: number | null;
     }) => {
+      if (next.devPreferSavedLevel !== undefined) {
+        devPreferSavedLevelRef.current = next.devPreferSavedLevel;
+      }
+      if (next.devFileOverrideLevel !== undefined) {
+        devFileOverrideLevelRef.current = next.devFileOverrideLevel;
+      }
       saveSave({
         user: next.user !== undefined ? next.user : user,
         decks: next.decks ?? decks,
@@ -120,6 +134,13 @@ function App() {
         lastBattleDeckIndex: next.lastBattleDeckIndex ?? lastBattleDeckIndex,
         unlockedDeckCount: next.unlockedDeckCount ?? unlockedDeckCount,
         battleHistory: next.battleHistory ?? battleHistoryRef.current,
+        ...(devPreferSavedLevelRef.current
+          ? {
+              devPreferSavedLevel: true as const,
+              devFileOverrideLevel:
+                devFileOverrideLevelRef.current ?? DEV_USER_LEVEL_OVERRIDE ?? null,
+            }
+          : {}),
       });
     },
     [activeDeckIndex, decks, lastBattleDeckIndex, unlockedDeckCount, user],
@@ -380,19 +401,37 @@ function App() {
 
   const handleDevSetLevel = useCallback(
     (level: number) => {
-      if (!import.meta.env.DEV || !isProfileComplete(user)) return;
+      const currentUser = userRef.current;
+      if (!import.meta.env.DEV || !isProfileComplete(currentUser)) return;
       const clamped = Math.max(1, Math.min(MAX_USER_LEVEL, Math.floor(level)));
       const nextUser = {
-        ...user,
+        ...currentUser,
         level: clamped,
         exp: totalExpForLevel(clamped),
       };
-      const nextDecks = decks.map((deck) => rescaleDeckBp(deck, clamped));
-      persistSave({ user: nextUser, decks: nextDecks });
+      const currentDecks = decksRef.current;
+      const nextDecks = currentDecks.map((deck) => {
+        const cards = getDeckCards(deck);
+        const rescaled = rescaleDeckBp(cards, clamped);
+        const next = normalizeDeckLayout(deck);
+        let cursor = 0;
+        return next.map((card) => {
+          if (card == null) return null;
+          const updated = rescaled[cursor];
+          cursor += 1;
+          return updated ?? card;
+        });
+      });
+      persistSave({
+        user: nextUser,
+        decks: nextDecks,
+        devPreferSavedLevel: true,
+        devFileOverrideLevel: DEV_USER_LEVEL_OVERRIDE,
+      });
       setUser(nextUser);
       setDecks(nextDecks);
     },
-    [decks, persistSave, user],
+    [persistSave],
   );
 
   const handleDevSetUnlockedDeckCount = useCallback(

@@ -8,10 +8,12 @@ import {
 import {
   applyDevMaxUserLevel,
   createInitialProfile,
+  effectiveDevPreferSavedLevel,
   grantBattleExp,
   isProfileComplete,
   normalizeUserProfile,
   recordUserBattleOutcome,
+  resolveDevUserProfileOnLoad,
   validateUsername,
 } from './profile';
 import { totalExpForLevel } from './level';
@@ -33,6 +35,55 @@ describe('createInitialProfile', () => {
       battleWins: 0,
       battleLosses: 0,
     });
+  });
+});
+
+describe('resolveDevUserProfileOnLoad', () => {
+  const base = createInitialProfile('test');
+
+  it('uses saved level when preferSaved is true', () => {
+    const saved = { ...base, level: 10, exp: totalExpForLevel(10) };
+    const result = resolveDevUserProfileOnLoad(saved, {
+      fileOverrideLevel: 50,
+      preferSavedLevel: true,
+      savedFileOverrideLevel: 50,
+    });
+    expect(result.level).toBe(10);
+    expect(result.exp).toBe(totalExpForLevel(10));
+  });
+
+  it('uses file override when preferSaved is false', () => {
+    const result = resolveDevUserProfileOnLoad(base, {
+      fileOverrideLevel: 20,
+      preferSavedLevel: false,
+      savedFileOverrideLevel: undefined,
+    });
+    expect(result.level).toBe(20);
+    expect(result.exp).toBe(totalExpForLevel(20));
+  });
+
+  it('ignores preferSaved when file override changed since apply', () => {
+    const saved = { ...base, level: 10, exp: totalExpForLevel(10) };
+    const result = resolveDevUserProfileOnLoad(saved, {
+      fileOverrideLevel: 20,
+      preferSavedLevel: true,
+      savedFileOverrideLevel: 50,
+    });
+    expect(result.level).toBe(20);
+  });
+});
+
+describe('effectiveDevPreferSavedLevel', () => {
+  it('returns false when file override changed', () => {
+    expect(
+      effectiveDevPreferSavedLevel(true, 20, 50),
+    ).toBe(false);
+  });
+
+  it('returns true when file override matches snapshot', () => {
+    expect(
+      effectiveDevPreferSavedLevel(true, 50, 50),
+    ).toBe(true);
   });
 });
 

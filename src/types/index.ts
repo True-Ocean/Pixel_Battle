@@ -104,6 +104,10 @@ export interface SaveData {
   /** 将来: デッキ名。未設定時はタブ番号を表示 */
   deckNames?: string[];
   battleHistory?: BattleHistoryEntry[];
+  /** 開発: 設定画面のテスト用レベルをファイル上書きより優先 */
+  devPreferSavedLevel?: boolean;
+  /** 開発: テスト用レベル適用時の DEV_USER_LEVEL_OVERRIDE スナップショット */
+  devFileOverrideLevel?: number | null;
 }
 
 /** アプリ画面（ルーターなし・state で切替） */

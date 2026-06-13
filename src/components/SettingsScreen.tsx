@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL } from '../config/balance';
 import { clampUnlockedDeckCount } from '../deckSlots';
 import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
@@ -77,6 +77,10 @@ export function SettingsScreen({
   const [devNotice, setDevNotice] = useState<string | null>(null);
   const [devDeckNotice, setDevDeckNotice] = useState<string | null>(null);
   const isDev = import.meta.env.DEV;
+
+  useEffect(() => {
+    setDevLevelInput(String(user?.level ?? 1));
+  }, [user?.level]);
 
   if (!user) {
     return (
@@ -229,9 +233,9 @@ export function SettingsScreen({
               </p>
             )}
             <p className="settings-section-note muted">
-              開発ビルドのみ表示。適用でセーブデータのレベル・EXP・カード BP
-              またはデッキ解放数を更新します。永続的な上書きは dev-user-level
-              スキルを使用してください。
+              開発ビルドのみ表示。「適用」でセーブデータのレベル・EXP・カード BP
+              またはデッキ解放数を更新します。ファイル上書き（上記）より優先されます。dev-user-level
+              スキルでファイル上書きを変更した場合は、そちらが再び優先されます。
             </p>
           </SettingsSection>
         )}
