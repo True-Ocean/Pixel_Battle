@@ -374,6 +374,7 @@ function SetupSlot({
   valid,
   hideFrame = false,
   faceDown = false,
+  readOnly = false,
   slotRef,
   onClick,
 }: {
@@ -384,40 +385,137 @@ function SetupSlot({
   valid?: boolean;
   hideFrame?: boolean;
   faceDown?: boolean;
+  readOnly?: boolean;
   slotRef?: (el: HTMLButtonElement | null) => void;
   onClick?: () => void;
 }) {
+  const className = `formation-slot formation-slot-${position} ${
+    card ? 'has-card' : ''
+  } ${hideFrame && card ? 'is-frameless' : ''} ${
+    selected ? 'is-selected' : ''
+  } ${valid ? 'is-valid' : ''} ${readOnly ? 'is-readonly' : ''}`;
+
+  const content = card ? (
+    <BattleCard
+      name={card.name}
+      pixels={card.pixels}
+      attribute={card.attribute}
+      currentBp={card.bp}
+      variant="compact"
+      fixedSize
+      side={side}
+      faceDown={faceDown}
+      flipEnabled={!readOnly}
+      hideBp={faceDown}
+    />
+  ) : (
+    <span className="formation-empty-label">
+      {position.startsWith('front') ? '前衛' : '後衛'}
+    </span>
+  );
+
+  if (readOnly) {
+    return (
+      <div className={className} aria-label={position}>
+        {content}
+      </div>
+    );
+  }
+
   return (
     <button
       ref={slotRef}
       type="button"
-      className={`formation-slot formation-slot-${position} ${
-        card ? 'has-card' : ''
-      } ${hideFrame && card ? 'is-frameless' : ''} ${
-        selected ? 'is-selected' : ''
-      } ${valid ? 'is-valid' : ''}`}
+      className={className}
       onClick={onClick}
       aria-label={position}
     >
-      {card ? (
-        <BattleCard
-          name={card.name}
-          pixels={card.pixels}
-          attribute={card.attribute}
-          currentBp={card.bp}
-          variant="compact"
-          fixedSize
-          side={side}
-          faceDown={faceDown}
-          flipEnabled
-          hideBp={faceDown}
-        />
-      ) : (
-        <span className="formation-empty-label">
-          {position.startsWith('front') ? '前衛' : '後衛'}
-        </span>
-      )}
+      {content}
     </button>
+  );
+}
+
+function FormationDeckReveal({
+  playerSlots,
+  cpuSlots,
+  opponentIdentity,
+  playerIdentity,
+}: {
+  playerSlots: Record<BoardPosition, Card | null>;
+  cpuSlots: Record<BoardPosition, Card | null>;
+  opponentIdentity: BattleZoneIdentity;
+  playerIdentity?: BattleZoneIdentity;
+}) {
+  return (
+    <div className="formation-reveal-stack">
+      <div className="formation-zone formation-zone-cpu">
+        <FormationZoneBanner identity={opponentIdentity} side="cpu" />
+        <div className="formation-field formation-field-cpu">
+          <div className="formation-row formation-row-back">
+            {BACK_POSITIONS.map((position) => (
+              <SetupSlot
+                key={`reveal-cpu-${position}`}
+                card={cpuSlots[position]}
+                position={position}
+                side="cpu"
+                hideFrame
+                readOnly
+              />
+            ))}
+          </div>
+          <div className="formation-row formation-row-front">
+            {FRONT_POSITIONS.map((position) => (
+              <SetupSlot
+                key={`reveal-cpu-front-${position}`}
+                card={cpuSlots[position]}
+                position={position}
+                side="cpu"
+                hideFrame
+                readOnly
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="formation-guide formation-guide-vs" aria-label="対戦">
+        <span className="formation-vs-label" aria-hidden>
+          VS
+        </span>
+      </div>
+
+      <div className="formation-zone formation-zone-player">
+        <div className="formation-field formation-field-player">
+          <div className="formation-row formation-row-front">
+            {FRONT_POSITIONS.map((position) => (
+              <SetupSlot
+                key={`reveal-player-${position}`}
+                card={playerSlots[position]}
+                position={position}
+                side="player"
+                hideFrame
+                readOnly
+              />
+            ))}
+          </div>
+          <div className="formation-row formation-row-back">
+            {BACK_POSITIONS.map((position) => (
+              <SetupSlot
+                key={`reveal-player-back-${position}`}
+                card={playerSlots[position]}
+                position={position}
+                side="player"
+                hideFrame
+                readOnly
+              />
+            ))}
+          </div>
+        </div>
+        {playerIdentity && (
+          <FormationZoneBanner identity={playerIdentity} side="player" />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1146,34 +1244,25 @@ export function BattleSetupScreen({
     level: playerIdentity?.level ?? CPU_OPPONENT_LEVEL,
   };
   const canBattle = playerDeck.length >= DECK_MAX;
-  const [phase, setPhase] = useState<'setup' | 'battle'>('setup');
-  const [timeLeft, setTimeLeft] = useState(SETUP_TIME_LIMIT_SEC);
-  const [playerHand, setPlayerHand] = useState<Card[]>(() => [...playerDeck]);
-  const [playerSlots, setPlayerSlots] = useState<Record<BoardPosition, Card | null>>(
-    () =>
-      BOARD_POSITIONS.reduce(
-        (acc, position) => {
-          acc[position] = null;
-          return acc;
-        },
-        {} as Record<BoardPosition, Card | null>,
-      ),
+  const [playerFormation] = useState<Record<BoardPosition, Card | null>>(() =>
+    randomFormation(playerDeck),
   );
   const [cpuFormation] = useState<Record<BoardPosition, Card | null>>(() =>
     randomFormation(cpuDeck),
   );
-  const [cpuHand, setCpuHand] = useState<Card[]>(() => [...cpuDeck]);
+  const [phase, setPhase] = useState<'reveal' | 'setup' | 'battle'>('reveal');
+  const [timeLeft, setTimeLeft] = useState(SETUP_TIME_LIMIT_SEC);
+  const [playerHand, setPlayerHand] = useState<Card[]>(() => []);
+  const [playerSlots, setPlayerSlots] = useState<
+    Record<BoardPosition, Card | null>
+  >(() => ({ ...playerFormation }));
+  const [cpuHand, setCpuHand] = useState<Card[]>(() => []);
   const [cpuSlots, setCpuSlots] = useState<Record<BoardPosition, Card | null>>(
-    () =>
-      BOARD_POSITIONS.reduce(
-        (acc, position) => {
-          acc[position] = null;
-          return acc;
-        },
-        {} as Record<BoardPosition, Card | null>,
-      ),
+    () => ({ ...cpuFormation }),
   );
-  const [cpuDeployIndex, setCpuDeployIndex] = useState(0);
+  const [cpuDeployIndex, setCpuDeployIndex] = useState<number>(
+    BOARD_POSITIONS.length,
+  );
   const [cpuFlight, setCpuFlight] = useState<{
     card: Card;
     position: BoardPosition;
@@ -1360,6 +1449,10 @@ export function BattleSetupScreen({
     );
   };
 
+  const handleRevealContinue = useCallback(() => {
+    setPhase('setup');
+  }, []);
+
   const handleMainButton = () => {
     if (!ready) {
       randomFill();
@@ -1382,14 +1475,18 @@ export function BattleSetupScreen({
   return (
     <section
       ref={formationScreenRef}
-      className={`screen setup-reveal formation-screen${phase === 'battle' ? ' is-battle-active' : ''}${battleEnded ? ' has-end-actions' : ''}`}
+      className={`screen setup-reveal formation-screen${phase === 'reveal' ? ' is-reveal-phase' : ''}${phase === 'battle' ? ' is-battle-active' : ''}${battleEnded ? ' has-end-actions' : ''}`}
     >
       <div className="formation-battle-shell">
-        <FormationZoneBanner
-          identity={resolvedOpponentIdentity}
-          side="cpu"
-        />
-        <div className="formation-battle-body">
+        {phase !== 'reveal' && (
+          <FormationZoneBanner
+            identity={resolvedOpponentIdentity}
+            side="cpu"
+          />
+        )}
+        <div
+          className={`formation-battle-body${phase === 'reveal' ? ' formation-reveal-body' : ''}`}
+        >
           {phase === 'battle' ? (
             <BattleSession
               playerCards={battleCards.player}
@@ -1397,6 +1494,17 @@ export function BattleSetupScreen({
               onFinish={onFinish}
               onEndedChange={setBattleEnded}
             />
+          ) : phase === 'reveal' ? (
+            <>
+              <div className="formation-reveal-spacer" aria-hidden />
+              <FormationDeckReveal
+                playerSlots={playerSlots}
+                cpuSlots={cpuSlots}
+                opponentIdentity={resolvedOpponentIdentity}
+                playerIdentity={resolvedPlayerIdentity}
+              />
+              <div className="formation-reveal-spacer" aria-hidden />
+            </>
           ) : (
             <div className="formation-battle">
               <div className="formation-board">
@@ -1511,13 +1619,24 @@ export function BattleSetupScreen({
           )}
         </div>
 
-        {resolvedPlayerIdentity && (
+        {phase !== 'reveal' && resolvedPlayerIdentity && (
           <FormationZoneBanner
             identity={resolvedPlayerIdentity}
             side="player"
           />
         )}
 
+        {phase === 'reveal' && (
+          <div className="actions setup-actions formation-actions">
+            <button
+              type="button"
+              className="primary"
+              onClick={handleRevealContinue}
+            >
+              バトル準備
+            </button>
+          </div>
+        )}
         {phase === 'setup' && (
           <div className="actions setup-actions formation-actions">
             <button type="button" className="primary" onClick={handleMainButton}>
