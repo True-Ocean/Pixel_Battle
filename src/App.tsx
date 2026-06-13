@@ -1,15 +1,16 @@
 import { useCallback, useRef, useState } from 'react';
 import type { Card, ScreenId, UserProfile, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry } from './battleHistory';
-import { DECK_MAX } from './config/balance';
-import { applyCardSurvivalRecords, recordCardRevive } from './card';
+import { DECK_MAX, MAX_USER_LEVEL } from './config/balance';
+import { applyCardSurvivalRecords, recordCardRevive, rescaleDeckBp } from './card';
 import { buildBalancedCpuDeck, randomCpuName } from './game/cpuDeck';
-import { loadSave, saveSave } from './storage';
+import { loadSave, resetBattleRecords, saveSave } from './storage';
 import {
   applyDevUserProfile,
   createInitialProfile,
   isProfileComplete,
   recordUserBattleOutcome,
+  totalExpForLevel,
 } from './user';
 import { AppTitle } from './components/AppTitle';
 import { AppDock } from './components/AppDock';
@@ -18,6 +19,7 @@ import { EditorScreen } from './components/EditorScreen';
 import { BattleHubScreen } from './components/BattleHubScreen';
 import { BattleSetupScreen } from './components/BattleSetupScreen';
 import { RecordsScreen } from './components/RecordsScreen';
+import { SettingsScreen } from './components/SettingsScreen';
 import { PlaceholderScreen } from './components/PlaceholderScreen';
 import { SetupScreen } from './components/SetupScreen';
 import { TitleScreen } from './components/TitleScreen';
@@ -55,6 +57,8 @@ function App() {
     () => initialSave.battleHistory ?? [],
   );
   const [editingCard, setEditingCard] = useState<Card | null>(null);
+  const [editorReturnToDetail, setEditorReturnToDetail] = useState(false);
+  const [detailCardId, setDetailCardId] = useState<string | null>(null);
 
   const userRef = useRef(user);
   const deckRef = useRef(deck);
@@ -202,6 +206,36 @@ function App() {
     setBattleEndDock(ended);
   }, []);
 
+  const handleResetBattleRecords = useCallback(() => {
+    const next = resetBattleRecords({
+      user,
+      deck,
+      battleHistory,
+    });
+    persistSave(next);
+    setUser(next.user);
+    setDeck(next.deck);
+    setBattleHistory(next.battleHistory ?? []);
+    setFauxLostCardId(null);
+  }, [battleHistory, deck, persistSave, user]);
+
+  const handleDevSetLevel = useCallback(
+    (level: number) => {
+      if (!import.meta.env.DEV || !isProfileComplete(user)) return;
+      const clamped = Math.max(1, Math.min(MAX_USER_LEVEL, Math.floor(level)));
+      const nextUser = {
+        ...user,
+        level: clamped,
+        exp: totalExpForLevel(clamped),
+      };
+      const nextDeck = rescaleDeckBp(deck, clamped);
+      persistSave({ user: nextUser, deck: nextDeck });
+      setUser(nextUser);
+      setDeck(nextDeck);
+    },
+    [deck, persistSave, user],
+  );
+
   const completeTitle = useCallback(() => {
     setScreen(initialScreen(user));
     setEnterFromTitle(true);
@@ -253,12 +287,20 @@ function App() {
           <DeckScreen
             deck={deck}
             fauxLostCardId={fauxLostCardId}
+            detailCardId={detailCardId}
+            onDetailCardIdChange={setDetailCardId}
             onCreateCard={() => {
               setEditingCard(null);
+              setEditorReturnToDetail(false);
+              setDetailCardId(null);
               setScreen('editor');
             }}
-            onEditCard={(card) => {
+            onEditCard={(card, options) => {
               setEditingCard(card);
+              setEditorReturnToDetail(options?.returnToDetail ?? false);
+              if (!options?.returnToDetail) {
+                setDetailCardId(null);
+              }
               setScreen('editor');
             }}
             onDeleteCard={deleteCard}
@@ -287,7 +329,11 @@ function App() {
           <PlaceholderScreen title="ショップ" />
         )}
         {screen === 'settings' && (
-          <PlaceholderScreen title="設定" />
+          <SettingsScreen
+            user={user}
+            onResetBattleRecords={handleResetBattleRecords}
+            onDevSetLevel={handleDevSetLevel}
+          />
         )}
         {screen === 'editor' && (
           <EditorScreen
@@ -295,8 +341,14 @@ function App() {
             deckCount={deck.length}
             userLevel={user?.level ?? 1}
             editTarget={editingCard}
+            backLabel={editorReturnToDetail ? '戻る' : 'マイデッキに戻る'}
             onBack={() => {
+              const returnToDetail = editorReturnToDetail;
               setEditingCard(null);
+              setEditorReturnToDetail(false);
+              if (!returnToDetail) {
+                setDetailCardId(null);
+              }
               setScreen('deck');
             }}
             onCreated={addCard}

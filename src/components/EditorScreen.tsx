@@ -43,6 +43,7 @@ interface EditorScreenProps {
   deckCount: number;
   userLevel?: number;
   editTarget?: Card | null;
+  backLabel?: string;
   onBack: () => void;
   onCreated: (card: Card) => void;
   onUpdated?: (card: Card) => void;
@@ -83,6 +84,7 @@ export function EditorScreen({
   deckCount,
   userLevel = 1,
   editTarget = null,
+  backLabel = 'マイデッキに戻る',
   onBack,
   onCreated,
   onUpdated,
@@ -373,7 +375,7 @@ export function EditorScreen({
           {isEditing ? '保存' : 'カード作成'}
         </button>
         <button type="button" className="editor-back-deck" onClick={onBack}>
-          マイデッキに戻る
+          {backLabel}
         </button>
       </div>
 

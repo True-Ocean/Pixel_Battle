@@ -19,8 +19,10 @@ import {
 interface DeckScreenProps {
   deck: Card[];
   fauxLostCardId: string | null;
+  detailCardId: string | null;
+  onDetailCardIdChange: (id: string | null) => void;
   onCreateCard: () => void;
-  onEditCard: (card: Card) => void;
+  onEditCard: (card: Card, options?: { returnToDetail?: boolean }) => void;
   onDeleteCard: (id: string) => void;
   onReviveFauxLost?: (id: string) => void;
   onReorderDeck: (deck: Card[]) => void;
@@ -86,6 +88,8 @@ function DeckCardRowBody({ card }: { card: Card }) {
 export function DeckScreen({
   deck,
   fauxLostCardId,
+  detailCardId,
+  onDetailCardIdChange,
   onCreateCard,
   onEditCard,
   onDeleteCard,
@@ -93,20 +97,24 @@ export function DeckScreen({
   onReorderDeck,
 }: DeckScreenProps) {
   const [reorderMode, setReorderMode] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const dragSessionRef = useRef<DeckDragState | null>(null);
 
+  const selectedCard =
+    detailCardId != null
+      ? deck.find((item) => item.id === detailCardId) ?? null
+      : null;
+
+  const closeDetail = useCallback(() => {
+    onDetailCardIdChange(null);
+  }, [onDetailCardIdChange]);
+
   const exitReorderMode = useCallback(() => {
     setReorderMode(false);
     dragSessionRef.current = null;
     setDragState(null);
-  }, []);
-
-  const closeDetail = useCallback(() => {
-    setSelectedCard(null);
   }, []);
 
   const moveCard = useCallback(
@@ -140,10 +148,8 @@ export function DeckScreen({
 
   const handleEditFromDetail = useCallback(() => {
     if (!selectedCard) return;
-    const card = selectedCard;
-    closeDetail();
-    onEditCard(card);
-  }, [closeDetail, onEditCard, selectedCard]);
+    onEditCard(selectedCard, { returnToDetail: true });
+  }, [onEditCard, selectedCard]);
 
   const handleReviveFromDetail = useCallback(() => {
     if (!selectedCard || !onReviveFauxLost) return;
@@ -341,7 +347,7 @@ export function DeckScreen({
                     type="button"
                     className="deck-card-main"
                     disabled={reorderMode}
-                    onClick={() => setSelectedCard(card)}
+                    onClick={() => onDetailCardIdChange(card.id)}
                   >
                     <DeckCardRowBody card={card} />
                   </button>
