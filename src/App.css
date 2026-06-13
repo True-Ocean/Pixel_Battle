@@ -2663,6 +2663,25 @@
   margin-top: 0.35rem;
   flex-shrink: 0;
   padding-bottom: 0.2rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1.35fr) minmax(0, 0.85fr);
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.setup-battle-end-actions button {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.5rem;
+  font: inherit;
+  font-size: inherit;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.setup-battle-end-actions .setup-battle-end-log {
+  padding-inline: 0.45rem;
+  font-size: 0.88rem;
 }
 
 .formation-screen.is-battle-active:has(.setup-battle-end-actions) {

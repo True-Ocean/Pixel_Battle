@@ -1633,10 +1633,19 @@ export function BattleSetupScreen({
         {phase === 'battle' && battleEnded && (
           <div className="actions deck-actions setup-battle-end-actions">
             <button type="button" onClick={onGoToDeck}>
-              デッキ
+              マイデッキ
             </button>
             <button type="button" className="primary" onClick={onNewBattle}>
               新規バトル
+            </button>
+            <button
+              type="button"
+              className="setup-battle-end-log"
+              disabled
+              aria-label="バトルログ（準備中）"
+              title="準備中"
+            >
+              バトルログ
             </button>
           </div>
         )}
