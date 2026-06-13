@@ -6,6 +6,11 @@ import type {
 } from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
 import { appendLog, getUnitAt, getUnitIndexAt, isAlive } from '../battleState';
+import {
+  getDisplayTurn,
+  pushBattleEvent,
+  unitSnapshot,
+} from '../battleLogEvent';
 import { onExternalEffectToUnit } from '../ninjaCombat';
 import type { ShieldGrants, ShieldPlayback } from '../turnResult';
 
@@ -46,18 +51,15 @@ function applyShieldGrant(
   });
 
   let next = appendLog(state, `${actor.name} が ${target.name} に盾を付与`);
-  next = {
-    ...next,
-    events: [
-      ...next.events,
-      {
-        type: 'shield_granted',
-        side,
-        actorId: actor.cardId,
-        targetId: target.cardId,
-      },
-    ],
-  };
+  next = pushBattleEvent(next, {
+    type: 'shield_granted',
+    turn: getDisplayTurn(state),
+    side,
+    actor: unitSnapshot(actor, actor.currentBp),
+    target: unitSnapshot(target, target.currentBp),
+    actorId: actor.cardId,
+    targetId: target.cardId,
+  });
   return next;
 }
 

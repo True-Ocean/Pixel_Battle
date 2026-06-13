@@ -28,6 +28,7 @@ import { SETUP_MS } from './setupConstants';
 import { relRect } from './setupMeasure';
 import type { LayoutRect } from './flightMeasure';
 import { useBattle } from './useBattle';
+import { FormationBattleLog } from './FormationBattleLog';
 
 type SlotKey = `${'cpu' | 'player'}:${BoardPosition}`;
 
@@ -1296,6 +1297,7 @@ function BattleSession({
   playerIdentity,
   onFinish,
   onEndedChange,
+  view,
 }: {
   playerCards: Card[];
   cpuCards: Card[];
@@ -1303,6 +1305,7 @@ function BattleSession({
   playerIdentity?: BattleZoneIdentity;
   onFinish: BattleSetupScreenProps['onFinish'];
   onEndedChange?: (ended: boolean) => void;
+  view: 'play' | 'log';
 }) {
   const battle = useBattle(playerCards, cpuCards, onFinish);
   const ended = battle.effectivePhase === 'ended' && battle.result != null;
@@ -1314,6 +1317,18 @@ function BattleSession({
   useEffect(() => {
     onEndedChange?.(ended);
   }, [ended, onEndedChange]);
+
+  if (view === 'log') {
+    return (
+      <div className="formation-battle-log-body">
+        <FormationBattleLog
+          events={battle.state.events}
+          playerNames={playerCards.map((card) => card.name)}
+          cpuNames={cpuCards.map((card) => card.name)}
+        />
+      </div>
+    );
+  }
 
   return (
     <BattleBoard
@@ -1368,6 +1383,7 @@ export function BattleSetupScreen({
   const [cpuMeasureTick, setCpuMeasureTick] = useState(0);
   const [selected, setSelected] = useState<SelectedSetupCard | null>(null);
   const [battleEnded, setBattleEnded] = useState(false);
+  const [battleSubView, setBattleSubView] = useState<'play' | 'log'>('play');
 
   const formationScreenRef = useRef<HTMLElement>(null);
   const cpuHandRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -1494,6 +1510,12 @@ export function BattleSetupScreen({
   }, [playerDeck, playerHand, playerSlots]);
 
   useEffect(() => {
+    if (phase === 'battle') {
+      setBattleSubView('play');
+    }
+  }, [phase]);
+
+  useEffect(() => {
     if (phase !== 'setup') return;
     if (timeLeft <= 0) {
       if (!ready) randomFill();
@@ -1573,7 +1595,7 @@ export function BattleSetupScreen({
   return (
     <section
       ref={formationScreenRef}
-      className={`screen setup-reveal formation-screen${phase === 'reveal' ? ' is-reveal-phase' : ''}${phase === 'setup' ? ' is-setup-phase' : ''}${phase === 'battle' ? ' is-battle-active' : ''}${battleEnded ? ' has-end-actions' : ''}`}
+      className={`screen setup-reveal formation-screen${phase === 'reveal' ? ' is-reveal-phase' : ''}${phase === 'setup' ? ' is-setup-phase' : ''}${phase === 'battle' ? ' is-battle-active' : ''}${battleSubView === 'log' ? ' is-battle-log' : ''}${battleEnded ? ' has-end-actions' : ''}`}
     >
       <div className="formation-battle-shell">
         <div
@@ -1587,6 +1609,7 @@ export function BattleSetupScreen({
               playerIdentity={resolvedPlayerIdentity}
               onFinish={onFinish}
               onEndedChange={setBattleEnded}
+              view={battleSubView}
             />
           ) : phase === 'reveal' ? (
             <>
@@ -1630,7 +1653,14 @@ export function BattleSetupScreen({
             </button>
           </div>
         )}
-        {phase === 'battle' && battleEnded && (
+        {phase === 'battle' && battleSubView === 'log' && (
+          <div className="actions setup-actions formation-actions formation-battle-log-back">
+            <button type="button" className="primary" onClick={() => setBattleSubView('play')}>
+              戻る
+            </button>
+          </div>
+        )}
+        {phase === 'battle' && battleEnded && battleSubView === 'play' && (
           <div className="actions deck-actions setup-battle-end-actions">
             <button type="button" onClick={onGoToDeck}>
               マイデッキ
@@ -1641,9 +1671,7 @@ export function BattleSetupScreen({
             <button
               type="button"
               className="setup-battle-end-log"
-              disabled
-              aria-label="バトルログ（準備中）"
-              title="準備中"
+              onClick={() => setBattleSubView('log')}
             >
               バトルログ
             </button>

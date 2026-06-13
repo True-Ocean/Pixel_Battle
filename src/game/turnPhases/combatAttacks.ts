@@ -1,6 +1,17 @@
-import type { BattleActionChoice, BattleState, BattleUnit } from '../../types/battle';
+import type {
+  BattleActionChoice,
+  BattleLogActionKind,
+  BattleLogUnitSnapshot,
+  BattleState,
+  BattleUnit,
+} from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
-import { isAlive } from '../battleState';
+import { appendLog, isAlive } from '../battleState';
+import {
+  getDisplayTurn,
+  pushBattleEvent,
+  unitSnapshot,
+} from '../battleLogEvent';
 import type { AttackPlayback } from '../turnResult';
 import { applyBowAttack, collectBowAttacks } from './bowAttacks';
 import { applyDualAttack, collectDualAttacks } from './dualAttacks';
@@ -12,15 +23,59 @@ import {
 } from './meleeAttacks';
 import { applyStormAttack, collectStormAttacks } from './stormAttacks';
 
-type AttackJob =
-  | { kind: 'bow'; attacker: BattleUnit; run: () => AttackPlayback | null }
-  | { kind: 'dual'; attacker: BattleUnit; run: () => AttackPlayback | null }
-  | { kind: 'storm'; attacker: BattleUnit; run: () => AttackPlayback | null }
-  | { kind: 'melee'; attacker: BattleUnit; run: () => AttackPlayback | null };
+type AttackJob = {
+  attacker: BattleUnit;
+  target?: BattleUnit;
+  actorSnap: BattleLogUnitSnapshot;
+  targetSnap?: BattleLogUnitSnapshot;
+  actionKind: BattleLogActionKind;
+  run: () => AttackPlayback | null;
+};
 
 export interface CombatAttacksResult {
   state: BattleState;
   attacks: AttackPlayback[];
+}
+
+function pushAttackPreempted(
+  state: BattleState,
+  actorSnap: BattleLogUnitSnapshot,
+  targetSnap: BattleLogUnitSnapshot | undefined,
+  actionKind: BattleLogActionKind,
+): BattleState {
+  const turn = getDisplayTurn(state);
+  const logLine = targetSnap
+    ? `${actorSnap.name}は${targetSnap.name}を攻撃しようとしたが、その前に撃破された`
+    : actionKind === 'storm'
+      ? `${actorSnap.name}は嵐を発生しようとしたが、その前に撃破された`
+      : `${actorSnap.name}は攻撃しようとしたが、その前に撃破された`;
+  let next = appendLog(state, logLine);
+  next = pushBattleEvent(next, {
+    type: 'attack_preempted',
+    turn,
+    actor: actorSnap,
+    target: targetSnap,
+    actionKind,
+  });
+  return next;
+}
+
+function createAttackJob(
+  attacker: BattleUnit,
+  target: BattleUnit | undefined,
+  actionKind: BattleLogActionKind,
+  run: () => AttackPlayback | null,
+): AttackJob {
+  return {
+    attacker,
+    target,
+    actorSnap: unitSnapshot(attacker, attacker.currentBp),
+    targetSnap: target
+      ? unitSnapshot(target, target.currentBp)
+      : undefined,
+    actionKind,
+    run,
+  };
 }
 
 export function resolveCombatAttacks(
@@ -59,21 +114,15 @@ export function resolveCombatAttacks(
   const resolvedMainPairs = new Set<string>();
 
   const jobs: AttackJob[] = [
-    ...bowInputs.map((input) => ({
-      kind: 'bow' as const,
-      attacker: input.attacker,
-      run: () => {
-        if (!isAlive(input.attacker) || !isAlive(input.target)) return null;
+    ...bowInputs.map((input) =>
+      createAttackJob(input.attacker, input.target, 'bow', () => {
         const result = applyBowAttack(next, player, cpu, input);
         next = result.state;
         return result.playback;
-      },
-    })),
-    ...dualInputs.map((input) => ({
-      kind: 'dual' as const,
-      attacker: input.attacker,
-      run: () => {
-        if (!isAlive(input.attacker) || !isAlive(input.target)) return null;
+      }),
+    ),
+    ...dualInputs.map((input) =>
+      createAttackJob(input.attacker, input.target, 'dual_primary', () => {
         const result = applyDualAttack(
           next,
           player,
@@ -84,18 +133,15 @@ export function resolveCombatAttacks(
         );
         next = result.state;
         return result.playback;
-      },
-    })),
-    ...stormInputs.map((input) => ({
-      kind: 'storm' as const,
-      attacker: input.attacker,
-      run: () => {
-        if (!isAlive(input.attacker)) return null;
+      }),
+    ),
+    ...stormInputs.map((input) =>
+      createAttackJob(input.attacker, undefined, 'storm', () => {
         const result = applyStormAttack(next, player, cpu, input, random);
         next = result.state;
         return result.playback;
-      },
-    })),
+      }),
+    ),
     ...meleeBattles
       .filter(
         (battle: MeleeBattleResolution) =>
@@ -108,22 +154,40 @@ export function resolveCombatAttacks(
             ),
           ),
       )
-      .map((battle: MeleeBattleResolution) => ({
-        kind: 'melee' as const,
-        attacker: battle.attacker,
-        run: () => {
-          if (!isAlive(battle.attacker) || !isAlive(battle.target)) return null;
+      .map((battle: MeleeBattleResolution) =>
+        createAttackJob(battle.attacker, battle.target, 'melee', () => {
           const result = applyMeleeBattle(next, player, cpu, battle);
           next = result.state;
           return result.playback;
-        },
-      })),
+        }),
+      ),
   ];
 
   jobs.sort((a, b) => compareActionOrder(a.attacker, b.attacker));
 
   const attacks: AttackPlayback[] = [];
   for (const job of jobs) {
+    if (!isAlive(job.attacker)) {
+      if (job.targetSnap && job.target && isAlive(job.target)) {
+        next = pushAttackPreempted(
+          next,
+          job.actorSnap,
+          job.targetSnap,
+          job.actionKind,
+        );
+      } else if (job.actionKind === 'storm') {
+        next = pushAttackPreempted(
+          next,
+          job.actorSnap,
+          undefined,
+          job.actionKind,
+        );
+      }
+      continue;
+    }
+    if (job.target && !isAlive(job.target)) {
+      continue;
+    }
     const playback = job.run();
     if (playback) attacks.push(playback);
   }

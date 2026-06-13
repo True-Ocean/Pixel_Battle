@@ -11,7 +11,13 @@ import {
   getDualSecondaryTarget,
   isDualTargetable,
 } from '../dualCombat';
+import type { BattleEvent } from '../../types/battle';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
+import {
+  getDisplayTurn,
+  pushBattleEvent,
+  unitSnapshot,
+} from '../battleLogEvent';
 import type { AttackPlayback } from '../turnResult';
 import {
   applyMeleeBattle,
@@ -113,7 +119,7 @@ export function applyDualAttack(
       ...attack,
       bidirectional,
     };
-    const mainResult = applyMeleeBattle(next, player, cpu, meleeBattle);
+    const mainResult = applyMeleeBattle(next, player, cpu, meleeBattle, 'dual_primary');
     next = mainResult.state;
     playback = { ...mainResult.playback, kind: 'dual' };
     resolvedMainPairs.add(pairKey);
@@ -163,24 +169,22 @@ export function applyDualAttack(
   }
 
   const secondaryBpFrom = secondary.unit.currentBp;
+  const turn = getDisplayTurn(next);
   let secondaryDamage = calcDualSecondaryDamage(attackerBpAtAction);
   let secondaryBlocked = false;
+  let deferredBlocked: BattleEvent | null = null;
 
   if (secondary.unit.hasShield) {
     secondaryDamage = 0;
     secondaryBlocked = true;
     secondary.unit.hasShield = false;
     next = appendLog(next, `${secondary.unit.name} の盾が副攻撃を防いだ`);
-    next = {
-      ...next,
-      events: [
-        ...next.events,
-        {
-          type: 'blocked',
-          side: attack.targetSide,
-          targetId: secondary.unit.cardId,
-        },
-      ],
+    deferredBlocked = {
+      type: 'blocked',
+      turn,
+      side: attack.targetSide,
+      target: unitSnapshot(secondary.unit, secondaryBpFrom),
+      blockContext: 'dual_secondary',
     };
   }
 
@@ -212,19 +216,29 @@ export function applyDualAttack(
     next,
     `${attack.attacker.name} の副攻撃 → ${secondary.unit.name}: ${secondaryBpFrom}→${secondary.unit.currentBp}`,
   );
-  next = {
-    ...next,
-    events: [
-      ...next.events,
-      {
-        type: 'attack',
-        side: attack.side,
-        actorId: attack.attacker.cardId,
-        targetId: secondary.unit.cardId,
-        damage: secondaryDamage,
-      },
-    ],
-  };
+  next = pushBattleEvent(next, {
+    type: 'attack',
+    turn,
+    side: attack.side,
+    actionKind: 'dual_secondary',
+    actor: unitSnapshot(
+      attack.attacker,
+      attack.attacker.currentBp,
+    ),
+    target: unitSnapshot(
+      secondary.unit,
+      secondaryBpFrom,
+      secondary.unit.currentBp,
+    ),
+    damageToTarget: secondaryDamage,
+    damageToActor: 0,
+    damage: secondaryDamage,
+    actorId: attack.attacker.cardId,
+    targetId: secondary.unit.cardId,
+  });
+  if (deferredBlocked) {
+    next = pushBattleEvent(next, deferredBlocked);
+  }
 
   return { state: next, playback };
 }

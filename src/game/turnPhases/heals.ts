@@ -8,6 +8,11 @@ import { compareActionOrder } from '../../config/attributePriority';
 import { calcHealAmount } from '../healCombat';
 import { onExternalEffectToUnit } from '../ninjaCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
+import {
+  getDisplayTurn,
+  pushBattleEvent,
+  unitSnapshot,
+} from '../battleLogEvent';
 import type { HealPlayback } from '../turnResult';
 
 export interface HealPhaseResult {
@@ -62,19 +67,19 @@ function applyHeal(
     state,
     `${actor.name} が ${target.name} を${logParts.join('・')}`,
   );
-  next = {
-    ...next,
-    events: [
-      ...next.events,
-      {
-        type: 'attack',
-        side,
-        actorId: actor.cardId,
-        targetId: target.cardId,
-        damage: amount,
-      },
-    ],
-  };
+  next = pushBattleEvent(next, {
+    type: 'attack',
+    turn: getDisplayTurn(state),
+    side,
+    actionKind: 'heal',
+    actor: unitSnapshot(actor, actor.currentBp),
+    target: unitSnapshot(target, bpFrom, target.currentBp),
+    healAmount: amount,
+    poisonStacksCleared,
+    damage: amount,
+    actorId: actor.cardId,
+    targetId: target.cardId,
+  });
   return next;
 }
 

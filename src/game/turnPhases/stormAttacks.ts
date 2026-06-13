@@ -4,6 +4,7 @@ import type {
   BattleState,
   BattleUnit,
   BoardPosition,
+  StormEngulfHit,
 } from '../../types/battle';
 import { onExternalEffectToUnit } from '../ninjaCombat';
 import {
@@ -11,6 +12,11 @@ import {
   pickStormTargets,
 } from '../stormCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
+import {
+  getDisplayTurn,
+  pushBattleEvent,
+  unitSnapshot,
+} from '../battleLogEvent';
 import type { AttackPlayback } from '../turnResult';
 
 export interface StormAttackInput {
@@ -71,59 +77,36 @@ export function collectStormAttacks(
 
 function applyStormHit(
   state: BattleState,
-  side: BattleSide,
-  targetSide: BattleSide,
-  attacker: BattleUnit,
   target: BattleUnit,
   damage: number,
-): { state: BattleState; damage: number; blocked: boolean; bpFrom: number; bpTo: number } {
+  attackerName: string,
+): { state: BattleState; hit: StormEngulfHit; bpFrom: number; bpTo: number } {
   let next = state;
   const bpFrom = target.currentBp;
   let actualDamage = damage;
-  let blocked = false;
+  let shieldBroken = false;
 
   if (target.hasShield) {
     actualDamage = 0;
-    blocked = true;
+    shieldBroken = true;
     target.hasShield = false;
     next = appendLog(next, `${target.name} の盾が嵐を防いだ`);
-    next = {
-      ...next,
-      events: [
-        ...next.events,
-        {
-          type: 'blocked',
-          side: targetSide,
-          targetId: target.cardId,
-        },
-      ],
-    };
   }
 
   onExternalEffectToUnit(target);
   target.currentBp = Math.max(0, target.currentBp - actualDamage);
   next = appendLog(
     next,
-    `${attacker.name} の嵐 → ${target.name}: ${bpFrom}→${target.currentBp}`,
+    `${attackerName} の嵐 → ${target.name}: ${bpFrom}→${target.currentBp}`,
   );
-  next = {
-    ...next,
-    events: [
-      ...next.events,
-      {
-        type: 'attack',
-        side,
-        actorId: attacker.cardId,
-        targetId: target.cardId,
-        damage: actualDamage,
-      },
-    ],
-  };
 
   return {
     state: next,
-    damage: actualDamage,
-    blocked,
+    hit: {
+      target: unitSnapshot(target, bpFrom, target.currentBp),
+      damage: actualDamage,
+      shieldBroken,
+    },
     bpFrom,
     bpTo: target.currentBp,
   };
@@ -143,23 +126,34 @@ export function applyStormAttack(
     log: [...state.log],
     events: [...state.events],
   };
+  const turn = getDisplayTurn(next);
 
   const enemyField = attack.targetSide === 'cpu' ? cpu : player;
   const targets = pickStormTargets(enemyField, random);
   const attackerBpFrom = attack.attacker.currentBp;
   const stormDamage = calcStormDamage(attackerBpFrom);
 
+  next = pushBattleEvent(next, {
+    type: 'storm_cast',
+    turn,
+    side: attack.side,
+    actor: unitSnapshot(attack.attacker, attackerBpFrom),
+    stormDamage,
+    actorId: attack.attacker.cardId,
+  });
+
+  const stormHits: StormEngulfHit[] = [];
+
   const primaryPosition = targets[0]!;
   const primary = getUnitAt(enemyField, primaryPosition)!;
   const primaryHit = applyStormHit(
     next,
-    attack.side,
-    attack.targetSide,
-    attack.attacker,
     primary,
     stormDamage,
+    attack.attacker.name,
   );
   next = primaryHit.state;
+  stormHits.push(primaryHit.hit);
 
   let secondaryPosition: BoardPosition | undefined;
   let secondaryDamage: number | undefined;
@@ -172,20 +166,27 @@ export function applyStormAttack(
     if (secondary && isAlive(secondary)) {
       const secondaryHit = applyStormHit(
         next,
-        attack.side,
-        attack.targetSide,
-        attack.attacker,
         secondary,
         stormDamage,
+        attack.attacker.name,
       );
       next = secondaryHit.state;
+      stormHits.push(secondaryHit.hit);
       secondaryPosition = targets[1];
-      secondaryDamage = secondaryHit.damage;
-      secondaryBlocked = secondaryHit.blocked;
+      secondaryDamage = secondaryHit.hit.damage;
+      secondaryBlocked = secondaryHit.hit.shieldBroken;
       secondaryBpFrom = secondaryHit.bpFrom;
       secondaryBpTo = secondaryHit.bpTo;
     }
   }
+
+  next = pushBattleEvent(next, {
+    type: 'storm_engulf',
+    turn,
+    side: attack.side,
+    stormDamage,
+    stormHits,
+  });
 
   attack.attacker.stormUsesRemaining -= 1;
 
@@ -195,8 +196,8 @@ export function applyStormAttack(
     fromPosition: attack.action.actorPosition,
     toSide: attack.targetSide,
     toPosition: primaryPosition,
-    damage: primaryHit.damage,
-    blocked: primaryHit.blocked,
+    damage: primaryHit.hit.damage,
+    blocked: primaryHit.hit.shieldBroken,
     bpFrom: primaryHit.bpFrom,
     bpTo: primaryHit.bpTo,
     attackerDamage: 0,

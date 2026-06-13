@@ -58,19 +58,61 @@ export interface BattleUnit {
   stars: CardStars;
 }
 
+export type BattleLogActionKind =
+  | 'melee'
+  | 'bow'
+  | 'dual_primary'
+  | 'dual_secondary'
+  | 'storm'
+  | 'heal'
+  | 'poison_dot';
+
+export interface BattleLogUnitSnapshot {
+  name: string;
+  attribute: Attribute;
+  bp: number;
+  bpAfter?: number;
+}
+
+export interface StormEngulfHit {
+  target: BattleLogUnitSnapshot;
+  damage: number;
+  shieldBroken: boolean;
+}
+
 export interface BattleEvent {
   type:
-    | 'action_selected'
+    | 'turn_start'
     | 'shield_granted'
     | 'attack'
     | 'blocked'
     | 'defeated'
-    | 'promoted';
+    | 'promoted'
+    | 'frozen'
+    | 'poison_applied'
+    | 'shield_broken'
+    | 'storm_cast'
+    | 'storm_engulf'
+    | 'attack_preempted';
+  turn: number;
   side?: BattleSide;
+  actor?: BattleLogUnitSnapshot;
+  target?: BattleLogUnitSnapshot;
+  actionKind?: BattleLogActionKind;
+  damageToTarget?: number;
+  damageToActor?: number;
+  healAmount?: number;
+  poisonStacksCleared?: number;
+  blockContext?: 'melee' | 'bow' | 'storm' | 'dual_secondary';
+  stormDamage?: number;
+  stormHits?: StormEngulfHit[];
+  /** @deprecated ログ整形は actor / target を使用 */
   actorId?: string;
+  /** @deprecated ログ整形は actor / target を使用 */
   targetId?: string;
   from?: UnitPosition;
   to?: UnitPosition;
+  /** @deprecated damageToTarget を使用 */
   damage?: number;
 }
 

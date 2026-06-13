@@ -6,7 +6,13 @@ import type {
 } from '../../types/battle';
 import { calcBowDamage, isBowTargetable } from '../bowCombat';
 import { onExternalEffectToUnit } from '../ninjaCombat';
+import type { BattleEvent } from '../../types/battle';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
+import {
+  getDisplayTurn,
+  pushBattleEvent,
+  unitSnapshot,
+} from '../battleLogEvent';
 import type { AttackPlayback } from '../turnResult';
 
 export interface BowAttackInput {
@@ -70,6 +76,7 @@ export function applyBowAttack(
     log: [...state.log],
     events: [...state.events],
   };
+  const turn = getDisplayTurn(next);
 
   const attackerBpFrom = attack.attacker.currentBp;
   const bpFrom = attack.target.currentBp;
@@ -77,21 +84,18 @@ export function applyBowAttack(
   const blocked = targetShieldConsumed;
 
   let damageToTarget = calcBowDamage(attackerBpFrom);
+  let deferredBlocked: BattleEvent | null = null;
 
   if (targetShieldConsumed) {
     damageToTarget = 0;
     attack.target.hasShield = false;
     next = appendLog(next, `${attack.target.name} の盾が弓攻撃を防いだ`);
-    next = {
-      ...next,
-      events: [
-        ...next.events,
-        {
-          type: 'blocked',
-          side: attack.side === 'player' ? 'cpu' : 'player',
-          targetId: attack.target.cardId,
-        },
-      ],
+    deferredBlocked = {
+      type: 'blocked',
+      turn,
+      side: attack.side === 'player' ? 'cpu' : 'player',
+      target: unitSnapshot(attack.target, bpFrom),
+      blockContext: 'bow',
     };
   }
 
@@ -125,19 +129,26 @@ export function applyBowAttack(
     next,
     `${attack.attacker.name} → ${attack.target.name}: ${bpFrom}→${attack.target.currentBp}（弓）`,
   );
-  next = {
-    ...next,
-    events: [
-      ...next.events,
-      {
-        type: 'attack',
-        side: attack.side,
-        actorId: attack.attacker.cardId,
-        targetId: attack.target.cardId,
-        damage: damageToTarget,
-      },
-    ],
-  };
+  next = pushBattleEvent(next, {
+    type: 'attack',
+    turn,
+    side: attack.side,
+    actionKind: 'bow',
+    actor: unitSnapshot(
+      attack.attacker,
+      attackerBpFrom,
+      attack.attacker.currentBp,
+    ),
+    target: unitSnapshot(attack.target, bpFrom, attack.target.currentBp),
+    damageToTarget,
+    damageToActor: 0,
+    damage: damageToTarget,
+    actorId: attack.attacker.cardId,
+    targetId: attack.target.cardId,
+  });
+  if (deferredBlocked) {
+    next = pushBattleEvent(next, deferredBlocked);
+  }
 
   return { state: next, playback };
 }

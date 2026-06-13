@@ -15,7 +15,14 @@ import {
   shouldApplyNinjaFirstStrike,
 } from '../ninjaCombat';
 import { grantPoisonStack } from '../poisonCombat';
+import type { BattleLogActionKind } from '../types/battle';
+import type { BattleEvent } from '../../types/battle';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
+import {
+  getDisplayTurn,
+  pushBattleEvent,
+  unitSnapshot,
+} from '../battleLogEvent';
 import type { AttackPlayback } from '../turnResult';
 
 const MELEE_COUNTER_RATIO_ONE_SIDED = 0.5;
@@ -148,8 +155,10 @@ export function applyMeleeBattle(
   player: BattleUnit[],
   cpu: BattleUnit[],
   attack: MeleeBattleResolution,
+  actionKind: BattleLogActionKind = 'melee',
 ): { state: BattleState; playback: AttackPlayback } {
   let next = cloneBattleStateFields(state, player, cpu);
+  const turn = getDisplayTurn(next);
 
   const attackerBpFrom = attack.attacker.currentBp;
   const bpFrom = attack.target.currentBp;
@@ -158,6 +167,8 @@ export function applyMeleeBattle(
   const attackerShieldConsumed = attack.attacker.hasShield;
   const targetShieldConsumed = attack.target.hasShield;
   const blocked = targetShieldConsumed;
+  const selectionTurn = getSelectionTurn(next);
+  const targetFrozenAtMelee = isFrozen(attack.target, selectionTurn);
 
   let damageToTarget = attack.attacker.currentBp;
   let damageToAttacker = shouldApplyNinjaFirstStrike(
@@ -166,41 +177,34 @@ export function applyMeleeBattle(
   )
     ? 0
     : counterDamage(attack.target, attack.bidirectional);
-  if (isFrozen(attack.target, getSelectionTurn(next))) {
+  if (targetFrozenAtMelee) {
     damageToAttacker = 0;
   }
+
+  const deferredShieldEvents: BattleEvent[] = [];
 
   if (attackerShieldConsumed) {
     damageToAttacker = 0;
     attack.attacker.hasShield = false;
     next = appendLog(next, `${attack.attacker.name} の盾が攻撃で壊れた`);
-    next = {
-      ...next,
-      events: [
-        ...next.events,
-        {
-          type: 'blocked',
-          side: attack.side,
-          targetId: attack.attacker.cardId,
-        },
-      ],
-    };
+    deferredShieldEvents.push({
+      type: 'shield_broken',
+      turn,
+      target: unitSnapshot(attack.attacker, attackerBpFrom),
+      blockContext: 'melee',
+    });
   }
   if (targetShieldConsumed) {
     damageToTarget = 0;
     attack.target.hasShield = false;
     next = appendLog(next, `${attack.target.name} の盾が攻撃を防いだ`);
-    next = {
-      ...next,
-      events: [
-        ...next.events,
-        {
-          type: 'blocked',
-          side: attack.side === 'player' ? 'cpu' : 'player',
-          targetId: attack.target.cardId,
-        },
-      ],
-    };
+    deferredShieldEvents.push({
+      type: 'blocked',
+      turn,
+      side: attack.side === 'player' ? 'cpu' : 'player',
+      target: unitSnapshot(attack.target, bpFrom),
+      blockContext: 'melee',
+    });
   }
 
   if (attack.attacker.attribute === 'ninja') {
@@ -217,9 +221,11 @@ export function applyMeleeBattle(
   const icePoisonMelee = isIcePoisonMelee(attack.attacker, attack.target);
   const freezeOnTarget =
     attack.attacker.attribute === 'ice' && !targetShieldConsumed;
-  /** 氷に近接した側（攻撃側）も凍結。攻撃側の盾で防止可 */
+  /** 氷に近接した側（攻撃側）も凍結。攻撃側の盾で防止可。凍結中の氷は反撃凍結しない */
   const freezeOnAttacker =
-    attack.target.attribute === 'ice' && !attackerShieldConsumed;
+    attack.target.attribute === 'ice' &&
+    !attackerShieldConsumed &&
+    !targetFrozenAtMelee;
   const poisonOnTarget =
     attack.attacker.attribute === 'poison' &&
     !targetShieldConsumed &&
@@ -227,7 +233,10 @@ export function applyMeleeBattle(
   const poisonOnAttacker =
     attack.target.attribute === 'poison' &&
     !attackerShieldConsumed &&
-    !(icePoisonMelee && attack.attacker.attribute === 'ice');
+    !(icePoisonMelee && attack.attacker.attribute === 'ice') &&
+    !targetFrozenAtMelee;
+
+  const deferredStatusEvents: BattleEvent[] = [];
 
   if (freezeOnTarget) {
     applyFreeze(attack.target, next.turn);
@@ -235,6 +244,12 @@ export function applyMeleeBattle(
       next,
       `${attack.target.name} は凍結された（${attack.attacker.name}）`,
     );
+    deferredStatusEvents.push({
+      type: 'frozen',
+      turn,
+      actor: unitSnapshot(attack.attacker, attackerBpAtMelee),
+      target: unitSnapshot(attack.target, targetBpAtMelee),
+    });
   }
   if (freezeOnAttacker) {
     applyFreeze(attack.attacker, next.turn);
@@ -242,6 +257,12 @@ export function applyMeleeBattle(
       next,
       `${attack.attacker.name} は凍結された（${attack.target.name}の氷）`,
     );
+    deferredStatusEvents.push({
+      type: 'frozen',
+      turn,
+      actor: unitSnapshot(attack.target, targetBpAtMelee),
+      target: unitSnapshot(attack.attacker, attackerBpAtMelee),
+    });
   }
   if (poisonOnTarget) {
     grantPoisonStack(attack.target, attack.attacker, attackerBpAtMelee);
@@ -249,6 +270,12 @@ export function applyMeleeBattle(
       next,
       `${attack.target.name} に毒が付与された（${attack.attacker.name}）`,
     );
+    deferredStatusEvents.push({
+      type: 'poison_applied',
+      turn,
+      actor: unitSnapshot(attack.attacker, attackerBpAtMelee),
+      target: unitSnapshot(attack.target, attack.target.currentBp),
+    });
   }
   if (poisonOnAttacker) {
     grantPoisonStack(attack.attacker, attack.target, targetBpAtMelee);
@@ -256,6 +283,12 @@ export function applyMeleeBattle(
       next,
       `${attack.attacker.name} に毒が付与された（${attack.target.name}・反撃）`,
     );
+    deferredStatusEvents.push({
+      type: 'poison_applied',
+      turn,
+      actor: unitSnapshot(attack.target, targetBpAtMelee),
+      target: unitSnapshot(attack.attacker, attack.attacker.currentBp),
+    });
   }
 
   const poisonGranted = poisonOnTarget;
@@ -293,19 +326,29 @@ export function applyMeleeBattle(
     next,
     `${attack.attacker.name} ↔ ${attack.target.name}: ${attackerBpFrom}→${attack.attacker.currentBp}, ${bpFrom}→${attack.target.currentBp}`,
   );
-  next = {
-    ...next,
-    events: [
-      ...next.events,
-      {
-        type: 'attack',
-        side: attack.side,
-        actorId: attack.attacker.cardId,
-        targetId: attack.target.cardId,
-        damage: damageToTarget,
-      },
-    ],
-  };
+  next = pushBattleEvent(next, {
+    type: 'attack',
+    turn,
+    side: attack.side,
+    actionKind,
+    actor: unitSnapshot(
+      attack.attacker,
+      attackerBpFrom,
+      attack.attacker.currentBp,
+    ),
+    target: unitSnapshot(attack.target, bpFrom, attack.target.currentBp),
+    damageToTarget,
+    damageToActor: damageToAttacker,
+    damage: damageToTarget,
+    actorId: attack.attacker.cardId,
+    targetId: attack.target.cardId,
+  });
+  for (const shieldEvent of deferredShieldEvents) {
+    next = pushBattleEvent(next, shieldEvent);
+  }
+  for (const statusEvent of deferredStatusEvents) {
+    next = pushBattleEvent(next, statusEvent);
+  }
 
   return { state: next, playback };
 }

@@ -1,5 +1,10 @@
 import type { BattleState, BattleUnit } from '../../types/battle';
 import { appendLog } from '../battleState';
+import {
+  getDisplayTurn,
+  pushBattleEvent,
+  unitSnapshot,
+} from '../battleLogEvent';
 
 export function applyDefeated(
   state: BattleState,
@@ -13,10 +18,12 @@ export function applyDefeated(
         unit.position = 'defeated';
         unit.hasShield = false;
         next = appendLog(next, `${unit.name} は撃破された`);
-        next = {
-          ...next,
-          events: [...next.events, { type: 'defeated', targetId: unit.cardId }],
-        };
+        next = pushBattleEvent(next, {
+          type: 'defeated',
+          turn: getDisplayTurn(next),
+          target: unitSnapshot(unit, 0, 0),
+          targetId: unit.cardId,
+        });
       }
     }
   }

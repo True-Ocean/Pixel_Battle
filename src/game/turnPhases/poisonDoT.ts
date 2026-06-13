@@ -3,6 +3,11 @@ import type { PoisonDoTPlayback } from '../turnResult';
 import { onExternalEffectToUnit } from '../ninjaCombat';
 import { sumPoisonDotDamage } from '../poisonCombat';
 import { appendLog, isAlive } from '../battleState';
+import {
+  getDisplayTurn,
+  pushBattleEvent,
+  unitSnapshot,
+} from '../battleLogEvent';
 
 function applyDotToUnit(
   state: BattleState,
@@ -29,18 +34,16 @@ function applyDotToUnit(
     next,
     `${unit.name} は毒で ${totalDot} ダメージ（${bpFrom}→${unit.currentBp}）`,
   );
-  next = {
-    ...next,
-    events: [
-      ...next.events,
-      {
-        type: 'attack',
-        side,
-        targetId: unit.cardId,
-        damage: totalDot,
-      },
-    ],
-  };
+  next = pushBattleEvent(next, {
+    type: 'attack',
+    turn: getDisplayTurn(next),
+    side,
+    actionKind: 'poison_dot',
+    target: unitSnapshot(unit, bpFrom, unit.currentBp),
+    damageToTarget: totalDot,
+    damage: totalDot,
+    targetId: unit.cardId,
+  });
   return next;
 }
 

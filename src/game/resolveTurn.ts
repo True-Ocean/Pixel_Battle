@@ -6,6 +6,7 @@ import type {
   TurnChoices,
 } from '../types/battle';
 import { getUnitAt } from './battleState';
+import { getDisplayTurn, unitSnapshot } from './battleLogEvent';
 import { applyDefeated } from './turnPhases/defeated';
 import { resolveHeals } from './turnPhases/heals';
 import { resolveCombatAttacks } from './turnPhases/combatAttacks';
@@ -104,10 +105,12 @@ export function promoteUnit(
   next.log.push(`${unit.name} が前衛へ移動`);
   next.events.push({
     type: 'promoted',
+    turn: getDisplayTurn(next),
     side,
-    actorId: unit.cardId,
+    actor: unitSnapshot(unit, unit.currentBp),
     from,
     to,
+    actorId: unit.cardId,
   });
   return next;
 }

@@ -13,6 +13,7 @@ import { getBowTargets } from './bowCombat';
 import { getHealTargets } from './healCombat';
 import { getSelectionTurn, isFrozen } from './iceCombat';
 import { promoteUnit, resolveTurn } from './resolveTurn';
+import { formatBattleLog } from './formatBattleLog';
 import { startNextTurn } from './startNextTurn';
 import { pickCpuAction } from './cpu';
 
@@ -189,6 +190,50 @@ describe('battle', () => {
     expect(state.player[0].currentBp).toBe(0);
     expect(state.cpu[0].currentBp).toBe(0);
     expect(state.cpu[1].currentBp).toBe(45);
+  });
+
+  it('先に撃破されると未実行の攻撃をログに残す', () => {
+    let state = createBattleState(
+      [stubCard('カードA', 'attack', 200), ...cards('P').slice(1)],
+      [
+        stubCard('カードX', 'attack', 250),
+        stubCard('カードY', 'attack', 210),
+        ...cards('C').slice(2),
+      ],
+    );
+
+    const result = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontRight',
+        targetPosition: 'frontLeft',
+      },
+    });
+
+    const preempted = result.state.events.filter(
+      (event) => event.type === 'attack_preempted',
+    );
+    expect(preempted).toHaveLength(1);
+    expect(preempted[0].actor?.name).toBe('カードA');
+    expect(preempted[0].target?.name).toBe('カードX');
+
+    const attacksOnX = result.state.events.filter(
+      (event) =>
+        event.type === 'attack' &&
+        event.actor?.name === 'カードA' &&
+        event.target?.name === 'カードX',
+    );
+    expect(attacksOnX).toHaveLength(0);
+
+    const groups = formatBattleLog(result.state.events);
+    expect(groups[0].lines).toContain(
+      'カードAはカードX（剣・BP250）を攻撃しようとしたが、その前に撃破された',
+    );
   });
 
   it('攻撃側BPが高い順により生存カードが変わる', () => {
@@ -1242,6 +1287,71 @@ describe('battle', () => {
     expect(state.player[0].hasShield).toBe(false);
     expect(state.player[0].frozenUntilTurn).toBeNull();
     expect(state.cpu[0].currentBp).toBe(0);
+  });
+
+  it('凍結中の氷に近接しても攻撃側は凍結されない', () => {
+    const playerDeck = [
+      stubCard('剣', 'attack', 90),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('氷', 'ice', 80),
+      ...cards('C').slice(1),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+    state.cpu[0]!.frozenUntilTurn = 2;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu[0].currentBp).toBe(0);
+    expect(state.player[0]!.frozenUntilTurn).toBeNull();
+  });
+
+  it('凍結中の毒に近接しても攻撃側に毒は付与されない', () => {
+    const playerDeck = [
+      stubCard('剣', 'attack', 90),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('毒', 'poison', 80),
+      ...cards('C').slice(1),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+    state.cpu[0]!.frozenUntilTurn = 2;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.cpu[0].currentBp).toBe(0);
+    expect(state.player[0]!.poisonStacks).toHaveLength(0);
+    expect(state.player[0]!.frozenUntilTurn).toBeNull();
   });
 
   it('再凍結でタイマーがリセットされる', () => {
