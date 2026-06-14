@@ -18,6 +18,7 @@ export {
   addFreePixels,
   createInitialEconomy,
   normalizeUserEconomy,
+  setFreePixels,
   spendFreePixels,
 } from './economy';
 export {

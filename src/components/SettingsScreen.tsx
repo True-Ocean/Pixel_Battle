@@ -6,12 +6,31 @@ import { getLevelProgress } from '../user';
 import type { UserProfile } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
 
+interface DevCardOption {
+  id: string;
+  label: string;
+  isLost: boolean;
+}
+
+interface DevDeckFillOption {
+  index: number;
+  label: string;
+  emptySlots: number;
+  locked: boolean;
+}
+
 interface SettingsScreenProps {
   user: UserProfile | null;
   unlockedDeckCount: number;
+  freePixels: number;
+  devCardOptions: DevCardOption[];
+  devDeckFillOptions: DevDeckFillOption[];
   onResetBattleRecords: () => void;
   onDevSetLevel: (level: number) => void;
   onDevSetUnlockedDeckCount: (count: number) => void;
+  onDevSetFreePixels: (amount: number) => void;
+  onDevMarkCardLost: (cardId: string) => string;
+  onDevFillDeckSlots: (deckIndex: number) => string;
 }
 
 interface PlaceholderRow {
@@ -63,9 +82,15 @@ function SettingsRow({
 export function SettingsScreen({
   user,
   unlockedDeckCount,
+  freePixels,
+  devCardOptions,
+  devDeckFillOptions,
   onResetBattleRecords,
   onDevSetLevel,
   onDevSetUnlockedDeckCount,
+  onDevSetFreePixels,
+  onDevMarkCardLost,
+  onDevFillDeckSlots,
 }: SettingsScreenProps) {
   const [resetOpen, setResetOpen] = useState(false);
   const [devLevelInput, setDevLevelInput] = useState(
@@ -74,13 +99,59 @@ export function SettingsScreen({
   const [devDeckUnlockInput, setDevDeckUnlockInput] = useState(
     () => String(unlockedDeckCount),
   );
+  const [devFreePixelsInput, setDevFreePixelsInput] = useState(
+    () => String(freePixels),
+  );
   const [devNotice, setDevNotice] = useState<string | null>(null);
   const [devDeckNotice, setDevDeckNotice] = useState<string | null>(null);
+  const [devPixelsNotice, setDevPixelsNotice] = useState<string | null>(null);
+  const [devLostNotice, setDevLostNotice] = useState<string | null>(null);
+  const [devFillNotice, setDevFillNotice] = useState<string | null>(null);
+  const [devLostCardId, setDevLostCardId] = useState('');
+  const [devFillDeckIndex, setDevFillDeckIndex] = useState(0);
   const isDev = import.meta.env.DEV;
+
+  useEffect(() => {
+    setDevFillDeckIndex((current) => {
+      const currentOption = devDeckFillOptions.find(
+        (option) => option.index === current,
+      );
+      if (
+        currentOption &&
+        !currentOption.locked &&
+        currentOption.emptySlots > 0
+      ) {
+        return current;
+      }
+      return (
+        devDeckFillOptions.find(
+          (option) => !option.locked && option.emptySlots > 0,
+        )?.index ??
+        devDeckFillOptions.find((option) => !option.locked)?.index ??
+        0
+      );
+    });
+  }, [devDeckFillOptions]);
+
+  useEffect(() => {
+    setDevLostCardId((current) => {
+      if (devCardOptions.length === 0) return '';
+      const currentOption = devCardOptions.find((option) => option.id === current);
+      if (currentOption && !currentOption.isLost) return current;
+      return (
+        devCardOptions.find((option) => !option.isLost)?.id ??
+        devCardOptions[0].id
+      );
+    });
+  }, [devCardOptions]);
 
   useEffect(() => {
     setDevLevelInput(String(user?.level ?? 1));
   }, [user?.level]);
+
+  useEffect(() => {
+    setDevFreePixelsInput(String(freePixels));
+  }, [freePixels]);
 
   if (!user) {
     return (
@@ -118,6 +189,29 @@ export function SettingsScreen({
     setDevDeckUnlockInput(String(clamped));
     setDevDeckNotice(`デッキ解放数を ${clamped} に変更しました。`);
   };
+
+  const handleDevFreePixelsApply = () => {
+    const parsed = Number.parseInt(devFreePixelsInput, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setDevPixelsNotice('ピクセルコインは 0 以上の整数を入力してください。');
+      return;
+    }
+    onDevSetFreePixels(parsed);
+    setDevPixelsNotice(`ピクセルコインを ${parsed.toLocaleString()} に変更しました。`);
+  };
+
+  const handleDevMarkCardLost = () => {
+    setDevLostNotice(onDevMarkCardLost(devLostCardId));
+  };
+
+  const handleDevFillDeckSlots = () => {
+    setDevFillNotice(onDevFillDeckSlots(devFillDeckIndex));
+  };
+
+  const selectedDevCard = devCardOptions.find((option) => option.id === devLostCardId);
+  const selectedDevFillDeck = devDeckFillOptions.find(
+    (option) => option.index === devFillDeckIndex,
+  );
 
   return (
     <section className="screen screen-settings">
@@ -171,54 +265,173 @@ export function SettingsScreen({
                   : `Lv.${DEV_USER_LEVEL_OVERRIDE}（リロード後も有効）`
               }
             />
+            <div className="settings-dev-quick-row">
+              <div className="settings-dev-quick-cell">
+                <label
+                  className="settings-dev-level-label"
+                  htmlFor="settings-dev-level"
+                >
+                  テスト用レベル
+                </label>
+                <div className="settings-dev-level-row">
+                  <input
+                    id="settings-dev-level"
+                    type="number"
+                    min={1}
+                    max={MAX_USER_LEVEL}
+                    step={1}
+                    className="settings-dev-level-input"
+                    value={devLevelInput}
+                    onChange={(event) => setDevLevelInput(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="settings-dev-level-apply"
+                    onClick={handleDevApply}
+                  >
+                    適用
+                  </button>
+                </div>
+              </div>
+              <div className="settings-dev-quick-cell">
+                <label
+                  className="settings-dev-level-label"
+                  htmlFor="settings-dev-deck-unlock"
+                >
+                  デッキ解放
+                </label>
+                <div className="settings-dev-level-row">
+                  <input
+                    id="settings-dev-deck-unlock"
+                    type="number"
+                    min={1}
+                    max={DECK_SLOT_COUNT}
+                    step={1}
+                    className="settings-dev-level-input"
+                    value={devDeckUnlockInput}
+                    onChange={(event) =>
+                      setDevDeckUnlockInput(event.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="settings-dev-level-apply"
+                    onClick={handleDevDeckUnlockApply}
+                  >
+                    適用
+                  </button>
+                </div>
+              </div>
+              <div className="settings-dev-quick-cell">
+                <label
+                  className="settings-dev-level-label"
+                  htmlFor="settings-dev-free-pixels"
+                >
+                  ピクセルコイン
+                </label>
+                <div className="settings-dev-level-row">
+                  <input
+                    id="settings-dev-free-pixels"
+                    type="number"
+                    min={0}
+                    step={1}
+                    className="settings-dev-level-input"
+                    value={devFreePixelsInput}
+                    onChange={(event) =>
+                      setDevFreePixelsInput(event.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="settings-dev-level-apply"
+                    onClick={handleDevFreePixelsApply}
+                  >
+                    適用
+                  </button>
+                </div>
+              </div>
+            </div>
             <div className="settings-dev-level">
-              <label className="settings-dev-level-label" htmlFor="settings-dev-level">
-                テスト用レベル
+              <label
+                className="settings-dev-level-label"
+                htmlFor="settings-dev-fill-deck"
+              >
+                デッキ自動生成（空きスロット）
               </label>
               <div className="settings-dev-level-row">
-                <input
-                  id="settings-dev-level"
-                  type="number"
-                  min={1}
-                  max={MAX_USER_LEVEL}
-                  step={1}
-                  className="settings-dev-level-input"
-                  value={devLevelInput}
-                  onChange={(event) => setDevLevelInput(event.target.value)}
-                />
+                <select
+                  id="settings-dev-fill-deck"
+                  className="settings-dev-level-input settings-dev-level-select"
+                  value={String(devFillDeckIndex)}
+                  onChange={(event) =>
+                    setDevFillDeckIndex(Number.parseInt(event.target.value, 10))
+                  }
+                >
+                  {devDeckFillOptions.map((option) => (
+                    <option
+                      key={option.index}
+                      value={option.index}
+                      disabled={option.locked}
+                    >
+                      {option.label}
+                      {option.locked
+                        ? ' · 未解放'
+                        : option.emptySlots === 0
+                          ? ' · 満杯'
+                          : ` · 空き${option.emptySlots}`}
+                    </option>
+                  ))}
+                </select>
                 <button
                   type="button"
                   className="settings-dev-level-apply"
-                  onClick={handleDevApply}
+                  disabled={
+                    !selectedDevFillDeck ||
+                    selectedDevFillDeck.locked ||
+                    selectedDevFillDeck.emptySlots === 0
+                  }
+                  onClick={handleDevFillDeckSlots}
                 >
-                  適用
+                  生成
                 </button>
               </div>
             </div>
             <div className="settings-dev-level">
               <label
                 className="settings-dev-level-label"
-                htmlFor="settings-dev-deck-unlock"
+                htmlFor="settings-dev-lost-card"
               >
-                デッキ解放数
+                Lost 化するカード
               </label>
               <div className="settings-dev-level-row">
-                <input
-                  id="settings-dev-deck-unlock"
-                  type="number"
-                  min={1}
-                  max={DECK_SLOT_COUNT}
-                  step={1}
-                  className="settings-dev-level-input"
-                  value={devDeckUnlockInput}
-                  onChange={(event) => setDevDeckUnlockInput(event.target.value)}
-                />
+                <select
+                  id="settings-dev-lost-card"
+                  className="settings-dev-level-input settings-dev-level-select"
+                  value={devLostCardId}
+                  disabled={devCardOptions.length === 0}
+                  onChange={(event) => setDevLostCardId(event.target.value)}
+                >
+                  {devCardOptions.length === 0 ? (
+                    <option value="">カードがありません</option>
+                  ) : (
+                    devCardOptions.map((option) => (
+                      <option
+                        key={option.id}
+                        value={option.id}
+                        disabled={option.isLost}
+                      >
+                        {option.label}
+                      </option>
+                    ))
+                  )}
+                </select>
                 <button
                   type="button"
                   className="settings-dev-level-apply"
-                  onClick={handleDevDeckUnlockApply}
+                  disabled={!selectedDevCard || selectedDevCard.isLost}
+                  onClick={handleDevMarkCardLost}
                 >
-                  適用
+                  Lost にする
                 </button>
               </div>
             </div>
@@ -232,11 +445,21 @@ export function SettingsScreen({
                 {devDeckNotice}
               </p>
             )}
-            <p className="settings-section-note muted">
-              開発ビルドのみ表示。「適用」でセーブデータのレベル・EXP・カード BP
-              またはデッキ解放数を更新します。ファイル上書き（上記）より優先されます。dev-user-level
-              スキルでファイル上書きを変更した場合は、そちらが再び優先されます。
-            </p>
+            {devPixelsNotice && (
+              <p className="settings-dev-notice" role="status">
+                {devPixelsNotice}
+              </p>
+            )}
+            {devLostNotice && (
+              <p className="settings-dev-notice" role="status">
+                {devLostNotice}
+              </p>
+            )}
+            {devFillNotice && (
+              <p className="settings-dev-notice" role="status">
+                {devFillNotice}
+              </p>
+            )}
           </SettingsSection>
         )}
 

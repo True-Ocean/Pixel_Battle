@@ -242,6 +242,32 @@ export function buildRandomCpuDeck(
   return buildBalancedCpuDeck([], random);
 }
 
+/** 開発用: 既存カードを参照し、空きスロット分だけ CPU 風カードを生成 */
+export function buildCpuCardsForDeckFill(
+  existingCards: readonly Card[],
+  slotCount: number,
+  random: () => number = Math.random,
+  userLevel: number = inferUserLevelFromDeck([...existingCards]),
+): Card[] {
+  if (slotCount <= 0) return [];
+  const reference = existingCards.length > 0 ? [...existingCards] : [];
+  const existingNames = new Set(existingCards.map((card) => card.name));
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const batch = buildBalancedCpuDeck(reference, random, userLevel);
+    const picked: Card[] = [];
+    for (const card of batch) {
+      if (existingNames.has(card.name)) continue;
+      existingNames.add(card.name);
+      picked.push(card);
+      if (picked.length >= slotCount) break;
+    }
+    if (picked.length >= slotCount) return picked.slice(0, slotCount);
+  }
+
+  return buildBalancedCpuDeck(reference, random, userLevel).slice(0, slotCount);
+}
+
 function combinations3of5(deck: Card[]): Card[][] {
   const out: Card[][] = [];
   for (let a = 0; a < deck.length; a++) {

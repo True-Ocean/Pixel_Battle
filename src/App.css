@@ -1557,6 +1557,37 @@ button.battle-hub-deck-icon.is-drop-target {
   gap: 0.35rem;
 }
 
+.settings-dev-quick-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.settings-dev-quick-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.settings-dev-quick-cell .settings-dev-level-label {
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.settings-dev-quick-cell .settings-dev-level-input {
+  font-size: 1.05rem;
+  min-height: 2.5rem;
+  padding: 0.25rem 0.3rem;
+}
+
+.settings-dev-quick-cell .settings-dev-level-apply {
+  min-width: 2.75rem;
+  min-height: 2.5rem;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.78rem;
+}
+
 .settings-dev-level-label {
   font-size: 0.88rem;
   color: #334155;
@@ -1590,6 +1621,13 @@ button.battle-hub-deck-icon.is-drop-target {
 .settings-dev-level-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+.settings-dev-level-select {
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: left;
+  appearance: auto;
 }
 
 .settings-dev-level-apply {
@@ -2958,6 +2996,24 @@ button.battle-hub-deck-icon.is-drop-target {
   font: inherit;
   font-size: 0.9rem;
   cursor: pointer;
+}
+
+.deck-card-detail-revive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.deck-card-detail-revive-coin {
+  width: 1.2rem;
+  height: 1.2rem;
+  flex-shrink: 0;
+}
+
+.deck-card-detail-revive-cost {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
 .deck-card-detail-revive--pending {

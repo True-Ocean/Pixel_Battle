@@ -8,6 +8,7 @@ import { createCardFromDrawing, computeDeckPower } from '../card';
 import { pickCpuPattern } from './cpuPatterns';
 import {
   buildBalancedCpuDeck,
+  buildCpuCardsForDeckFill,
   buildDeckTargets,
   pickCpuBattleLineup,
   rollCpuDifficulty,
@@ -200,6 +201,25 @@ describe('pickCpuBattleLineup', () => {
     expect(lineup).toHaveLength(FIELD_SIZE);
     for (const card of lineup) {
       expect(deck.some((d) => d.id === card.id)).toBe(true);
+    }
+  });
+});
+
+describe('buildCpuCardsForDeckFill', () => {
+  it('空デッキ向けに指定枚数を生成する', () => {
+    const cards = buildCpuCardsForDeckFill([], 5, () => 0.42, 10);
+    expect(cards).toHaveLength(5);
+    for (const card of cards) {
+      expect(card.bp).toBeGreaterThan(0);
+    }
+  });
+
+  it('既存カードは残し空き分だけ追加する', () => {
+    const existing = stubPlayerDeck().slice(0, 2);
+    const cards = buildCpuCardsForDeckFill(existing, 3, () => 0.42, 10);
+    expect(cards).toHaveLength(3);
+    for (const card of cards) {
+      expect(existing.some((item) => item.name === card.name)).toBe(false);
     }
   });
 });

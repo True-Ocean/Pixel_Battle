@@ -1,12 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { Card, ScreenId, UserProfile, UserEconomy, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry } from './battleHistory';
-import { MAX_USER_LEVEL, DECK_MAX } from './config/balance';
+import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
-import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard } from './deckSlots';
+import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked } from './deckSlots';
 import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp } from './card';
-import { buildBalancedCpuDeck } from './game/cpuDeck';
+import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { CPU_OPPONENT_LABEL } from './battleHistory';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
 import {
@@ -19,6 +19,7 @@ import {
   totalExpForLevel,
   addFreePixels,
   spendFreePixels,
+  setFreePixels,
 } from './user';
 import { calcCardDeleteRefundPixels, calcFullReviveCost, calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
 import { LevelUpModal } from './components/LevelUpModal';
@@ -675,6 +676,124 @@ function App() {
     [activeDeckIndex, persistSave],
   );
 
+  const handleDevSetFreePixels = useCallback(
+    (amount: number) => {
+      if (!import.meta.env.DEV) return;
+      const nextEconomy = setFreePixels(economyRef.current, amount);
+      persistSave({ economy: nextEconomy });
+      setEconomy(nextEconomy);
+      economyRef.current = nextEconomy;
+    },
+    [persistSave],
+  );
+
+  const devCardOptions = useMemo(() => {
+    const options: { id: string; label: string; isLost: boolean }[] = [];
+    decks.forEach((deck, deckIndex) => {
+      const deckName = getDeckDisplayName(deckIndex, deckNames);
+      for (const card of normalizeDeckLayout(deck ?? [])) {
+        if (!card) continue;
+        options.push({
+          id: card.id,
+          label: `${deckName} · ${card.name}${isCardLost(card) ? ' · Lost' : ''}`,
+          isLost: isCardLost(card),
+        });
+      }
+    });
+    return options;
+  }, [decks, deckNames]);
+
+  const devDeckFillOptions = useMemo(() => {
+    return Array.from({ length: DECK_SLOT_COUNT }, (_, index) => {
+      const layout = normalizeDeckLayout(decks[index] ?? []);
+      const cardCount = countDeckCards(layout);
+      return {
+        index,
+        label: `${getDeckDisplayName(index, deckNames)}（${cardCount}/${DECK_MAX}）`,
+        emptySlots: DECK_MAX - cardCount,
+        locked: !isDeckSlotUnlocked(index, unlockedDeckCount),
+      };
+    });
+  }, [decks, deckNames, unlockedDeckCount]);
+
+  const handleDevMarkCardLost = useCallback((cardId: string): string => {
+    if (!import.meta.env.DEV) {
+      return '開発ビルドでのみ利用できます。';
+    }
+    if (!cardId) {
+      return 'カードを選択してください。';
+    }
+    const currentDecks = decksRef.current;
+    let target: Card | null = null;
+    for (const deck of currentDecks) {
+      for (const card of normalizeDeckLayout(deck ?? [])) {
+        if (card?.id === cardId) {
+          target = card;
+          break;
+        }
+      }
+      if (target) break;
+    }
+    if (!target) {
+      return '選択したカードが見つかりません。';
+    }
+    if (isCardLost(target)) {
+      return `「${target.name}」はすでに Lost です。`;
+    }
+    const nextDecks = currentDecks.map((deck) =>
+      normalizeDeckLayout(deck ?? []).map((card) =>
+        card?.id === cardId ? markCardLost(card) : card,
+      ),
+    );
+    persistSave({ decks: nextDecks });
+    setDecks(nextDecks);
+    decksRef.current = nextDecks;
+    return `「${target.name}」を Lost にしました。`;
+  }, [persistSave]);
+
+  const handleDevFillDeckSlots = useCallback((deckIndex: number): string => {
+    if (!import.meta.env.DEV) {
+      return '開発ビルドでのみ利用できます。';
+    }
+    const index = Math.floor(deckIndex);
+    if (index < 0 || index >= DECK_SLOT_COUNT) {
+      return 'デッキを選択してください。';
+    }
+    if (!isDeckSlotUnlocked(index, unlockedDeckCountRef.current)) {
+      return `${getDeckDisplayName(index, deckNames)} は未解放です。開発メニューのデッキ解放数から解放してください。`;
+    }
+    const currentDecks = decksRef.current;
+    const layout = normalizeDeckLayout(currentDecks[index] ?? []);
+    const existingCards = getDeckCards(layout);
+    const emptySlots = DECK_MAX - existingCards.length;
+    if (emptySlots <= 0) {
+      return `${getDeckDisplayName(index, deckNames)} に空きスロットがありません。`;
+    }
+    const userLevel = userRef.current?.level ?? 1;
+    const newCards = buildCpuCardsForDeckFill(
+      existingCards,
+      emptySlots,
+      Math.random,
+      userLevel,
+    );
+    if (newCards.length === 0) {
+      return 'カードを生成できませんでした。';
+    }
+    let insertAt = 0;
+    const nextLayout = layout.map((slot) => {
+      if (slot != null) return slot;
+      const card = newCards[insertAt];
+      insertAt += 1;
+      return card ?? null;
+    });
+    const nextDecks = updateDeckAtIndex(currentDecks, index, nextLayout);
+    persistSave({ decks: nextDecks });
+    setDecks(nextDecks);
+    decksRef.current = nextDecks;
+    const deckLabel = getDeckDisplayName(index, deckNames);
+    return `${deckLabel} の空き ${newCards.length} 枚に CPU 風カードを追加しました。`;
+  }, [deckNames, persistSave]);
+
   const handlePrototypeUnlockNextDeck = useCallback(() => {
     if (!import.meta.env.DEV) return;
     const nextCount = clampUnlockedDeckCount(unlockedDeckCountRef.current + 1);
@@ -825,9 +944,15 @@ function App() {
           <SettingsScreen
             user={user}
             unlockedDeckCount={unlockedDeckCount}
+            freePixels={economy.freePixels}
+            devCardOptions={devCardOptions}
+            devDeckFillOptions={devDeckFillOptions}
             onResetBattleRecords={handleResetBattleRecords}
             onDevSetLevel={handleDevSetLevel}
             onDevSetUnlockedDeckCount={handleDevSetUnlockedDeckCount}
+            onDevSetFreePixels={handleDevSetFreePixels}
+            onDevMarkCardLost={handleDevMarkCardLost}
+            onDevFillDeckSlots={handleDevFillDeckSlots}
           />
         )}
         {screen === 'editor' && (

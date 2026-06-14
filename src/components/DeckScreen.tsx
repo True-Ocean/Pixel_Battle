@@ -253,7 +253,6 @@ export function DeckScreen({
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
   const [deleteConfirmFinal, setDeleteConfirmFinal] = useState(false);
   const [pendingRevive, setPendingRevive] = useState<Card | null>(null);
-  const [reviveConfirmFinal, setReviveConfirmFinal] = useState(false);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
   const [renameDeckIndex, setRenameDeckIndex] = useState<number | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
@@ -333,24 +332,17 @@ export function DeckScreen({
   const handleReviveRequest = useCallback(() => {
     if (!selectedCard || !isCardLost(selectedCard)) return;
     if (freePixels < reviveCost) return;
-    setReviveConfirmFinal(false);
     setPendingRevive(selectedCard);
   }, [freePixels, reviveCost, selectedCard]);
 
   const handleReviveConfirm = useCallback(() => {
     if (!pendingRevive) return;
-    if (!reviveConfirmFinal) {
-      setReviveConfirmFinal(true);
-      return;
-    }
     onReviveLostCard(pendingRevive.id);
     setPendingRevive(null);
-    setReviveConfirmFinal(false);
-  }, [onReviveLostCard, pendingRevive, reviveConfirmFinal]);
+  }, [onReviveLostCard, pendingRevive]);
 
   const handleReviveCancel = useCallback(() => {
     setPendingRevive(null);
-    setReviveConfirmFinal(false);
   }, []);
 
   const finishDrag = useCallback(
@@ -942,16 +934,14 @@ export function DeckScreen({
 
       <ConfirmDialog
         open={pendingRevive != null}
-        title={reviveConfirmFinal ? '本当に復活しますか？' : '完全復活しますか？'}
+        title="完全復活しますか？"
         message={
           pendingRevive
-            ? reviveConfirmFinal
-              ? 'この操作は取り消せません。'
-              : formatReviveConfirmMessage(pendingRevive, reviveCost)
+            ? formatReviveConfirmMessage(pendingRevive, reviveCost)
             : ''
         }
-        confirmLabel={reviveConfirmFinal ? 'はい（復活する）' : '復活する'}
-        cancelLabel={reviveConfirmFinal ? 'いいえ' : 'キャンセル'}
+        confirmLabel="復活する"
+        cancelLabel="キャンセル"
         onConfirm={handleReviveConfirm}
         onCancel={handleReviveCancel}
       />

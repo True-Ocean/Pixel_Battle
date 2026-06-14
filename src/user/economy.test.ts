@@ -3,6 +3,7 @@ import {
   addFreePixels,
   createInitialEconomy,
   normalizeUserEconomy,
+  setFreePixels,
   spendFreePixels,
 } from './economy';
 
@@ -31,5 +32,17 @@ describe('user economy', () => {
 
   it('returns null when spending more than balance', () => {
     expect(spendFreePixels(createInitialEconomy(), 1)).toBeNull();
+  });
+
+  it('sets free pixels to a non-negative integer', () => {
+    expect(setFreePixels(createInitialEconomy(), 4000)).toEqual({
+      freePixels: 4000,
+    });
+    expect(setFreePixels(addFreePixels(createInitialEconomy(), 100), -5)).toEqual({
+      freePixels: 0,
+    });
+    expect(setFreePixels(createInitialEconomy(), 1234.8)).toEqual({
+      freePixels: 1234,
+    });
   });
 });

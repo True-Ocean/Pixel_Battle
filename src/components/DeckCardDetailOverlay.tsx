@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Card } from '../types';
+import { PixelCoinIcon } from './PixelCoinIcon';
 import { BattleCommonRules } from './BattleCommonRules';
 import { DeckCardDetailCard } from './DeckCardDetailCard';
 
@@ -28,9 +29,9 @@ export function DeckCardDetailOverlay({
   onReviveLost,
 }: DeckCardDetailOverlayProps) {
   const canAffordRevive = freePixels >= reviveCost;
-  const reviveLabel = canAffordRevive
-    ? `完全復活（${reviveCost.toLocaleString()}px）`
-    : `完全復活（${reviveCost.toLocaleString()}px必要・不足）`;
+  const reviveAriaLabel = canAffordRevive
+    ? `完全復活 ${reviveCost.toLocaleString()}px`
+    : `完全復活 ${reviveCost.toLocaleString()}px 必要・不足`;
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -83,9 +84,14 @@ export function DeckCardDetailOverlay({
                   canAffordRevive ? '' : ' deck-card-detail-revive--pending'
                 }`}
                 disabled={!canAffordRevive}
+                aria-label={reviveAriaLabel}
                 onClick={onReviveLost}
               >
-                {reviveLabel}
+                <span className="deck-card-detail-revive-label">完全復活</span>
+                <PixelCoinIcon className="deck-card-detail-revive-coin" />
+                <span className="deck-card-detail-revive-cost">
+                  {reviveCost.toLocaleString()}
+                </span>
               </button>
               <button
                 type="button"

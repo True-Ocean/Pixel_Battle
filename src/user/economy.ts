@@ -32,3 +32,14 @@ export function spendFreePixels(
   if (economy.freePixels < cost) return null;
   return { freePixels: economy.freePixels - cost };
 }
+
+export function setFreePixels(
+  economy: UserEconomy,
+  amount: number,
+): UserEconomy {
+  const next =
+    typeof amount === 'number' && Number.isFinite(amount)
+      ? Math.floor(amount)
+      : 0;
+  return { freePixels: Math.max(0, next) };
+}
