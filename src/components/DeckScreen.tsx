@@ -701,34 +701,14 @@ export function DeckScreen({
 
       <div className="deck-screen-header">
         {crossDeckTargetIndex != null ? (
-          <>
-            <div className="deck-screen-header-row">
-              <p className="deck-screen-deck-label deck-screen-deck-label--cross">
-                {getDeckDisplayName(crossDeckTargetIndex, deckNames)}へ配置
-              </p>
-              <p className="deck-screen-card-count">
-                {countDeckCards(crossDeckTarget)}/{DECK_MAX}枚
-              </p>
-            </div>
-            <p className="muted deck-cross-drop-hint">
-              スロットを選んでドロップ（カード同士は入れ替え）。タブ上でドロップすると空きスロットへ自動配置（満杯のときはキャンセル）
-            </p>
-          </>
+          <p className="muted deck-cross-drop-hint">
+            スロットを選んでドロップ（カード同士は入れ替え）。タブ上でドロップすると空きスロットへ自動配置（満杯のときはキャンセル）
+          </p>
         ) : (
-          <>
-            <div className="deck-screen-header-row">
-              <p className="deck-screen-deck-label">
-                {getDeckDisplayName(activeDeckIndex, deckNames)}
-              </p>
-              <p className="deck-screen-card-count" aria-label={`${deckCardCount}枚 / ${DECK_MAX}枚`}>
-                {deckCardCount}/{DECK_MAX}枚
-              </p>
-            </div>
-            <p className="deck-screen-power" aria-label={`戦力 ${deckPower}`}>
-              戦力{' '}
-              <span className="deck-screen-power-value">{deckPower}</span>
-            </p>
-          </>
+          <p className="deck-screen-power" aria-label={`戦力 ${deckPower}`}>
+            戦力{' '}
+            <span className="deck-screen-power-value">{deckPower}</span>
+          </p>
         )}
         {hasLostCard && (
           <p className="deck-screen-notice deck-screen-notice--lost" role="status">
