@@ -17,21 +17,21 @@
 |------|--------------|------|----------|
 | ピクセルコイン | `freePixels` | バトル、レベルアップ、ロスト削除返還、勝利2倍広告 | 完全/降格復活、護符購入（px 枠） |
 | 💎 ジュエル | `jewels` | 課金、**毎レベル少量**、L≡4 (mod 5) ボーナス | 削除・リネーム・デッキ3以降・創作拡張の **その場消費** |
-| 属性欠片 | `limitBreakShards[attribute]` | **勝利時の戦利品選択** | 同一属性カードの限界突破（**10個で1回**） |
-| 汎用かけら | `limitBreakUniversal` | **Lv20, 30, 40…** | 任意属性の欠片として消費（専用と同価値） |
+| 属性かけら | `limitBreakShards[attribute]` | **勝利時の戦利品選択** | 同一属性カードの限界突破（**10個で1回**） |
+| 汎用かけら | `limitBreakUniversal` | **Lv20, 30, 40…** | 任意属性のかけらとして消費（属性かけらと同価値） |
 | 護符 | `inventory.talisman` | **Lv5 到達（初回 ×1）**、ショップ（px/💎）、サブスク | ロスト1回免れ（装備消費） |
 
 **採用しないもの（旧仕様から廃止）**
 
 - 復活ポーション・溶解リキッド・リネームチケット・デッキ解放キー等の **中間 consumable 商品名**
 - 有償ピクセル（ジュエルに統合）
-- Lv10 の汎用限界突破配布（→ デッキ2解放に差し替え）
+- Lv10 の汎用かけら配布（→ デッキ2解放に差し替え）
 
 **UI 原則**
 
 - 💎 が必要な操作には **💎 アイコン＋数値** をボタン/確認に表示
 - px 操作には px アイコンのみ
-- 限界突破は **「◯◯の欠片 3/10」** 等のプログレス表示（商品名は使わない）
+- 限界突破は **マイデッキ詳細** にのみ表示（§16.9）。所持数は **所持品タブ**
 
 ### 1.2 復活・削除（プロトタイプ現行値を維持）
 
@@ -56,18 +56,19 @@
 |------|------|
 | **毎レベル** | 無償 px（現行 500）＋ **💎 少量**（TBD） |
 | L ≡ 4 (mod 5), L ≥ 5 | **💎 ボーナス**（旧「ショップ試供品」枠の置き換え） |
-| **Lv10** | **デッキ2 解放**（限界突破アイテムは **配布しない**） |
-| **L ≡ 0 (mod 10), L ≥ 20** | **汎用限界突破 ×1**（Lv20 から開始。10, 30, 40, 50…） |
+| **Lv10** | **デッキ2 解放**（汎用かけらは **配布しない**） |
+| **L ≡ 0 (mod 10), L ≥ 20** | **汎用かけら ×1**（Lv20 から開始。20, 30, 40, 50…） |
 | その他 mod 5 | 色・属性・ツール・キャンバス（現行 §5.9 どおり） |
 
 ### 1.5 限界突破
 
 | 項目 | 内容 |
 |------|------|
-| 実行コスト | **かけら合計10個**（専用＋汎用、1:1。専用優先消費）（px・💎不可） |
-| 戦利品 | 相手墓地1枚選択時: **px（現行式）＋ 選択カード属性の欠片 ×1**（レアで +2 は TBD） |
-| 対象 | 所持カードと **同一属性** のみ（汎用は全属性） |
-|  mechanics | §9.3 既存（★1→3、4回目でレア up） |
+| 実行コスト | **かけら合計10個**（専用＋汎用、**1:1**・内訳選択可）（px・💎不可） |
+| 戦利品 | 相手墓地1枚選択時: **px（現行式）＋ 選択カード属性のかけら**（N=1, R=2, SR=3） |
+| BP | **基礎BP × 3%/回** を均等加算（★アップ・レア昇格で同量。`LIMIT_BREAK_BP_GAIN_RATE`） |
+| 対象 | 所持カードと **同一属性** の専用かけら ＋ 任意属性の汎用かけら |
+| mechanics | §9.3 既存（★1→3、4回目でレア up） |
 
 ### 1.6 広告
 
@@ -75,7 +76,7 @@
 |------|------|------|
 | **創作ゲート** | 初回 **バトル可能デッキ完成後**、作成保存・編集保存のたび | 完成前（`hasEverCompletedBattleDeck` false）は無広告 |
 | **バトル回数** | 非会員: **1日10戦まで** 無料、以降は **1戦ごとにリワード広告** | 日次リセット（TZ TBD） |
-| **勝利2倍** | **任意**リワード広告 | **px のみ2倍**（欠片は2倍にしない） |
+| **勝利2倍** | **任意**リワード広告 | **px のみ2倍**（かけらは2倍にしない） |
 | **会員** | ライト: 軽減 / プレミアム: 広告非表示 | 詳細 TBD |
 
 ### 1.7 ショップ・サブスク（役割）
@@ -93,20 +94,24 @@
 
 ---
 
-## 2. 現状（2026-06-14 時点）
+## 2. 現状（2026-06-14 時点・フェーズ6完了後）
 
 | 領域 | 状態 |
 |------|------|
 | Lost / 復活 / 降格復活 / 削除返還 | ✅ プロトタイプ実装済み（`economy.ts`, `status.ts`, デッキ UI） |
-| 勝利 px・墓地選択 UI | ✅ `GraveyardPickModal`, `calcGraveyardPixelReward` |
-| `UserEconomy` | `freePixels` のみ |
-| ジュエル・欠片・護符インベントリ | ✅ 型・マイグレーション済（フェーズ1） |
+| 勝利 px・墓地選択 UI・属性かけら付与 | ✅ `GraveyardPickModal`, `calcGraveyardShardReward`（N=1/R=2/SR=3） |
+| バトル中・戦利品のレア表示 | ✅ `BattleUnit.rarity` 連携、`BattleCard` 枠色 |
+| `UserEconomy` | ✅ `freePixels` + `jewels`（フェーズ2） |
+| インベントリ（護符・かけら） | ✅ `InventoryScreen`、schema v2 |
 | デッキ2 Lv10 解放 | ✅ レベルアップ時自動解放（フェーズ2） |
 | ヘッダー 💎 表示 | ✅ フェーズ2 |
+| 限界突破 gameplay | ✅ マイデッキ詳細 UI・かけら消費・★/レア昇格・均等BP加算（フェーズ6） |
+| Lv20+ 汎用かけら配布 | ✅ `calcLevelUpUniversalLimitBreak`（フェーズ6） |
+| 開発メニュー | ✅ 設定画面 — 「すべてのかけらを100個にする」 |
 | 広告 | ❌ 未実装（仕様 §11 のみ） |
 | ショップ画面 | ❌ プレースホルダ |
-| 限界突破 gameplay | ❌ 表示・★ のみ、実行 UI なし |
-| `progressionUnlocks.ts` Lv10 | 「汎用限界突破（準備中）」表示 |
+| デッキ3〜 💎 解放 | ❌ フェーズ3 未着手 |
+| 削除・リネーム 💎 | ❌ フェーズ4 未着手 |
 
 ---
 
@@ -156,8 +161,8 @@
 3. `src/user/economy.ts` — `addJewels`, `spendJewels`, 正規化
 4. `src/config/economy.ts` — 新定数（TBD 初期値）
    - `JEWELS_PER_LEVEL`, `JEWELS_BONUS_MOD4`, `JEWEL_COST_DELETE`, `JEWEL_COST_RENAME`, `JEWEL_COST_DECK_UNLOCK`
-   - `LIMIT_BREAK_SHARDS_REQUIRED`（= 10）
-   - `GRAVEYARD_SHARD_BASE`, `BATTLE_DAILY_FREE_LIMIT`（= 10）
+   - `LIMIT_BREAK_SHARDS_REQUIRED`（= 10）、`LIMIT_BREAK_BP_GAIN_RATE`（= 0.03）
+   - `GRAVEYARD_SHARD_REWARD`（N=1, R=2, SR=3）、`BATTLE_DAILY_FREE_LIMIT`（= 10）
 5. `schemaVersion` マイグレーション（既存セーブ: jewels=0, 空インベントリ）
 6. Lv10 以上 & `unlockedDeckCount < 2` のセーブ補正
 
@@ -230,33 +235,34 @@
 
 ---
 
-### フェーズ 5 — 勝利戦利品と属性欠片
+### フェーズ 5 — 勝利戦利品と属性かけら
 
 **目的**: 限界突破のメイン F2P ルート。
 
 **作業**
 
-1. `calcGraveyardShardReward(card)` — 基本 1（R/SR で 2 は TBD）
-2. `GraveyardPickModal` — 各カードに **属性欠片** 表示、確定文言を px＋欠片に
+1. `calcGraveyardShardReward(card)` — **N=1, R=2, SR=3**（`GRAVEYARD_SHARD_REWARD`）
+2. `GraveyardPickModal` — 各カードに **属性かけら** 表示、確定文言を px＋かけらに
 3. `finalizeBattleOutcome` — 選択カードの属性に `limitBreakShards[attr] += n`
-4. マイデッキ or 設定に **欠片一覧**（10属性 × プログレス、折りたたみ可）
+4. **所持品タブ**（`InventoryScreen`）— 汎用＋全属性かけらの所持数一覧
 
-**完了条件**: 勝利→墓地選択→欠片が増える。マイデッキ詳細に同一属性かけらの進捗表示。2倍広告はまだ px のみ。
+**完了条件**: 勝利→墓地選択→かけらが増える。所持品で確認できる。2倍広告はまだ px のみ。
 
 ---
 
 ### フェーズ 6 — 限界突破 UI
 
-**目的**: 欠片・汎用を消費して ★ を上げる。
+**目的**: 属性かけら・汎用かけらを消費して ★ を上げる。
 
 **作業**
 
-1. `src/card/limitBreak.ts` — 実行ロジック（★上限、4回目レア up、SR★3 上限）
-2. デッキ詳細オーバーレイ — 突破可能時のみ「限界突破」ボタンと消費内訳（例: 剣5 + 汎用5）
-3. Lv20 到達時の汎用配布（フェーズ 2 と連動、inventory 加算）
-4. `progressionUnlocks` Lv20+ の `limit_break` を `pending: false` に
+1. `src/card/limitBreak.ts` — 実行ロジック（★上限、4回目レア up、SR★3 上限、均等BP加算）
+2. `DeckCardDetailOverlay` — 突破可能時のみ左右2列ステッパー＋「限界突破」（§16.9）
+3. Lv20 到達時の汎用かけら配布（`profile.ts` / `inventory` 加算）
+4. `progressionUnlocks` Lv20+ の `limit_break`（`pending` なし）
+5. 設定 **開発メニュー** — 「すべてのかけらを100個にする」（`fillAllLimitBreakShards`）
 
-**完了条件**: かけら10（専用+汎用の組み合わせ可）で★+1が動く。
+**完了条件**: かけら10（専用+汎用の組み合わせ・内訳選択可）で★+1が動く。各段階でBPが均等加算される。
 
 ---
 
@@ -269,7 +275,7 @@
 1. `src/ad/` — `showRewardedAd(): Promise<'completed'|'skipped'|'failed'>` モック（2秒待ち等）
 2. **創作**: `hasEverCompletedBattleDeck` 判定、保存前にモック広告
 3. **バトル cap**: 開始前チェック、11戦目以降は広告後に `battlesToday++`
-4. **2倍**: 勝利モーダルに「広告で px 2倍」、欠片は対象外
+4. **2倍**: 勝利モーダルに「広告で px 2倍」、かけらは対象外
 5. 日次リセット `battlesDayKey`
 
 **サブステップ 7b — 本番 SDK**（環境依存・後回し可）
@@ -322,7 +328,7 @@
 
 | 項目 | 備考 |
 |------|------|
-| 対人戦 | 勝利戦利品・欠片ルールを §13 に合わせる |
+| 対人戦 | 勝利戦利品・かけらルールを §13 に合わせる |
 | ストア課金本番 | App Store / Google Play |
 | UR / Legend | §14.3 |
 | アルバム・補欠枠 | §14 |
@@ -338,7 +344,7 @@ flowchart TD
   P2[フェーズ2 レベル報酬・Lv10デッキ2]
   P3[フェーズ3 デッキ3💎]
   P4[フェーズ4 削除・リネーム💎]
-  P5[フェーズ5 戦利品欠片]
+  P5[フェーズ5 戦利品かけら]
   P6[フェーズ6 限界突破UI]
   P7[フェーズ7 広告]
   P8[フェーズ8 ショップ]
@@ -365,7 +371,7 @@ flowchart TD
 **推奨着手順（最小のプレイ可能単位）**
 
 1. **0 → 1 → 2** — ジュエル表示・Lv10 デッキ2（体感しやすい）
-2. **5 → 6** — バトル→欠片→限界突破（コアループ）
+2. **5 → 6** — バトル→かけら→限界突破（コアループ）
 3. **7a** — 広告モック（創作・cap・2倍）
 4. **4 → 3 → 8** — 💎 消費とショップ
 5. **9 → 7b → 10** — 会員・本番 SDK・レア
@@ -384,9 +390,8 @@ flowchart TD
 | `JEWEL_COST_RENAME` | 50 | 名前変更1回 |
 | `JEWEL_COST_DECK_UNLOCK` | 200 | デッキ3〜各1回 |
 | `LIMIT_BREAK_SHARDS_REQUIRED` | 10 | |
-| `GRAVEYARD_SHARD_BASE` | 1 | N の欠片報酬 |
-| `GRAVEYARD_SHARD_R` | 2 | R の欠片報酬 |
-| `GRAVEYARD_SHARD_SR` | 3 | SR の欠片報酬 |
+| `LIMIT_BREAK_BP_GAIN_RATE` | 0.03 | 限界突破1回のBP加算（基礎BP×率、最低1） |
+| `GRAVEYARD_SHARD_REWARD` | N=1, R=2, SR=3 | 戦利品かけら（確定） |
 | `BATTLE_DAILY_FREE_LIMIT` | 10 | 非会員 |
 | `SHOP_TALISMAN_PX` | 300 | 旧仕様踏襲 |
 | `SHOP_TALISMAN_JEWELS` | 25 | 💎 枠（px と両方で購入可） |
@@ -401,8 +406,8 @@ flowchart TD
 | 1 | `src/types/index.ts`, `src/user/economy.ts`, `src/storage/index.ts` |
 | 2 | `src/config/progressionUnlocks.ts`, `src/App.tsx`, `src/components/DeckUnlockModal.tsx` |
 | 4 | `src/components/DeckScreen.tsx`, `DeckCardDetailOverlay.tsx` |
-| 5 | `src/components/GraveyardPickModal.tsx`, `src/config/economy.ts`, `src/App.tsx` |
-| 6 | `src/card/limitBreak.ts`, デッキ詳細 UI |
+| 5 | `src/components/GraveyardPickModal.tsx`, `src/battle/graveyardLoot.ts`, `src/components/InventoryScreen.tsx`, `src/config/economy.ts`, `src/App.tsx` |
+| 6 | `src/card/limitBreak.ts`, `DeckCardDetailOverlay.tsx`, `DeckScreen.tsx`, `SettingsScreen.tsx`, `src/user/profile.ts` |
 | 7 | 新規 `src/ad/*`, エディタ保存経路, バトル開始経路 |
 | 8 | `src/components/ShopScreen.tsx`（新規）, `App.tsx` routing |
 
@@ -421,12 +426,12 @@ flowchart TD
 | 旧 | 新（本ロードマップ） |
 |----|----------------------|
 | E0 データモデル | フェーズ 1 |
-| E1 Lost/勝利/墓地 | ✅ 済（px のみ。欠片はフェーズ 5） |
+| E1 Lost/勝利/墓地 | ✅ 済（px＋属性かけら。フェーズ5） |
 | E2 ポーション/溶解/ショップ | **分割** → フェーズ 3,4,8（ジュエル直消費モデル） |
 | E3 広告 | フェーズ 7 |
 | E4 サブスク | フェーズ 9 |
 | E5 レア抽選 | フェーズ 10 |
-| E6 限界突破 | フェーズ 5 + 6 |
+| E6 限界突破 | ✅ 済（フェーズ 5 + 6） |
 | E7 将来 | フェーズ 11 |
 
 ---
@@ -450,10 +455,12 @@ flowchart TD
 **判断待ち（確定済み）**
 
 - [x] 新規カードの **初回命名** は 💎 無料（2回目以降のみ消費）
-- [x] レアカード戦利品の欠片: **N=1, R=2, SR=3**
+- [x] レアカード戦利品のかけら: **N=1, R=2, SR=3**
 - [x] 護符価格: **px と 💎 の両方**（300px / 25💎）
 - [x] 日次リセットのタイムゾーン（**JST 固定**）
-- [x] 初心者保護: **Lv5 未満ロスト無効**、**Lv5 到達で Lost 解禁 ＋ 護符 ×1** 無償配布
+- [x] 限界突破 UI: かけら不足時は非表示、専用・汎用をステッパーで内訳選択
+- [x] 限界突破 BP: **基礎BP×3%/回** の均等加算（レア昇格でも減少しない）
+- [x] 汎用かけらは専用かけらと **1:1 同価値**（10個で1回、組み合わせ可）
 
 ---
 

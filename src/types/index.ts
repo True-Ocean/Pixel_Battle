@@ -56,9 +56,9 @@ export interface UserEconomy {
 export interface UserInventory {
   /** 護符（ロスト1回免れ） */
   talisman: number;
-  /** 汎用限界突破（全属性で1回） */
+  /** 汎用かけら（任意属性の限界突破に消費） */
   limitBreakUniversal: number;
-  /** 属性別限界突破欠片 */
+  /** 属性別かけら */
   limitBreakShards: Partial<Record<Attribute, number>>;
 }
 

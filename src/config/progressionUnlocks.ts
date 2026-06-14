@@ -97,7 +97,7 @@ function getMainRewardAtLevel(level: number): LevelUpRewardEntry | null {
   if (mod10 === 0 && level >= 20) {
     return {
       kind: 'limit_break',
-      label: '汎用限界突破アイテム',
+      label: '汎用かけら ×1',
     };
   }
   if (mod10 === 5) {
