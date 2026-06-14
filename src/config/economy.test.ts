@@ -21,6 +21,7 @@ import {
   calcLevelUpJewels,
   calcLevelUpJewelBonus,
   calcLevelUpUniversalLimitBreak,
+  calcLimitBreakBpGain,
   calcTotalLevelUpJewels,
   calcLostSelectionWeight,
   calcSurvivorPixels,
@@ -60,6 +61,14 @@ describe('economy constants', () => {
     expect(DOWNGRADE_REVIVE_COST).toBe(2000);
     expect(PIXELS_PER_SURVIVOR).toBe(10);
     expect(GRAVEYARD_SQRT_MULTIPLIER).toBe(1);
+  });
+});
+
+describe('calcLimitBreakBpGain', () => {
+  it('基礎BPの3%を加算（最低1）', () => {
+    expect(calcLimitBreakBpGain(100)).toBe(3);
+    expect(calcLimitBreakBpGain(40)).toBe(1);
+    expect(calcLimitBreakBpGain(0)).toBe(1);
   });
 });
 

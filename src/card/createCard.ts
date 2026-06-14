@@ -183,6 +183,20 @@ export function createCardFromDrawing(
   };
 }
 
+/** 絵・名前から基礎BPのみ算出（レア・★倍率なし） */
+export function getCardFoundationBp(card: Card, userLevel: number): number {
+  const size = gridSize(card.pixels);
+  const ratios = computeColorRatios(
+    card.pixels,
+    size * size,
+    getUnlockedPaletteCount(userLevel),
+  );
+  if (!ratios) return card.bp;
+
+  const bpBlend = computeBpBlend(card.name.trim(), card.pixels, ratios);
+  return computeCardBaseBp(bpBlend, userLevel, card.attribute);
+}
+
 /** 既存カードの BP をユーザーレベルに合わせて再算出（絵・属性・レアは維持） */
 export function recalculateCardBp(card: Card, userLevel: number): number {
   const size = gridSize(card.pixels);

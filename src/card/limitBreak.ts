@@ -1,9 +1,9 @@
 import {
+  calcLimitBreakBpGain,
   LIMIT_BREAK_SHARDS_REQUIRED,
-  LIMIT_BREAK_STAR_BP_MULTIPLIER,
 } from '../config/economy';
 import { getRarityMeta } from '../config/rarity';
-import { recalculateCardBp } from './createCard';
+import { getCardFoundationBp } from './createCard';
 import { isCardLost } from './status';
 import type { Card, CardRarity, CardStars } from '../types';
 
@@ -125,14 +125,6 @@ export function canLimitBreakCard(card: Card): boolean {
   return !isCardLost(card) && getLimitBreakOutcomeKind(card) != null;
 }
 
-export function applyLimitBreakStarBpMultiplier(
-  bp: number,
-  stars: CardStars,
-): number {
-  const mult = LIMIT_BREAK_STAR_BP_MULTIPLIER[stars] ?? 1;
-  return Math.round(bp * mult);
-}
-
 export function applyLimitBreakToCard(card: Card, userLevel: number): Card {
   const kind = getLimitBreakOutcomeKind(card);
   if (!kind) return card;
@@ -147,10 +139,10 @@ export function applyLimitBreakToCard(card: Card, userLevel: number): Card {
     next = { ...card, rarity: nextRarity, stars: 0 };
   }
 
-  const baseBp = recalculateCardBp(next, userLevel);
+  const gain = calcLimitBreakBpGain(getCardFoundationBp(card, userLevel));
   return {
     ...next,
-    bp: applyLimitBreakStarBpMultiplier(baseBp, next.stars),
+    bp: card.bp + gain,
   };
 }
 

@@ -37,13 +37,20 @@ export const JEWEL_COST_DECK_UNLOCK = 200;
 /** 限界突破に必要な属性欠片数 */
 export const LIMIT_BREAK_SHARDS_REQUIRED = 10;
 
-/** ★数ごとの BP 倍率（暫定・プロトタイプ） */
+/** ★数ごとの BP 倍率（非推奨: 限界突破は `LIMIT_BREAK_BP_GAIN_RATE` で均等加算） */
 export const LIMIT_BREAK_STAR_BP_MULTIPLIER: Record<CardStars, number> = {
   0: 1,
   1: 1.03,
   2: 1.06,
   3: 1.09,
 };
+
+/** 限界突破1回あたりのBP増加率（基礎BPに対する割合。★アップ・レア昇格で同じ加算量） */
+export const LIMIT_BREAK_BP_GAIN_RATE = 0.03;
+
+export function calcLimitBreakBpGain(foundationBp: number): number {
+  return Math.max(1, Math.round(foundationBp * LIMIT_BREAK_BP_GAIN_RATE));
+}
 
 /** Lv20,30,40… 到達時の汎用限界突破付与数 */
 export function calcLevelUpUniversalLimitBreak(level: number): number {

@@ -3,6 +3,7 @@ export {
   type DeriveCardStatsOptions,
   updateCardFromDrawing,
   deriveCardStats,
+  getCardFoundationBp,
   recalculateCardBp,
   rescaleDeckBp,
   CardCreationError,
@@ -14,7 +15,6 @@ export {
   countDistinctUsedColors,
 } from './rarity';
 export {
-  applyLimitBreakStarBpMultiplier,
   applyLimitBreakToCard,
   canLimitBreakCard,
   defaultLimitBreakAttrSpend,

@@ -109,12 +109,35 @@ describe('limit break rules', () => {
     expect(next.bp).toBeGreaterThanOrEqual(card.bp);
   });
 
+  it('N★0 から SR★3 まで各段階でBP増加量が均等', () => {
+    let card = makeCard({ rarity: 'N', stars: 0, bp: 100 });
+    const gains: number[] = [];
+    for (let step = 0; step < 11; step += 1) {
+      const prev = card.bp;
+      card = applyLimitBreakToCard(card, 10);
+      gains.push(card.bp - prev);
+    }
+    expect(card.rarity).toBe('SR');
+    expect(card.stars).toBe(3);
+    expect(gains.every((gain) => gain === gains[0])).toBe(true);
+    expect(gains[0]).toBeGreaterThanOrEqual(1);
+  });
+
   it('N★3 はレア昇格', () => {
-    const card = makeCard({ rarity: 'N', stars: 3 });
+    const card = makeCard({ rarity: 'N', stars: 3, bp: 109 });
     expect(getLimitBreakOutcomeKind(card)).toBe('rarity');
     const next = applyLimitBreakToCard(card, 10);
     expect(next.rarity).toBe('R');
     expect(next.stars).toBe(0);
+    expect(next.bp).toBeGreaterThanOrEqual(card.bp);
+  });
+
+  it('R★3 はレア昇格でBPが下がらない', () => {
+    const card = makeCard({ rarity: 'R', stars: 3, bp: 118 });
+    const next = applyLimitBreakToCard(card, 10);
+    expect(next.rarity).toBe('SR');
+    expect(next.stars).toBe(0);
+    expect(next.bp).toBeGreaterThanOrEqual(card.bp);
   });
 
   it('ロストカードは不可', () => {
