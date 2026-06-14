@@ -1,9 +1,11 @@
 import { useCallback, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
 import { computeDeckPower, isCardLost } from '../card';
+import { calcCardDeleteRefundPixels } from '../config/economy';
 import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
 import {
   countDeckCards,
   deckHasLostCard,
+  findFirstEmptySlotInLayout,
   getDeckCards,
   getDeckDisplayName,
   getDeckTabShortLabel,
@@ -22,7 +24,6 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
 import { DeckRenameDialog } from './DeckRenameDialog';
 import { DeckUnlockModal } from './DeckUnlockModal';
-import { LostDeleteModal } from './LostDeleteModal';
 import {
   findDeckDropIndex,
   findDeckTabIndexAtPoint,
@@ -47,7 +48,6 @@ interface DeckScreenProps {
   onCreateCard: () => void;
   onEditCard: (card: Card, options?: { returnToDetail?: boolean }) => void;
   onDeleteCard: (id: string) => void;
-  onDeleteLostCard: (id: string) => void;
   onReorderDeck: (deck: DeckLayout) => void;
   onMoveCardBetweenDecks: (
     fromDeckIndex: number,
@@ -142,6 +142,7 @@ function TargetDeckDropPanel({
           }
 
           const rarityMeta = getRarityMeta(slotCard.rarity);
+          const slotCardIsLost = isCardLost(slotCard);
           return (
             <li
               key={slotCard.id}
@@ -150,6 +151,7 @@ function TargetDeckDropPanel({
                 'deck-card-row',
                 `deck-card-row--${slotCard.rarity}`,
                 'deck-cross-drop-slot',
+                slotCardIsLost ? 'deck-card-row--lost' : '',
                 isActive ? 'is-drop-slot-active' : '',
               ]
                 .filter(Boolean)
@@ -158,6 +160,11 @@ function TargetDeckDropPanel({
             >
               <div className="deck-card-main deck-cross-drop-card">
                 <DeckCardRowBody card={slotCard} />
+                {slotCardIsLost && (
+                  <span className="card-lost-badge card-lost-badge--row" aria-hidden>
+                    ロスト中
+                  </span>
+                )}
               </div>
             </li>
           );
@@ -204,6 +211,15 @@ function DeckCardRowBody({ card }: { card: Card }) {
   );
 }
 
+function formatDeleteConfirmMessage(card: Card): string {
+  const refundPixels = calcCardDeleteRefundPixels(card);
+  const refundNote =
+    refundPixels > 0
+      ? ` 削除すると +${refundPixels.toLocaleString()}px 返還されます。`
+      : '';
+  return `「${card.name}」をデッキから削除します。戦績も失われます。${refundNote}`;
+}
+
 export function DeckScreen({
   deck,
   decks,
@@ -218,7 +234,6 @@ export function DeckScreen({
   onCreateCard,
   onEditCard,
   onDeleteCard,
-  onDeleteLostCard,
   onReorderDeck,
   onMoveCardBetweenDecks,
   onPrototypeUnlockDeck,
@@ -226,7 +241,7 @@ export function DeckScreen({
 }: DeckScreenProps) {
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
-  const [lostDeleteTarget, setLostDeleteTarget] = useState<Card | null>(null);
+  const [deleteConfirmFinal, setDeleteConfirmFinal] = useState(false);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
   const [renameDeckIndex, setRenameDeckIndex] = useState<number | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
@@ -263,25 +278,34 @@ export function DeckScreen({
     [deckLayout, onReorderDeck],
   );
 
-  const handleDeleteRequest = useCallback(
-    (card: Card) => {
-      closeDetail();
-      setPendingDelete(card);
-    },
-    [closeDetail],
-  );
+  const handleDeleteRequest = useCallback((card: Card) => {
+    setDeleteConfirmFinal(false);
+    setPendingDelete(card);
+  }, []);
 
   const handleDeleteConfirm = useCallback(() => {
     if (!pendingDelete) return;
+    if (!deleteConfirmFinal) {
+      setDeleteConfirmFinal(true);
+      return;
+    }
     onDeleteCard(pendingDelete.id);
     setPendingDelete(null);
+    setDeleteConfirmFinal(false);
     if (deckCardCount <= 1) {
       exitReorderMode();
     }
-  }, [deckCardCount, exitReorderMode, onDeleteCard, pendingDelete]);
+  }, [
+    deckCardCount,
+    deleteConfirmFinal,
+    exitReorderMode,
+    onDeleteCard,
+    pendingDelete,
+  ]);
 
   const handleDeleteCancel = useCallback(() => {
     setPendingDelete(null);
+    setDeleteConfirmFinal(false);
   }, []);
 
   const handleEditFromDetail = useCallback(() => {
@@ -291,40 +315,67 @@ export function DeckScreen({
 
   const handleLostDeleteRequest = useCallback(() => {
     if (!selectedCard || !isCardLost(selectedCard)) return;
-    setLostDeleteTarget(selectedCard);
-    closeDetail();
-  }, [closeDetail, selectedCard]);
-
-  const handleLostDeleteConfirm = useCallback(
-    (card: Card) => {
-      onDeleteLostCard(card.id);
-      setLostDeleteTarget(null);
-    },
-    [onDeleteLostCard],
-  );
+    handleDeleteRequest(selectedCard);
+  }, [handleDeleteRequest, selectedCard]);
 
   const finishDrag = useCallback(
-    (state: DeckDragState) => {
+    (state: DeckDragState, endX: number, endY: number) => {
       dragSessionRef.current = null;
       setDragState(null);
-      if (
+
+      const crossDeck =
         state.targetDeckIndex != null &&
-        state.targetDeckIndex !== state.sourceDeckIndex &&
-        state.targetDropIndex != null
-      ) {
-        onMoveCardBetweenDecks(
-          state.sourceDeckIndex,
-          state.fromIndex,
-          state.targetDeckIndex,
-          state.targetDropIndex,
-        );
+        state.targetDeckIndex !== state.sourceDeckIndex;
+
+      if (crossDeck && state.targetDeckIndex != null) {
+        const targetListEl = targetDropListRef.current;
+        const overPanel =
+          targetListEl != null &&
+          isPointInRect(endX, endY, targetListEl.getBoundingClientRect());
+
+        if (overPanel && targetListEl) {
+          const slotIndex =
+            state.targetDropIndex ?? findDeckDropIndex(endY, targetListEl);
+          if (slotIndex != null) {
+            onMoveCardBetweenDecks(
+              state.sourceDeckIndex,
+              state.fromIndex,
+              state.targetDeckIndex,
+              slotIndex,
+            );
+          }
+          return;
+        }
+
+        const tabsEl = tabsRef.current;
+        const tabAtEnd =
+          tabsEl != null
+            ? findDeckTabIndexAtPoint(endX, endY, tabsEl)
+            : null;
+        if (
+          tabAtEnd != null &&
+          tabAtEnd === state.targetDeckIndex &&
+          isDeckSlotUnlocked(tabAtEnd, unlockedDeckCount)
+        ) {
+          const targetLayout = normalizeDeckLayout(decks[tabAtEnd] ?? []);
+          const emptyIndex = findFirstEmptySlotInLayout(targetLayout);
+          if (emptyIndex >= 0) {
+            onMoveCardBetweenDecks(
+              state.sourceDeckIndex,
+              state.fromIndex,
+              tabAtEnd,
+              emptyIndex,
+            );
+          }
+        }
         return;
       }
+
       if (state.fromIndex !== state.dropIndex) {
         moveCard(state.fromIndex, state.dropIndex);
       }
     },
-    [moveCard, onMoveCardBetweenDecks],
+    [decks, moveCard, onMoveCardBetweenDecks, unlockedDeckCount],
   );
 
   const handleHandlePointerDown = useCallback(
@@ -415,12 +466,12 @@ export function DeckScreen({
         setDragState(next);
       };
 
-      const onPointerEnd = () => {
+      const onPointerEnd = (endEvent: globalThis.PointerEvent) => {
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerEnd);
         window.removeEventListener('pointercancel', onPointerEnd);
         const state = dragSessionRef.current;
-        if (state) finishDrag(state);
+        if (state) finishDrag(state, endEvent.clientX, endEvent.clientY);
       };
 
       window.addEventListener('pointermove', onPointerMove);
@@ -633,7 +684,7 @@ export function DeckScreen({
               </p>
             </div>
             <p className="muted deck-cross-drop-hint">
-              スロットを選んでドロップ（満杯のときだけ選んだカードと入れ替え）
+              スロットを選んでドロップ（カード同士は入れ替え）。タブ上でドロップすると空きスロットへ自動配置（満杯のときはキャンセル）
             </p>
           </>
         ) : (
@@ -745,12 +796,12 @@ export function DeckScreen({
                   >
                     <DeckCardRowBody card={card} />
                     {cardIsLost && (
-                      <span className="deck-card-lost-badge" aria-hidden>
+                      <span className="card-lost-badge card-lost-badge--row" aria-hidden>
                         ロスト中
                       </span>
                     )}
                   </button>
-                  {reorderMode && !cardIsLost && (
+                  {reorderMode && (
                     <span
                       className="deck-card-drag-handle"
                       aria-label="ドラッグで並べ替え、他デッキタブへ移動"
@@ -835,24 +886,18 @@ export function DeckScreen({
         />
       )}
 
-      {lostDeleteTarget && (
-        <LostDeleteModal
-          card={lostDeleteTarget}
-          onCancel={() => setLostDeleteTarget(null)}
-          onConfirmDelete={handleLostDeleteConfirm}
-        />
-      )}
-
       <ConfirmDialog
         open={pendingDelete != null}
-        title="カードを削除しますか？"
+        title={deleteConfirmFinal ? '本当に削除しますか？' : 'カードを削除しますか？'}
         message={
           pendingDelete
-            ? `「${pendingDelete.name}」をデッキから削除します。戦績も失われます。`
+            ? deleteConfirmFinal
+              ? 'この操作は取り消せません。'
+              : formatDeleteConfirmMessage(pendingDelete)
             : ''
         }
-        confirmLabel="削除する"
-        cancelLabel="キャンセル"
+        confirmLabel={deleteConfirmFinal ? 'はい（削除する）' : '削除する'}
+        cancelLabel={deleteConfirmFinal ? 'いいえ' : 'キャンセル'}
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
       />

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   calcGraveyardPixelReward,
-  calcLostSelectionWeight,
   pickWeightedLostCard,
 } from '../config/economy';
 import type { Card } from '../types';
@@ -91,7 +90,6 @@ export function LostRouletteModal({ cards, onComplete }: LostRouletteModalProps)
           {cards.map((card) => {
             const isActive = card.id === highlighted.id;
             const reward = calcGraveyardPixelReward(card);
-            const weight = Math.round(calcLostSelectionWeight(card));
             return (
               <li
                 key={card.id}
@@ -99,10 +97,7 @@ export function LostRouletteModal({ cards, onComplete }: LostRouletteModalProps)
               >
                 <CardPreview pixels={card.pixels} />
                 <span className="lost-roulette-name">{card.name}</span>
-                <span className="lost-roulette-meta">
-                  +{reward}px
-                  <span className="lost-roulette-weight">W{weight}</span>
-                </span>
+                <span className="lost-roulette-meta">+{reward}px</span>
               </li>
             );
           })}

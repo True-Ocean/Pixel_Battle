@@ -162,6 +162,13 @@ function findFirstEmptySlot(
   return -1;
 }
 
+export function findFirstEmptySlotInLayout(
+  layout: readonly (Card | null)[],
+  excludeIndex?: number,
+): number {
+  return findFirstEmptySlot(normalizeDeckLayout([...layout]), excludeIndex);
+}
+
 export function updateDeckAtIndex(
   decks: DeckLayout[],
   slotIndex: number,
@@ -232,6 +239,44 @@ export function moveCardBetweenDeckSlots(
       targetLayout[slotIndex] = card;
       sourceLayout[fromCardIndex] = swapped;
     }
+  } else {
+    targetLayout[slotIndex] = card;
+    sourceLayout[fromCardIndex] = null;
+  }
+
+  return normalized.map((deck, i) => {
+    if (i === fromSlot) return sourceLayout;
+    if (i === toSlot) return targetLayout;
+    return normalizeDeckLayout(deck);
+  });
+}
+
+/** バトル Hub 用: 占有スロットへは常に入れ替え（空きがあっても押し出さない） */
+export function moveCardBetweenDeckSlotsSwap(
+  decks: DeckLayout[],
+  fromSlotIndex: number,
+  fromCardIndex: number,
+  toSlotIndex: number,
+  toCardIndex: number,
+): DeckLayout[] | null {
+  const fromSlot = clampDeckSlotIndex(fromSlotIndex);
+  const toSlot = clampDeckSlotIndex(toSlotIndex);
+  if (fromSlot === toSlot) return null;
+
+  const normalized = normalizeDeckSlots(decks);
+  const sourceLayout = normalizeDeckLayout(normalized[fromSlot]!);
+  const targetLayout = normalizeDeckLayout(normalized[toSlot]!);
+
+  if (fromCardIndex < 0 || fromCardIndex >= DECK_MAX) return null;
+
+  const slotIndex = Math.max(0, Math.min(DECK_MAX - 1, Math.floor(toCardIndex)));
+  const card = sourceLayout[fromCardIndex];
+  if (card == null) return null;
+
+  if (targetLayout[slotIndex] != null) {
+    const swapped = targetLayout[slotIndex];
+    targetLayout[slotIndex] = card;
+    sourceLayout[fromCardIndex] = swapped;
   } else {
     targetLayout[slotIndex] = card;
     sourceLayout[fromCardIndex] = null;

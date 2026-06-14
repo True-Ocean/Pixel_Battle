@@ -1,8 +1,8 @@
 import { countPaintedCells, countUniqueColors } from '../card/paintStats';
 import type { Card, CardRarity, CardStars } from '../types';
 
-/** ロスト後削除の返還率（塗り数に対する割合） */
-export const LOST_DELETE_PIXEL_RATE = 0.10;
+/** カード削除時のピクセル返還率（塗り数に対する割合） */
+export const CARD_DELETE_PIXEL_REFUND_RATE = 0.01;
 
 /** ロスト抽選: レア度倍率 */
 export const LOST_WEIGHT_RARITY: Record<Extract<CardRarity, 'N' | 'R' | 'SR'>, number> = {
@@ -125,8 +125,8 @@ export function pickWeightedLostCard(
   return cards[cards.length - 1]!;
 }
 
-/** ロストカード削除時の無償ピクセル返還 */
-export function calcLostDeletePixels(card: Card): number {
+/** カード削除時の無償ピクセル返還 */
+export function calcCardDeleteRefundPixels(card: Card): number {
   const painted = countPaintedCells(card.pixels);
-  return Math.ceil(painted * LOST_DELETE_PIXEL_RATE);
+  return Math.ceil(painted * CARD_DELETE_PIXEL_REFUND_RATE);
 }

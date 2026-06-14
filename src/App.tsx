@@ -3,9 +3,9 @@ import type { Card, ScreenId, UserProfile, UserEconomy, BattleOutcome, BattleHis
 import { appendBattleHistory, createBattleHistoryEntry } from './battleHistory';
 import { MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
-import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlots, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard } from './deckSlots';
+import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, markCardLost, rescaleDeckBp, isCardLost } from './card';
+import { applyCardSurvivalRecords, markCardLost, rescaleDeckBp } from './card';
 import { buildBalancedCpuDeck } from './game/cpuDeck';
 import { CPU_OPPONENT_LABEL } from './battleHistory';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
@@ -19,7 +19,7 @@ import {
   totalExpForLevel,
   addFreePixels,
 } from './user';
-import { calcLostDeletePixels, calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
+import { calcCardDeleteRefundPixels, calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
 import { LevelUpModal } from './components/LevelUpModal';
 import { GraveyardPickModal } from './components/GraveyardPickModal';
 import { LostRouletteModal } from './components/LostRouletteModal';
@@ -296,29 +296,20 @@ function App() {
     [updateActiveDeck],
   );
 
-  const deleteCard = useCallback(
-    (id: string) => {
-      updateActiveDeck((prev) =>
-        prev.map((c) => (c?.id === id ? null : c)),
-      );
-    },
-    [updateActiveDeck],
-  );
-
-  const deleteLostCard = useCallback(
+  const removeCardFromActiveDeck = useCallback(
     (id: string) => {
       const deckIndex = activeDeckIndexRef.current;
       const prevDecks = decksRef.current;
       const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
       const target = prevLayout.find((card) => card?.id === id);
-      if (!target || !isCardLost(target)) return;
+      if (!target) return;
 
-      const deletePixels = calcLostDeletePixels(target);
+      const refundPixels = calcCardDeleteRefundPixels(target);
       const nextLayout = prevLayout.map((card) =>
         card?.id === id ? null : card,
       );
       const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
-      const nextEconomy = addFreePixels(economyRef.current, deletePixels);
+      const nextEconomy = addFreePixels(economyRef.current, refundPixels);
 
       persistSave({ decks: nextDecks, economy: nextEconomy });
       setDecks(nextDecks);
@@ -328,6 +319,11 @@ function App() {
       setDetailCardId((current) => (current === id ? null : current));
     },
     [persistSave],
+  );
+
+  const deleteCard = useCallback(
+    (id: string) => removeCardFromActiveDeck(id),
+    [removeCardFromActiveDeck],
   );
 
   const reorderDeck = useCallback(
@@ -345,6 +341,17 @@ function App() {
     [persistSave],
   );
 
+  const reorderDeckAt = useCallback(
+    (deckIndex: number, layout: DeckLayout) => {
+      setDecks((prevDecks) => {
+        const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, layout);
+        persistSave({ decks: nextDecks });
+        return nextDecks;
+      });
+    },
+    [persistSave],
+  );
+
   const moveCardBetweenDecks = useCallback(
     (
       fromDeckIndex: number,
@@ -354,7 +361,7 @@ function App() {
     ) => {
       setDecks((prevDecks) => {
         const movedCardId = prevDecks[fromDeckIndex]?.[fromCardIndex]?.id;
-        const nextDecks = moveCardBetweenDeckSlots(
+        const nextDecks = moveCardBetweenDeckSlotsSwap(
           prevDecks,
           fromDeckIndex,
           fromCardIndex,
@@ -373,11 +380,45 @@ function App() {
     [persistSave],
   );
 
+  const moveCardBetweenDecksInHub = useCallback(
+    (
+      fromDeckIndex: number,
+      fromCardIndex: number,
+      toDeckIndex: number,
+      toCardIndex: number,
+    ) => {
+      setDecks((prevDecks) => {
+        const nextDecks = moveCardBetweenDeckSlotsSwap(
+          prevDecks,
+          fromDeckIndex,
+          fromCardIndex,
+          toDeckIndex,
+          toCardIndex,
+        );
+        if (!nextDecks) return prevDecks;
+        persistSave({ decks: nextDecks });
+        return nextDecks;
+      });
+    },
+    [persistSave],
+  );
+
   const handleSelectDeckIndex = useCallback(
     (index: number) => {
       setActiveDeckIndex(index);
       setDetailCardId(null);
       persistSave({ activeDeckIndex: index });
+    },
+    [persistSave],
+  );
+
+  const goToMyDeckWithCard = useCallback(
+    (deckIndex: number, cardId: string) => {
+      setActiveDeckIndex(deckIndex);
+      setDetailCardId(cardId);
+      setDeckReorderMode(false);
+      setScreen('deck');
+      persistSave({ activeDeckIndex: deckIndex });
     },
     [persistSave],
   );
@@ -727,7 +768,6 @@ function App() {
               setScreen('editor');
             }}
             onDeleteCard={deleteCard}
-            onDeleteLostCard={deleteLostCard}
             onReorderDeck={reorderDeck}
             onMoveCardBetweenDecks={moveCardBetweenDecks}
             onPrototypeUnlockDeck={handlePrototypeUnlockNextDeck}
@@ -741,6 +781,9 @@ function App() {
             unlockedDeckCount={unlockedDeckCount}
             lastBattleDeckIndex={lastBattleDeckIndex}
             onStartBattle={goToBattleSetup}
+            onGoToMyDeck={goToMyDeckWithCard}
+            onReorderDeckAt={reorderDeckAt}
+            onMoveCardBetweenDecks={moveCardBetweenDecksInHub}
           />
         )}
         {screen === 'records' && (

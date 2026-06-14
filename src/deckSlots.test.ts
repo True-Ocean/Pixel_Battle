@@ -5,12 +5,14 @@ import {
   countDeckCards,
   createEmptyDeckSlots,
   deckHasLostCard,
+  findFirstEmptySlotInLayout,
   getBattleReadyDeckIndices,
   getDeckDisplayName,
   getDeckTabShortLabel,
   isDeckSlotUnlocked,
   isDeckBattleReady,
   moveCardBetweenDeckSlots,
+  moveCardBetweenDeckSlotsSwap,
   moveCardInLayout,
   normalizeDeckLayout,
   normalizeDeckNames,
@@ -224,6 +226,57 @@ describe('deckSlots', () => {
     decks[0] = [card('a'), null, null, null, null];
     expect(moveCardBetweenDeckSlots(decks, 0, 0, 0, 0)).toBeNull();
     expect(moveCardBetweenDeckSlots(decks, 0, 3, 1, 0)).toBeNull();
+  });
+
+  it('swap variant always exchanges cards on occupied target slots', () => {
+    const decks = createEmptyDeckSlots();
+    decks[0] = [card('a'), card('b'), null, null, null];
+    decks[1] = [card('c'), null, card('d'), null, null];
+
+    const next = moveCardBetweenDeckSlotsSwap(decks, 0, 0, 1, 2);
+
+    expect(next?.[0].map((item) => item?.id ?? null)).toEqual([
+      'd',
+      'b',
+      null,
+      null,
+      null,
+    ]);
+    expect(next?.[1].map((item) => item?.id ?? null)).toEqual([
+      'c',
+      null,
+      'a',
+      null,
+      null,
+    ]);
+  });
+
+  it('finds the first empty slot in a layout', () => {
+    expect(findFirstEmptySlotInLayout([card('a'), null, card('b'), null, null])).toBe(1);
+    expect(findFirstEmptySlotInLayout([card('a'), card('b'), card('c'), card('d'), card('e')])).toBe(-1);
+  });
+
+  it('swap variant moves to empty target slots without displacement', () => {
+    const decks = createEmptyDeckSlots();
+    decks[0] = [card('a'), card('b'), null, null, null];
+    decks[1] = [card('c'), null, null, null, null];
+
+    const next = moveCardBetweenDeckSlotsSwap(decks, 0, 0, 1, 1);
+
+    expect(next?.[0].map((item) => item?.id ?? null)).toEqual([
+      null,
+      'b',
+      null,
+      null,
+      null,
+    ]);
+    expect(next?.[1].map((item) => item?.id ?? null)).toEqual([
+      'c',
+      'a',
+      null,
+      null,
+      null,
+    ]);
   });
 
   it('normalizes partial deck arrays to five slots', () => {

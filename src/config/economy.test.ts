@@ -4,12 +4,12 @@ import {
   COLOR_DIVERSITY_MAX_MULTIPLIER,
   GRAVEYARD_SQRT_MULTIPLIER,
   LEVEL_UP_PIXELS_PER_LEVEL,
-  LOST_DELETE_PIXEL_RATE,
+  CARD_DELETE_PIXEL_REFUND_RATE,
   PIXELS_PER_SURVIVOR,
+  calcCardDeleteRefundPixels,
   calcColorDiversityMultiplier,
   calcGraveyardPixelReward,
   calcLevelUpPixels,
-  calcLostDeletePixels,
   calcLostSelectionWeight,
   calcSurvivorPixels,
   calcVictoryBattlePixels,
@@ -130,12 +130,14 @@ describe('lost economy helpers', () => {
     expect(pickWeightedLostCard(cards, () => 0.999).id).toBe('b');
   });
 
-  it('returns delete pixels as ceil of painted cells × rate', () => {
+  it('returns refund pixels as ceil of painted cells × rate', () => {
     const card = makeCard([
       ['#ff0000', '#00ff00'],
       ['#0000ff', null],
     ]);
-    expect(LOST_DELETE_PIXEL_RATE).toBe(0.1);
-    expect(calcLostDeletePixels(card)).toBe(Math.ceil(3 * LOST_DELETE_PIXEL_RATE));
+    expect(CARD_DELETE_PIXEL_REFUND_RATE).toBe(0.01);
+    expect(calcCardDeleteRefundPixels(card)).toBe(
+      Math.ceil(3 * CARD_DELETE_PIXEL_REFUND_RATE),
+    );
   });
 });

@@ -621,12 +621,29 @@
   color: inherit;
   font: inherit;
   text-align: left;
+}
+
+.battle-hub-deck-tile-select-area {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
-.battle-hub-deck-tile:disabled {
-  cursor: not-allowed;
-  opacity: 0.72;
+.battle-hub-deck-tile-select-area:disabled {
+  cursor: default;
+}
+
+button.battle-hub-deck-icon.battle-hub-deck-tile-select-area {
+  box-sizing: border-box;
+  min-height: 0;
+  padding: 0;
 }
 
 .battle-hub-deck-tile.is-locked {
@@ -705,7 +722,9 @@
 .battle-hub-deck-icon {
   aspect-ratio: 1;
   border-radius: 8px;
-  border: 1px solid #cbd5e1;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #cbd5e1;
   overflow: hidden;
   position: relative;
   box-sizing: border-box;
@@ -733,18 +752,20 @@
   height: 100%;
   padding: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: stretch;
 }
 
 .battle-hub-deck-icon .battle-card-art .card-preview,
 .battle-hub-deck-icon .battle-card.setup-card-fixed .battle-card-art .card-preview {
-  aspect-ratio: 1;
   width: 100%;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
-  flex: 0 0 auto;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  flex: 1 1 auto;
+  border: none;
+  border-radius: 0;
+  aspect-ratio: unset;
 }
 
 .battle-hub-deck-icon .battle-card-bp,
@@ -792,12 +813,32 @@
 }
 
 .battle-hub-deck-icon-art {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
 }
 
-.battle-hub-deck-icon--lost {
-  border: 2px solid #e53935;
+.battle-hub-deck-icon--interactive {
+  cursor: pointer;
+  touch-action: none;
+}
+
+.battle-hub-deck-icon.is-drag-source {
+  opacity: 0.35;
+}
+
+.battle-hub-deck-icon.is-drop-target,
+button.battle-hub-deck-icon.is-drop-target {
+  box-shadow: 0 0 0 2px #646cff;
+  border-color: #646cff !important;
+}
+
+.screen-battle-hub-dragging .battle-hub-deck-tile-select-area:disabled {
+  pointer-events: none;
+}
+
+.battle-hub-drag-chip-float {
+  z-index: 1100;
 }
 
 .battle-hub-deck-icon--lost .battle-hub-deck-icon-art {
@@ -805,28 +846,27 @@
   filter: grayscale(0.45);
 }
 
-.battle-hub-deck-lost-badge {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  display: grid;
-  place-items: center;
-  padding: 0.12rem;
-  background: transparent;
-  color: #ff0000;
-  font-size: clamp(0.62rem, 3.4vw, 0.78rem);
-  font-weight: 900;
-  line-height: 1.15;
-  letter-spacing: 0.02em;
-  text-align: center;
-  -webkit-text-stroke: 0.06em #fff;
-  paint-order: stroke fill;
-  text-shadow:
-    -1px 0 #fff,
-    1px 0 #fff,
-    0 -1px #fff,
-    0 1px #fff;
+.card-lost-badge {
+  border-radius: 999px;
+  background: #e53935;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.2;
   pointer-events: none;
+  box-sizing: border-box;
+}
+
+.card-lost-badge--hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  padding: 0.08rem 0.22rem;
+  font-size: clamp(0.42rem, 2.2vw, 0.52rem);
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 .battle-hub-notice--lost {
@@ -2560,19 +2600,19 @@
 }
 
 .deck-detail-card--lost {
-  opacity: 0.88;
-  filter: grayscale(0.35);
+  border-color: #e53935;
+  border-width: 2px;
 }
 
-.deck-detail-card-lost-badge {
-  display: inline-block;
-  margin-top: 0.35rem;
-  padding: 0.15rem 0.45rem;
-  border-radius: 999px;
-  background: #64748b;
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
+.deck-detail-card--lost .deck-detail-card-top,
+.deck-detail-card--lost .deck-detail-card-art .card-preview,
+.deck-detail-card--lost .deck-detail-card-name,
+.deck-detail-card--lost .deck-detail-card-attr,
+.deck-detail-card--lost .deck-detail-card-guide,
+.deck-detail-card--lost .deck-detail-card-record,
+.deck-detail-card--lost .deck-detail-card-lost-note {
+  opacity: 0.45;
+  filter: grayscale(0.85);
 }
 
 .deck-detail-card-lost-note {
@@ -2641,6 +2681,7 @@
 }
 
 .deck-detail-card-art {
+  position: relative;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -2794,20 +2835,18 @@
   color: #666;
 }
 
-.deck-detail-card-lost-badge {
+.card-lost-badge--detail {
   position: absolute;
-  top: 0.55rem;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  padding: 0.2rem 0.65rem;
-  border-radius: 999px;
-  background: rgba(80, 0, 0, 0.88);
-  color: #fcc;
-  font-size: 0.72rem;
-  font-weight: 700;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  padding: 0.35rem 1rem;
+  font-size: clamp(1.1rem, 5vw, 1.45rem);
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1.1;
   letter-spacing: 0.04em;
-  pointer-events: none;
-  z-index: 2;
 }
 
 .deck-detail-card-faux-note {
@@ -2877,10 +2916,19 @@
   grid-column: 1 / -1;
 }
 
+.deck-card-detail-actions--battle-hub .deck-card-detail-close {
+  grid-column: auto;
+}
+
+.deck-card-detail-actions--battle-hub .deck-card-detail-edit,
+.deck-card-detail-actions--battle-hub .deck-card-detail-close {
+  font-size: 0.82rem;
+}
+
 .confirm-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 1300;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4203,31 +4251,35 @@
 }
 
 .deck-card-row--lost {
-  opacity: 0.62;
-  filter: grayscale(0.35);
+  border-color: #e53935;
+  border-width: 2px;
 }
 
 .deck-card-row--lost .deck-card-main {
   cursor: pointer;
 }
 
-.deck-card-lost-badge {
-  position: absolute;
-  top: 0.35rem;
-  right: 0.35rem;
-  z-index: 2;
-  padding: 0.12rem 0.38rem;
-  border-radius: 999px;
-  background: #64748b;
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1.2;
-  pointer-events: none;
+.deck-card-row--lost .deck-card-rarity-corner,
+.deck-card-row--lost .deck-card-stars-corner,
+.deck-card-row--lost .deck-card-content {
+  opacity: 0.45;
+  filter: grayscale(0.85);
 }
 
-.lost-roulette-backdrop,
-.lost-delete-backdrop {
+.card-lost-badge--row {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  padding: 0.22rem 0.72rem;
+  font-size: clamp(0.9rem, 4.2vw, 1.08rem);
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.lost-roulette-backdrop {
   position: fixed;
   inset: 0;
   z-index: 1200;
@@ -4238,8 +4290,7 @@
   background: rgba(15, 23, 42, 0.55);
 }
 
-.lost-roulette-panel,
-.lost-delete-panel {
+.lost-roulette-panel {
   box-sizing: border-box;
   width: min(100%, 22rem);
   padding: 0.75rem 0.7rem 0.7rem;
@@ -4248,8 +4299,7 @@
   box-shadow: 0 12px 40px rgba(15, 23, 42, 0.25);
 }
 
-.lost-roulette-title,
-.lost-delete-title {
+.lost-roulette-title {
   margin: 0 0 0.55rem;
   font-size: 1rem;
   text-align: center;
@@ -4300,39 +4350,25 @@
   white-space: nowrap;
 }
 
-.lost-roulette-weight {
-  display: block;
-  font-size: 0.65rem;
-  color: #94a3b8;
-}
-
 .lost-roulette-result {
   margin: 0 0 0.55rem;
   font-size: 0.85rem;
   text-align: center;
 }
 
-.lost-roulette-confirm,
-.lost-delete-danger,
-.lost-delete-cancel {
+.lost-roulette-confirm {
   box-sizing: border-box;
   width: 100%;
   min-height: 2.4rem;
   padding: 0.45rem 0.65rem;
   border-radius: 8px;
-  border: 1px solid #bbb;
-  background: #f0f0f4;
-  color: inherit;
-  font: inherit;
-  font-size: 0.88rem;
-  cursor: pointer;
-}
-
-.lost-roulette-confirm {
-  border-color: #646cff;
+  border: 1px solid #646cff;
   background: #646cff;
   color: #fff;
+  font: inherit;
+  font-size: 0.88rem;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .lost-roulette-confirm:disabled {
@@ -4340,62 +4376,6 @@
   background: #e2e8f0;
   color: #94a3b8;
   cursor: not-allowed;
-}
-
-.lost-delete-card {
-  display: grid;
-  grid-template-columns: 4.5rem 1fr;
-  gap: 0.55rem;
-  margin-bottom: 0.55rem;
-  padding: 0.45rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #f8fafc;
-}
-
-.lost-delete-card-preview .card-preview {
-  width: 4.5rem;
-  height: 4.5rem;
-}
-
-.lost-delete-card-name {
-  margin: 0 0 0.25rem;
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
-.lost-delete-card-badges {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.25rem;
-}
-
-.lost-delete-card-detail,
-.lost-delete-card-reward,
-.lost-delete-note,
-.lost-delete-confirm-lead {
-  margin: 0 0 0.45rem;
-  font-size: 0.82rem;
-  line-height: 1.45;
-  color: #475569;
-}
-
-.lost-delete-actions {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.lost-delete-danger {
-  border-color: #e53935;
-  background: #e53935;
-  color: #fff;
-  font-weight: 700;
-}
-
-.lost-delete-cancel {
-  border-color: #cbd5e1;
-  background: #fff;
 }
 
 /* --- Battle card & board --- */

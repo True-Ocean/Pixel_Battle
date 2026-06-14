@@ -55,6 +55,11 @@ export function DeckCardDetailCard({ card, isLost }: DeckCardDetailCardProps) {
 
       <div className="deck-detail-card-art">
         <CardPreview pixels={card.pixels} />
+        {isLost && (
+          <span className="card-lost-badge card-lost-badge--detail" aria-hidden>
+            ロスト中
+          </span>
+        )}
       </div>
 
       <h3 className="deck-detail-card-name">{card.name}</h3>
@@ -77,14 +82,9 @@ export function DeckCardDetailCard({ card, isLost }: DeckCardDetailCardProps) {
       </p>
 
       {isLost && (
-        <>
-          <span className="deck-detail-card-lost-badge" aria-hidden>
-            ロスト中
-          </span>
-          <p className="deck-detail-card-lost-note">
-            バトルに出せません。削除するか、完全復活（準備中）をお待ちください。
-          </p>
-        </>
+        <p className="deck-detail-card-lost-note">
+          バトルに出せません。削除するか、完全復活（準備中）をお待ちください。
+        </p>
       )}
     </article>
   );
