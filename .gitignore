@@ -10,7 +10,12 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dev-dist
 *.local
+
+# Vite / TypeScript
+.vite
+*.tsbuildinfo
 
 # Environment / secrets
 .env
@@ -20,14 +25,24 @@ dist-ssr
 # Test coverage
 coverage
 
+# Tool caches
+.eslintcache
+
+# Local TLS certs (e.g. vite --https)
+*.pem
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 .cursor
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# OS files
+.DS_Store
+._*
+Thumbs.db
