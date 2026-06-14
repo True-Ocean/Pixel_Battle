@@ -25,7 +25,7 @@ import { gridSize } from '../canvas';
 import { effectiveDevPreferSavedLevel, normalizeUserProfile, resolveDevUserProfileOnLoad } from '../user';
 import { normalizeCardStatus } from '../card/status';
 import { createInitialEconomy, normalizeUserEconomy } from '../user/economy';
-import { createInitialInventory, normalizeUserInventory } from '../user/inventory';
+import { createInitialInventory, applyDevInventoryFill, inventoryMatchesDevFill, normalizeUserInventory } from '../user/inventory';
 import { createInitialAdState, normalizeAdState } from '../user/adState';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
@@ -336,7 +336,7 @@ export function loadSave(): SaveData {
 
     const user = normalizeUserProfile(parsed.user);
     const economy = normalizeUserEconomy(parsed.economy);
-    const inventory = normalizeUserInventory(parsed.inventory);
+    const inventory = applyDevInventoryFill(normalizeUserInventory(parsed.inventory));
     const adState = normalizeAdState(parsed.adState);
     const decks = normalizeDeckSlots(migrateDecks(parsed));
     const battleHistory = migrateBattleHistory(parsed.battleHistory);
@@ -386,6 +386,7 @@ export function loadSave(): SaveData {
         devAdjusted.exp !== user.exp ||
         (rescale && anyDeckBpChanged(decks, finalDecks)) ||
         (parsed.devPreferSavedLevel === true && !preferSaved) ||
+        !inventoryMatchesDevFill(normalizeUserInventory(parsed.inventory)) ||
         shouldPersistMigration(parsed, finalSave, decks, finalDecks)
       ) {
         saveSave(finalSave);
@@ -393,7 +394,10 @@ export function loadSave(): SaveData {
       return finalSave;
     }
 
-    if (shouldPersistMigration(parsed, baseSave, decks, decks)) {
+    if (
+      !inventoryMatchesDevFill(normalizeUserInventory(parsed.inventory)) ||
+      shouldPersistMigration(parsed, baseSave, decks, decks)
+    ) {
       saveSave(baseSave);
     }
     return baseSave;

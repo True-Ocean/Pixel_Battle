@@ -1,4 +1,7 @@
 import { ATTRIBUTE_META } from '../config/attributes';
+import { DEV_FILL_ALL_SHARDS } from '../config/devInventory';
+import type { LimitBreakShardSpendPlan } from '../card/limitBreak';
+import { isValidLimitBreakShardSpend, planLimitBreakShardSpend } from '../card/limitBreak';
 import type { Attribute, UserInventory } from '../types';
 
 const ALL_ATTRIBUTES = Object.keys(ATTRIBUTE_META) as Attribute[];
@@ -38,6 +41,36 @@ export function normalizeUserInventory(raw: unknown): UserInventory {
   }
 
   return { talisman, limitBreakUniversal, limitBreakShards };
+}
+
+export function fillAllLimitBreakShards(
+  inventory: UserInventory,
+  count: number,
+): UserInventory {
+  const amount = Math.max(0, Math.floor(count));
+  const limitBreakShards: Partial<Record<Attribute, number>> = {};
+  for (const attribute of ALL_ATTRIBUTES) {
+    limitBreakShards[attribute] = amount;
+  }
+  return {
+    ...inventory,
+    limitBreakUniversal: amount,
+    limitBreakShards,
+  };
+}
+
+export function applyDevInventoryFill(inventory: UserInventory): UserInventory {
+  if (!import.meta.env.DEV || DEV_FILL_ALL_SHARDS == null) return inventory;
+  return fillAllLimitBreakShards(inventory, DEV_FILL_ALL_SHARDS);
+}
+
+export function inventoryMatchesDevFill(inventory: UserInventory): boolean {
+  if (!import.meta.env.DEV || DEV_FILL_ALL_SHARDS == null) return true;
+  if (inventory.limitBreakUniversal !== DEV_FILL_ALL_SHARDS) return false;
+  return ALL_ATTRIBUTES.every(
+    (attribute) =>
+      (inventory.limitBreakShards[attribute] ?? 0) === DEV_FILL_ALL_SHARDS,
+  );
 }
 
 export function addInventoryCount(
@@ -95,4 +128,33 @@ export function spendLimitBreakShards(
     limitBreakShards[attribute] = next;
   }
   return { ...inventory, limitBreakShards };
+}
+
+export function canAffordLimitBreak(
+  attributeShardCount: number,
+  universalShardCount: number,
+): boolean {
+  return planLimitBreakShardSpend(attributeShardCount, universalShardCount) != null;
+}
+
+/** 指定した内訳でかけらを消費する（専用・汎用は1:1）。 */
+export function spendLimitBreakResources(
+  inventory: UserInventory,
+  attribute: Attribute,
+  spend: LimitBreakShardSpendPlan,
+): UserInventory | null {
+  const attrCount = inventory.limitBreakShards[attribute] ?? 0;
+  const universalCount = inventory.limitBreakUniversal;
+  if (!isValidLimitBreakShardSpend(spend, attrCount, universalCount)) return null;
+
+  let next = inventory;
+  if (spend.attrSpend > 0) {
+    const spent = spendLimitBreakShards(next, attribute, spend.attrSpend);
+    if (!spent) return null;
+    next = spent;
+  }
+  if (spend.universalSpend > 0) {
+    return spendInventoryCount(next, 'limitBreakUniversal', spend.universalSpend);
+  }
+  return next;
 }

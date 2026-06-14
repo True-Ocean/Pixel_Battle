@@ -27,10 +27,15 @@ export {
 export {
   addInventoryCount,
   addLimitBreakShards,
+  applyDevInventoryFill,
+  canAffordLimitBreak,
   createInitialInventory,
+  fillAllLimitBreakShards,
+  inventoryMatchesDevFill,
   normalizeUserInventory,
   spendInventoryCount,
   spendLimitBreakShards,
+  spendLimitBreakResources,
 } from './inventory';
 export {
   createInitialAdState,

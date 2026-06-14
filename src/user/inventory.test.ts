@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   addInventoryCount,
   addLimitBreakShards,
+  canAffordLimitBreak,
   createInitialInventory,
+  fillAllLimitBreakShards,
   normalizeUserInventory,
   spendInventoryCount,
   spendLimitBreakShards,
+  spendLimitBreakResources,
 } from './inventory';
 
 describe('user inventory', () => {
@@ -55,5 +58,74 @@ describe('user inventory', () => {
       limitBreakUniversal: 0,
       limitBreakShards: {},
     });
+  });
+
+  it('canAffordLimitBreak: 専用+汎用の合計10以上', () => {
+    expect(canAffordLimitBreak(10, 0)).toBe(true);
+    expect(canAffordLimitBreak(5, 5)).toBe(true);
+    expect(canAffordLimitBreak(0, 10)).toBe(true);
+    expect(canAffordLimitBreak(5, 4)).toBe(false);
+    expect(canAffordLimitBreak(5, 0)).toBe(false);
+    expect(canAffordLimitBreak(0, 0)).toBe(false);
+  });
+
+  it('spendLimitBreakResources: 指定内訳で消費する', () => {
+    const combinedBase = {
+      ...createInitialInventory(),
+      limitBreakUniversal: 7,
+      limitBreakShards: { attack: 5, ice: 12 },
+    };
+    expect(
+      spendLimitBreakResources(combinedBase, 'attack', { attrSpend: 5, universalSpend: 5 }),
+    ).toEqual({
+      talisman: 0,
+      limitBreakUniversal: 2,
+      limitBreakShards: { ice: 12 },
+    });
+    expect(
+      spendLimitBreakResources(combinedBase, 'attack', { attrSpend: 3, universalSpend: 7 }),
+    ).toEqual({
+      talisman: 0,
+      limitBreakUniversal: 0,
+      limitBreakShards: { attack: 2, ice: 12 },
+    });
+
+    const attrOnlyBase = {
+      ...createInitialInventory(),
+      limitBreakUniversal: 2,
+      limitBreakShards: { ice: 12 },
+    };
+    expect(
+      spendLimitBreakResources(attrOnlyBase, 'ice', { attrSpend: 10, universalSpend: 0 }),
+    ).toEqual({
+      talisman: 0,
+      limitBreakUniversal: 2,
+      limitBreakShards: { ice: 2 },
+    });
+
+    const universalOnlyBase = {
+      ...createInitialInventory(),
+      limitBreakUniversal: 12,
+      limitBreakShards: { attack: 5, ice: 12 },
+    };
+    expect(
+      spendLimitBreakResources(universalOnlyBase, 'attack', { attrSpend: 0, universalSpend: 10 }),
+    ).toEqual({
+      talisman: 0,
+      limitBreakUniversal: 2,
+      limitBreakShards: { attack: 5, ice: 12 },
+    });
+
+    expect(
+      spendLimitBreakResources(combinedBase, 'attack', { attrSpend: 5, universalSpend: 4 }),
+    ).toBeNull();
+  });
+
+  it('fillAllLimitBreakShards: 汎用と全属性を指定数に揃える', () => {
+    const filled = fillAllLimitBreakShards(createInitialInventory(), 10);
+    expect(filled.limitBreakUniversal).toBe(10);
+    expect(filled.limitBreakShards.attack).toBe(10);
+    expect(filled.limitBreakShards.ninja).toBe(10);
+    expect(Object.keys(filled.limitBreakShards)).toHaveLength(10);
   });
 });

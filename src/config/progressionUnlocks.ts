@@ -98,7 +98,6 @@ function getMainRewardAtLevel(level: number): LevelUpRewardEntry | null {
     return {
       kind: 'limit_break',
       label: '汎用限界突破アイテム',
-      pending: true,
     };
   }
   if (mod10 === 5) {

@@ -33,6 +33,7 @@ interface SettingsScreenProps {
   onDevSetLevel: (level: number) => string;
   onDevSetUnlockedDeckCount: (count: number) => void;
   onDevSetFreePixels: (amount: number) => void;
+  onDevFillAllShards: () => string;
   onDevMarkCardLost: (cardId: string) => string;
   onDevFillDeckSlots: (deckIndex: number) => string;
 }
@@ -94,6 +95,7 @@ export function SettingsScreen({
   onDevSetLevel,
   onDevSetUnlockedDeckCount,
   onDevSetFreePixels,
+  onDevFillAllShards,
   onDevMarkCardLost,
   onDevFillDeckSlots,
 }: SettingsScreenProps) {
@@ -112,6 +114,7 @@ export function SettingsScreen({
   const [devPixelsNotice, setDevPixelsNotice] = useState<string | null>(null);
   const [devLostNotice, setDevLostNotice] = useState<string | null>(null);
   const [devFillNotice, setDevFillNotice] = useState<string | null>(null);
+  const [devShardsNotice, setDevShardsNotice] = useState<string | null>(null);
   const [devLostCardId, setDevLostCardId] = useState('');
   const [devFillDeckIndex, setDevFillDeckIndex] = useState(0);
   const isDev = import.meta.env.DEV;
@@ -206,6 +209,10 @@ export function SettingsScreen({
     }
     onDevSetFreePixels(parsed);
     setDevPixelsNotice(`pxコインを ${parsed.toLocaleString()} に変更しました。`);
+  };
+
+  const handleDevFillAllShards = () => {
+    setDevShardsNotice(onDevFillAllShards());
   };
 
   const handleDevMarkCardLost = () => {
@@ -363,6 +370,13 @@ export function SettingsScreen({
                 </div>
               </div>
             </div>
+            <button
+              type="button"
+              className="settings-dev-shards-btn"
+              onClick={handleDevFillAllShards}
+            >
+              すべてのかけらを100個にする
+            </button>
             <div className="settings-dev-level">
               <label
                 className="settings-dev-level-label"
@@ -460,6 +474,11 @@ export function SettingsScreen({
             {devPixelsNotice && (
               <p className="settings-dev-notice" role="status">
                 {devPixelsNotice}
+              </p>
+            )}
+            {devShardsNotice && (
+              <p className="settings-dev-notice" role="status">
+                {devShardsNotice}
               </p>
             )}
             {devLostNotice && (

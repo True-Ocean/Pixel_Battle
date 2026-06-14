@@ -5,13 +5,21 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, resolveDeckUnlockOnLevelUp } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp } from './card';
+import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, type LimitBreakShardSpendPlan } from './card';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, addLimitBreakShards } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, addLimitBreakShards, spendLimitBreakResources, fillAllLimitBreakShards } from './user';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
-import { calcCardDeleteRefundPixels, calcDowngradeReviveCost, calcFullReviveCost, calcGraveyardShardReward, calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
+import {
+  calcCardDeleteRefundPixels,
+  calcDowngradeReviveCost,
+  calcFullReviveCost,
+  calcGraveyardShardReward,
+  calcSurvivorPixels,
+  calcVictoryBattlePixels,
+  countBattleSurvivors,
+} from './config/economy';
 import { LevelUpModal } from './components/LevelUpModal';
 import { GraveyardPickModal } from './components/GraveyardPickModal';
 import { LostRouletteModal } from './components/LostRouletteModal';
@@ -397,6 +405,37 @@ function App() {
     [persistSave],
   );
 
+  const limitBreakCard = useCallback(
+    (id: string, spend: LimitBreakShardSpendPlan) => {
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const target = prevLayout.find((card) => card?.id === id);
+      if (!target || !canLimitBreakCard(target)) return;
+
+      const userLevel = userRef.current?.level ?? 1;
+      const spent = spendLimitBreakResources(
+        inventoryRef.current,
+        target.attribute,
+        spend,
+      );
+      if (!spent) return;
+
+      const upgraded = applyLimitBreakToCard(target, userLevel);
+      const nextLayout = prevLayout.map((card) =>
+        card?.id === id ? upgraded : card,
+      );
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
+
+      persistSave({ decks: nextDecks, inventory: spent });
+      setDecks(nextDecks);
+      setInventory(spent);
+      decksRef.current = nextDecks;
+      inventoryRef.current = spent;
+    },
+    [persistSave],
+  );
+
   const reorderDeck = useCallback(
     (ordered: DeckLayout) => {
       setDecks((prevDecks) => {
@@ -518,9 +557,15 @@ function App() {
           winner: outcome.winner,
           opponentDeckPower: outcome.opponentDeckPower,
         };
-        const battleRecord = recordUserBattleOutcome(prevUser, prevEconomy, expInput);
+        const battleRecord = recordUserBattleOutcome(
+          prevUser,
+          prevEconomy,
+          nextInventory,
+          expInput,
+        );
         nextUser = battleRecord.user;
         nextEconomy = battleRecord.economy;
+        nextInventory = battleRecord.inventory;
         if (crossedTalismanStarterLevel(prevUser.level, battleRecord.user.level)) {
           const grant = tryGrantTalismanStarter(
             nextInventory,
@@ -793,6 +838,17 @@ function App() {
     [persistSave],
   );
 
+  const handleDevFillAllShards = useCallback((): string => {
+    if (!import.meta.env.DEV) {
+      return '開発ビルドでのみ利用できます。';
+    }
+    const nextInventory = fillAllLimitBreakShards(inventoryRef.current, 100);
+    persistSave({ inventory: nextInventory });
+    setInventory(nextInventory);
+    inventoryRef.current = nextInventory;
+    return '汎用かけらと全属性かけらをそれぞれ100個にしました。';
+  }, [persistSave]);
+
   const devCardOptions = useMemo(() => {
     const options: { id: string; label: string; isLost: boolean }[] = [];
     decks.forEach((deck, deckIndex) => {
@@ -1031,6 +1087,8 @@ function App() {
             onDeleteCard={deleteCard}
             onReviveLostCard={reviveLostCard}
             onDowngradeReviveLostCard={downgradeReviveLostCard}
+            inventory={inventory}
+            onLimitBreakCard={limitBreakCard}
             freePixels={economy.freePixels}
             reviveCost={calcFullReviveCost()}
             downgradeReviveCost={calcDowngradeReviveCost()}
@@ -1077,6 +1135,7 @@ function App() {
             onDevSetLevel={handleDevSetLevel}
             onDevSetUnlockedDeckCount={handleDevSetUnlockedDeckCount}
             onDevSetFreePixels={handleDevSetFreePixels}
+            onDevFillAllShards={handleDevFillAllShards}
             onDevMarkCardLost={handleDevMarkCardLost}
             onDevFillDeckSlots={handleDevFillDeckSlots}
           />

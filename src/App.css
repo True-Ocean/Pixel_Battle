@@ -1876,6 +1876,31 @@ button.battle-hub-deck-icon.is-drop-target {
   color: #334155;
 }
 
+.settings-dev-shards-btn {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.45rem;
+  padding: 0.45rem 0.65rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #646cff 0%, #535bf2 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.settings-dev-level-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.settings-dev-level-apply--wide {
+  align-self: flex-start;
+}
+
 .settings-dev-level-row {
   display: flex;
   align-items: stretch;
@@ -2729,6 +2754,108 @@ button.battle-hub-deck-icon.is-drop-target {
   font-size: 0.78rem;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.deck-card-detail-limit-break {
+  padding: 0.55rem 0.85rem 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.deck-card-detail-limit-break-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.45rem;
+}
+
+.deck-card-detail-limit-break-picker--split {
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+.deck-card-detail-limit-break-picker-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.deck-card-detail-limit-break-picker-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 100%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.deck-card-detail-limit-break-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.deck-card-detail-limit-break-step {
+  width: 1.65rem;
+  height: 1.65rem;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.deck-card-detail-limit-break-step:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.deck-card-detail-limit-break-step-value {
+  min-width: 1.35rem;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #0f766e;
+}
+
+.deck-card-detail-limit-break-universal-icon {
+  font-size: 0.72rem;
+}
+
+.deck-card-detail-limit-break-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.deck-card-detail-limit-break-cap {
+  margin: 0;
+  padding: 0.55rem 0.85rem 0;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.76rem;
+}
+
+.deck-card-detail-limit-break-btn {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.5rem 0.55rem;
+  border: 1px solid #0d9488;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #0f766e;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .graveyard-pick-confirm {

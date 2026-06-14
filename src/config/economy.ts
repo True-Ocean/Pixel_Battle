@@ -37,6 +37,21 @@ export const JEWEL_COST_DECK_UNLOCK = 200;
 /** 限界突破に必要な属性欠片数 */
 export const LIMIT_BREAK_SHARDS_REQUIRED = 10;
 
+/** ★数ごとの BP 倍率（暫定・プロトタイプ） */
+export const LIMIT_BREAK_STAR_BP_MULTIPLIER: Record<CardStars, number> = {
+  0: 1,
+  1: 1.03,
+  2: 1.06,
+  3: 1.09,
+};
+
+/** Lv20,30,40… 到達時の汎用限界突破付与数 */
+export function calcLevelUpUniversalLimitBreak(level: number): number {
+  const L = Math.floor(level);
+  if (L < 20 || L % 10 !== 0) return 0;
+  return 1;
+}
+
 /** 墓地戦利品の属性欠片（レア度別） */
 export const GRAVEYARD_SHARD_REWARD: Record<Extract<CardRarity, 'N' | 'R' | 'SR'>, number> = {
   N: 1,

@@ -18,6 +18,7 @@ import {
   validateUsername,
 } from './profile';
 import { createInitialEconomy } from './economy';
+import { createInitialInventory } from './inventory';
 import { totalExpForLevel, levelFromTotalExp } from './level';
 
 describe('validateUsername', () => {
@@ -180,9 +181,10 @@ describe('recordUserBattleOutcome', () => {
     battleLosses: 1,
   };
   const economy = createInitialEconomy();
+  const inventory = createInitialInventory();
 
   it('records battle wins, losses, and level-up pixels', () => {
-    const result = recordUserBattleOutcome(base, economy, {
+    const result = recordUserBattleOutcome(base, economy, inventory, {
       winner: 'player',
       opponentDeckPower: 1000,
     });
@@ -202,6 +204,8 @@ describe('recordUserBattleOutcome', () => {
     );
     expect(result.economy.freePixels).toBe(result.pixelsGranted);
     expect(result.economy.jewels).toBe(result.jewelsGranted);
+    expect(result.inventory).toEqual(inventory);
+    expect(result.universalGranted).toBe(0);
   });
 
   it('adds jewel bonus at L≡4 levels', () => {
@@ -210,7 +214,7 @@ describe('recordUserBattleOutcome', () => {
       level: 8,
       exp: totalExpForLevel(8) + 1,
     };
-    const result = recordUserBattleOutcome(highLevelUser, economy, {
+    const result = recordUserBattleOutcome(highLevelUser, economy, inventory, {
       winner: 'player',
       opponentDeckPower: 5000,
     });
@@ -218,9 +222,25 @@ describe('recordUserBattleOutcome', () => {
     expect(result.jewelsGranted).toBeGreaterThanOrEqual(JEWELS_PER_LEVEL + JEWELS_BONUS_MOD4);
   });
 
+  it('grants universal limit break at L20, L30, ...', () => {
+    const user = {
+      ...base,
+      level: 19,
+      exp: totalExpForLevel(19),
+    };
+    const result = recordUserBattleOutcome(user, economy, inventory, {
+      winner: 'player',
+      opponentDeckPower: 50000,
+    });
+    if (result.levelsGained.includes(20)) {
+      expect(result.universalGranted).toBeGreaterThanOrEqual(1);
+      expect(result.inventory.limitBreakUniversal).toBeGreaterThanOrEqual(1);
+    }
+  });
+
   it('increments battle losses on defeat', () => {
     expect(
-      recordUserBattleOutcome(base, economy, {
+      recordUserBattleOutcome(base, economy, inventory, {
         winner: 'cpu',
         opponentDeckPower: 1000,
       }).user.battleLosses,

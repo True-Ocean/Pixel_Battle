@@ -20,6 +20,7 @@ import {
   calcLevelUpPixels,
   calcLevelUpJewels,
   calcLevelUpJewelBonus,
+  calcLevelUpUniversalLimitBreak,
   calcTotalLevelUpJewels,
   calcLostSelectionWeight,
   calcSurvivorPixels,
@@ -124,6 +125,15 @@ describe('calcGraveyardPixelReward', () => {
       Array.from({ length: 4 }, () => null),
     );
     expect(calcGraveyardPixelReward(makeCard(empty))).toBe(0);
+  });
+});
+
+describe('calcLevelUpUniversalLimitBreak', () => {
+  it('grants at L20, L30 and not elsewhere', () => {
+    expect(calcLevelUpUniversalLimitBreak(19)).toBe(0);
+    expect(calcLevelUpUniversalLimitBreak(20)).toBe(1);
+    expect(calcLevelUpUniversalLimitBreak(25)).toBe(0);
+    expect(calcLevelUpUniversalLimitBreak(30)).toBe(1);
   });
 });
 

@@ -14,8 +14,21 @@ export {
   countDistinctUsedColors,
 } from './rarity';
 export {
+  applyLimitBreakStarBpMultiplier,
+  applyLimitBreakToCard,
+  canLimitBreakCard,
+  defaultLimitBreakAttrSpend,
+  describeLimitBreakCost,
+  describeLimitBreakResult,
+  describeLimitBreakSpendPlan,
   formatLimitBreakStars,
+  getLimitBreakAttrSpendRange,
+  getLimitBreakOutcomeKind,
   getLimitBreakStarColor,
+  getUpgradedRarity,
+  isLimitBreakCapReached,
+  isValidLimitBreakShardSpend,
+  type LimitBreakShardSpendPlan,
 } from './limitBreak';
 export { buildCardSeed, hashToUnit } from './hash';
 export { computeCardPower, computeDeckPower, attributePowerConfig } from './power';

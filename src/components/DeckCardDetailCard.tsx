@@ -16,7 +16,10 @@ interface DeckCardDetailCardProps {
   isLost: boolean;
 }
 
-export function DeckCardDetailCard({ card, isLost }: DeckCardDetailCardProps) {
+export function DeckCardDetailCard({
+  card,
+  isLost,
+}: DeckCardDetailCardProps) {
   const rarityMeta = getRarityMeta(card.rarity);
   const attrMeta = getAttributeMeta(card.attribute);
 

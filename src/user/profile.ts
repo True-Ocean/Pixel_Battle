@@ -1,4 +1,9 @@
-import { calcLevelUpPixels, calcLevelUpJewelBonus, calcLevelUpJewels } from '../config/economy';
+import {
+  calcLevelUpPixels,
+  calcLevelUpJewelBonus,
+  calcLevelUpJewels,
+  calcLevelUpUniversalLimitBreak,
+} from '../config/economy';
 import {
   DEV_FORCE_MAX_USER_LEVEL,
   MAX_USER_LEVEL,
@@ -7,8 +12,9 @@ import {
   USERNAME_MAX_LENGTH,
 } from '../config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
-import type { UserEconomy, UserProfile } from '../types';
+import type { UserEconomy, UserInventory, UserProfile } from '../types';
 import { addFreePixels, addJewels } from './economy';
+import { addInventoryCount } from './inventory';
 import {
   calcBattleExpGain,
   levelFromTotalExp,
@@ -172,10 +178,12 @@ export function grantBattleExp(
 export interface BattleOutcomeRecord {
   user: UserProfile;
   economy: UserEconomy;
+  inventory: UserInventory;
   /** 今回到達したレベル（例: 20→22 なら [21, 22]） */
   levelsGained: number[];
   pixelsGranted: number;
   jewelsGranted: number;
+  universalGranted: number;
 }
 
 function levelsReached(previousLevel: number, nextLevel: number): number[] {
@@ -204,18 +212,39 @@ export function applyLevelUpEconomyRewards(
   return { economy: nextEconomy, pixelsGranted, jewelsGranted };
 }
 
+export function applyLevelUpInventoryRewards(
+  inventory: UserInventory,
+  levelsGained: number[],
+): { inventory: UserInventory; universalGranted: number } {
+  let nextInventory = inventory;
+  let universalGranted = 0;
+  for (const level of levelsGained) {
+    const amount = calcLevelUpUniversalLimitBreak(level);
+    if (amount > 0) {
+      nextInventory = addInventoryCount(
+        nextInventory,
+        'limitBreakUniversal',
+        amount,
+      );
+      universalGranted += amount;
+    }
+  }
+  return { inventory: nextInventory, universalGranted };
+}
+
 export function recordUserBattleOutcome(
   user: UserProfile,
   economy: UserEconomy,
+  inventory: UserInventory,
   input: BattleExpInput,
 ): BattleOutcomeRecord {
   const previousLevel = user.level;
   const withExp = grantBattleExp(user, input);
   const levelsGained = levelsReached(previousLevel, withExp.level);
-  const { economy: nextEconomy, pixelsGranted, jewelsGranted } = applyLevelUpEconomyRewards(
-    economy,
-    levelsGained,
-  );
+  const { economy: nextEconomy, pixelsGranted, jewelsGranted } =
+    applyLevelUpEconomyRewards(economy, levelsGained);
+  const { inventory: nextInventory, universalGranted } =
+    applyLevelUpInventoryRewards(inventory, levelsGained);
   return {
     user: {
       ...withExp,
@@ -223,8 +252,10 @@ export function recordUserBattleOutcome(
       battleLosses: withExp.battleLosses + (input.winner === 'cpu' ? 1 : 0),
     },
     economy: nextEconomy,
+    inventory: nextInventory,
     levelsGained,
     pixelsGranted,
     jewelsGranted,
+    universalGranted,
   };
 }

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
-import { canDowngradeRevive, computeDeckPower, getDowngradedRarity, isCardLost } from '../card';
+import { canDowngradeRevive, computeDeckPower, getDowngradedRarity, isCardLost, type LimitBreakShardSpendPlan } from '../card';
 import { calcCardDeleteRefundPixels } from '../config/economy';
 import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
 import {
@@ -12,7 +12,7 @@ import {
   moveCardInLayout,
   normalizeDeckLayout,
 } from '../deckSlots';
-import type { Card, DeckLayout } from '../types';
+import type { Card, DeckLayout, UserInventory } from '../types';
 import { getRarityMeta, type RarityMeta } from '../config/rarity';
 import { AttributeBadge } from './AttributeBadge';
 import { CardBattleRecord } from './CardBattleRecord';
@@ -50,6 +50,8 @@ interface DeckScreenProps {
   onDeleteCard: (id: string) => void;
   onReviveLostCard: (id: string) => void;
   onDowngradeReviveLostCard: (id: string) => void;
+  inventory: UserInventory;
+  onLimitBreakCard: (id: string, spend: LimitBreakShardSpendPlan) => void;
   freePixels: number;
   reviveCost: number;
   downgradeReviveCost: number;
@@ -259,6 +261,8 @@ export function DeckScreen({
   onDeleteCard,
   onReviveLostCard,
   onDowngradeReviveLostCard,
+  inventory,
+  onLimitBreakCard,
   freePixels,
   reviveCost,
   downgradeReviveCost,
@@ -892,12 +896,17 @@ export function DeckScreen({
           freePixels={freePixels}
           reviveCost={reviveCost}
           downgradeReviveCost={downgradeReviveCost}
+          attributeShardCount={
+            inventory.limitBreakShards[selectedCard.attribute] ?? 0
+          }
+          universalShardCount={inventory.limitBreakUniversal}
           onClose={closeDetail}
           onEdit={handleEditFromDetail}
           onDelete={() => handleDeleteRequest(selectedCard)}
           onDeleteLost={handleLostDeleteRequest}
           onReviveLost={handleReviveRequest}
           onDowngradeReviveLost={handleDowngradeReviveRequest}
+          onLimitBreak={(spend) => onLimitBreakCard(selectedCard.id, spend)}
         />
       )}
 
