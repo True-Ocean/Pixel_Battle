@@ -10,7 +10,6 @@ import {
 import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
 import {
   countDeckCards,
-  deckHasLostCard,
   getBattleReadyDeckIndices,
   getDeckCards,
   getDeckDisplayName,
@@ -133,7 +132,6 @@ export function BattleHubScreen({
       const unlocked = isDeckSlotUnlocked(index, unlockedDeckCount);
       const layout = normalizeDeckLayout(decks[index] ?? []);
       const cardCount = countDeckCards(layout);
-      const hasLost = deckHasLostCard(layout);
       let status: BattleHubDeckStatus;
       if (!unlocked) {
         status = 'locked';
@@ -147,21 +145,10 @@ export function BattleHubScreen({
         layout,
         status,
         cardCount,
-        hasLost,
         power: computeDeckPower(getDeckCards(layout)),
       };
     });
   }, [decks, unlockedDeckCount]);
-
-  const hasAnyLostDeck = useMemo(
-    () => deckRows.some(({ status, hasLost }) => status !== 'locked' && hasLost),
-    [deckRows],
-  );
-
-  const showInteractionHint = useMemo(
-    () => deckRows.some(({ status, cardCount }) => status !== 'locked' && cardCount > 0),
-    [deckRows],
-  );
 
   const handleDeckSelect = useCallback(
     (index: number, status: BattleHubDeckStatus) => {
@@ -515,19 +502,9 @@ export function BattleHubScreen({
           >
             CPU戦
           </button>
-          {showInteractionHint && (
-            <p className="battle-hub-notice" role="status">
-              カードをタップで詳細、長押しで移動。編集・削除はマイデッキで行えます。
-            </p>
-          )}
           {readyIndices.length === 0 && (
             <p className="battle-hub-notice" role="status">
               5枚揃ったデッキがありません。マイデッキで編成してください。
-            </p>
-          )}
-          {hasAnyLostDeck && (
-            <p className="battle-hub-notice battle-hub-notice--lost" role="status">
-              ロスト中のカードがあります。タップで詳細を確認し、マイデッキで削除するか、長押しで別デッキへ移動できます。
             </p>
           )}
           {readyIndices.length > 1 && selectedIndex == null && (
