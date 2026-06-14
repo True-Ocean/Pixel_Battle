@@ -22,3 +22,12 @@ export function markCardActive(card: Card): Card {
   const { status: _status, ...rest } = card;
   return { ...rest, status: 'active' as const };
 }
+
+/** ロストカードを完全復活（active 化 + reviveCount +1） */
+export function applyCardFullRevive(card: Card): Card {
+  if (!isCardLost(card)) return card;
+  return {
+    ...markCardActive(card),
+    reviveCount: card.reviveCount + 1,
+  };
+}

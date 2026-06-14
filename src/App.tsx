@@ -5,7 +5,7 @@ import { MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, markCardLost, rescaleDeckBp } from './card';
+import { applyCardSurvivalRecords, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp } from './card';
 import { buildBalancedCpuDeck } from './game/cpuDeck';
 import { CPU_OPPONENT_LABEL } from './battleHistory';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
@@ -18,8 +18,9 @@ import {
   recordUserBattleOutcome,
   totalExpForLevel,
   addFreePixels,
+  spendFreePixels,
 } from './user';
-import { calcCardDeleteRefundPixels, calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
+import { calcCardDeleteRefundPixels, calcFullReviveCost, calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
 import { LevelUpModal } from './components/LevelUpModal';
 import { GraveyardPickModal } from './components/GraveyardPickModal';
 import { LostRouletteModal } from './components/LostRouletteModal';
@@ -324,6 +325,32 @@ function App() {
   const deleteCard = useCallback(
     (id: string) => removeCardFromActiveDeck(id),
     [removeCardFromActiveDeck],
+  );
+
+  const reviveLostCard = useCallback(
+    (id: string) => {
+      const cost = calcFullReviveCost();
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const target = prevLayout.find((card) => card?.id === id);
+      if (!target || !isCardLost(target)) return;
+
+      const nextEconomy = spendFreePixels(economyRef.current, cost);
+      if (!nextEconomy) return;
+
+      const nextLayout = prevLayout.map((card) =>
+        card?.id === id ? applyCardFullRevive(card) : card,
+      );
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
+
+      persistSave({ decks: nextDecks, economy: nextEconomy });
+      setDecks(nextDecks);
+      setEconomy(nextEconomy);
+      decksRef.current = nextDecks;
+      economyRef.current = nextEconomy;
+    },
+    [persistSave],
   );
 
   const reorderDeck = useCallback(
@@ -689,8 +716,10 @@ function App() {
     return deckHasLostCard(normalizeDeckLayout(decks[deckIndex] ?? []));
   }, [decks, lastBattleDeckIndex, pendingLostRouletteOutcome]);
 
-  const showAppHeader = screen === 'deck';
-  const showProfileBar = showAppHeader && isProfileComplete(user);
+  const showProfileBar =
+    isProfileComplete(user) &&
+    isTabId(screen) &&
+    screen !== 'settings';
   const showDock = isDockVisible(screen) || (screen === 'battleSetup' && battleEndDock);
   const activeTab: TabId =
     screen === 'battleSetup' && battleEndDock
@@ -723,16 +752,9 @@ function App() {
         </header>
       )}
 
-      {showAppHeader && (
-        <header className="app-header app-header--deck">
-          <div className="app-brand">
-            {showProfileBar && user && (
-              <UserProfileBar
-                user={user}
-                freePixels={economy.freePixels}
-              />
-            )}
-          </div>
+      {showProfileBar && user && (
+        <header className="app-header app-header--profile">
+          <UserProfileBar user={user} freePixels={economy.freePixels} />
         </header>
       )}
 
@@ -768,6 +790,9 @@ function App() {
               setScreen('editor');
             }}
             onDeleteCard={deleteCard}
+            onReviveLostCard={reviveLostCard}
+            freePixels={economy.freePixels}
+            reviveCost={calcFullReviveCost()}
             onReorderDeck={reorderDeck}
             onMoveCardBetweenDecks={moveCardBetweenDecks}
             onPrototypeUnlockDeck={handlePrototypeUnlockNextDeck}

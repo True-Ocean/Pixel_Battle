@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { getAttributeMeta } from '../config/attributes';
+import { calcFullReviveCost } from '../config/economy';
 import { getRarityMeta } from '../config/rarity';
 import type { Card } from '../types';
 import { AttributeBadge } from './AttributeBadge';
@@ -83,7 +84,7 @@ export function DeckCardDetailCard({ card, isLost }: DeckCardDetailCardProps) {
 
       {isLost && (
         <p className="deck-detail-card-lost-note">
-          バトルに出せません。削除するか、完全復活（準備中）をお待ちください。
+          バトルに出せません。削除するか、完全復活（{calcFullReviveCost().toLocaleString()}px）で復活できます。
         </p>
       )}
     </article>

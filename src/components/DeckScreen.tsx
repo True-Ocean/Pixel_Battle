@@ -48,6 +48,9 @@ interface DeckScreenProps {
   onCreateCard: () => void;
   onEditCard: (card: Card, options?: { returnToDetail?: boolean }) => void;
   onDeleteCard: (id: string) => void;
+  onReviveLostCard: (id: string) => void;
+  freePixels: number;
+  reviveCost: number;
   onReorderDeck: (deck: DeckLayout) => void;
   onMoveCardBetweenDecks: (
     fromDeckIndex: number,
@@ -211,6 +214,10 @@ function DeckCardRowBody({ card }: { card: Card }) {
   );
 }
 
+function formatReviveConfirmMessage(card: Card, reviveCost: number): string {
+  return `「${card.name}」を完全復活させます。${reviveCost.toLocaleString()}pxを消費します。`;
+}
+
 function formatDeleteConfirmMessage(card: Card): string {
   const refundPixels = calcCardDeleteRefundPixels(card);
   const refundNote =
@@ -234,6 +241,9 @@ export function DeckScreen({
   onCreateCard,
   onEditCard,
   onDeleteCard,
+  onReviveLostCard,
+  freePixels,
+  reviveCost,
   onReorderDeck,
   onMoveCardBetweenDecks,
   onPrototypeUnlockDeck,
@@ -242,6 +252,8 @@ export function DeckScreen({
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
   const [deleteConfirmFinal, setDeleteConfirmFinal] = useState(false);
+  const [pendingRevive, setPendingRevive] = useState<Card | null>(null);
+  const [reviveConfirmFinal, setReviveConfirmFinal] = useState(false);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
   const [renameDeckIndex, setRenameDeckIndex] = useState<number | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
@@ -317,6 +329,29 @@ export function DeckScreen({
     if (!selectedCard || !isCardLost(selectedCard)) return;
     handleDeleteRequest(selectedCard);
   }, [handleDeleteRequest, selectedCard]);
+
+  const handleReviveRequest = useCallback(() => {
+    if (!selectedCard || !isCardLost(selectedCard)) return;
+    if (freePixels < reviveCost) return;
+    setReviveConfirmFinal(false);
+    setPendingRevive(selectedCard);
+  }, [freePixels, reviveCost, selectedCard]);
+
+  const handleReviveConfirm = useCallback(() => {
+    if (!pendingRevive) return;
+    if (!reviveConfirmFinal) {
+      setReviveConfirmFinal(true);
+      return;
+    }
+    onReviveLostCard(pendingRevive.id);
+    setPendingRevive(null);
+    setReviveConfirmFinal(false);
+  }, [onReviveLostCard, pendingRevive, reviveConfirmFinal]);
+
+  const handleReviveCancel = useCallback(() => {
+    setPendingRevive(null);
+    setReviveConfirmFinal(false);
+  }, []);
 
   const finishDrag = useCallback(
     (state: DeckDragState, endX: number, endY: number) => {
@@ -853,10 +888,13 @@ export function DeckScreen({
         <DeckCardDetailOverlay
           card={selectedCard}
           isLost={selectedIsLost}
+          freePixels={freePixels}
+          reviveCost={reviveCost}
           onClose={closeDetail}
           onEdit={handleEditFromDetail}
           onDelete={() => handleDeleteRequest(selectedCard)}
           onDeleteLost={handleLostDeleteRequest}
+          onReviveLost={handleReviveRequest}
         />
       )}
 
@@ -900,6 +938,22 @@ export function DeckScreen({
         cancelLabel={deleteConfirmFinal ? 'いいえ' : 'キャンセル'}
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
+      />
+
+      <ConfirmDialog
+        open={pendingRevive != null}
+        title={reviveConfirmFinal ? '本当に復活しますか？' : '完全復活しますか？'}
+        message={
+          pendingRevive
+            ? reviveConfirmFinal
+              ? 'この操作は取り消せません。'
+              : formatReviveConfirmMessage(pendingRevive, reviveCost)
+            : ''
+        }
+        confirmLabel={reviveConfirmFinal ? 'はい（復活する）' : '復活する'}
+        cancelLabel={reviveConfirmFinal ? 'いいえ' : 'キャンセル'}
+        onConfirm={handleReviveConfirm}
+        onCancel={handleReviveCancel}
       />
     </section>
   );

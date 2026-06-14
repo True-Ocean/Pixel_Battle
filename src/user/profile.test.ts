@@ -5,7 +5,7 @@ import {
   USER_INITIAL_EXP,
   USER_INITIAL_LEVEL,
 } from '../config/balance';
-import { LEVEL_UP_PIXELS_PER_LEVEL } from '../config/economy';
+import { LEVEL_UP_PIXEL_REWARD } from '../config/economy';
 import {
   applyDevMaxUserLevel,
   createInitialProfile,
@@ -24,6 +24,12 @@ describe('validateUsername', () => {
   it('rejects empty names', () => {
     expect(validateUsername('')).toBe('ユーザー名を入力してください');
     expect(validateUsername('   ')).toBe('ユーザー名を入力してください');
+  });
+
+  it('rejects names longer than the limit', () => {
+    expect(validateUsername('12345678901')).toBe(
+      'ユーザー名は 10 文字以内にしてください',
+    );
   });
 });
 
@@ -189,10 +195,7 @@ describe('recordUserBattleOutcome', () => {
     });
     expect(result.levelsGained.length).toBeGreaterThan(0);
     expect(result.pixelsGranted).toBe(
-      result.levelsGained.reduce(
-        (sum, level) => sum + level * LEVEL_UP_PIXELS_PER_LEVEL,
-        0,
-      ),
+      result.levelsGained.length * LEVEL_UP_PIXEL_REWARD,
     );
     expect(result.economy.freePixels).toBe(result.pixelsGranted);
   });

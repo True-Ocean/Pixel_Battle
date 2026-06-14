@@ -19,8 +19,11 @@ export const LOST_WEIGHT_STARS: Record<CardStars, number> = {
   3: 1.5,
 };
 
-/** レベルアップ時の無償ピクセル = Lv × N */
-export const LEVEL_UP_PIXELS_PER_LEVEL = 100;
+/** レベルアップ1回あたりの無償ピクセル（固定） */
+export const LEVEL_UP_PIXEL_REWARD = 500;
+
+/** 完全復活に必要な無償ピクセル（一律） */
+export const FULL_REVIVE_COST = 4000;
 
 /** 勝利時・生存1枚あたりのピクセル */
 export const PIXELS_PER_SURVIVOR = 10;
@@ -34,9 +37,12 @@ export const COLOR_DIVERSITY_BONUS_PER_EXTRA_COLOR = 0.05;
 /** 色係数の上限 */
 export const COLOR_DIVERSITY_MAX_MULTIPLIER = 1.3;
 
-export function calcLevelUpPixels(level: number): number {
-  const L = Math.max(1, Math.floor(level));
-  return L * LEVEL_UP_PIXELS_PER_LEVEL;
+export function calcLevelUpPixels(_level?: number): number {
+  return LEVEL_UP_PIXEL_REWARD;
+}
+
+export function calcFullReviveCost(): number {
+  return FULL_REVIVE_COST;
 }
 
 export function calcColorDiversityMultiplier(uniqueColors: number): number {

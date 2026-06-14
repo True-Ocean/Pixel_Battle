@@ -7,20 +7,31 @@ import { DeckCardDetailCard } from './DeckCardDetailCard';
 interface DeckCardDetailOverlayProps {
   card: Card;
   isLost: boolean;
+  freePixels: number;
+  reviveCost: number;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onDeleteLost: () => void;
+  onReviveLost: () => void;
 }
 
 export function DeckCardDetailOverlay({
   card,
   isLost,
+  freePixels,
+  reviveCost,
   onClose,
   onEdit,
   onDelete,
   onDeleteLost,
+  onReviveLost,
 }: DeckCardDetailOverlayProps) {
+  const canAffordRevive = freePixels >= reviveCost;
+  const reviveLabel = canAffordRevive
+    ? `完全復活（${reviveCost.toLocaleString()}px）`
+    : `完全復活（${reviveCost.toLocaleString()}px必要・不足）`;
+
   useEffect(() => {
     const scrollY = window.scrollY;
     const { style } = document.body;
@@ -68,10 +79,13 @@ export function DeckCardDetailOverlay({
             <>
               <button
                 type="button"
-                className="deck-card-detail-revive deck-card-detail-revive--pending"
-                disabled
+                className={`deck-card-detail-revive${
+                  canAffordRevive ? '' : ' deck-card-detail-revive--pending'
+                }`}
+                disabled={!canAffordRevive}
+                onClick={onReviveLost}
               >
-                完全復活（準備中）
+                {reviveLabel}
               </button>
               <button
                 type="button"

@@ -212,7 +212,7 @@ export const ATTRIBUTE_POWER = {
 >;
 
 export const USER_INITIAL_EXP = 0;
-export const USERNAME_MAX_LENGTH = 16;
+export const USERNAME_MAX_LENGTH = 10;
 
 /** 相手デッキ戦力に対する EXP 換算率（2%） */
 export const EXP_RATE = 0.02;

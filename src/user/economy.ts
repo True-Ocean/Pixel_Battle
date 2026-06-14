@@ -22,3 +22,13 @@ export function addFreePixels(
   if (delta <= 0) return economy;
   return { freePixels: economy.freePixels + delta };
 }
+
+export function spendFreePixels(
+  economy: UserEconomy,
+  amount: number,
+): UserEconomy | null {
+  const cost = Math.max(0, Math.floor(amount));
+  if (cost <= 0) return economy;
+  if (economy.freePixels < cost) return null;
+  return { freePixels: economy.freePixels - cost };
+}

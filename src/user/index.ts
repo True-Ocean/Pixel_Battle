@@ -18,6 +18,7 @@ export {
   addFreePixels,
   createInitialEconomy,
   normalizeUserEconomy,
+  spendFreePixels,
 } from './economy';
 export {
   calcBattleExpGain,

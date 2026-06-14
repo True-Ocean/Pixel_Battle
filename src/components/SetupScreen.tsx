@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { USERNAME_MAX_LENGTH } from '../config/balance';
 import { createInitialProfile, validateUsername } from '../user';
 
 interface SetupScreenProps {
@@ -39,7 +40,7 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
           <input
             type="text"
             value={username}
-            maxLength={16}
+            maxLength={USERNAME_MAX_LENGTH}
             autoComplete="username"
             placeholder="例：ピクセル太郎"
             onChange={(e) => {
@@ -51,7 +52,9 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
             }}
           />
         </label>
-        <p className="muted setup-hint">Lv.1 からスタートします</p>
+        <p className="muted setup-hint">
+          {USERNAME_MAX_LENGTH} 文字以内・Lv.1 からスタートします
+        </p>
         {error && <p className="error setup-error">{error}</p>}
       </div>
 

@@ -3,11 +3,13 @@ import type { Card } from '../types';
 import {
   COLOR_DIVERSITY_MAX_MULTIPLIER,
   GRAVEYARD_SQRT_MULTIPLIER,
-  LEVEL_UP_PIXELS_PER_LEVEL,
+  FULL_REVIVE_COST,
+  LEVEL_UP_PIXEL_REWARD,
   CARD_DELETE_PIXEL_REFUND_RATE,
   PIXELS_PER_SURVIVOR,
   calcCardDeleteRefundPixels,
   calcColorDiversityMultiplier,
+  calcFullReviveCost,
   calcGraveyardPixelReward,
   calcLevelUpPixels,
   calcLostSelectionWeight,
@@ -40,16 +42,23 @@ function makeCard(
 
 describe('economy constants', () => {
   it('uses agreed balance values', () => {
-    expect(LEVEL_UP_PIXELS_PER_LEVEL).toBe(100);
+    expect(LEVEL_UP_PIXEL_REWARD).toBe(500);
+    expect(FULL_REVIVE_COST).toBe(4000);
     expect(PIXELS_PER_SURVIVOR).toBe(10);
     expect(GRAVEYARD_SQRT_MULTIPLIER).toBe(1);
   });
 });
 
 describe('calcLevelUpPixels', () => {
-  it('returns Lv × 100', () => {
+  it('returns fixed 500 regardless of level', () => {
     expect(calcLevelUpPixels(5)).toBe(500);
-    expect(calcLevelUpPixels(20)).toBe(2000);
+    expect(calcLevelUpPixels(20)).toBe(500);
+  });
+});
+
+describe('calcFullReviveCost', () => {
+  it('returns flat revive cost', () => {
+    expect(calcFullReviveCost()).toBe(4000);
   });
 });
 

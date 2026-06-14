@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Card } from '../types';
 import {
+  applyCardFullRevive,
   isCardActive,
   isCardLost,
   markCardActive,
@@ -50,5 +51,13 @@ describe('card lost helpers', () => {
     const revived = markCardActive(lost);
     expect(revived.status).toBe('active');
     expect(markCardActive(active)).toBe(active);
+  });
+
+  it('fully revives lost cards', () => {
+    const lost = markCardLost(card({ reviveCount: 2 }));
+    const revived = applyCardFullRevive(lost);
+    expect(revived.status).toBe('active');
+    expect(revived.reviveCount).toBe(3);
+    expect(applyCardFullRevive(revived)).toBe(revived);
   });
 });
