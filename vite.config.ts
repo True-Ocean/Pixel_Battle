@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/Pixel_Battle/',
   plugins: [
     react(),
     VitePWA({
@@ -20,8 +21,8 @@ export default defineConfig({
         short_name: 'ピクセルバトル',
         description: 'お絵描きピクセルバトルのウェブプロトタイプ',
         lang: 'ja',
-        start_url: '/',
-        scope: '/',
+        start_url: '/Pixel_Battle/',
+        scope: '/Pixel_Battle/',
         display: 'standalone',
         orientation: 'portrait',
         theme_color: '#ffffff',
