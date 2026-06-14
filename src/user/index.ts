@@ -2,8 +2,10 @@ export {
   applyDevMaxUserLevel,
   applyDevUserLevelOverride,
   applyDevUserProfile,
+  applyLevelUpEconomyRewards,
   createInitialProfile,
   effectiveDevPreferSavedLevel,
+  calcBattleExpGainForUser,
   grantBattleExp,
   isProfileComplete,
   normalizeUserProfile,
@@ -11,10 +13,14 @@ export {
   resolveDevUserProfileOnLoad,
   validateUsername,
 } from './profile';
-export type { DevUserLoadOptions } from './profile';
+export type { BattleExpInput, BattleOutcomeRecord, DevUserLoadOptions } from './profile';
+export {
+  addFreePixels,
+  createInitialEconomy,
+  normalizeUserEconomy,
+} from './economy';
 export {
   calcBattleExpGain,
-  calcUpsetExpBonus,
   expToNextLevel,
   getLevelProgress,
   isMaxUserLevel,

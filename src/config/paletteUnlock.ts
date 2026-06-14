@@ -5,8 +5,8 @@ import {
   PALETTE_UNLOCKED_COUNT_LV0,
 } from './balance';
 
-/** 追加色の解放レベル（index 3〜9 に対応。黄は Lv15、以降5刻み） */
-export const PALETTE_UNLOCK_LEVELS = [5, 15, 20, 25, 30, 55, 65] as const;
+/** 追加色の解放レベル（L≡5 mod 10: 5, 15, 25, 35, 45） */
+export const PALETTE_UNLOCK_LEVELS = [5, 15, 25, 35, 45] as const;
 
 /** ユーザーレベルに応じた解放パレット色数（index 0 から連続） */
 export function getUnlockedPaletteCount(userLevel: number): number {

@@ -216,14 +216,21 @@ export const ATTRIBUTE_POWER = {
 export const USER_INITIAL_EXP = 0;
 export const USERNAME_MAX_LENGTH = 16;
 
-/** レベル L → L+1 に必要な EXP = EXP_LEVEL_BASE + L */
-export const EXP_LEVEL_BASE = 10;
+/** 相手デッキ戦力に対する EXP 換算率（2%） */
+export const EXP_RATE = 0.02;
+
+/** 敗北時の EXP 係数（勝利比 −20%） */
+export const EXP_DEFEAT_MULTIPLIER = 0.8;
+
+/** 想定相手戦力のキャリブレーション（Lv21 ≈ 1000 戦力） */
+export const EXP_REF_POWER_AT_LEVEL = 21;
+export const EXP_REF_POWER_VALUE = 1000;
+
+/** レベル L の標準相手デッキ戦力（Lv L→L+1 に L 勝の目安） */
+export function expectedOpponentDeckPower(level: number): number {
+  const L = Math.max(USER_INITIAL_LEVEL, Math.floor(level));
+  return Math.round((EXP_REF_POWER_VALUE * L) / EXP_REF_POWER_AT_LEVEL);
+}
 
 /** @deprecated 対戦相手レベル未指定時のフォールバック。通常はプレイヤーと同レベルを渡す */
 export const CPU_OPPONENT_LEVEL = 1;
-
-/** 上振れ勝利 EXP（相手デッキ戦力が高いとき・勝利時のみ） */
-export const EXP_UPSET_RATIO_TIER1 = 1.1;
-export const EXP_UPSET_RATIO_TIER2 = 1.2;
-export const EXP_UPSET_RATIO_TIER3 = 1.3;
-export const EXP_UPSET_BONUS_MAX = 3;

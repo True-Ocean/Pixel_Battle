@@ -801,6 +801,18 @@ export function useBattle(
       playerCardIds: playerCards.map((c) => c.id),
       defeatedPlayerCardIds: getDefeated(state.player).map((unit) => unit.cardId),
       cpuDefeatedCount: getDefeated(state.cpu).length,
+      defeatedCpuCards: (() => {
+        const defeatedIds = new Set(
+          getDefeated(state.cpu).map((unit) => unit.cardId),
+        );
+        return cpuCards.filter((card) => defeatedIds.has(card.id));
+      })(),
+      survivorPlayerCards: (() => {
+        const defeatedIds = new Set(
+          getDefeated(state.player).map((unit) => unit.cardId),
+        );
+        return playerCards.filter((card) => !defeatedIds.has(card.id));
+      })(),
       playerDeckPower: computeDeckPower(playerCards),
       opponentDeckPower: computeDeckPower(cpuCards),
       fauxLostCardId,

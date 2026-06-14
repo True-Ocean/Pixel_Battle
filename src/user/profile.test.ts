@@ -5,6 +5,7 @@ import {
   USER_INITIAL_EXP,
   USER_INITIAL_LEVEL,
 } from '../config/balance';
+import { LEVEL_UP_PIXELS_PER_LEVEL } from '../config/economy';
 import {
   applyDevMaxUserLevel,
   createInitialProfile,
@@ -16,7 +17,8 @@ import {
   resolveDevUserProfileOnLoad,
   validateUsername,
 } from './profile';
-import { totalExpForLevel } from './level';
+import { createInitialEconomy } from './economy';
+import { totalExpForLevel, levelFromTotalExp } from './level';
 
 describe('validateUsername', () => {
   it('rejects empty names', () => {
@@ -141,29 +143,25 @@ describe('grantBattleExp', () => {
     battleLosses: 0,
   };
 
-  it('adds level plus defeated count', () => {
+  it('adds exp from opponent deck power on victory', () => {
     expect(
       grantBattleExp(base, {
-        cpuDefeatedCount: 3,
-        winner: 'cpu',
-        playerDeckPower: 400,
-        opponentDeckPower: 400,
+        winner: 'player',
+        opponentDeckPower: 1000,
       }),
     ).toEqual({
       ...base,
-      exp: 5 + 1 + 3,
-      level: 1,
+      exp: 5 + 20,
+      level: levelFromTotalExp(25),
     });
   });
 
-  it('adds upset bonus when beating a stronger opponent', () => {
+  it('applies defeat multiplier on loss', () => {
     const result = grantBattleExp(base, {
-      cpuDefeatedCount: 0,
-      winner: 'player',
-      playerDeckPower: 400,
-      opponentDeckPower: 500,
+      winner: 'cpu',
+      opponentDeckPower: 1000,
     });
-    expect(result.exp).toBeGreaterThan(base.exp + 1);
+    expect(result.exp).toBe(5 + 16);
   });
 });
 
@@ -175,31 +173,36 @@ describe('recordUserBattleOutcome', () => {
     battleWins: 2,
     battleLosses: 1,
   };
+  const economy = createInitialEconomy();
 
-  it('records battle wins and losses alongside exp', () => {
-    expect(
-      recordUserBattleOutcome(base, {
-        cpuDefeatedCount: 2,
-        winner: 'player',
-        playerDeckPower: 400,
-        opponentDeckPower: 400,
-      }),
-    ).toEqual({
+  it('records battle wins, losses, and level-up pixels', () => {
+    const result = recordUserBattleOutcome(base, economy, {
+      winner: 'player',
+      opponentDeckPower: 1000,
+    });
+    expect(result.user).toEqual({
       ...base,
-      exp: 5 + 1 + 2,
+      exp: 5 + 20,
+      level: levelFromTotalExp(25),
       battleWins: 3,
       battleLosses: 1,
     });
+    expect(result.levelsGained.length).toBeGreaterThan(0);
+    expect(result.pixelsGranted).toBe(
+      result.levelsGained.reduce(
+        (sum, level) => sum + level * LEVEL_UP_PIXELS_PER_LEVEL,
+        0,
+      ),
+    );
+    expect(result.economy.freePixels).toBe(result.pixelsGranted);
   });
 
   it('increments battle losses on defeat', () => {
     expect(
-      recordUserBattleOutcome(base, {
-        cpuDefeatedCount: 0,
+      recordUserBattleOutcome(base, economy, {
         winner: 'cpu',
-        playerDeckPower: 400,
-        opponentDeckPower: 400,
-      }).battleLosses,
+        opponentDeckPower: 1000,
+      }).user.battleLosses,
     ).toBe(2);
   });
 });

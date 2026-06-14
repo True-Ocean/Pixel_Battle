@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import type { Card, ScreenId, UserProfile, BattleOutcome, BattleHistoryEntry } from './types';
+import type { Card, ScreenId, UserProfile, UserEconomy, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry } from './battleHistory';
 import { MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
@@ -11,11 +11,17 @@ import { CPU_OPPONENT_LABEL } from './battleHistory';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
 import {
   applyDevUserProfile,
+  calcBattleExpGainForUser,
   createInitialProfile,
+  createInitialEconomy,
   isProfileComplete,
   recordUserBattleOutcome,
   totalExpForLevel,
+  addFreePixels,
 } from './user';
+import { calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
+import { LevelUpModal } from './components/LevelUpModal';
+import { GraveyardPickModal } from './components/GraveyardPickModal';
 import { AppTitle } from './components/AppTitle';
 import { AppDock } from './components/AppDock';
 import { DeckScreen } from './components/DeckScreen';
@@ -40,6 +46,9 @@ function App() {
   const [screen, setScreen] = useState<ScreenId>('title');
   const [enterFromTitle, setEnterFromTitle] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(initialSave.user);
+  const [economy, setEconomy] = useState<UserEconomy>(
+    () => initialSave.economy ?? createInitialEconomy(),
+  );
   const [decks, setDecks] = useState<DeckLayout[]>(() => initialSave.decks);
   const [activeDeckIndex, setActiveDeckIndex] = useState(
     () => initialSave.activeDeckIndex,
@@ -87,8 +96,16 @@ function App() {
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   const [deckReorderMode, setDeckReorderMode] = useState(false);
   const [battlePlayerDeck, setBattlePlayerDeck] = useState<Card[]>([]);
+  const [pendingGraveyardOutcome, setPendingGraveyardOutcome] =
+    useState<BattleOutcome | null>(null);
+  const [levelUpModal, setLevelUpModal] = useState<{
+    fromLevel: number;
+    toLevel: number;
+    pixelsGranted: number;
+  } | null>(null);
 
   const userRef = useRef(user);
+  const economyRef = useRef(economy);
   const decksRef = useRef(decks);
   const activeDeckIndexRef = useRef(activeDeckIndex);
   const lastBattleDeckIndexRef = useRef(lastBattleDeckIndex);
@@ -102,6 +119,7 @@ function App() {
     playerLevel: number;
   } | null>(null);
   userRef.current = user;
+  economyRef.current = economy;
   decksRef.current = decks;
   activeDeckIndexRef.current = activeDeckIndex;
   lastBattleDeckIndexRef.current = lastBattleDeckIndex;
@@ -116,6 +134,7 @@ function App() {
   const persistSave = useCallback(
     (next: {
       user?: UserProfile | null;
+      economy?: UserEconomy;
       decks?: Card[][];
       activeDeckIndex?: number;
       lastBattleDeckIndex?: number;
@@ -132,7 +151,9 @@ function App() {
         devFileOverrideLevelRef.current = next.devFileOverrideLevel;
       }
       saveSave({
+        schemaVersion: initialSave.schemaVersion,
         user: next.user !== undefined ? next.user : user,
+        economy: next.economy ?? economyRef.current,
         decks: next.decks ?? decks,
         activeDeckIndex: next.activeDeckIndex ?? activeDeckIndex,
         lastBattleDeckIndex: next.lastBattleDeckIndex ?? lastBattleDeckIndex,
@@ -148,7 +169,7 @@ function App() {
           : {}),
       });
     },
-    [activeDeckIndex, deckNames, decks, lastBattleDeckIndex, unlockedDeckCount, user],
+    [activeDeckIndex, deckNames, decks, economy, lastBattleDeckIndex, unlockedDeckCount, user, initialSave.schemaVersion],
   );
 
   const updateActiveDeck = useCallback(
@@ -170,8 +191,10 @@ function App() {
   const completeSetup = useCallback(
     (username: string) => {
       const profile = applyDevUserProfile(createInitialProfile(username));
+      const initialEconomy = createInitialEconomy();
       setUser(profile);
-      persistSave({ user: profile });
+      setEconomy(initialEconomy);
+      persistSave({ user: profile, economy: initialEconomy });
       setScreen('deck');
     },
     [persistSave],
@@ -333,59 +356,120 @@ function App() {
     [persistSave],
   );
 
-  const applyBattleOutcome = useCallback((outcome: BattleOutcome) => {
-    if (isPracticeRematchRef.current) {
-      return;
-    }
-    setFauxLostCardId(outcome.fauxLostCardId);
-    const prevUser = userRef.current;
-    const prevDecks = decksRef.current;
-    const deckIndex = activeDeckIndexRef.current;
-    const prevActiveDeck = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
-    const nextUser = isProfileComplete(prevUser)
-      ? recordUserBattleOutcome(prevUser, {
-          cpuDefeatedCount: outcome.cpuDefeatedCount,
+  const finalizeBattleOutcome = useCallback(
+    (outcome: BattleOutcome, graveyardCard: Card | null) => {
+      if (isPracticeRematchRef.current) {
+        return;
+      }
+      setFauxLostCardId(outcome.fauxLostCardId);
+      const prevUser = userRef.current;
+      const prevEconomy = economyRef.current;
+      const prevDecks = decksRef.current;
+      const deckIndex = activeDeckIndexRef.current;
+      const prevActiveDeck = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      let nextUser = prevUser;
+      let nextEconomy = prevEconomy;
+      if (isProfileComplete(prevUser)) {
+        const expInput = {
           winner: outcome.winner,
-          playerDeckPower: outcome.playerDeckPower,
           opponentDeckPower: outcome.opponentDeckPower,
-        })
-      : prevUser;
-    const nextActiveDeck = applyCardSurvivalRecords(
-      prevActiveDeck,
-      outcome.playerCardIds,
-      outcome.defeatedPlayerCardIds,
-    );
-    const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextActiveDeck);
-    const nextHistory = appendBattleHistory(
-      battleHistoryRef.current,
-      createBattleHistoryEntry(outcome, {
-        playerDeck:
-          battleStartSnapshotRef.current?.playerDeck ??
-          getDeckCards(prevActiveDeck),
-        playerLevel:
-          battleStartSnapshotRef.current?.playerLevel ??
-          prevUser?.level ??
-          1,
-      }),
-    );
-    const lastBattleIndex =
-      battleStartSnapshotRef.current?.deckIndex ?? deckIndex;
-    saveSave({
-      user: nextUser,
-      decks: nextDecks,
-      activeDeckIndex: deckIndex,
-      lastBattleDeckIndex: lastBattleIndex,
-      unlockedDeckCount: unlockedDeckCountRef.current,
-      battleHistory: nextHistory,
-    });
-    setLastBattleDeckIndex(lastBattleIndex);
-    lastBattleDeckIndexRef.current = lastBattleIndex;
-    decksRef.current = nextDecks;
-    battleStartSnapshotRef.current = null;
-    setUser(nextUser);
-    setDecks(nextDecks);
-    setBattleHistory(nextHistory);
-  }, []);
+        };
+        const battleRecord = recordUserBattleOutcome(prevUser, prevEconomy, expInput);
+        nextUser = battleRecord.user;
+        nextEconomy = battleRecord.economy;
+        if (battleRecord.levelsGained.length > 0) {
+          setLevelUpModal({
+            fromLevel: prevUser.level,
+            toLevel: battleRecord.user.level,
+            pixelsGranted: battleRecord.pixelsGranted,
+          });
+        }
+      }
+      if (outcome.winner === 'player') {
+        const pixelTotal = graveyardCard
+          ? calcVictoryBattlePixels(
+              outcome.playerCardIds,
+              outcome.defeatedPlayerCardIds,
+              graveyardCard,
+            ).total
+          : calcSurvivorPixels(
+              countBattleSurvivors(
+                outcome.playerCardIds,
+                outcome.defeatedPlayerCardIds,
+              ),
+            );
+        if (pixelTotal > 0) {
+          nextEconomy = addFreePixels(nextEconomy, pixelTotal);
+        }
+      }
+      const nextActiveDeck = applyCardSurvivalRecords(
+        prevActiveDeck,
+        outcome.playerCardIds,
+        outcome.defeatedPlayerCardIds,
+      );
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextActiveDeck);
+      const nextHistory = appendBattleHistory(
+        battleHistoryRef.current,
+        createBattleHistoryEntry(outcome, {
+          playerDeck:
+            battleStartSnapshotRef.current?.playerDeck ??
+            getDeckCards(prevActiveDeck),
+          playerLevel:
+            battleStartSnapshotRef.current?.playerLevel ??
+            prevUser?.level ??
+            1,
+        }),
+      );
+      const lastBattleIndex =
+        battleStartSnapshotRef.current?.deckIndex ?? deckIndex;
+      saveSave({
+        schemaVersion: initialSave.schemaVersion,
+        user: nextUser,
+        economy: nextEconomy,
+        decks: nextDecks,
+        activeDeckIndex: deckIndex,
+        lastBattleDeckIndex: lastBattleIndex,
+        unlockedDeckCount: unlockedDeckCountRef.current,
+        battleHistory: nextHistory,
+      });
+      setLastBattleDeckIndex(lastBattleIndex);
+      lastBattleDeckIndexRef.current = lastBattleIndex;
+      decksRef.current = nextDecks;
+      battleStartSnapshotRef.current = null;
+      setUser(nextUser);
+      setEconomy(nextEconomy);
+      setDecks(nextDecks);
+      setBattleHistory(nextHistory);
+    },
+    [initialSave.schemaVersion],
+  );
+
+  const handleBattleOutcome = useCallback(
+    (outcome: BattleOutcome) => {
+      if (isPracticeRematchRef.current) {
+        return;
+      }
+      if (
+        outcome.winner === 'player' &&
+        outcome.defeatedCpuCards.length > 0
+      ) {
+        setPendingGraveyardOutcome(outcome);
+        return;
+      }
+      finalizeBattleOutcome(outcome, null);
+    },
+    [finalizeBattleOutcome],
+  );
+
+  const handleGraveyardPick = useCallback(
+    (card: Card) => {
+      const outcome = pendingGraveyardOutcome;
+      if (!outcome) return;
+      setPendingGraveyardOutcome(null);
+      finalizeBattleOutcome(outcome, card);
+    },
+    [finalizeBattleOutcome, pendingGraveyardOutcome],
+  );
 
   const handleBattleEndedChange = useCallback((ended: boolean) => {
     setBattleEndDock(ended);
@@ -393,7 +477,9 @@ function App() {
 
   const handleResetBattleRecords = useCallback(() => {
     const next = resetBattleRecords({
+      schemaVersion: initialSave.schemaVersion,
       user,
+      economy,
       decks,
       activeDeckIndex,
       lastBattleDeckIndex,
@@ -403,13 +489,16 @@ function App() {
     });
     persistSave(next);
     setUser(next.user);
+    setEconomy(next.economy ?? createInitialEconomy());
     setDecks(next.decks);
     setActiveDeckIndex(next.activeDeckIndex);
     setLastBattleDeckIndex(next.lastBattleDeckIndex);
     setUnlockedDeckCount(next.unlockedDeckCount);
     setBattleHistory(next.battleHistory ?? []);
     setFauxLostCardId(null);
-  }, [activeDeckIndex, battleHistory, deckNames, decks, lastBattleDeckIndex, persistSave, unlockedDeckCount, user]);
+    setLevelUpModal(null);
+    setPendingGraveyardOutcome(null);
+  }, [activeDeckIndex, battleHistory, deckNames, decks, economy, initialSave.schemaVersion, lastBattleDeckIndex, persistSave, unlockedDeckCount, user]);
 
   const handleDevSetLevel = useCallback(
     (level: number) => {
@@ -492,6 +581,14 @@ function App() {
     setEnterFromTitle(true);
   }, [user]);
 
+  const pendingBattleExpGain = useMemo(() => {
+    if (!pendingGraveyardOutcome || !isProfileComplete(user)) return 0;
+    return calcBattleExpGainForUser(user, {
+      winner: pendingGraveyardOutcome.winner,
+      opponentDeckPower: pendingGraveyardOutcome.opponentDeckPower,
+    });
+  }, [pendingGraveyardOutcome, user]);
+
   const showAppHeader = screen === 'deck';
   const showProfileBar = showAppHeader && isProfileComplete(user);
   const showDock = isDockVisible(screen) || (screen === 'battleSetup' && battleEndDock);
@@ -529,7 +626,12 @@ function App() {
       {showAppHeader && (
         <header className="app-header app-header--deck">
           <div className="app-brand">
-            {showProfileBar && user && <UserProfileBar user={user} />}
+            {showProfileBar && user && (
+              <UserProfileBar
+                user={user}
+                freePixels={economy.freePixels}
+              />
+            )}
           </div>
         </header>
       )}
@@ -637,7 +739,7 @@ function App() {
             }
             opponentIdentity={cpuOpponent}
             isPracticeRematch={isPracticeRematch}
-            onFinish={applyBattleOutcome}
+            onFinish={handleBattleOutcome}
             onNewBattle={
               isPracticeRematch ? rematchSameOpponent : restartBattleFromEnd
             }
@@ -655,6 +757,22 @@ function App() {
             <code>docs/PROTOTYPE_DEVELOPMENT_SPEC.md</code>
           </span>
         </footer>
+      )}
+      {levelUpModal && (
+        <LevelUpModal
+          fromLevel={levelUpModal.fromLevel}
+          toLevel={levelUpModal.toLevel}
+          totalPixelsGranted={levelUpModal.pixelsGranted}
+          onClose={() => setLevelUpModal(null)}
+        />
+      )}
+      {pendingGraveyardOutcome && (
+        <GraveyardPickModal
+          survivorCards={pendingGraveyardOutcome.survivorPlayerCards}
+          graveyardCards={pendingGraveyardOutcome.defeatedCpuCards}
+          expGain={pendingBattleExpGain}
+          onPick={handleGraveyardPick}
+        />
       )}
     </div>
   );

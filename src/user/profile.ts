@@ -1,3 +1,4 @@
+import { calcLevelUpPixels } from '../config/economy';
 import {
   DEV_FORCE_MAX_USER_LEVEL,
   MAX_USER_LEVEL,
@@ -6,10 +7,10 @@ import {
   USERNAME_MAX_LENGTH,
 } from '../config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
-import type { UserProfile } from '../types';
+import type { UserEconomy, UserProfile } from '../types';
+import { addFreePixels } from './economy';
 import {
   calcBattleExpGain,
-  calcUpsetExpBonus,
   levelFromTotalExp,
   totalExpForLevel,
 } from './level';
@@ -147,39 +148,77 @@ export function normalizeUserProfile(raw: unknown): UserProfile | null {
 }
 
 export interface BattleExpInput {
-  cpuDefeatedCount: number;
   winner: 'player' | 'cpu';
-  playerDeckPower: number;
   opponentDeckPower: number;
+}
+
+export function calcBattleExpGainForUser(
+  _user: UserProfile,
+  input: BattleExpInput,
+): number {
+  return calcBattleExpGain(input.opponentDeckPower, input.winner);
 }
 
 export function grantBattleExp(
   user: UserProfile,
   input: BattleExpInput,
 ): UserProfile {
-  const upsetBonus = calcUpsetExpBonus(
-    input.winner,
-    input.playerDeckPower,
-    input.opponentDeckPower,
-  );
-  const gained = calcBattleExpGain(
-    user.level,
-    input.cpuDefeatedCount,
-    upsetBonus,
-  );
+  const gained = calcBattleExpGainForUser(user, input);
   const exp = user.exp + gained;
   const level = levelFromTotalExp(exp);
   return { ...user, exp, level };
 }
 
+export interface BattleOutcomeRecord {
+  user: UserProfile;
+  economy: UserEconomy;
+  /** 今回到達したレベル（例: 20→22 なら [21, 22]） */
+  levelsGained: number[];
+  pixelsGranted: number;
+}
+
+function levelsReached(previousLevel: number, nextLevel: number): number[] {
+  const levels: number[] = [];
+  for (let level = previousLevel + 1; level <= nextLevel; level++) {
+    levels.push(level);
+  }
+  return levels;
+}
+
+export function applyLevelUpEconomyRewards(
+  economy: UserEconomy,
+  levelsGained: number[],
+): { economy: UserEconomy; pixelsGranted: number } {
+  let nextEconomy = economy;
+  let pixelsGranted = 0;
+  for (const level of levelsGained) {
+    const amount = calcLevelUpPixels(level);
+    nextEconomy = addFreePixels(nextEconomy, amount);
+    pixelsGranted += amount;
+  }
+  return { economy: nextEconomy, pixelsGranted };
+}
+
 export function recordUserBattleOutcome(
   user: UserProfile,
+  economy: UserEconomy,
   input: BattleExpInput,
-): UserProfile {
+): BattleOutcomeRecord {
+  const previousLevel = user.level;
   const withExp = grantBattleExp(user, input);
+  const levelsGained = levelsReached(previousLevel, withExp.level);
+  const { economy: nextEconomy, pixelsGranted } = applyLevelUpEconomyRewards(
+    economy,
+    levelsGained,
+  );
   return {
-    ...withExp,
-    battleWins: withExp.battleWins + (input.winner === 'player' ? 1 : 0),
-    battleLosses: withExp.battleLosses + (input.winner === 'cpu' ? 1 : 0),
+    user: {
+      ...withExp,
+      battleWins: withExp.battleWins + (input.winner === 'player' ? 1 : 0),
+      battleLosses: withExp.battleLosses + (input.winner === 'cpu' ? 1 : 0),
+    },
+    economy: nextEconomy,
+    levelsGained,
+    pixelsGranted,
   };
 }

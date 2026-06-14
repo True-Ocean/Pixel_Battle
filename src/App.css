@@ -184,6 +184,26 @@
   white-space: nowrap;
 }
 
+.user-profile-pixels {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: #0d9488;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.user-profile-pixel-gain {
+  font-weight: 800;
+  color: #059669;
+}
+
+.user-profile-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+}
+
 .user-profile-progress {
   position: relative;
   width: 100%;
@@ -202,6 +222,28 @@
   border-radius: inherit;
   background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
   transition: width 0.35s ease;
+}
+
+.user-profile-exp-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.user-profile-exp-label {
+  font-weight: 600;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.user-profile-exp-gain {
+  flex-shrink: 0;
+  font-weight: 800;
+  color: #059669;
+  font-variant-numeric: tabular-nums;
 }
 
 .app-header-setup {
@@ -1824,6 +1866,264 @@
   font: inherit;
   font-size: 0.9rem;
   cursor: pointer;
+}
+
+.level-up-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    max(0.5rem, env(safe-area-inset-top, 0px))
+    max(0.5rem, env(safe-area-inset-right, 0px))
+    max(0.5rem, env(safe-area-inset-bottom, 0px))
+    max(0.5rem, env(safe-area-inset-left, 0px));
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.level-up-panel {
+  width: min(100%, 22rem);
+  max-height: min(80vh, 28rem);
+  overflow-y: auto;
+  padding: 1.1rem 1rem 1rem;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.2);
+}
+
+.level-up-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  color: #4f46e5;
+}
+
+.level-up-summary {
+  margin: 0 0 0.85rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.level-up-reward-list {
+  list-style: none;
+  margin: 0 0 0.85rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.level-up-reward-group {
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.level-up-reward-level {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.level-up-reward-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.level-up-reward-item {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.level-up-reward-item.is-pending {
+  color: #64748b;
+}
+
+.level-up-reward-pending {
+  margin-left: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.level-up-pixels-total {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0d9488;
+  text-align: center;
+}
+
+.level-up-close {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.graveyard-pick-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.graveyard-pick-panel {
+  box-sizing: border-box;
+  width: min(100%, 22rem);
+  padding: 0.75rem 0.7rem 0.7rem;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.25);
+}
+
+.graveyard-pick-title {
+  margin: 0 0 0.55rem;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.graveyard-pick-section {
+  margin-bottom: 0.55rem;
+}
+
+.graveyard-pick-section:last-of-type {
+  margin-bottom: 0.65rem;
+}
+
+.graveyard-pick-section-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #334155;
+}
+
+.graveyard-pick-survivor-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.45rem;
+  border: 2px solid #dbeafe;
+  border-radius: 10px;
+  background: #eff6ff;
+}
+
+.graveyard-pick-survivor-icons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.graveyard-pick-survivor-icon .card-preview {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.graveyard-pick-survivor-total {
+  flex-shrink: 0;
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: #2563eb;
+  font-variant-numeric: tabular-nums;
+}
+
+.graveyard-pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.graveyard-pick-card {
+  box-sizing: border-box;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 2.25rem 1fr auto;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.4rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.graveyard-pick-card.is-selected {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.graveyard-pick-card .card-preview {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.graveyard-pick-card-name {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graveyard-pick-card-reward {
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: #0d9488;
+  font-variant-numeric: tabular-nums;
+}
+
+.graveyard-pick-confirm {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(90deg, #0d9488 0%, #0f766e 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+.graveyard-pick-confirm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .deck-rename-backdrop {

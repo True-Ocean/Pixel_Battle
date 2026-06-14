@@ -52,8 +52,7 @@ const TOOL_UNLOCK_LEVEL: Record<EditorToolId, number> = {
   selection: 22,
   rectangle: 27,
   circle: 32,
-  /** パレット色が大幅増加した将来用（実装済みだが UI 非表示） */
-  eyedropper: 99,
+  eyedropper: 37,
 };
 
 export function getToolUnlockLevel(tool: EditorToolId): number {

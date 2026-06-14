@@ -86,8 +86,9 @@ describe('editorTools', () => {
     ]);
   });
 
-  it('スポイトは実装済みだが UI 非表示', () => {
-    expect(isEditorToolUnlocked('eyedropper', 50)).toBe(false);
+  it('スポイトは Lv37 で解放するが UI 非表示', () => {
+    expect(isEditorToolUnlocked('eyedropper', 36)).toBe(false);
+    expect(isEditorToolUnlocked('eyedropper', 37)).toBe(true);
     expect(isEditorToolImplemented('eyedropper')).toBe(false);
     expect(IMPLEMENTED_EDITOR_TOOLS).not.toContain('eyedropper');
     expect(getVisibleEditorTools(50)).not.toContain('eyedropper');

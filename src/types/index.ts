@@ -41,6 +41,11 @@ export interface Card {
 /** 固定5スロットのデッキ配置（null = 空きスロット） */
 export type DeckLayout = (Card | null)[];
 
+export interface UserEconomy {
+  /** 無償ピクセル（ショップ通貨） */
+  freePixels: number;
+}
+
 /** ユーザープロフィール（localStorage 永続化） */
 export interface UserProfile {
   username: string;
@@ -66,6 +71,10 @@ export interface BattleOutcome {
   /** その戦で墓地へ送られた自軍カード ID */
   defeatedPlayerCardIds: string[];
   cpuDefeatedCount: number;
+  /** その戦で墓地へ送られた相手カード（勝利時の戦利品選択用） */
+  defeatedCpuCards: Card[];
+  /** その戦で生存した自軍カード（勝利時の生存報酬表示用） */
+  survivorPlayerCards: Card[];
   playerDeckPower: number;
   opponentDeckPower: number;
   fauxLostCardId: string | null;
@@ -92,7 +101,10 @@ export interface BattleHistoryEntry {
 }
 
 export interface SaveData {
+  /** セーブ形式（0=legacy, 1=economy 追加） */
+  schemaVersion?: number;
   user: UserProfile | null;
+  economy?: UserEconomy;
   /** デッキスロット（最大5）。各スロットは固定5枠（null = 空き） */
   decks: DeckLayout[];
   /** 現在選択中のデッキスロット（0〜4） */

@@ -40,6 +40,7 @@ describe('resetBattleRecords', () => {
     };
 
     expect(resetBattleRecords(save)).toEqual({
+      schemaVersion: 1,
       user: {
         username: 'test',
         level: 1,
@@ -47,6 +48,7 @@ describe('resetBattleRecords', () => {
         battleWins: 0,
         battleLosses: 0,
       },
+      economy: { freePixels: 0 },
       decks: [
         [
           { ...makeCard('a'), wins: 0, losses: 0 },

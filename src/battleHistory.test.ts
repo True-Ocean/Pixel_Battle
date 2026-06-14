@@ -61,6 +61,8 @@ describe('createBattleHistoryEntry', () => {
     const outcome: BattleOutcome = {
       winner: 'player',
       cpuDefeatedCount: 5,
+      defeatedCpuCards: [],
+      survivorPlayerCards: [],
       playerDeckPower: 120,
       opponentDeckPower: 100,
       playerCardIds: ['p1'],

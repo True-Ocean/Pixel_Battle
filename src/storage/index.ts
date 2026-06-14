@@ -23,12 +23,16 @@ import {
 import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
 import { gridSize } from '../canvas';
 import { effectiveDevPreferSavedLevel, normalizeUserProfile, resolveDevUserProfileOnLoad } from '../user';
+import { createInitialEconomy, normalizeUserEconomy } from '../user/economy';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
+export const SAVE_SCHEMA_VERSION = 1;
 
 function emptySave(): SaveData {
   return {
+    schemaVersion: SAVE_SCHEMA_VERSION,
     user: null,
+    economy: createInitialEconomy(),
     decks: createEmptyDeckSlots(),
     activeDeckIndex: 0,
     lastBattleDeckIndex: 0,
@@ -283,6 +287,7 @@ export function loadSave(): SaveData {
     if (!hasLegacyDeck && !hasDecks) return emptySave();
 
     const user = normalizeUserProfile(parsed.user);
+    const economy = normalizeUserEconomy(parsed.economy);
     const decks = normalizeDeckSlots(migrateDecks(parsed));
     const battleHistory = migrateBattleHistory(parsed.battleHistory);
     const { activeDeckIndex, lastBattleDeckIndex, unlockedDeckCount, deckNames } =
@@ -295,7 +300,9 @@ export function loadSave(): SaveData {
     );
 
     const baseSave: SaveData = {
+      schemaVersion: SAVE_SCHEMA_VERSION,
       user,
+      economy,
       decks,
       activeDeckIndex,
       lastBattleDeckIndex,
@@ -339,7 +346,9 @@ export function loadSave(): SaveData {
 
 export function saveSave(data: SaveData): void {
   const payload: Record<string, unknown> = {
+    schemaVersion: data.schemaVersion ?? SAVE_SCHEMA_VERSION,
     user: data.user,
+    economy: data.economy ?? createInitialEconomy(),
     decks: normalizeDeckSlots(data.decks).map((deck) => deck.slice(0, DECK_MAX)),
     activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
     lastBattleDeckIndex: clampDeckSlotIndex(
@@ -360,6 +369,7 @@ export function saveSave(data: SaveData): void {
 /** ユーザー戦績とカード勝敗のみ初期化（デッキ内容・ユーザー名は維持） */
 export function resetBattleRecords(data: SaveData): SaveData {
   return {
+    schemaVersion: data.schemaVersion ?? SAVE_SCHEMA_VERSION,
     user: data.user
       ? {
           ...data.user,
@@ -369,6 +379,7 @@ export function resetBattleRecords(data: SaveData): SaveData {
           battleLosses: 0,
         }
       : null,
+    economy: createInitialEconomy(),
     decks: resetAllDeckCardRecords(normalizeDeckSlots(data.decks)),
     activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
     lastBattleDeckIndex: clampDeckSlotIndex(
