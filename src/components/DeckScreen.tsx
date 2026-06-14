@@ -4,7 +4,6 @@ import { calcCardDeleteRefundPixels } from '../config/economy';
 import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
 import {
   countDeckCards,
-  deckHasLostCard,
   findFirstEmptySlotInLayout,
   getDeckCards,
   getDeckDisplayName,
@@ -624,7 +623,6 @@ export function DeckScreen({
 
   const selectedIsLost =
     selectedCard != null && isCardLost(selectedCard);
-  const hasLostCard = deckHasLostCard(deckLayout);
 
   const draggedCard =
     dragState != null
@@ -742,11 +740,6 @@ export function DeckScreen({
           <p className="deck-screen-power" aria-label={`戦力 ${deckPower}`}>
             戦力{' '}
             <span className="deck-screen-power-value">{deckPower}</span>
-          </p>
-        )}
-        {hasLostCard && (
-          <p className="deck-screen-notice deck-screen-notice--lost" role="status">
-            ロスト中のカードがあります。マイデッキで処理してください。
           </p>
         )}
       </div>
