@@ -26,6 +26,7 @@ interface SettingsScreenProps {
   user: UserProfile | null;
   unlockedDeckCount: number;
   freePixels: number;
+  onBack?: () => void;
   devCardOptions: DevCardOption[];
   devDeckFillOptions: DevDeckFillOption[];
   onResetBattleRecords: () => void;
@@ -86,6 +87,7 @@ export function SettingsScreen({
   user,
   unlockedDeckCount,
   freePixels,
+  onBack,
   devCardOptions,
   devDeckFillOptions,
   onResetBattleRecords,
@@ -222,6 +224,18 @@ export function SettingsScreen({
 
   return (
     <section className="screen screen-settings">
+      {onBack && (
+        <header className="settings-top-bar">
+          <button
+            type="button"
+            className="settings-back-btn"
+            onClick={onBack}
+          >
+            戻る
+          </button>
+          <h1 className="settings-top-title">設定</h1>
+        </header>
+      )}
       <div className="settings-scroll">
         <SettingsSection title="アカウント">
           <SettingsRow label="ユーザー名" value={user.username} />

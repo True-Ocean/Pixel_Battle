@@ -1,14 +1,14 @@
 import type { ScreenId } from '../types';
 
 /** Dock に表示するメインタブ */
-export type TabId = 'deck' | 'battleHub' | 'records' | 'shop' | 'settings';
+export type TabId = 'deck' | 'battleHub' | 'records' | 'shop' | 'inventory';
 
 export const TAB_IDS: TabId[] = [
   'deck',
   'battleHub',
   'records',
   'shop',
-  'settings',
+  'inventory',
 ];
 
 export function isTabId(screen: ScreenId): screen is TabId {

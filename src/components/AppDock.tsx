@@ -11,7 +11,7 @@ const DOCK_ITEMS: DockItem[] = [
   { id: 'battleHub', label: 'バトル', icon: '⚔️' },
   { id: 'records', label: '戦績', icon: '📊' },
   { id: 'shop', label: 'ショップ', icon: '🛒' },
-  { id: 'settings', label: '設定', icon: '⚙️' },
+  { id: 'inventory', label: '所持品', icon: '🎒' },
 ];
 
 interface AppDockProps {

@@ -160,6 +160,7 @@ export type ScreenId =
   | 'battleHub'
   | 'records'
   | 'shop'
+  | 'inventory'
   | 'settings'
   | 'editor'
   | 'battleSetup'

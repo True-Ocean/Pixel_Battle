@@ -33,6 +33,7 @@ import { EditorScreen } from './components/EditorScreen';
 import { BattleHubScreen } from './components/BattleHubScreen';
 import { BattleSetupScreen } from './components/BattleSetupScreen';
 import { RecordsScreen } from './components/RecordsScreen';
+import { InventoryScreen } from './components/InventoryScreen';
 import { SettingsScreen } from './components/SettingsScreen';
 import { PlaceholderScreen } from './components/PlaceholderScreen';
 import { SetupScreen } from './components/SetupScreen';
@@ -132,6 +133,7 @@ function App() {
     playerDeck: Card[];
     playerLevel: number;
   } | null>(null);
+  const settingsReturnScreenRef = useRef<TabId>('deck');
   userRef.current = user;
   economyRef.current = economy;
   inventoryRef.current = inventory;
@@ -893,10 +895,7 @@ function App() {
     return deckHasLostCard(normalizeDeckLayout(decks[deckIndex] ?? []));
   }, [decks, lastBattleDeckIndex, pendingLostRouletteOutcome]);
 
-  const showProfileBar =
-    isProfileComplete(user) &&
-    isTabId(screen) &&
-    screen !== 'settings';
+  const showProfileBar = isProfileComplete(user) && isTabId(screen);
   const showDock = isDockVisible(screen) || (screen === 'battleSetup' && battleEndDock);
   const activeTab: TabId =
     screen === 'battleSetup' && battleEndDock
@@ -919,6 +918,17 @@ function App() {
     [clearPracticeRematch],
   );
 
+  const openSettings = useCallback(() => {
+    if (isTabId(screen)) {
+      settingsReturnScreenRef.current = screen;
+    }
+    setScreen('settings');
+  }, [screen]);
+
+  const closeSettings = useCallback(() => {
+    setScreen(settingsReturnScreenRef.current);
+  }, []);
+
   return (
     <div className={`app app-screen-${screen}${showDock ? ' has-dock' : ''}`}>
       {screen === 'setup' && (
@@ -935,6 +945,7 @@ function App() {
             user={user}
             freePixels={economy.freePixels}
             jewels={economy.jewels}
+            onOpenSettings={openSettings}
           />
         </header>
       )}
@@ -1005,11 +1016,15 @@ function App() {
         {screen === 'shop' && (
           <PlaceholderScreen title="ショップ" />
         )}
+        {screen === 'inventory' && (
+          <InventoryScreen inventory={inventory} />
+        )}
         {screen === 'settings' && (
           <SettingsScreen
             user={user}
             unlockedDeckCount={unlockedDeckCount}
             freePixels={economy.freePixels}
+            onBack={closeSettings}
             devCardOptions={devCardOptions}
             devDeckFillOptions={devDeckFillOptions}
             onResetBattleRecords={handleResetBattleRecords}

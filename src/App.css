@@ -63,7 +63,7 @@
   width: 100%;
 }
 
-.app-header--profile .user-profile-bar {
+.app-header--profile .user-profile-header {
   width: 100%;
 }
 
@@ -137,7 +137,7 @@
   display: none;
 }
 
-.user-profile-bar {
+.user-profile-header {
   --user-profile-track-bg: #1e3a8a;
   --user-profile-track-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.45);
   --user-profile-hex-w: 1.9rem;
@@ -151,10 +151,18 @@
   --user-profile-name-chars: 10;
   --user-profile-hex-rim-top: #2563eb;
   --user-profile-hex-rim-bottom: #1d4ed8;
+  --user-profile-menu-size: 2.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.user-profile-bar {
   display: flex;
   align-items: flex-end;
-  gap: 0.32rem;
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
   padding: 0.32rem 0.38rem;
   border-radius: 10px;
   box-sizing: border-box;
@@ -164,11 +172,48 @@
     0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
+.user-profile-main {
+  display: flex;
+  align-items: flex-end;
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 0.28rem;
+}
+
+.user-profile-menu-btn {
+  box-sizing: border-box;
+  flex: 0 0 var(--user-profile-menu-size);
+  width: var(--user-profile-menu-size);
+  height: var(--user-profile-menu-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e3a8a;
+  cursor: pointer;
+  font: inherit;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.user-profile-menu-btn:active {
+  background: #f1f5f9;
+}
+
+.user-profile-menu-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
+}
+
 .user-profile-left {
   display: flex;
   align-items: flex-end;
   flex: 1 1 0;
   min-width: 0;
+  max-width: 58%;
 }
 
 .user-profile-level-badge-shell {
@@ -1430,6 +1475,212 @@ button.battle-hub-deck-icon.is-drop-target {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+.settings-top-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-bottom: 0.65rem;
+}
+
+.settings-back-btn {
+  box-sizing: border-box;
+  justify-self: start;
+  grid-column: 1;
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.settings-top-title {
+  margin: 0;
+  grid-column: 2;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.screen-inventory {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inventory-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+
+.inventory-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.inventory-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.inventory-section-title {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #64748b;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.inventory-section-body {
+  padding: 0.55rem 0.75rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.inventory-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2rem;
+}
+
+.inventory-item-icon,
+.inventory-shard-label > .inventory-universal-shard-icon,
+.inventory-shard-label > .attr-badge {
+  flex-shrink: 0;
+}
+
+.inventory-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.inventory-item-icon--talisman {
+  width: 1.85rem;
+  height: 1.85rem;
+}
+
+.inventory-item-icon-svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: block;
+}
+
+.inventory-item-icon-svg--talisman {
+  width: 1.85rem;
+  height: 1.85rem;
+}
+
+.inventory-universal-shard-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.inventory-item-label {
+  flex: 1 1 0;
+  font-size: 0.92rem;
+  color: #334155;
+}
+
+.inventory-item-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory-shards {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.inventory-shards-summary {
+  padding: 0.55rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #64748b;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.inventory-shards-summary::-webkit-details-marker {
+  display: none;
+}
+
+.inventory-shard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0.55rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.inventory-shard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  min-height: 1.85rem;
+}
+
+.inventory-shard-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.inventory-shard-name {
+  font-size: 0.84rem;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.inventory-shard-count {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+  font-variant-numeric: tabular-nums;
 }
 
 .settings-scroll {
