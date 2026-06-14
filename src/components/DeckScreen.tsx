@@ -38,6 +38,7 @@ interface DeckScreenProps {
   decks: DeckLayout[];
   activeDeckIndex: number;
   unlockedDeckCount: number;
+  userLevel: number;
   deckNames?: string[];
   reorderMode: boolean;
   onReorderModeChange: (active: boolean) => void;
@@ -246,6 +247,7 @@ export function DeckScreen({
   decks,
   activeDeckIndex,
   unlockedDeckCount,
+  userLevel,
   deckNames,
   reorderMode,
   onReorderModeChange,
@@ -912,6 +914,7 @@ export function DeckScreen({
         <DeckUnlockModal
           slotIndex={unlockModalSlot}
           unlockedDeckCount={unlockedDeckCount}
+          userLevel={userLevel}
           deckNames={deckNames}
           onClose={() => setUnlockModalSlot(null)}
           onPrototypeUnlock={

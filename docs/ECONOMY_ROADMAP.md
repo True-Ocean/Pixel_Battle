@@ -100,8 +100,9 @@
 | Lost / 復活 / 降格復活 / 削除返還 | ✅ プロトタイプ実装済み（`economy.ts`, `status.ts`, デッキ UI） |
 | 勝利 px・墓地選択 UI | ✅ `GraveyardPickModal`, `calcGraveyardPixelReward` |
 | `UserEconomy` | `freePixels` のみ |
-| ジュエル・欠片・護符インベントリ | ❌ 未実装 |
-| デッキ2 Lv10 解放 | ❌ `unlockedDeckCount` は手動/DEV のみ |
+| ジュエル・欠片・護符インベントリ | ✅ 型・マイグレーション済（フェーズ1） |
+| デッキ2 Lv10 解放 | ✅ レベルアップ時自動解放（フェーズ2） |
+| ヘッダー 💎 表示 | ✅ フェーズ2 |
 | 広告 | ❌ 未実装（仕様 §11 のみ） |
 | ショップ画面 | ❌ プレースホルダ |
 | 限界突破 gameplay | ❌ 表示・★ のみ、実行 UI なし |
@@ -366,10 +367,12 @@ flowchart TD
 | `JEWEL_COST_RENAME` | 50 | 名前変更1回 |
 | `JEWEL_COST_DECK_UNLOCK` | 200 | デッキ3〜各1回 |
 | `LIMIT_BREAK_SHARDS_REQUIRED` | 10 | |
-| `GRAVEYARD_SHARD_BASE` | 1 | |
-| `GRAVEYARD_SHARD_RARE_BONUS` | +1 | R/SR 時（採用する場合） |
+| `GRAVEYARD_SHARD_BASE` | 1 | N の欠片報酬 |
+| `GRAVEYARD_SHARD_R` | 2 | R の欠片報酬 |
+| `GRAVEYARD_SHARD_SR` | 3 | SR の欠片報酬 |
 | `BATTLE_DAILY_FREE_LIMIT` | 10 | 非会員 |
 | `SHOP_TALISMAN_PX` | 300 | 旧仕様踏襲 |
+| `SHOP_TALISMAN_JEWELS` | 25 | 💎 枠（px と両方で購入可） |
 | `MOCK_JEWEL_PACK_SMALL` | 100 | 開発用 |
 
 ---
@@ -416,14 +419,15 @@ flowchart TD
 **immediate（推奨）**
 
 1. ~~フェーズ **0** — 仕様書同期~~ — **2026-06-14 完了**
-2. フェーズ **1** — `jewels` + `inventory` + `adState` の型とマイグレーション
+2. ~~フェーズ **1** — `jewels` + `inventory` + `adState` の型とマイグレーション~~ — **2026-06-14 完了**（schema v2）
+3. ~~フェーズ **2** — ヘッダー 💎・レベル報酬・Lv10 デッキ2~~ — **2026-06-14 完了**
 
 **判断待ち（実装前に1行で確定するとよい）**
 
-- [ ] 新規カードの **初回命名** は 💎 無料か
-- [ ] レアカード戦利品の欠片 +2 を初版から入れるか
-- [ ] 護符価格: px のみ / 💎 のみ / 両方
-- [ ] 日次リセットのタイムゾーン（JST 固定でよいか）
+- [x] 新規カードの **初回命名** は 💎 無料（2回目以降のみ消費）
+- [x] レアカード戦利品の欠片: **N=1, R=2, SR=3**
+- [x] 護符価格: **px と 💎 の両方**（300px / 25💎）
+- [x] 日次リセットのタイムゾーン（**JST 固定**）
 
 ---
 

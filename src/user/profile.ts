@@ -1,4 +1,4 @@
-import { calcLevelUpPixels } from '../config/economy';
+import { calcLevelUpPixels, calcLevelUpJewelBonus, calcLevelUpJewels } from '../config/economy';
 import {
   DEV_FORCE_MAX_USER_LEVEL,
   MAX_USER_LEVEL,
@@ -8,7 +8,7 @@ import {
 } from '../config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
 import type { UserEconomy, UserProfile } from '../types';
-import { addFreePixels } from './economy';
+import { addFreePixels, addJewels } from './economy';
 import {
   calcBattleExpGain,
   levelFromTotalExp,
@@ -175,6 +175,7 @@ export interface BattleOutcomeRecord {
   /** 今回到達したレベル（例: 20→22 なら [21, 22]） */
   levelsGained: number[];
   pixelsGranted: number;
+  jewelsGranted: number;
 }
 
 function levelsReached(previousLevel: number, nextLevel: number): number[] {
@@ -188,15 +189,19 @@ function levelsReached(previousLevel: number, nextLevel: number): number[] {
 export function applyLevelUpEconomyRewards(
   economy: UserEconomy,
   levelsGained: number[],
-): { economy: UserEconomy; pixelsGranted: number } {
+): { economy: UserEconomy; pixelsGranted: number; jewelsGranted: number } {
   let nextEconomy = economy;
   let pixelsGranted = 0;
+  let jewelsGranted = 0;
   for (const level of levelsGained) {
-    const amount = calcLevelUpPixels(level);
-    nextEconomy = addFreePixels(nextEconomy, amount);
-    pixelsGranted += amount;
+    const pixelAmount = calcLevelUpPixels(level);
+    const jewelAmount = calcLevelUpJewels(level) + calcLevelUpJewelBonus(level);
+    nextEconomy = addFreePixels(nextEconomy, pixelAmount);
+    nextEconomy = addJewels(nextEconomy, jewelAmount);
+    pixelsGranted += pixelAmount;
+    jewelsGranted += jewelAmount;
   }
-  return { economy: nextEconomy, pixelsGranted };
+  return { economy: nextEconomy, pixelsGranted, jewelsGranted };
 }
 
 export function recordUserBattleOutcome(
@@ -207,7 +212,7 @@ export function recordUserBattleOutcome(
   const previousLevel = user.level;
   const withExp = grantBattleExp(user, input);
   const levelsGained = levelsReached(previousLevel, withExp.level);
-  const { economy: nextEconomy, pixelsGranted } = applyLevelUpEconomyRewards(
+  const { economy: nextEconomy, pixelsGranted, jewelsGranted } = applyLevelUpEconomyRewards(
     economy,
     levelsGained,
   );
@@ -220,5 +225,6 @@ export function recordUserBattleOutcome(
     economy: nextEconomy,
     levelsGained,
     pixelsGranted,
+    jewelsGranted,
   };
 }

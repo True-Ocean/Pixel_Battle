@@ -1,5 +1,9 @@
 import { ATTRIBUTE_META } from './attributes';
-import { calcLevelUpPixels } from './economy';
+import {
+  calcLevelUpJewelBonus,
+  calcLevelUpJewels,
+  calcLevelUpPixels,
+} from './economy';
 import { getCanvasUnlockLevel, getMaxCanvasSize } from './canvasUnlock';
 import { ATTRIBUTE_UNLOCK_SCHEDULE } from './attributeUnlock';
 import {
@@ -11,11 +15,12 @@ import { PALETTE_UNLOCK_LEVELS } from './paletteUnlock';
 
 export type LevelUpRewardKind =
   | 'pixels'
+  | 'jewels'
   | 'palette'
   | 'attribute'
   | 'tool'
   | 'canvas'
-  | 'shop_sample'
+  | 'deck_unlock'
   | 'limit_break';
 
 export interface LevelUpRewardEntry {
@@ -76,22 +81,25 @@ function canvasLabelForLevel(level: number): string {
   return 'キャンバスが大きくなりました！';
 }
 
-/** Lv5 以降の 5n+m メイン報酬（無償ピクセル除く） */
+/** Lv5 以降の 5n+m メイン報酬（px・ジュエル除く） */
 function getMainRewardAtLevel(level: number): LevelUpRewardEntry | null {
   if (level < 5) return null;
 
   const mod5 = level % 5;
   const mod10 = level % 10;
 
-  if (mod10 === 5) {
-    return { kind: 'palette', label: paletteLabelForLevel(level) };
+  if (level === 10) {
+    return { kind: 'deck_unlock', label: 'デッキ2が使えるようになりました！' };
   }
-  if (mod10 === 0 && level >= 10) {
+  if (mod10 === 0 && level >= 20) {
     return {
       kind: 'limit_break',
       label: '汎用限界突破アイテム',
       pending: true,
     };
+  }
+  if (mod10 === 5) {
+    return { kind: 'palette', label: paletteLabelForLevel(level) };
   }
   if (mod5 === 1) {
     return { kind: 'attribute', label: attributeLabelForLevel(level) };
@@ -103,10 +111,10 @@ function getMainRewardAtLevel(level: number): LevelUpRewardEntry | null {
     return { kind: 'canvas', label: canvasLabelForLevel(level) };
   }
   if (mod5 === 4) {
+    const bonus = calcLevelUpJewelBonus(level);
     return {
-      kind: 'shop_sample',
-      label: 'ショップ試供品',
-      pending: true,
+      kind: 'jewels',
+      label: `💎 ボーナス +${bonus.toLocaleString()} 獲得！`,
     };
   }
   return null;
@@ -118,7 +126,11 @@ export function getLevelUpRewardsAtLevel(level: number): LevelUpRewardEntry[] {
   const rewards: LevelUpRewardEntry[] = [
     {
       kind: 'pixels',
-      label: `無償ピクセルを ${calcLevelUpPixels(L).toLocaleString()} 獲得！`,
+      label: `${calcLevelUpPixels(L).toLocaleString()}px 獲得！`,
+    },
+    {
+      kind: 'jewels',
+      label: `💎 ジュエルを ${calcLevelUpJewels(L).toLocaleString()} 獲得！`,
     },
   ];
   const main = getMainRewardAtLevel(L);

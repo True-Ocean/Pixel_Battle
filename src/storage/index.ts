@@ -25,15 +25,19 @@ import { gridSize } from '../canvas';
 import { effectiveDevPreferSavedLevel, normalizeUserProfile, resolveDevUserProfileOnLoad } from '../user';
 import { normalizeCardStatus } from '../card/status';
 import { createInitialEconomy, normalizeUserEconomy } from '../user/economy';
+import { createInitialInventory, normalizeUserInventory } from '../user/inventory';
+import { createInitialAdState, normalizeAdState } from '../user/adState';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
-export const SAVE_SCHEMA_VERSION = 1;
+export const SAVE_SCHEMA_VERSION = 2;
 
 function emptySave(): SaveData {
   return {
     schemaVersion: SAVE_SCHEMA_VERSION,
     user: null,
     economy: createInitialEconomy(),
+    inventory: createInitialInventory(),
+    adState: createInitialAdState(),
     decks: createEmptyDeckSlots(),
     activeDeckIndex: 0,
     lastBattleDeckIndex: 0,
@@ -281,6 +285,44 @@ function rescaleAllDecks(decks: DeckLayout[], level: number): DeckLayout[] {
   });
 }
 
+export function applyProgressionMigrations(save: SaveData): SaveData {
+  let next: SaveData = {
+    ...save,
+    schemaVersion: SAVE_SCHEMA_VERSION,
+    economy: normalizeUserEconomy(save.economy),
+    inventory: normalizeUserInventory(save.inventory),
+    adState: normalizeAdState(save.adState),
+  };
+
+  if (next.user && next.user.level >= 10 && next.unlockedDeckCount < 2) {
+    next = {
+      ...next,
+      unlockedDeckCount: Math.max(2, next.unlockedDeckCount),
+    };
+  }
+
+  return next;
+}
+
+function shouldPersistMigration(
+  parsed: Record<string, unknown>,
+  migrated: SaveData,
+  beforeDecks: DeckLayout[],
+  afterDecks: DeckLayout[],
+): boolean {
+  const parsedVersion =
+    typeof parsed.schemaVersion === 'number' ? parsed.schemaVersion : 0;
+  if (parsedVersion < SAVE_SCHEMA_VERSION) return true;
+  if (
+    migrated.user &&
+    migrated.user.level >= 10 &&
+    (typeof parsed.unlockedDeckCount !== 'number' || parsed.unlockedDeckCount < 2)
+  ) {
+    return true;
+  }
+  return anyDeckBpChanged(beforeDecks, afterDecks);
+}
+
 export function loadSave(): SaveData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -292,6 +334,8 @@ export function loadSave(): SaveData {
 
     const user = normalizeUserProfile(parsed.user);
     const economy = normalizeUserEconomy(parsed.economy);
+    const inventory = normalizeUserInventory(parsed.inventory);
+    const adState = normalizeAdState(parsed.adState);
     const decks = normalizeDeckSlots(migrateDecks(parsed));
     const battleHistory = migrateBattleHistory(parsed.battleHistory);
     const { activeDeckIndex, lastBattleDeckIndex, unlockedDeckCount, deckNames } =
@@ -303,10 +347,12 @@ export function loadSave(): SaveData {
       devFileOverrideLevel,
     );
 
-    const baseSave: SaveData = {
+    const baseSave = applyProgressionMigrations({
       schemaVersion: SAVE_SCHEMA_VERSION,
       user,
       economy,
+      inventory,
+      adState,
       decks,
       activeDeckIndex,
       lastBattleDeckIndex,
@@ -314,7 +360,7 @@ export function loadSave(): SaveData {
       deckNames,
       battleHistory,
       ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
-    };
+    });
 
     if (user) {
       const devAdjusted = resolveDevUserProfileOnLoad(user, {
@@ -326,21 +372,26 @@ export function loadSave(): SaveData {
       const finalDecks = rescale
         ? rescaleAllDecks(decks, devAdjusted.level)
         : decks;
-      const finalSave: SaveData = {
+      const finalSave = applyProgressionMigrations({
         ...baseSave,
         user: devAdjusted,
         decks: finalDecks,
         ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
-      };
+      });
       if (
         devAdjusted.level !== user.level ||
         devAdjusted.exp !== user.exp ||
         (rescale && anyDeckBpChanged(decks, finalDecks)) ||
-        (parsed.devPreferSavedLevel === true && !preferSaved)
+        (parsed.devPreferSavedLevel === true && !preferSaved) ||
+        shouldPersistMigration(parsed, finalSave, decks, finalDecks)
       ) {
         saveSave(finalSave);
       }
       return finalSave;
+    }
+
+    if (shouldPersistMigration(parsed, baseSave, decks, decks)) {
+      saveSave(baseSave);
     }
     return baseSave;
   } catch {
@@ -353,6 +404,8 @@ export function saveSave(data: SaveData): void {
     schemaVersion: data.schemaVersion ?? SAVE_SCHEMA_VERSION,
     user: data.user,
     economy: data.economy ?? createInitialEconomy(),
+    inventory: data.inventory ?? createInitialInventory(),
+    adState: data.adState ?? createInitialAdState(),
     decks: normalizeDeckSlots(data.decks).map((deck) => deck.slice(0, DECK_MAX)),
     activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
     lastBattleDeckIndex: clampDeckSlotIndex(
@@ -384,6 +437,8 @@ export function resetBattleRecords(data: SaveData): SaveData {
         }
       : null,
     economy: createInitialEconomy(),
+    inventory: createInitialInventory(),
+    adState: createInitialAdState(),
     decks: resetAllDeckCardRecords(normalizeDeckSlots(data.decks)),
     activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
     lastBattleDeckIndex: clampDeckSlotIndex(

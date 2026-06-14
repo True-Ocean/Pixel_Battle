@@ -19,13 +19,50 @@ export const LOST_WEIGHT_STARS: Record<CardStars, number> = {
   3: 1.5,
 };
 
-/** レベルアップ1回あたりの無償ピクセル（固定） */
-export const LEVEL_UP_PIXEL_REWARD = 500;
+/** レベルアップ1回あたりのジュエル */
+export const JEWELS_PER_LEVEL = 3;
 
-/** 完全復活に必要な無償ピクセル（一律） */
+/** L ≡ 4 (mod 5), L ≥ 5 のジュエル追加ボーナス */
+export const JEWELS_BONUS_MOD4 = 10;
+
+/** 通常カード削除のジュエルコスト */
+export const JEWEL_COST_DELETE = 30;
+
+/** カード名変更（2回目以降）のジュエルコスト。初回命名は無料 */
+export const JEWEL_COST_RENAME = 50;
+
+/** デッキ3〜5解放のジュエルコスト（各1回） */
+export const JEWEL_COST_DECK_UNLOCK = 200;
+
+/** 限界突破に必要な属性欠片数 */
+export const LIMIT_BREAK_SHARDS_REQUIRED = 10;
+
+/** 墓地戦利品の属性欠片（レア度別） */
+export const GRAVEYARD_SHARD_REWARD: Record<Extract<CardRarity, 'N' | 'R' | 'SR'>, number> = {
+  N: 1,
+  R: 2,
+  SR: 3,
+};
+
+/** 非会員の1日無料バトル上限 */
+export const BATTLE_DAILY_FREE_LIMIT = 10;
+
+/** バトル回数日次リセットのタイムゾーン */
+export const BATTLE_DAILY_RESET_TIMEZONE = 'Asia/Tokyo';
+
+/** 護符購入価格（px 枠） */
+export const SHOP_TALISMAN_PX = 300;
+
+/** 護符購入価格（💎 枠） */
+export const SHOP_TALISMAN_JEWELS = 25;
+
+/** 開発用モックジュエルパック */
+export const MOCK_JEWEL_PACK_SMALL = 100;
+
+/** 完全復活に必要な px（一律） */
 export const FULL_REVIVE_COST = 4000;
 
-/** 降格復活に必要な無償ピクセル（一律） */
+/** 降格復活に必要な px（一律） */
 export const DOWNGRADE_REVIVE_COST = 2000;
 
 /** 勝利時・生存1枚あたりのピクセル */
@@ -40,8 +77,30 @@ export const COLOR_DIVERSITY_BONUS_PER_EXTRA_COLOR = 0.05;
 /** 色係数の上限 */
 export const COLOR_DIVERSITY_MAX_MULTIPLIER = 1.3;
 
+/** レベルアップ1回あたりの px（固定） */
+export const LEVEL_UP_PIXEL_REWARD = 500;
+
 export function calcLevelUpPixels(_level?: number): number {
   return LEVEL_UP_PIXEL_REWARD;
+}
+
+export function calcLevelUpJewels(_level?: number): number {
+  return JEWELS_PER_LEVEL;
+}
+
+/** L ≡ 4 (mod 5), L ≥ 5 のジュエル追加ボーナス */
+export function calcLevelUpJewelBonus(level: number): number {
+  const L = Math.max(1, Math.floor(level));
+  if (L < 5) return 0;
+  return L % 5 === 4 ? JEWELS_BONUS_MOD4 : 0;
+}
+
+export function calcTotalLevelUpJewels(levelsGained: readonly number[]): number {
+  let total = 0;
+  for (const level of levelsGained) {
+    total += calcLevelUpJewels(level) + calcLevelUpJewelBonus(level);
+  }
+  return total;
 }
 
 export function calcFullReviveCost(): number {
@@ -138,7 +197,7 @@ export function pickWeightedLostCard(
   return cards[cards.length - 1]!;
 }
 
-/** カード削除時の無償ピクセル返還 */
+/** カード削除時の px 返還 */
 export function calcCardDeleteRefundPixels(card: Card): number {
   const painted = countPaintedCells(card.pixels);
   return Math.ceil(painted * CARD_DELETE_PIXEL_REFUND_RATE);

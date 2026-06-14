@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import type { Card, ScreenId, UserProfile, UserEconomy, BattleOutcome, BattleHistoryEntry } from './types';
+import type { AdState, Card, ScreenId, UserProfile, UserEconomy, UserInventory, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry } from './battleHistory';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
-import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked } from './deckSlots';
+import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, resolveDeckUnlockOnLevelUp } from './deckSlots';
 import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp } from './card';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
@@ -13,6 +13,8 @@ import {
   calcBattleExpGainForUser,
   createInitialProfile,
   createInitialEconomy,
+  createInitialInventory,
+  createInitialAdState,
   isProfileComplete,
   recordUserBattleOutcome,
   totalExpForLevel,
@@ -50,6 +52,12 @@ function App() {
   const [user, setUser] = useState<UserProfile | null>(initialSave.user);
   const [economy, setEconomy] = useState<UserEconomy>(
     () => initialSave.economy ?? createInitialEconomy(),
+  );
+  const [inventory, setInventory] = useState<UserInventory>(
+    () => initialSave.inventory ?? createInitialInventory(),
+  );
+  const [adState, setAdState] = useState<AdState>(
+    () => initialSave.adState ?? createInitialAdState(),
   );
   const [decks, setDecks] = useState<DeckLayout[]>(() => initialSave.decks);
   const [activeDeckIndex, setActiveDeckIndex] = useState(
@@ -105,10 +113,13 @@ function App() {
     fromLevel: number;
     toLevel: number;
     pixelsGranted: number;
+    jewelsGranted: number;
   } | null>(null);
 
   const userRef = useRef(user);
   const economyRef = useRef(economy);
+  const inventoryRef = useRef(inventory);
+  const adStateRef = useRef(adState);
   const decksRef = useRef(decks);
   const activeDeckIndexRef = useRef(activeDeckIndex);
   const lastBattleDeckIndexRef = useRef(lastBattleDeckIndex);
@@ -123,6 +134,8 @@ function App() {
   } | null>(null);
   userRef.current = user;
   economyRef.current = economy;
+  inventoryRef.current = inventory;
+  adStateRef.current = adState;
   decksRef.current = decks;
   activeDeckIndexRef.current = activeDeckIndex;
   lastBattleDeckIndexRef.current = lastBattleDeckIndex;
@@ -138,6 +151,8 @@ function App() {
     (next: {
       user?: UserProfile | null;
       economy?: UserEconomy;
+      inventory?: UserInventory;
+      adState?: AdState;
       decks?: Card[][];
       activeDeckIndex?: number;
       lastBattleDeckIndex?: number;
@@ -157,6 +172,8 @@ function App() {
         schemaVersion: initialSave.schemaVersion,
         user: next.user !== undefined ? next.user : user,
         economy: next.economy ?? economyRef.current,
+        inventory: next.inventory ?? inventoryRef.current,
+        adState: next.adState ?? adStateRef.current,
         decks: next.decks ?? decks,
         activeDeckIndex: next.activeDeckIndex ?? activeDeckIndex,
         lastBattleDeckIndex: next.lastBattleDeckIndex ?? lastBattleDeckIndex,
@@ -172,7 +189,7 @@ function App() {
           : {}),
       });
     },
-    [activeDeckIndex, deckNames, decks, economy, lastBattleDeckIndex, unlockedDeckCount, user, initialSave.schemaVersion],
+    [activeDeckIndex, adState, deckNames, decks, economy, inventory, lastBattleDeckIndex, unlockedDeckCount, user, initialSave.schemaVersion],
   );
 
   const updateActiveDeck = useCallback(
@@ -494,6 +511,7 @@ function App() {
       const prevActiveDeck = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
       let nextUser = prevUser;
       let nextEconomy = prevEconomy;
+      let nextUnlockedDeckCount = unlockedDeckCountRef.current;
       if (isProfileComplete(prevUser)) {
         const expInput = {
           winner: outcome.winner,
@@ -503,10 +521,15 @@ function App() {
         nextUser = battleRecord.user;
         nextEconomy = battleRecord.economy;
         if (battleRecord.levelsGained.length > 0) {
+          nextUnlockedDeckCount = resolveDeckUnlockOnLevelUp(
+            nextUnlockedDeckCount,
+            battleRecord.levelsGained,
+          );
           setLevelUpModal({
             fromLevel: prevUser.level,
             toLevel: battleRecord.user.level,
             pixelsGranted: battleRecord.pixelsGranted,
+            jewelsGranted: battleRecord.jewelsGranted,
           });
         }
       }
@@ -558,14 +581,18 @@ function App() {
         schemaVersion: initialSave.schemaVersion,
         user: nextUser,
         economy: nextEconomy,
+        inventory: inventoryRef.current,
+        adState: adStateRef.current,
         decks: nextDecks,
         activeDeckIndex: deckIndex,
         lastBattleDeckIndex: lastBattleIndex,
-        unlockedDeckCount: unlockedDeckCountRef.current,
+        unlockedDeckCount: nextUnlockedDeckCount,
         battleHistory: nextHistory,
       });
       setLastBattleDeckIndex(lastBattleIndex);
       lastBattleDeckIndexRef.current = lastBattleIndex;
+      unlockedDeckCountRef.current = nextUnlockedDeckCount;
+      setUnlockedDeckCount(nextUnlockedDeckCount);
       decksRef.current = nextDecks;
       battleStartSnapshotRef.current = null;
       setUser(nextUser);
@@ -629,6 +656,8 @@ function App() {
       schemaVersion: initialSave.schemaVersion,
       user,
       economy,
+      inventory,
+      adState,
       decks,
       activeDeckIndex,
       lastBattleDeckIndex,
@@ -639,6 +668,8 @@ function App() {
     persistSave(next);
     setUser(next.user);
     setEconomy(next.economy ?? createInitialEconomy());
+    setInventory(next.inventory ?? createInitialInventory());
+    setAdState(next.adState ?? createInitialAdState());
     setDecks(next.decks);
     setActiveDeckIndex(next.activeDeckIndex);
     setLastBattleDeckIndex(next.lastBattleDeckIndex);
@@ -647,7 +678,7 @@ function App() {
     setLevelUpModal(null);
     setPendingGraveyardOutcome(null);
     setPendingLostRouletteOutcome(null);
-  }, [activeDeckIndex, battleHistory, deckNames, decks, economy, initialSave.schemaVersion, lastBattleDeckIndex, persistSave, unlockedDeckCount, user]);
+  }, [activeDeckIndex, adState, battleHistory, deckNames, decks, economy, initialSave.schemaVersion, inventory, lastBattleDeckIndex, persistSave, unlockedDeckCount, user]);
 
   const handleDevSetLevel = useCallback(
     (level: number) => {
@@ -900,7 +931,11 @@ function App() {
 
       {showProfileBar && user && (
         <header className="app-header app-header--profile">
-          <UserProfileBar user={user} freePixels={economy.freePixels} />
+          <UserProfileBar
+            user={user}
+            freePixels={economy.freePixels}
+            jewels={economy.jewels}
+          />
         </header>
       )}
 
@@ -913,6 +948,7 @@ function App() {
             decks={decks}
             activeDeckIndex={activeDeckIndex}
             unlockedDeckCount={unlockedDeckCount}
+            userLevel={user?.level ?? 1}
             deckNames={deckNames}
             reorderMode={deckReorderMode}
             onReorderModeChange={setDeckReorderMode}
@@ -1041,6 +1077,7 @@ function App() {
           fromLevel={levelUpModal.fromLevel}
           toLevel={levelUpModal.toLevel}
           totalPixelsGranted={levelUpModal.pixelsGranted}
+          totalJewelsGranted={levelUpModal.jewelsGranted}
           onClose={() => setLevelUpModal(null)}
         />
       )}

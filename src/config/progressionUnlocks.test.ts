@@ -5,37 +5,38 @@ import {
 } from './progressionUnlocks';
 
 describe('progressionUnlocks', () => {
-  it('Lv2〜4 は無償ピクセルのみ', () => {
+  it('Lv2〜4 は px とジュエルのみ', () => {
     expect(getLevelUpRewardsAtLevel(3).map((reward) => reward.kind)).toEqual([
       'pixels',
+      'jewels',
     ]);
   });
 
   it('Lv5 は色、Lv6 は属性', () => {
     expect(getLevelUpRewardsAtLevel(5).map((reward) => reward.kind)).toEqual([
       'pixels',
+      'jewels',
       'palette',
     ]);
     expect(getLevelUpRewardsAtLevel(6).map((reward) => reward.kind)).toEqual([
       'pixels',
+      'jewels',
       'attribute',
     ]);
   });
 
-  it('Lv10 は限界突破（準備中）', () => {
+  it('Lv10 はデッキ2解放', () => {
     const rewards = getLevelUpRewardsAtLevel(10);
-    expect(rewards.some((reward) => reward.kind === 'limit_break')).toBe(true);
-    expect(
-      rewards.find((reward) => reward.kind === 'limit_break')?.pending,
-    ).toBe(true);
+    expect(rewards.some((reward) => reward.kind === 'deck_unlock')).toBe(true);
+    expect(rewards.some((reward) => reward.kind === 'limit_break')).toBe(false);
   });
 
-  it('Lv9 は試供品（準備中）', () => {
+  it('Lv9 はジュエルボーナス', () => {
     const rewards = getLevelUpRewardsAtLevel(9);
-    expect(rewards.some((reward) => reward.kind === 'shop_sample')).toBe(true);
+    expect(rewards.some((reward) => reward.kind === 'shop_sample')).toBe(false);
     expect(
-      rewards.find((reward) => reward.kind === 'shop_sample')?.pending,
-    ).toBe(true);
+      rewards.filter((reward) => reward.kind === 'jewels').length,
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it('collectLevelUpRewards は到達レベルごとに返す', () => {

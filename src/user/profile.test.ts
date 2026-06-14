@@ -5,7 +5,7 @@ import {
   USER_INITIAL_EXP,
   USER_INITIAL_LEVEL,
 } from '../config/balance';
-import { LEVEL_UP_PIXEL_REWARD } from '../config/economy';
+import { LEVEL_UP_PIXEL_REWARD, JEWELS_PER_LEVEL, JEWELS_BONUS_MOD4 } from '../config/economy';
 import {
   applyDevMaxUserLevel,
   createInitialProfile,
@@ -197,7 +197,25 @@ describe('recordUserBattleOutcome', () => {
     expect(result.pixelsGranted).toBe(
       result.levelsGained.length * LEVEL_UP_PIXEL_REWARD,
     );
+    expect(result.jewelsGranted).toBe(
+      result.levelsGained.length * JEWELS_PER_LEVEL,
+    );
     expect(result.economy.freePixels).toBe(result.pixelsGranted);
+    expect(result.economy.jewels).toBe(result.jewelsGranted);
+  });
+
+  it('adds jewel bonus at L≡4 levels', () => {
+    const highLevelUser = {
+      ...base,
+      level: 8,
+      exp: totalExpForLevel(8) + 1,
+    };
+    const result = recordUserBattleOutcome(highLevelUser, economy, {
+      winner: 'player',
+      opponentDeckPower: 5000,
+    });
+    expect(result.levelsGained).toContain(9);
+    expect(result.jewelsGranted).toBeGreaterThanOrEqual(JEWELS_PER_LEVEL + JEWELS_BONUS_MOD4);
   });
 
   it('increments battle losses on defeat', () => {

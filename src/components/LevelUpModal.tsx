@@ -1,21 +1,48 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { collectLevelUpRewards } from '../config/progressionUnlocks';
+import { JewelIcon } from './JewelIcon';
+import { PixelCoinIcon } from './PixelCoinIcon';
 
 interface LevelUpModalProps {
   fromLevel: number;
   toLevel: number;
   totalPixelsGranted: number;
+  totalJewelsGranted: number;
   onClose: () => void;
+}
+
+function formatRewardLine(
+  totalPixelsGranted: number,
+  totalJewelsGranted: number,
+): string {
+  const parts: string[] = [];
+  if (totalPixelsGranted > 0) {
+    parts.push(`${totalPixelsGranted.toLocaleString()}px`);
+  }
+  if (totalJewelsGranted > 0) {
+    parts.push(`${totalJewelsGranted.toLocaleString()}ジュエル`);
+  }
+  if (parts.length === 0) return '';
+  return `${parts.join('・')} ゲット！`;
 }
 
 export function LevelUpModal({
   fromLevel,
   toLevel,
   totalPixelsGranted,
+  totalJewelsGranted,
   onClose,
 }: LevelUpModalProps) {
-  const levelGroups = collectLevelUpRewards(fromLevel, toLevel);
+  const extraRewards = useMemo(() => {
+    return collectLevelUpRewards(fromLevel, toLevel).flatMap(({ level, rewards }) =>
+      rewards
+        .filter((reward) => reward.kind !== 'pixels' && reward.kind !== 'jewels')
+        .map((reward) => ({ level, ...reward })),
+    );
+  }, [fromLevel, toLevel]);
+
+  const rewardLine = formatRewardLine(totalPixelsGranted, totalJewelsGranted);
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -44,42 +71,49 @@ export function LevelUpModal({
   return createPortal(
     <div className="level-up-backdrop" onClick={onClose}>
       <div
-        className="level-up-panel"
+        className="level-up-panel level-up-panel--compact"
         role="dialog"
         aria-modal="true"
         aria-labelledby="level-up-title"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="level-up-title" className="level-up-title">
-          レベルアップ！
+          レベルアップ！（Lv.{fromLevel}→Lv.{toLevel}）
         </h2>
-        <p className="level-up-summary">
-          Lv.{fromLevel} → Lv.{toLevel}
-        </p>
-        <ul className="level-up-reward-list">
-          {levelGroups.map(({ level, rewards }) => (
-            <li key={level} className="level-up-reward-group">
-              <span className="level-up-reward-level">Lv.{level}</span>
-              <ul className="level-up-reward-items">
-                {rewards.map((reward) => (
-                  <li
-                    key={`${level}-${reward.kind}-${reward.label}`}
-                    className={`level-up-reward-item${reward.pending ? ' is-pending' : ''}`}
-                  >
-                    {reward.label}
-                    {reward.pending ? (
-                      <span className="level-up-reward-pending">（準備中）</span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
-        {totalPixelsGranted > 0 && (
-          <p className="level-up-pixels-total">
-            合計 +{totalPixelsGranted.toLocaleString()} 無償ピクセル
+        {rewardLine && (
+          <p className="level-up-reward-main" aria-label={rewardLine}>
+            {totalPixelsGranted > 0 && (
+              <span className="level-up-reward-px">
+                <PixelCoinIcon className="level-up-reward-coin-icon" />
+                <span>{totalPixelsGranted.toLocaleString()}</span>
+              </span>
+            )}
+            {totalPixelsGranted > 0 && totalJewelsGranted > 0 && (
+              <span className="level-up-reward-sep">・</span>
+            )}
+            {totalJewelsGranted > 0 && (
+              <span className="level-up-reward-jewels">
+                <span>{totalJewelsGranted.toLocaleString()}</span>
+                <JewelIcon className="level-up-reward-jewel-icon" />
+              </span>
+            )}
+            <span className="level-up-reward-get"> ゲット！</span>
           </p>
+        )}
+        {extraRewards.length > 0 && (
+          <ul className="level-up-extra-list">
+            {extraRewards.map((reward) => (
+              <li
+                key={`${reward.level}-${reward.kind}-${reward.label}`}
+                className={`level-up-extra-item${reward.pending ? ' is-pending' : ''}`}
+              >
+                {reward.label}
+                {reward.pending ? (
+                  <span className="level-up-reward-pending">（準備中）</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         )}
         <button type="button" className="level-up-close" onClick={onClose}>
           OK

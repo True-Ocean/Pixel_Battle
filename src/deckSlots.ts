@@ -81,6 +81,17 @@ export function isDeckSlotUnlocked(
   return slotIndex >= 0 && slotIndex < unlockedDeckCount;
 }
 
+/** レベルアップ到達時にデッキ2（Lv10）を自動解放 */
+export function resolveDeckUnlockOnLevelUp(
+  unlockedDeckCount: number,
+  levelsGained: readonly number[],
+): number {
+  if (levelsGained.some((level) => level >= 10)) {
+    return Math.max(2, unlockedDeckCount);
+  }
+  return unlockedDeckCount;
+}
+
 export function normalizeDeckLayout(raw: readonly (Card | null)[] | Card[]): DeckLayout {
   const slots = createEmptyDeckLayout();
   const hasExplicitNull =

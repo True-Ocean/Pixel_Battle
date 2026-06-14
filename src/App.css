@@ -284,6 +284,15 @@
   letter-spacing: 0.01em;
 }
 
+.user-profile-currencies {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.28rem;
+  flex: 0 0 auto;
+  pointer-events: none;
+  user-select: none;
+}
+
 .user-profile-currency-track {
   display: flex;
   align-items: flex-end;
@@ -301,7 +310,6 @@
   height: var(--user-profile-hex-h);
   margin-right: var(--user-profile-coin-overlap-half);
   margin-bottom: var(--user-profile-bar-offset);
-  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.35));
 }
 
 .user-profile-currency-value {
@@ -2085,9 +2093,67 @@ button.battle-hub-deck-icon.is-drop-target {
 }
 
 .level-up-title {
-  margin: 0 0 0.35rem;
-  font-size: 1.15rem;
+  margin: 0 0 0.85rem;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  text-align: center;
   color: #4f46e5;
+}
+
+.level-up-panel--compact {
+  max-height: none;
+}
+
+.level-up-reward-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem 0.35rem;
+  margin: 0 0 0.85rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e293b;
+  text-align: center;
+}
+
+.level-up-reward-px,
+.level-up-reward-jewels {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.level-up-reward-coin-icon,
+.level-up-reward-jewel-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+}
+
+.level-up-reward-sep,
+.level-up-reward-get {
+  font-weight: 800;
+}
+
+.level-up-extra-list {
+  list-style: none;
+  margin: 0 0 0.85rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.level-up-extra-item {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #334155;
+  text-align: center;
+}
+
+.level-up-extra-item.is-pending {
+  color: #64748b;
 }
 
 .level-up-summary {
@@ -2147,12 +2213,27 @@ button.battle-hub-deck-icon.is-drop-target {
   color: #94a3b8;
 }
 
-.level-up-pixels-total {
-  margin: 0 0 0.85rem;
+.level-up-pixels-total,
+.level-up-jewels-total {
+  margin: 0;
   font-size: 0.88rem;
   font-weight: 700;
-  color: #0d9488;
   text-align: center;
+}
+
+.level-up-pixels-total {
+  color: #0d9488;
+}
+
+.level-up-jewels-total {
+  color: #2563eb;
+}
+
+.level-up-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0 0 0.85rem;
 }
 
 .level-up-close {
@@ -2281,12 +2362,25 @@ button.battle-hub-deck-icon.is-drop-target {
 }
 
 .graveyard-pick-card-name {
+  flex: 1;
+  min-width: 0;
   font-weight: 700;
   font-size: 0.8rem;
   color: #1e293b;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.graveyard-pick-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.graveyard-pick-card-meta .attr-badge {
+  flex-shrink: 0;
 }
 
 .graveyard-pick-card-reward {

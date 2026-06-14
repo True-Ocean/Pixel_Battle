@@ -5,6 +5,7 @@ import {
   calcSurvivorPixels,
 } from '../config/economy';
 import type { Card } from '../types';
+import { AttributeBadge } from './AttributeBadge';
 import { CardPreview } from './CardPreview';
 
 interface GraveyardPickModalProps {
@@ -100,7 +101,10 @@ export function GraveyardPickModal({
                     aria-pressed={isSelected}
                   >
                     <CardPreview pixels={card.pixels} />
-                    <span className="graveyard-pick-card-name">{card.name}</span>
+                    <span className="graveyard-pick-card-meta">
+                      <AttributeBadge attribute={card.attribute} />
+                      <span className="graveyard-pick-card-name">{card.name}</span>
+                    </span>
                     <span className="graveyard-pick-card-reward">+{reward}px</span>
                   </button>
                 </li>

@@ -47,8 +47,30 @@ export interface Card {
 export type DeckLayout = (Card | null)[];
 
 export interface UserEconomy {
-  /** 無償ピクセル（ショップ通貨） */
+  /** px コイン（内部名: freePixels） */
   freePixels: number;
+  /** 💎 ジュエル（課金・レベル報酬・その場消費） */
+  jewels: number;
+}
+
+export interface UserInventory {
+  /** 護符（ロスト1回免れ） */
+  talisman: number;
+  /** 汎用限界突破（全属性で1回） */
+  limitBreakUniversal: number;
+  /** 属性別限界突破欠片 */
+  limitBreakShards: Partial<Record<Attribute, number>>;
+}
+
+export interface AdState {
+  /** 初回バトル可能デッキ完成後は創作保存前に広告ゲート */
+  hasEverCompletedBattleDeck: boolean;
+  /** 当日のバトル開始回数（非会員 cap 用） */
+  battlesToday: number;
+  /** 日次リセット判定用 "YYYY-MM-DD"（JST） */
+  battlesDayKey: string;
+  /** ライト会員: 創作広告カウンタ（将来） */
+  creativeAdCounter?: number;
 }
 
 /** ユーザープロフィール（localStorage 永続化） */
@@ -107,10 +129,12 @@ export interface BattleHistoryEntry {
 }
 
 export interface SaveData {
-  /** セーブ形式（0=legacy, 1=economy 追加） */
+  /** セーブ形式（0=legacy, 1=freePixels, 2=jewels+inventory+adState） */
   schemaVersion?: number;
   user: UserProfile | null;
   economy?: UserEconomy;
+  inventory?: UserInventory;
+  adState?: AdState;
   /** デッキスロット（最大5）。各スロットは固定5枠（null = 空き） */
   decks: DeckLayout[];
   /** 現在選択中のデッキスロット（0〜4） */

@@ -22,7 +22,6 @@ export function PixelCoinIcon({ className }: PixelCoinIconProps) {
           <stop offset="100%" stopColor="#92400e" />
         </linearGradient>
       </defs>
-      <ellipse cx="14" cy="25.5" rx="10" ry="1.6" fill="rgba(15, 23, 42, 0.18)" />
       <circle cx="14" cy="14" r="12" fill="url(#header-pixel-coin-face)" />
       <circle
         cx="14"

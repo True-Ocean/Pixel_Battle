@@ -1,14 +1,17 @@
 import type { UserProfile } from '../types';
 import { getLevelProgress } from '../user';
+import { JewelIcon } from './JewelIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
 
 interface UserProfileBarProps {
   user: UserProfile;
-  /** 所持無償ピクセル */
+  /** 所持 px（freePixels） */
   freePixels: number;
+  /** 所持ジュエル */
+  jewels: number;
 }
 
-export function UserProfileBar({ user, freePixels }: UserProfileBarProps) {
+export function UserProfileBar({ user, freePixels, jewels }: UserProfileBarProps) {
   const { progress, isMaxLevel, expInLevel, expToNext } = getLevelProgress(user);
   const percent = Math.round(progress * 100);
   const expInLevelDisplay = Math.max(0, Math.floor(expInLevel));
@@ -45,15 +48,27 @@ export function UserProfileBar({ user, freePixels }: UserProfileBarProps) {
         </div>
       </div>
 
-      <div
-        className="user-profile-currency-track"
-        role="status"
-        aria-label={`無償ピクセル ${freePixels.toLocaleString()}`}
-      >
-        <PixelCoinIcon className="user-profile-coin-icon" />
-        <span className="user-profile-currency-value">
-          {freePixels.toLocaleString()}
-        </span>
+      <div className="user-profile-currencies" aria-label="所持通貨">
+        <div
+          className="user-profile-currency-track"
+          role="status"
+          aria-label={`px ${freePixels.toLocaleString()}`}
+        >
+          <PixelCoinIcon className="user-profile-coin-icon" />
+          <span className="user-profile-currency-value">
+            {freePixels.toLocaleString()}
+          </span>
+        </div>
+        <div
+          className="user-profile-currency-track user-profile-currency-track--jewels"
+          role="status"
+          aria-label={`ジュエル ${jewels.toLocaleString()}`}
+        >
+          <JewelIcon className="user-profile-coin-icon user-profile-jewel-icon" />
+          <span className="user-profile-currency-value">
+            {jewels.toLocaleString()}
+          </span>
+        </div>
       </div>
     </div>
   );

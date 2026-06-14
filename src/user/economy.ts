@@ -1,7 +1,7 @@
 import type { UserEconomy } from '../types';
 
 export function createInitialEconomy(): UserEconomy {
-  return { freePixels: 0 };
+  return { freePixels: 0, jewels: 0 };
 }
 
 export function normalizeUserEconomy(raw: unknown): UserEconomy {
@@ -11,7 +11,11 @@ export function normalizeUserEconomy(raw: unknown): UserEconomy {
     typeof candidate.freePixels === 'number' && candidate.freePixels >= 0
       ? Math.floor(candidate.freePixels)
       : 0;
-  return { freePixels };
+  const jewels =
+    typeof candidate.jewels === 'number' && candidate.jewels >= 0
+      ? Math.floor(candidate.jewels)
+      : 0;
+  return { freePixels, jewels };
 }
 
 export function addFreePixels(
@@ -20,7 +24,7 @@ export function addFreePixels(
 ): UserEconomy {
   const delta = Math.max(0, Math.floor(amount));
   if (delta <= 0) return economy;
-  return { freePixels: economy.freePixels + delta };
+  return { ...economy, freePixels: economy.freePixels + delta };
 }
 
 export function spendFreePixels(
@@ -30,7 +34,7 @@ export function spendFreePixels(
   const cost = Math.max(0, Math.floor(amount));
   if (cost <= 0) return economy;
   if (economy.freePixels < cost) return null;
-  return { freePixels: economy.freePixels - cost };
+  return { ...economy, freePixels: economy.freePixels - cost };
 }
 
 export function setFreePixels(
@@ -41,5 +45,35 @@ export function setFreePixels(
     typeof amount === 'number' && Number.isFinite(amount)
       ? Math.floor(amount)
       : 0;
-  return { freePixels: Math.max(0, next) };
+  return { ...economy, freePixels: Math.max(0, next) };
+}
+
+export function addJewels(
+  economy: UserEconomy,
+  amount: number,
+): UserEconomy {
+  const delta = Math.max(0, Math.floor(amount));
+  if (delta <= 0) return economy;
+  return { ...economy, jewels: economy.jewels + delta };
+}
+
+export function spendJewels(
+  economy: UserEconomy,
+  amount: number,
+): UserEconomy | null {
+  const cost = Math.max(0, Math.floor(amount));
+  if (cost <= 0) return economy;
+  if (economy.jewels < cost) return null;
+  return { ...economy, jewels: economy.jewels - cost };
+}
+
+export function setJewels(
+  economy: UserEconomy,
+  amount: number,
+): UserEconomy {
+  const next =
+    typeof amount === 'number' && Number.isFinite(amount)
+      ? Math.floor(amount)
+      : 0;
+  return { ...economy, jewels: Math.max(0, next) };
 }

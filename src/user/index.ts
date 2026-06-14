@@ -16,11 +16,27 @@ export {
 export type { BattleExpInput, BattleOutcomeRecord, DevUserLoadOptions } from './profile';
 export {
   addFreePixels,
+  addJewels,
   createInitialEconomy,
   normalizeUserEconomy,
   setFreePixels,
+  setJewels,
   spendFreePixels,
+  spendJewels,
 } from './economy';
+export {
+  addInventoryCount,
+  addLimitBreakShards,
+  createInitialInventory,
+  normalizeUserInventory,
+  spendInventoryCount,
+  spendLimitBreakShards,
+} from './inventory';
+export {
+  createInitialAdState,
+  getBattlesDayKey,
+  normalizeAdState,
+} from './adState';
 export {
   calcBattleExpGain,
   expToNextLevel,

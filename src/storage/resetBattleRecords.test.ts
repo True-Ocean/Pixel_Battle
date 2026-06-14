@@ -26,6 +26,7 @@ describe('resetBattleRecords', () => {
     decks[0] = [makeCard('a'), makeCard('b'), null, null, null];
 
     const save: SaveData = {
+      schemaVersion: 1,
       user: {
         username: 'test',
         level: 5,
@@ -48,7 +49,16 @@ describe('resetBattleRecords', () => {
         battleWins: 0,
         battleLosses: 0,
       },
-      economy: { freePixels: 0 },
+      economy: { freePixels: 0, jewels: 0 },
+      inventory: {
+        talisman: 0,
+        limitBreakUniversal: 0,
+        limitBreakShards: {},
+      },
+      adState: expect.objectContaining({
+        hasEverCompletedBattleDeck: false,
+        battlesToday: 0,
+      }),
       decks: [
         [
           { ...makeCard('a'), wins: 0, losses: 0 },

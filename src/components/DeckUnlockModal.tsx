@@ -1,23 +1,55 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { JEWEL_COST_DECK_UNLOCK } from '../config/economy';
 import { getDeckDisplayName } from '../deckSlots';
 
 interface DeckUnlockModalProps {
   slotIndex: number;
   unlockedDeckCount: number;
+  userLevel: number;
   deckNames?: string[];
   onClose: () => void;
   onPrototypeUnlock?: () => void;
 }
 
+function getDeckUnlockMessage(
+  slotIndex: number,
+  userLevel: number,
+  deckLabel: string,
+): { message: string; note?: string } {
+  if (slotIndex === 1) {
+    if (userLevel >= 10) {
+      return {
+        message: `${deckLabel} はレベル10到達で自動解放されます。`,
+      };
+    }
+    return {
+      message: `${deckLabel} はユーザーレベル10到達で解放されます。`,
+      note: `現在 Lv.${userLevel} です。`,
+    };
+  }
+
+  if (userLevel < 10) {
+    return {
+      message: `${deckLabel} はレベル10到達後に解放できます。`,
+      note: `解放には 💎 ${JEWEL_COST_DECK_UNLOCK.toLocaleString()} が必要です（準備中）。`,
+    };
+  }
+
+  return {
+    message: `${deckLabel} は 💎 ${JEWEL_COST_DECK_UNLOCK.toLocaleString()} で解放できます。`,
+    note: 'ショップ連携は準備中です。',
+  };
+}
+
 export function DeckUnlockModal({
   slotIndex,
   unlockedDeckCount,
+  userLevel,
   deckNames,
   onClose,
   onPrototypeUnlock,
 }: DeckUnlockModalProps) {
-  const slotNumber = slotIndex + 1;
   const deckLabel = getDeckDisplayName(slotIndex, deckNames);
   const isDev = import.meta.env.DEV;
   const nextUnlockIndex = unlockedDeckCount;
@@ -25,6 +57,7 @@ export function DeckUnlockModal({
     isDev &&
     onPrototypeUnlock != null &&
     slotIndex === nextUnlockIndex;
+  const { message, note } = getDeckUnlockMessage(slotIndex, userLevel, deckLabel);
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -62,16 +95,14 @@ export function DeckUnlockModal({
         <h2 id="deck-unlock-title" className="deck-unlock-title">
           {deckLabel} は未解放
         </h2>
-        <p className="deck-unlock-message">
-          ショップでの購入、または報酬での解放が必要です。
-        </p>
+        <p className="deck-unlock-message">{message}</p>
+        {note && <p className="deck-unlock-note muted">{note}</p>}
         {isDev && !canPrototypeUnlock && slotIndex > nextUnlockIndex && (
           <p className="deck-unlock-note muted">
             プロトタイプでは {getDeckDisplayName(nextUnlockIndex, deckNames)}{' '}
             から順に解放できます。
           </p>
         )}
-        <p className="deck-unlock-note muted">ショップ連携は準備中</p>
         {canPrototypeUnlock && (
           <button
             type="button"

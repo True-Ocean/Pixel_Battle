@@ -10,6 +10,7 @@ import {
   getDeckDisplayName,
   getDeckTabShortLabel,
   isDeckSlotUnlocked,
+  resolveDeckUnlockOnLevelUp,
   isDeckBattleReady,
   moveCardBetweenDeckSlots,
   moveCardBetweenDeckSlotsSwap,
@@ -90,6 +91,12 @@ describe('deckSlots', () => {
     expect(isDeckSlotUnlocked(0, 1)).toBe(true);
     expect(isDeckSlotUnlocked(1, 1)).toBe(false);
     expect(isDeckSlotUnlocked(2, 3)).toBe(true);
+  });
+
+  it('unlocks deck slot 2 when level 10 is reached', () => {
+    expect(resolveDeckUnlockOnLevelUp(1, [9])).toBe(1);
+    expect(resolveDeckUnlockOnLevelUp(1, [10])).toBe(2);
+    expect(resolveDeckUnlockOnLevelUp(3, [10])).toBe(3);
   });
 
   it('updates a single deck slot', () => {

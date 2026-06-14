@@ -14,6 +14,9 @@ import {
   calcDowngradeReviveCost,
   calcGraveyardPixelReward,
   calcLevelUpPixels,
+  calcLevelUpJewels,
+  calcLevelUpJewelBonus,
+  calcTotalLevelUpJewels,
   calcLostSelectionWeight,
   calcSurvivorPixels,
   calcVictoryBattlePixels,
@@ -56,6 +59,19 @@ describe('calcLevelUpPixels', () => {
   it('returns fixed 500 regardless of level', () => {
     expect(calcLevelUpPixels(5)).toBe(500);
     expect(calcLevelUpPixels(20)).toBe(500);
+  });
+});
+
+describe('calcLevelUpJewels', () => {
+  it('returns base jewels every level', () => {
+    expect(calcLevelUpJewels(1)).toBe(3);
+    expect(calcLevelUpJewels(12)).toBe(3);
+  });
+
+  it('adds mod4 bonus at L≡4 (mod5), L≥5', () => {
+    expect(calcLevelUpJewelBonus(4)).toBe(0);
+    expect(calcLevelUpJewelBonus(9)).toBe(10);
+    expect(calcTotalLevelUpJewels([9, 10])).toBe(3 + 10 + 3);
   });
 });
 
