@@ -1559,8 +1559,8 @@ button.battle-hub-deck-icon.is-drop-target {
 
 .settings-dev-quick-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 0.78fr) minmax(0, 1.44fr);
+  gap: 0.4rem;
 }
 
 .settings-dev-quick-cell {
@@ -1575,17 +1575,41 @@ button.battle-hub-deck-icon.is-drop-target {
   line-height: 1.25;
 }
 
+.settings-dev-quick-cell .settings-dev-level-row {
+  gap: 0.3rem;
+}
+
 .settings-dev-quick-cell .settings-dev-level-input {
-  font-size: 1.05rem;
-  min-height: 2.5rem;
-  padding: 0.25rem 0.3rem;
+  font-size: 0.95rem;
+  min-height: 2.45rem;
+  padding: 0.25rem 0.25rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .settings-dev-quick-cell .settings-dev-level-apply {
-  min-width: 2.75rem;
-  min-height: 2.5rem;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  min-width: 2.5rem;
+  min-height: 2.45rem;
   padding: 0.35rem 0.45rem;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.settings-dev-quick-cell--compact .settings-dev-level-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.9rem;
+  padding-inline: 0.3rem;
+  text-align: center;
+}
+
+.settings-dev-quick-cell--wide .settings-dev-level-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.88rem;
+  text-align: right;
+  padding-inline: 0.35rem;
 }
 
 .settings-dev-level-label {

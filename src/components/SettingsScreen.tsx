@@ -1,7 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { DECK_SLOT_COUNT, MAX_USER_LEVEL } from '../config/balance';
+import {
+  DECK_SLOT_COUNT,
+  DECK_SLOT_INITIAL_UNLOCKED,
+  MAX_USER_LEVEL,
+} from '../config/balance';
 import { clampUnlockedDeckCount } from '../deckSlots';
-import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
 import { getLevelProgress } from '../user';
 import type { UserProfile } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -97,7 +100,7 @@ export function SettingsScreen({
     () => String(user?.level ?? 1),
   );
   const [devDeckUnlockInput, setDevDeckUnlockInput] = useState(
-    () => String(unlockedDeckCount),
+    () => String(unlockedDeckCount || DECK_SLOT_INITIAL_UNLOCKED),
   );
   const [devFreePixelsInput, setDevFreePixelsInput] = useState(
     () => String(freePixels),
@@ -153,6 +156,10 @@ export function SettingsScreen({
     setDevFreePixelsInput(String(freePixels));
   }, [freePixels]);
 
+  useEffect(() => {
+    setDevDeckUnlockInput(String(unlockedDeckCount));
+  }, [unlockedDeckCount]);
+
   if (!user) {
     return (
       <section className="screen screen-settings">
@@ -193,11 +200,11 @@ export function SettingsScreen({
   const handleDevFreePixelsApply = () => {
     const parsed = Number.parseInt(devFreePixelsInput, 10);
     if (!Number.isFinite(parsed) || parsed < 0) {
-      setDevPixelsNotice('ピクセルコインは 0 以上の整数を入力してください。');
+      setDevPixelsNotice('pxコインは 0 以上の整数を入力してください。');
       return;
     }
     onDevSetFreePixels(parsed);
-    setDevPixelsNotice(`ピクセルコインを ${parsed.toLocaleString()} に変更しました。`);
+    setDevPixelsNotice(`pxコインを ${parsed.toLocaleString()} に変更しました。`);
   };
 
   const handleDevMarkCardLost = () => {
@@ -257,21 +264,13 @@ export function SettingsScreen({
 
         {isDev && (
           <SettingsSection title="開発">
-            <SettingsRow
-              label="ファイル上書き"
-              value={
-                DEV_USER_LEVEL_OVERRIDE == null
-                  ? 'なし'
-                  : `Lv.${DEV_USER_LEVEL_OVERRIDE}（リロード後も有効）`
-              }
-            />
             <div className="settings-dev-quick-row">
-              <div className="settings-dev-quick-cell">
+              <div className="settings-dev-quick-cell settings-dev-quick-cell--compact">
                 <label
                   className="settings-dev-level-label"
                   htmlFor="settings-dev-level"
                 >
-                  テスト用レベル
+                  レベル
                 </label>
                 <div className="settings-dev-level-row">
                   <input
@@ -293,12 +292,12 @@ export function SettingsScreen({
                   </button>
                 </div>
               </div>
-              <div className="settings-dev-quick-cell">
+              <div className="settings-dev-quick-cell settings-dev-quick-cell--compact">
                 <label
                   className="settings-dev-level-label"
                   htmlFor="settings-dev-deck-unlock"
                 >
-                  デッキ解放
+                  デッキ数
                 </label>
                 <div className="settings-dev-level-row">
                   <input
@@ -322,12 +321,12 @@ export function SettingsScreen({
                   </button>
                 </div>
               </div>
-              <div className="settings-dev-quick-cell">
+              <div className="settings-dev-quick-cell settings-dev-quick-cell--wide">
                 <label
                   className="settings-dev-level-label"
                   htmlFor="settings-dev-free-pixels"
                 >
-                  ピクセルコイン
+                  pxコイン
                 </label>
                 <div className="settings-dev-level-row">
                   <input

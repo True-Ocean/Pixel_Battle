@@ -10,7 +10,6 @@ import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { CPU_OPPONENT_LABEL } from './battleHistory';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
 import {
-  applyDevUserProfile,
   calcBattleExpGainForUser,
   createInitialProfile,
   createInitialEconomy,
@@ -194,7 +193,7 @@ function App() {
 
   const completeSetup = useCallback(
     (username: string) => {
-      const profile = applyDevUserProfile(createInitialProfile(username));
+      const profile = createInitialProfile(username);
       const initialEconomy = createInitialEconomy();
       setUser(profile);
       setEconomy(initialEconomy);
