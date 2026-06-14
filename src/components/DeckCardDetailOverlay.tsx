@@ -6,20 +6,20 @@ import { DeckCardDetailCard } from './DeckCardDetailCard';
 
 interface DeckCardDetailOverlayProps {
   card: Card;
-  isFauxLost: boolean;
+  isLost: boolean;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onRevive?: () => void;
+  onDeleteLost: () => void;
 }
 
 export function DeckCardDetailOverlay({
   card,
-  isFauxLost,
+  isLost,
   onClose,
   onEdit,
   onDelete,
-  onRevive,
+  onDeleteLost,
 }: DeckCardDetailOverlayProps) {
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -59,23 +59,38 @@ export function DeckCardDetailOverlay({
         </h2>
 
         <div className="deck-card-detail-scroll">
-          <DeckCardDetailCard card={card} isFauxLost={isFauxLost} />
+          <DeckCardDetailCard card={card} isLost={isLost} />
           <BattleCommonRules />
         </div>
 
         <div className="deck-card-detail-actions">
-          {isFauxLost && onRevive ? (
-            <button type="button" className="deck-card-detail-revive" onClick={onRevive}>
-              復活
-            </button>
+          {isLost ? (
+            <>
+              <button
+                type="button"
+                className="deck-card-detail-revive deck-card-detail-revive--pending"
+                disabled
+              >
+                完全復活（準備中）
+              </button>
+              <button
+                type="button"
+                className="deck-card-detail-delete"
+                onClick={onDeleteLost}
+              >
+                削除
+              </button>
+            </>
           ) : (
-            <button type="button" className="deck-card-detail-edit" onClick={onEdit}>
-              編集
-            </button>
+            <>
+              <button type="button" className="deck-card-detail-edit" onClick={onEdit}>
+                編集
+              </button>
+              <button type="button" className="deck-card-detail-delete" onClick={onDelete}>
+                削除
+              </button>
+            </>
           )}
-          <button type="button" className="deck-card-detail-delete" onClick={onDelete}>
-            削除
-          </button>
           <button type="button" className="deck-card-detail-close" onClick={onClose}>
             閉じる
           </button>

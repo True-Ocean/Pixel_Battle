@@ -114,6 +114,7 @@ interface BattleSetupScreenProps {
   isPracticeRematch?: boolean;
   onFinish: (outcome: BattleOutcome) => void;
   onNewBattle: () => void;
+  newBattleDisabled?: boolean;
   onBattleEndedChange?: (ended: boolean) => void;
 }
 
@@ -1020,6 +1021,7 @@ function BattleBoard({
     onNewBattle: () => void;
     onOpenLog: () => void;
     newBattleLabel: string;
+    newBattleDisabled?: boolean;
   };
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
@@ -1264,6 +1266,7 @@ function BattleBoard({
                 <button
                   type="button"
                   className="battle-end-actions-btn battle-end-actions-btn--primary"
+                  disabled={endActions.newBattleDisabled}
                   onClick={endActions.onNewBattle}
                 >
                   {endActions.newBattleLabel}
@@ -1354,6 +1357,7 @@ function BattleSession({
     onNewBattle: () => void;
     onOpenLog: () => void;
     newBattleLabel: string;
+    newBattleDisabled?: boolean;
   };
 }) {
   const battle = useBattle(playerCards, cpuCards, onFinish);
@@ -1397,6 +1401,7 @@ export function BattleSetupScreen({
   isPracticeRematch = false,
   onFinish,
   onNewBattle,
+  newBattleDisabled = false,
   onBattleEndedChange,
 }: BattleSetupScreenProps) {
   const opponentProfile: BattleZoneProfile = opponentIdentity ?? {
@@ -1696,6 +1701,7 @@ export function BattleSetupScreen({
                 newBattleLabel: isPracticeRematch
                   ? 'もう一度対戦する'
                   : '新規バトル',
+                newBattleDisabled,
               }}
             />
           ) : phase === 'reveal' ? (

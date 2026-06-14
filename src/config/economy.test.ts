@@ -4,16 +4,23 @@ import {
   COLOR_DIVERSITY_MAX_MULTIPLIER,
   GRAVEYARD_SQRT_MULTIPLIER,
   LEVEL_UP_PIXELS_PER_LEVEL,
+  LOST_DELETE_PIXEL_RATE,
   PIXELS_PER_SURVIVOR,
   calcColorDiversityMultiplier,
   calcGraveyardPixelReward,
   calcLevelUpPixels,
+  calcLostDeletePixels,
+  calcLostSelectionWeight,
   calcSurvivorPixels,
   calcVictoryBattlePixels,
   countBattleSurvivors,
+  pickWeightedLostCard,
 } from './economy';
 
-function makeCard(pixels: (string | null)[][]): Card {
+function makeCard(
+  pixels: (string | null)[][],
+  overrides: Partial<Card> = {},
+): Card {
   return {
     id: 'test',
     name: 'Test',
@@ -27,6 +34,7 @@ function makeCard(pixels: (string | null)[][]): Card {
     rarity: 'N',
     stars: 0,
     createdAt: '2020-01-01T00:00:00.000Z',
+    ...overrides,
   };
 }
 
@@ -93,5 +101,41 @@ describe('calcVictoryBattlePixels', () => {
     expect(result.survivorPixels).toBe(30);
     expect(result.graveyardPixels).toBe(1);
     expect(result.total).toBe(31);
+  });
+});
+
+describe('lost economy helpers', () => {
+  it('weights selection by px, rarity, and stars', () => {
+    const base = makeCard([[ '#ff0000', null ], [ null, null ]]);
+    const heavy = makeCard([[ '#ff0000', '#00ff00' ], [ '#0000ff', '#ffff00' ]], {
+      rarity: 'SR',
+      stars: 3,
+    });
+
+    expect(calcLostSelectionWeight(base)).toBeGreaterThan(0);
+    expect(calcLostSelectionWeight(heavy)).toBeGreaterThan(calcLostSelectionWeight(base));
+  });
+
+  it('uses at least 1 px in lost weight even for empty art', () => {
+    const empty = makeCard(Array.from({ length: 4 }, () => Array.from({ length: 4 }, () => null)));
+    expect(calcLostSelectionWeight(empty)).toBe(1);
+  });
+
+  it('picks weighted card deterministically with fixed random', () => {
+    const cards = [
+      makeCard([[ '#ff0000' ]], { id: 'a' }),
+      makeCard([[ '#ff0000', '#00ff00' ]], { id: 'b', rarity: 'SR', stars: 3 }),
+    ];
+    expect(pickWeightedLostCard(cards, () => 0).id).toBe('a');
+    expect(pickWeightedLostCard(cards, () => 0.999).id).toBe('b');
+  });
+
+  it('returns delete pixels as ceil of painted cells × rate', () => {
+    const card = makeCard([
+      ['#ff0000', '#00ff00'],
+      ['#0000ff', null],
+    ]);
+    expect(LOST_DELETE_PIXEL_RATE).toBe(0.1);
+    expect(calcLostDeletePixels(card)).toBe(Math.ceil(3 * LOST_DELETE_PIXEL_RATE));
   });
 });

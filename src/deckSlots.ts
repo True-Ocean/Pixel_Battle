@@ -5,6 +5,7 @@ import {
   DECK_SLOT_INITIAL_UNLOCKED,
 } from './config/balance';
 import type { Card, DeckLayout } from './types';
+import { isCardActive } from './card/status';
 
 /** 固定5スロットのデッキ（null = 空きスロット） */
 export type { DeckLayout } from './types';
@@ -109,8 +110,15 @@ export function countDeckCards(deck: readonly (Card | null)[]): number {
   return deck.filter((card): card is Card => card != null).length;
 }
 
+export function deckHasLostCard(deck: readonly (Card | null)[]): boolean {
+  return deck.some((card) => card != null && !isCardActive(card));
+}
+
 export function isDeckBattleReady(deck: readonly (Card | null)[]): boolean {
-  return deck.length === DECK_MAX && deck.every((card) => card != null);
+  return (
+    deck.length === DECK_MAX &&
+    deck.every((card) => card != null && isCardActive(card))
+  );
 }
 
 /** 5枚完成かつ解放済みのデッキスロット index 一覧 */

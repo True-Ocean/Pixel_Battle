@@ -1,8 +1,9 @@
 import { useCallback, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
-import { computeDeckPower } from '../card';
+import { computeDeckPower, isCardLost } from '../card';
 import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
 import {
   countDeckCards,
+  deckHasLostCard,
   getDeckCards,
   getDeckDisplayName,
   getDeckTabShortLabel,
@@ -21,6 +22,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
 import { DeckRenameDialog } from './DeckRenameDialog';
 import { DeckUnlockModal } from './DeckUnlockModal';
+import { LostDeleteModal } from './LostDeleteModal';
 import {
   findDeckDropIndex,
   findDeckTabIndexAtPoint,
@@ -39,14 +41,13 @@ interface DeckScreenProps {
   deckNames?: string[];
   reorderMode: boolean;
   onReorderModeChange: (active: boolean) => void;
-  fauxLostCardId: string | null;
   detailCardId: string | null;
   onDetailCardIdChange: (id: string | null) => void;
   onSelectDeckIndex: (index: number) => void;
   onCreateCard: () => void;
   onEditCard: (card: Card, options?: { returnToDetail?: boolean }) => void;
   onDeleteCard: (id: string) => void;
-  onReviveFauxLost?: (id: string) => void;
+  onDeleteLostCard: (id: string) => void;
   onReorderDeck: (deck: DeckLayout) => void;
   onMoveCardBetweenDecks: (
     fromDeckIndex: number,
@@ -211,14 +212,13 @@ export function DeckScreen({
   deckNames,
   reorderMode,
   onReorderModeChange,
-  fauxLostCardId,
   detailCardId,
   onDetailCardIdChange,
   onSelectDeckIndex,
   onCreateCard,
   onEditCard,
   onDeleteCard,
-  onReviveFauxLost,
+  onDeleteLostCard,
   onReorderDeck,
   onMoveCardBetweenDecks,
   onPrototypeUnlockDeck,
@@ -226,6 +226,7 @@ export function DeckScreen({
 }: DeckScreenProps) {
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
+  const [lostDeleteTarget, setLostDeleteTarget] = useState<Card | null>(null);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
   const [renameDeckIndex, setRenameDeckIndex] = useState<number | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
@@ -284,15 +285,23 @@ export function DeckScreen({
   }, []);
 
   const handleEditFromDetail = useCallback(() => {
-    if (!selectedCard) return;
+    if (!selectedCard || isCardLost(selectedCard)) return;
     onEditCard(selectedCard, { returnToDetail: true });
   }, [onEditCard, selectedCard]);
 
-  const handleReviveFromDetail = useCallback(() => {
-    if (!selectedCard || !onReviveFauxLost) return;
-    onReviveFauxLost(selectedCard.id);
+  const handleLostDeleteRequest = useCallback(() => {
+    if (!selectedCard || !isCardLost(selectedCard)) return;
+    setLostDeleteTarget(selectedCard);
     closeDetail();
-  }, [closeDetail, onReviveFauxLost, selectedCard]);
+  }, [closeDetail, selectedCard]);
+
+  const handleLostDeleteConfirm = useCallback(
+    (card: Card) => {
+      onDeleteLostCard(card.id);
+      setLostDeleteTarget(null);
+    },
+    [onDeleteLostCard],
+  );
 
   const finishDrag = useCallback(
     (state: DeckDragState) => {
@@ -501,8 +510,9 @@ export function DeckScreen({
     onSelectDeckIndex(index);
   };
 
-  const selectedIsFauxLost =
-    selectedCard != null && selectedCard.id === fauxLostCardId;
+  const selectedIsLost =
+    selectedCard != null && isCardLost(selectedCard);
+  const hasLostCard = deckHasLostCard(deckLayout);
 
   const draggedCard =
     dragState != null
@@ -642,8 +652,10 @@ export function DeckScreen({
             </p>
           </>
         )}
-        {fauxLostCardId && (
-          <p className="muted deck-screen-notice">仮ロスト演出中（データは保存済み）</p>
+        {hasLostCard && (
+          <p className="deck-screen-notice deck-screen-notice--lost" role="status">
+            ロスト中のカードがあります。マイデッキで処理してください。
+          </p>
         )}
       </div>
 
@@ -685,6 +697,7 @@ export function DeckScreen({
           }
 
           const rarityMeta = getRarityMeta(card.rarity);
+          const cardIsLost = isCardLost(card);
           const isDragSource = dragState?.fromIndex === index;
           const shift =
             dragState != null && dragState.targetDeckIndex == null
@@ -698,7 +711,7 @@ export function DeckScreen({
               className={[
                 'deck-card-row',
                 `deck-card-row--${card.rarity}`,
-                card.id === fauxLostCardId ? 'faux-lost' : '',
+                cardIsLost ? 'deck-card-row--lost' : '',
                 reorderMode ? 'deck-card-row-reordering' : '',
                 isDragSource ? 'deck-card-row-drag-source' : '',
                 shift === -1 ? 'deck-card-row-shift-up' : '',
@@ -731,8 +744,13 @@ export function DeckScreen({
                     onClick={() => onDetailCardIdChange(card.id)}
                   >
                     <DeckCardRowBody card={card} />
+                    {cardIsLost && (
+                      <span className="deck-card-lost-badge" aria-hidden>
+                        ロスト中
+                      </span>
+                    )}
                   </button>
-                  {reorderMode && (
+                  {reorderMode && !cardIsLost && (
                     <span
                       className="deck-card-drag-handle"
                       aria-label="ドラッグで並べ替え、他デッキタブへ移動"
@@ -783,15 +801,11 @@ export function DeckScreen({
       {selectedCard && (
         <DeckCardDetailOverlay
           card={selectedCard}
-          isFauxLost={selectedIsFauxLost}
+          isLost={selectedIsLost}
           onClose={closeDetail}
           onEdit={handleEditFromDetail}
           onDelete={() => handleDeleteRequest(selectedCard)}
-          onRevive={
-            selectedIsFauxLost && onReviveFauxLost
-              ? handleReviveFromDetail
-              : undefined
-          }
+          onDeleteLost={handleLostDeleteRequest}
         />
       )}
 
@@ -818,6 +832,14 @@ export function DeckScreen({
                 }
               : undefined
           }
+        />
+      )}
+
+      {lostDeleteTarget && (
+        <LostDeleteModal
+          card={lostDeleteTarget}
+          onCancel={() => setLostDeleteTarget(null)}
+          onConfirmDelete={handleLostDeleteConfirm}
         />
       )}
 

@@ -67,7 +67,7 @@ describe('createBattleHistoryEntry', () => {
       opponentDeckPower: 100,
       playerCardIds: ['p1'],
       defeatedPlayerCardIds: [],
-      fauxLostCardId: null,
+      defeatedPlayerCards: [],
       opponent: {
         name: 'CPU',
         level: 3,

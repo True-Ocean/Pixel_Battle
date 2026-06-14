@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PROTOTYPE_FAKE_LOSS } from '../config/balance';
 import { computeDeckPower } from '../card';
 import {
   autoPromoteCpu,
@@ -791,11 +790,6 @@ export function useBattle(
   const handleEnd = useCallback(() => {
     if (outcomeSavedRef.current || !result) return;
     outcomeSavedRef.current = true;
-    let fauxLostCardId: string | null = null;
-    if (result === 'cpu' && PROTOTYPE_FAKE_LOSS) {
-      const idx = Math.floor(Math.random() * playerCards.length);
-      fauxLostCardId = playerCards[idx]?.id ?? null;
-    }
     onFinish({
       winner: result,
       playerCardIds: playerCards.map((c) => c.id),
@@ -813,9 +807,14 @@ export function useBattle(
         );
         return playerCards.filter((card) => !defeatedIds.has(card.id));
       })(),
+      defeatedPlayerCards: (() => {
+        const defeatedIds = new Set(
+          getDefeated(state.player).map((unit) => unit.cardId),
+        );
+        return playerCards.filter((card) => defeatedIds.has(card.id));
+      })(),
       playerDeckPower: computeDeckPower(playerCards),
       opponentDeckPower: computeDeckPower(cpuCards),
-      fauxLostCardId,
     });
   }, [result, playerCards, state.cpu, state.player, onFinish, cpuCards]);
 

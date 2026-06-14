@@ -1,5 +1,23 @@
 import { countPaintedCells, countUniqueColors } from '../card/paintStats';
-import type { Card } from '../types';
+import type { Card, CardRarity, CardStars } from '../types';
+
+/** ロスト後削除の返還率（塗り数に対する割合） */
+export const LOST_DELETE_PIXEL_RATE = 0.10;
+
+/** ロスト抽選: レア度倍率 */
+export const LOST_WEIGHT_RARITY: Record<Extract<CardRarity, 'N' | 'R' | 'SR'>, number> = {
+  N: 1.0,
+  R: 1.3,
+  SR: 1.6,
+};
+
+/** ロスト抽選: ★倍率 */
+export const LOST_WEIGHT_STARS: Record<CardStars, number> = {
+  0: 1.0,
+  1: 1.15,
+  2: 1.3,
+  3: 1.5,
+};
 
 /** レベルアップ時の無償ピクセル = Lv × N */
 export const LEVEL_UP_PIXELS_PER_LEVEL = 100;
@@ -71,4 +89,44 @@ export function calcVictoryBattlePixels(
     graveyardPixels,
     total: survivorPixels + graveyardPixels,
   };
+}
+
+function lostWeightRarityMultiplier(rarity: CardRarity): number {
+  if (rarity === 'R' || rarity === 'SR') return LOST_WEIGHT_RARITY[rarity];
+  if (rarity === 'N') return LOST_WEIGHT_RARITY.N;
+  return LOST_WEIGHT_RARITY.SR;
+}
+
+/** CPU 敗北時ロスト抽選の重み（px × レア × ★） */
+export function calcLostSelectionWeight(card: Card): number {
+  const pxWeight = Math.max(1, calcGraveyardPixelReward(card));
+  return (
+    pxWeight *
+    lostWeightRarityMultiplier(card.rarity) *
+    LOST_WEIGHT_STARS[card.stars]
+  );
+}
+
+export function pickWeightedLostCard(
+  cards: readonly Card[],
+  random: () => number = Math.random,
+): Card {
+  if (cards.length === 0) {
+    throw new Error('pickWeightedLostCard: empty candidates');
+  }
+  if (cards.length === 1) return cards[0]!;
+  const weights = cards.map(calcLostSelectionWeight);
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  let roll = random() * total;
+  for (let i = 0; i < cards.length; i++) {
+    roll -= weights[i]!;
+    if (roll <= 0) return cards[i]!;
+  }
+  return cards[cards.length - 1]!;
+}
+
+/** ロストカード削除時の無償ピクセル返還 */
+export function calcLostDeletePixels(card: Card): number {
+  const painted = countPaintedCells(card.pixels);
+  return Math.ceil(painted * LOST_DELETE_PIXEL_RATE);
 }

@@ -4,10 +4,12 @@ import {
   clampUnlockedDeckCount,
   countDeckCards,
   createEmptyDeckSlots,
+  deckHasLostCard,
   getBattleReadyDeckIndices,
   getDeckDisplayName,
   getDeckTabShortLabel,
   isDeckSlotUnlocked,
+  isDeckBattleReady,
   moveCardBetweenDeckSlots,
   moveCardInLayout,
   normalizeDeckLayout,
@@ -249,5 +251,18 @@ describe('deckSlots', () => {
     expect(resolveBattleHubDeckSelection([2], 0)).toBe(2);
     expect(resolveBattleHubDeckSelection([0, 2], 2)).toBe(2);
     expect(resolveBattleHubDeckSelection([0, 2], 1)).toBeNull();
+  });
+
+  it('treats lost cards as not battle-ready', () => {
+    const layout = [
+      card('a'),
+      card('b'),
+      card('c'),
+      card('d'),
+      { ...card('e'), status: 'lost' as const },
+    ];
+    expect(isDeckBattleReady(layout)).toBe(false);
+    expect(deckHasLostCard(layout)).toBe(true);
+    expect(getBattleReadyDeckIndices([layout], 1)).toEqual([]);
   });
 });

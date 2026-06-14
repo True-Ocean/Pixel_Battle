@@ -31,8 +31,6 @@ export const BLACK_ATTACK_WEIGHT = 0.7;
 /** CPU: 有利対面を選ぶ確率 */
 export const CPU_AGGRESSIVE_CHANCE = 0.7;
 
-export const PROTOTYPE_FAKE_LOSS = true;
-
 /**
  * 2×8 マスターパレット（左上から行優先・計16色）。
  * index 0〜9: プレイ用（白→茶、§5.6 の順でレベル解放）。

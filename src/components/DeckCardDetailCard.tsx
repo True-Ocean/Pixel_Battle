@@ -11,10 +11,10 @@ import { RarityBadge } from './RarityBadge';
 
 interface DeckCardDetailCardProps {
   card: Card;
-  isFauxLost: boolean;
+  isLost: boolean;
 }
 
-export function DeckCardDetailCard({ card, isFauxLost }: DeckCardDetailCardProps) {
+export function DeckCardDetailCard({ card, isLost }: DeckCardDetailCardProps) {
   const rarityMeta = getRarityMeta(card.rarity);
   const attrMeta = getAttributeMeta(card.attribute);
 
@@ -32,7 +32,7 @@ export function DeckCardDetailCard({ card, isFauxLost }: DeckCardDetailCardProps
       className={[
         'deck-detail-card',
         `deck-detail-card--${card.rarity}`,
-        isFauxLost ? 'deck-detail-card--faux-lost' : '',
+        isLost ? 'deck-detail-card--lost' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -76,13 +76,13 @@ export function DeckCardDetailCard({ card, isFauxLost }: DeckCardDetailCardProps
         />
       </p>
 
-      {isFauxLost && (
+      {isLost && (
         <>
           <span className="deck-detail-card-lost-badge" aria-hidden>
-            仮ロスト
+            ロスト中
           </span>
-          <p className="deck-detail-card-faux-note">
-            プロトタイプ：カードデータは保存されています
+          <p className="deck-detail-card-lost-note">
+            バトルに出せません。削除するか、完全復活（準備中）をお待ちください。
           </p>
         </>
       )}

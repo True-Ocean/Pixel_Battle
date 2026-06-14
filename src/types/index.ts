@@ -17,6 +17,9 @@ export type CardRarity = 'N' | 'R' | 'SR' | 'UR' | 'L';
 /** 限界突破の★数（0〜3） */
 export type CardStars = 0 | 1 | 2 | 3;
 
+/** カードの利用状態 */
+export type CardStatus = 'active' | 'lost';
+
 /** パレット色（#RRGGBB または null = 未塗り） */
 export type PixelColor = string | null;
 
@@ -35,6 +38,8 @@ export interface Card {
   reviveCount: number;
   rarity: CardRarity;
   stars: CardStars;
+  /** 未設定セーブは active */
+  status?: CardStatus;
   createdAt: string;
 }
 
@@ -77,7 +82,8 @@ export interface BattleOutcome {
   survivorPlayerCards: Card[];
   playerDeckPower: number;
   opponentDeckPower: number;
-  fauxLostCardId: string | null;
+  /** その戦で墓地へ送られた自軍カード（敗北時のロスト抽選用） */
+  defeatedPlayerCards: Card[];
   opponent: BattleOpponentSnapshot;
 }
 

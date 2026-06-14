@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
 import {
   countDeckCards,
+  deckHasLostCard,
   getBattleReadyDeckIndices,
   getDeckCards,
   getDeckDisplayName,
@@ -10,7 +11,7 @@ import {
   normalizeDeckLayout,
   resolveBattleHubDeckSelection,
 } from '../deckSlots';
-import { computeDeckPower } from '../card';
+import { computeDeckPower, isCardLost } from '../card';
 import type { DeckLayout } from '../types';
 import { getRarityMeta } from '../config/rarity';
 import { BattleCard } from './BattleCard';
@@ -58,6 +59,7 @@ export function BattleHubScreen({
       const unlocked = isDeckSlotUnlocked(index, unlockedDeckCount);
       const layout = normalizeDeckLayout(decks[index] ?? []);
       const cardCount = countDeckCards(layout);
+      const hasLost = deckHasLostCard(layout);
       let status: BattleHubDeckStatus;
       if (!unlocked) {
         status = 'locked';
@@ -71,10 +73,16 @@ export function BattleHubScreen({
         layout,
         status,
         cardCount,
+        hasLost,
         power: computeDeckPower(getDeckCards(layout)),
       };
     });
   }, [decks, unlockedDeckCount]);
+
+  const hasAnyLostDeck = useMemo(
+    () => deckRows.some(({ status, hasLost }) => status !== 'locked' && hasLost),
+    [deckRows],
+  );
 
   return (
     <section className="screen screen-battle-hub">
@@ -159,25 +167,41 @@ export function BattleHubScreen({
                         );
                       }
                       const rarityMeta = getRarityMeta(card.rarity);
+                      const cardIsLost = isCardLost(card);
                       return (
                         <div
                           key={card.id}
-                          className={`battle-hub-deck-icon battle-hub-deck-icon--${card.rarity}`}
+                          className={[
+                            'battle-hub-deck-icon',
+                            `battle-hub-deck-icon--${card.rarity}`,
+                            cardIsLost ? 'battle-hub-deck-icon--lost' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
                           style={{
-                            borderColor: rarityMeta.rowBorder,
-                            background: rarityMeta.rowBg,
+                            ...(cardIsLost
+                              ? { background: rarityMeta.rowBg }
+                              : {
+                                  borderColor: rarityMeta.rowBorder,
+                                  background: rarityMeta.rowBg,
+                                }),
                           }}
-                          title={card.name}
+                          title={cardIsLost ? `${card.name}（ロスト中）` : card.name}
                         >
-                          <BattleCard
-                            name={card.name}
-                            pixels={card.pixels}
-                            attribute={card.attribute}
-                            currentBp={card.bp}
-                            variant="compact"
-                            fixedSize
-                            side="player"
-                          />
+                          <div className="battle-hub-deck-icon-art">
+                            <BattleCard
+                              name={card.name}
+                              pixels={card.pixels}
+                              attribute={card.attribute}
+                              currentBp={card.bp}
+                              variant="compact"
+                              fixedSize
+                              side="player"
+                            />
+                          </div>
+                          {cardIsLost && (
+                            <span className="battle-hub-deck-lost-badge">ロスト中</span>
+                          )}
                         </div>
                       );
                     })}
@@ -203,6 +227,11 @@ export function BattleHubScreen({
           {readyIndices.length === 0 && (
             <p className="battle-hub-notice" role="status">
               5枚揃ったデッキがありません。マイデッキで編成してください。
+            </p>
+          )}
+          {hasAnyLostDeck && (
+            <p className="battle-hub-notice battle-hub-notice--lost" role="status">
+              ロスト中のカードがあります。マイデッキで削除するか、完全復活（準備中）をお待ちください。
             </p>
           )}
           {readyIndices.length > 1 && selectedIndex == null && (

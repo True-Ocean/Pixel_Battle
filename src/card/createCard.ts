@@ -178,6 +178,7 @@ export function createCardFromDrawing(
     reviveCount: 0,
     rarity,
     stars: 0,
+    status: 'active',
     createdAt: new Date().toISOString(),
   };
 }

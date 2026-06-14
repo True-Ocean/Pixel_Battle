@@ -3,9 +3,9 @@ import type { Card, ScreenId, UserProfile, UserEconomy, BattleOutcome, BattleHis
 import { appendBattleHistory, createBattleHistoryEntry } from './battleHistory';
 import { MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
-import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlots, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt } from './deckSlots';
+import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlots, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, recordCardRevive, rescaleDeckBp } from './card';
+import { applyCardSurvivalRecords, markCardLost, rescaleDeckBp, isCardLost } from './card';
 import { buildBalancedCpuDeck } from './game/cpuDeck';
 import { CPU_OPPONENT_LABEL } from './battleHistory';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
@@ -19,9 +19,10 @@ import {
   totalExpForLevel,
   addFreePixels,
 } from './user';
-import { calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
+import { calcLostDeletePixels, calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
 import { LevelUpModal } from './components/LevelUpModal';
 import { GraveyardPickModal } from './components/GraveyardPickModal';
+import { LostRouletteModal } from './components/LostRouletteModal';
 import { AppTitle } from './components/AppTitle';
 import { AppDock } from './components/AppDock';
 import { DeckScreen } from './components/DeckScreen';
@@ -62,7 +63,6 @@ function App() {
   const [deckNames, setDeckNames] = useState<string[] | undefined>(
     () => initialSave.deckNames,
   );
-  const [fauxLostCardId, setFauxLostCardId] = useState<string | null>(null);
 
   const activeDeck = useMemo(
     () => normalizeDeckLayout(decks[activeDeckIndex] ?? []),
@@ -97,6 +97,8 @@ function App() {
   const [deckReorderMode, setDeckReorderMode] = useState(false);
   const [battlePlayerDeck, setBattlePlayerDeck] = useState<Card[]>([]);
   const [pendingGraveyardOutcome, setPendingGraveyardOutcome] =
+    useState<BattleOutcome | null>(null);
+  const [pendingLostRouletteOutcome, setPendingLostRouletteOutcome] =
     useState<BattleOutcome | null>(null);
   const [levelUpModal, setLevelUpModal] = useState<{
     fromLevel: number;
@@ -299,9 +301,33 @@ function App() {
       updateActiveDeck((prev) =>
         prev.map((c) => (c?.id === id ? null : c)),
       );
-      setFauxLostCardId((prev) => (prev === id ? null : prev));
     },
     [updateActiveDeck],
+  );
+
+  const deleteLostCard = useCallback(
+    (id: string) => {
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const target = prevLayout.find((card) => card?.id === id);
+      if (!target || !isCardLost(target)) return;
+
+      const deletePixels = calcLostDeletePixels(target);
+      const nextLayout = prevLayout.map((card) =>
+        card?.id === id ? null : card,
+      );
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
+      const nextEconomy = addFreePixels(economyRef.current, deletePixels);
+
+      persistSave({ decks: nextDecks, economy: nextEconomy });
+      setDecks(nextDecks);
+      setEconomy(nextEconomy);
+      decksRef.current = nextDecks;
+      economyRef.current = nextEconomy;
+      setDetailCardId((current) => (current === id ? null : current));
+    },
+    [persistSave],
   );
 
   const reorderDeck = useCallback(
@@ -357,11 +383,14 @@ function App() {
   );
 
   const finalizeBattleOutcome = useCallback(
-    (outcome: BattleOutcome, graveyardCard: Card | null) => {
+    (
+      outcome: BattleOutcome,
+      options: { graveyardCard?: Card | null; lostCard?: Card | null } = {},
+    ) => {
       if (isPracticeRematchRef.current) {
         return;
       }
-      setFauxLostCardId(outcome.fauxLostCardId);
+      const { graveyardCard = null, lostCard = null } = options;
       const prevUser = userRef.current;
       const prevEconomy = economyRef.current;
       const prevDecks = decksRef.current;
@@ -402,11 +431,18 @@ function App() {
           nextEconomy = addFreePixels(nextEconomy, pixelTotal);
         }
       }
-      const nextActiveDeck = applyCardSurvivalRecords(
+      let nextActiveDeck = applyCardSurvivalRecords(
         prevActiveDeck,
         outcome.playerCardIds,
         outcome.defeatedPlayerCardIds,
       );
+      if (lostCard) {
+        nextActiveDeck = nextActiveDeck.map((card) => {
+          if (card?.id !== lostCard.id) return card;
+          const updated = nextActiveDeck.find((c) => c?.id === lostCard.id);
+          return updated ? markCardLost(updated) : markCardLost(lostCard);
+        });
+      }
       const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextActiveDeck);
       const nextHistory = appendBattleHistory(
         battleHistoryRef.current,
@@ -456,7 +492,14 @@ function App() {
         setPendingGraveyardOutcome(outcome);
         return;
       }
-      finalizeBattleOutcome(outcome, null);
+      if (
+        outcome.winner === 'cpu' &&
+        outcome.defeatedPlayerCards.length > 0
+      ) {
+        setPendingLostRouletteOutcome(outcome);
+        return;
+      }
+      finalizeBattleOutcome(outcome, {});
     },
     [finalizeBattleOutcome],
   );
@@ -466,9 +509,19 @@ function App() {
       const outcome = pendingGraveyardOutcome;
       if (!outcome) return;
       setPendingGraveyardOutcome(null);
-      finalizeBattleOutcome(outcome, card);
+      finalizeBattleOutcome(outcome, { graveyardCard: card });
     },
     [finalizeBattleOutcome, pendingGraveyardOutcome],
+  );
+
+  const handleLostRouletteComplete = useCallback(
+    (card: Card) => {
+      const outcome = pendingLostRouletteOutcome;
+      if (!outcome) return;
+      setPendingLostRouletteOutcome(null);
+      finalizeBattleOutcome(outcome, { lostCard: card });
+    },
+    [finalizeBattleOutcome, pendingLostRouletteOutcome],
   );
 
   const handleBattleEndedChange = useCallback((ended: boolean) => {
@@ -495,9 +548,9 @@ function App() {
     setLastBattleDeckIndex(next.lastBattleDeckIndex);
     setUnlockedDeckCount(next.unlockedDeckCount);
     setBattleHistory(next.battleHistory ?? []);
-    setFauxLostCardId(null);
     setLevelUpModal(null);
     setPendingGraveyardOutcome(null);
+    setPendingLostRouletteOutcome(null);
   }, [activeDeckIndex, battleHistory, deckNames, decks, economy, initialSave.schemaVersion, lastBattleDeckIndex, persistSave, unlockedDeckCount, user]);
 
   const handleDevSetLevel = useCallback(
@@ -589,6 +642,12 @@ function App() {
     });
   }, [pendingGraveyardOutcome, user]);
 
+  const battleEndNewBattleDisabled = useMemo(() => {
+    if (pendingLostRouletteOutcome != null) return true;
+    const deckIndex = lastBattleDeckIndex;
+    return deckHasLostCard(normalizeDeckLayout(decks[deckIndex] ?? []));
+  }, [decks, lastBattleDeckIndex, pendingLostRouletteOutcome]);
+
   const showAppHeader = screen === 'deck';
   const showProfileBar = showAppHeader && isProfileComplete(user);
   const showDock = isDockVisible(screen) || (screen === 'battleSetup' && battleEndDock);
@@ -648,7 +707,6 @@ function App() {
             deckNames={deckNames}
             reorderMode={deckReorderMode}
             onReorderModeChange={setDeckReorderMode}
-            fauxLostCardId={fauxLostCardId}
             detailCardId={detailCardId}
             onDetailCardIdChange={setDetailCardId}
             onSelectDeckIndex={handleSelectDeckIndex}
@@ -669,10 +727,7 @@ function App() {
               setScreen('editor');
             }}
             onDeleteCard={deleteCard}
-            onReviveFauxLost={(id) => {
-              updateActiveDeck((prev) => recordCardRevive(prev, id));
-              setFauxLostCardId((prev) => (prev === id ? null : prev));
-            }}
+            onDeleteLostCard={deleteLostCard}
             onReorderDeck={reorderDeck}
             onMoveCardBetweenDecks={moveCardBetweenDecks}
             onPrototypeUnlockDeck={handlePrototypeUnlockNextDeck}
@@ -743,6 +798,7 @@ function App() {
             onNewBattle={
               isPracticeRematch ? rematchSameOpponent : restartBattleFromEnd
             }
+            newBattleDisabled={battleEndNewBattleDisabled}
             onBattleEndedChange={handleBattleEndedChange}
           />
         )}
@@ -772,6 +828,12 @@ function App() {
           graveyardCards={pendingGraveyardOutcome.defeatedCpuCards}
           expGain={pendingBattleExpGain}
           onPick={handleGraveyardPick}
+        />
+      )}
+      {pendingLostRouletteOutcome && (
+        <LostRouletteModal
+          cards={pendingLostRouletteOutcome.defeatedPlayerCards}
+          onComplete={handleLostRouletteComplete}
         />
       )}
     </div>

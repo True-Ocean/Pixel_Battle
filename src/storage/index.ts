@@ -23,6 +23,7 @@ import {
 import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
 import { gridSize } from '../canvas';
 import { effectiveDevPreferSavedLevel, normalizeUserProfile, resolveDevUserProfileOnLoad } from '../user';
+import { normalizeCardStatus } from '../card/status';
 import { createInitialEconomy, normalizeUserEconomy } from '../user/economy';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
@@ -71,6 +72,7 @@ function migrateCard(raw: Record<string, unknown>): Card | null {
     reviveCount,
     rarity,
     stars,
+    status,
     createdAt,
     canvasSize,
     ...rest
@@ -94,6 +96,7 @@ function migrateCard(raw: Record<string, unknown>): Card | null {
       | 'reviveCount'
       | 'rarity'
       | 'stars'
+      | 'status'
       | 'createdAt'
     >),
     canvasSize: resolvedCanvasSize,
@@ -103,6 +106,7 @@ function migrateCard(raw: Record<string, unknown>): Card | null {
     reviveCount: typeof reviveCount === 'number' ? reviveCount : 0,
     rarity: parseRarity(rarity),
     stars: parseStars(stars),
+    status: normalizeCardStatus(status),
     createdAt: typeof createdAt === 'string' ? createdAt : new Date().toISOString(),
   };
 }
