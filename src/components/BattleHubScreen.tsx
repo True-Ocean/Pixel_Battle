@@ -473,6 +473,7 @@ export function BattleHubScreen({
                               variant="compact"
                               fixedSize
                               side="player"
+                              rarity={card.rarity}
                             />
                           </div>
                           {cardIsLost && (

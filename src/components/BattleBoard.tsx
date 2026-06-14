@@ -153,7 +153,9 @@ export function BattleBoard({
 
   const renderCpuCard = (unitIndex: number) => {
     const unit = state.cpu[unitIndex];
-    const card = cpuCards[unitIndex];
+    const card =
+      cpuCards.find((candidate) => candidate.id === unit.cardId) ??
+      cpuCards[unitIndex];
     return (
       <BattleCard
         name={unit.name}
@@ -186,6 +188,7 @@ export function BattleBoard({
         faceDown={false}
         hideBp={false}
         side="cpu"
+        rarity={unit.rarity}
       />
     );
   };
@@ -229,6 +232,7 @@ export function BattleBoard({
         dimmed={inClash}
         inClash={inClash && clash!.playerMain === unitIndex}
         side="player"
+        rarity={unit.rarity}
       />
     );
   };

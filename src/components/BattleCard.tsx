@@ -1,5 +1,7 @@
+import type { CSSProperties } from 'react';
 import { getAttributeMeta } from '../config/attributes';
-import type { Attribute, PixelGrid } from '../types';
+import { getRarityMeta } from '../config/rarity';
+import type { Attribute, CardRarity, PixelGrid } from '../types';
 import { AnimatedBp } from './AnimatedBp';
 import { AttributeBadge } from './AttributeBadge';
 import { CardBack } from './CardBack';
@@ -64,6 +66,8 @@ export interface BattleCardProps {
   handSize?: boolean;
   /** 相手側 / 味方側の配色 */
   side?: 'cpu' | 'player';
+  /** カードレア度（R/SR 以上は枠色で表示。N は陣営色のまま） */
+  rarity?: CardRarity;
   /** 戦闘終了時の WIN / LOSE 表示 */
   outcomeOverlay?: 'win' | 'lose';
 }
@@ -107,12 +111,23 @@ export function BattleCard({
   fixedSize = false,
   handSize = false,
   side,
+  rarity = 'N',
   outcomeOverlay,
 }: BattleCardProps) {
   const attrMeta = getAttributeMeta(attribute);
+  const showRarityFrame = rarity !== 'N' && !faceDown;
+  const rarityMeta = showRarityFrame ? getRarityMeta(rarity) : null;
+  const rarityStyle: CSSProperties | undefined = rarityMeta
+    ? {
+        '--rarity-border': rarityMeta.rowBorder,
+        '--rarity-bg': rarityMeta.rowBg,
+        '--rarity-shadow': rarityMeta.rowBoxShadow ?? 'none',
+      }
+    : undefined;
   const classNames = [
     'battle-card',
     variant,
+    showRarityFrame ? `battle-card--rarity-${rarity}` : '',
     arenaSize ? 'arena-size' : '',
     fixedSize ? 'setup-card-fixed' : '',
     handSize ? 'setup-hand-card' : '',
@@ -332,6 +347,7 @@ export function BattleCard({
       <button
         type="button"
         className={classNames}
+        style={rarityStyle}
         onClick={onClick}
         aria-label={ariaLabel}
       >
@@ -341,7 +357,7 @@ export function BattleCard({
   }
 
   return (
-    <div className={classNames} aria-label={ariaLabel}>
+    <div className={classNames} style={rarityStyle} aria-label={ariaLabel}>
       {content}
     </div>
   );

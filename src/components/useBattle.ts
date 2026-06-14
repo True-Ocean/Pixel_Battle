@@ -22,6 +22,7 @@ import {
   resolveTurn,
   startNextTurn,
 } from '../game';
+import { buildDefeatedCpuLootCards } from '../battle/graveyardLoot';
 import type { PoisonDoTPlayback } from '../game/turnResult';
 import type { Card, BattleOutcomeCore } from '../types';
 import type {
@@ -795,12 +796,10 @@ export function useBattle(
       playerCardIds: playerCards.map((c) => c.id),
       defeatedPlayerCardIds: getDefeated(state.player).map((unit) => unit.cardId),
       cpuDefeatedCount: getDefeated(state.cpu).length,
-      defeatedCpuCards: (() => {
-        const defeatedIds = new Set(
-          getDefeated(state.cpu).map((unit) => unit.cardId),
-        );
-        return cpuCards.filter((card) => defeatedIds.has(card.id));
-      })(),
+      defeatedCpuCards: buildDefeatedCpuLootCards(
+        getDefeated(state.cpu),
+        cpuCards,
+      ),
       survivorPlayerCards: (() => {
         const defeatedIds = new Set(
           getDefeated(state.player).map((unit) => unit.cardId),

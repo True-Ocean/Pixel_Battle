@@ -43,6 +43,7 @@ function emptySave(): SaveData {
     lastBattleDeckIndex: 0,
     unlockedDeckCount: DECK_SLOT_INITIAL_UNLOCKED,
     battleHistory: [],
+    talismanStarterGranted: false,
   };
 }
 
@@ -292,6 +293,7 @@ export function applyProgressionMigrations(save: SaveData): SaveData {
     economy: normalizeUserEconomy(save.economy),
     inventory: normalizeUserInventory(save.inventory),
     adState: normalizeAdState(save.adState),
+    talismanStarterGranted: save.talismanStarterGranted === true,
   };
 
   if (next.user && next.user.level >= 10 && next.unlockedDeckCount < 2) {
@@ -359,6 +361,7 @@ export function loadSave(): SaveData {
       unlockedDeckCount,
       deckNames,
       battleHistory,
+      talismanStarterGranted: parsed.talismanStarterGranted === true,
       ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
     });
 
@@ -415,6 +418,9 @@ export function saveSave(data: SaveData): void {
     deckNames: data.deckNames,
     battleHistory: data.battleHistory ?? [],
   };
+  if (data.talismanStarterGranted === true) {
+    payload.talismanStarterGranted = true;
+  }
   if (data.devPreferSavedLevel === true) {
     payload.devPreferSavedLevel = true;
     payload.devFileOverrideLevel =
@@ -447,6 +453,7 @@ export function resetBattleRecords(data: SaveData): SaveData {
     unlockedDeckCount: clampUnlockedDeckCount(data.unlockedDeckCount),
     deckNames: data.deckNames,
     battleHistory: [],
+    talismanStarterGranted: false,
   };
 }
 

@@ -68,6 +68,7 @@ export function SetupSlots({
                 variant="compact"
                 fixedSize
                 side={side}
+                rarity={card.rarity}
                 flipEnabled={faceDown}
                 faceDown={faceDown}
                 hideBp={faceDown}

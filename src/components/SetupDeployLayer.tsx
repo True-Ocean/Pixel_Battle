@@ -74,6 +74,7 @@ export function SetupDeployLayer({
               variant="compact"
               fixedSize
               side={f.side}
+              rarity={f.card.rarity}
               flipEnabled={f.faceDown}
               faceDown={f.faceDown}
               hideBp={f.faceDown}

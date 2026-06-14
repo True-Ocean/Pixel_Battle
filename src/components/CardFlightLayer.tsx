@@ -178,6 +178,7 @@ function FlyingCard({
         maxBp={unit.maxBp}
         variant="board"
         side={side}
+        rarity={card.rarity}
         hasShield={hasShield}
         defenseShieldUsed={unit.defenseShieldUsed}
         animatedBp={

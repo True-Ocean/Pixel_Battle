@@ -2,17 +2,78 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   calcGraveyardPixelReward,
+  calcGraveyardShardReward,
   calcSurvivorPixels,
 } from '../config/economy';
-import type { Card } from '../types';
+import { getAttributeMeta } from '../config/attributes';
+import { getRarityMeta } from '../config/rarity';
+import type { Attribute, Card } from '../types';
 import { AttributeBadge } from './AttributeBadge';
 import { CardPreview } from './CardPreview';
+import { ExpIcon } from './ExpIcon';
+import { PixelCoinIcon } from './PixelCoinIcon';
+import { RarityBadge } from './RarityBadge';
 
 interface GraveyardPickModalProps {
   survivorCards: Card[];
   graveyardCards: Card[];
   expGain: number;
   onPick: (card: Card) => void;
+}
+
+function formatShardRewardAria(attribute: Attribute, count: number): string {
+  const label = getAttributeMeta(attribute).label;
+  return count > 1 ? `${label}のかけら${count}個` : `${label}のかけら`;
+}
+
+function ShardReward({
+  attribute,
+  count,
+}: {
+  attribute: Attribute;
+  count: number;
+}) {
+  return (
+    <span className="graveyard-pick-shard-reward">
+      <AttributeBadge
+        attribute={attribute}
+        className="graveyard-pick-shard-badge"
+      />
+      <span className="graveyard-pick-shard-label">
+        のかけら{count > 1 ? `${count.toLocaleString()}個` : ''}
+      </span>
+    </span>
+  );
+}
+
+function PixelReward({
+  amount,
+  iconClassName = 'graveyard-pick-coin-icon',
+}: {
+  amount: number;
+  iconClassName?: string;
+}) {
+  return (
+    <span className="graveyard-pick-px-reward">
+      +{amount.toLocaleString()}
+      <PixelCoinIcon className={iconClassName} />
+    </span>
+  );
+}
+
+function ExpReward({
+  amount,
+  iconClassName = 'graveyard-pick-exp-icon',
+}: {
+  amount: number;
+  iconClassName?: string;
+}) {
+  return (
+    <span className="graveyard-pick-exp-reward">
+      +{amount.toLocaleString()}
+      <ExpIcon className={iconClassName} />
+    </span>
+  );
 }
 
 export function GraveyardPickModal({
@@ -50,7 +111,11 @@ export function GraveyardPickModal({
   const selected = graveyardCards.find((card) => card.id === selectedId) ?? null;
   const survivorPixels = calcSurvivorPixels(survivorCards.length);
   const graveyardPixels = selected ? calcGraveyardPixelReward(selected) : 0;
+  const graveyardShards = selected ? calcGraveyardShardReward(selected) : 0;
   const totalPixels = survivorPixels + graveyardPixels;
+  const confirmAriaLabel = selected
+    ? `報酬 ${expGain}EXP、${totalPixels}px、${formatShardRewardAria(selected.attribute, graveyardShards)}をゲット`
+    : '戦利品を選んでください';
 
   return createPortal(
     <div className="graveyard-pick-backdrop">
@@ -78,7 +143,7 @@ export function GraveyardPickModal({
                 ))}
               </ul>
               <span className="graveyard-pick-survivor-total">
-                +{survivorPixels.toLocaleString()}px
+                <PixelReward amount={survivorPixels} />
               </span>
             </div>
           </section>
@@ -91,21 +156,34 @@ export function GraveyardPickModal({
           <ul className="graveyard-pick-list">
             {graveyardCards.map((card) => {
               const reward = calcGraveyardPixelReward(card);
+              const rarityMeta = getRarityMeta(card.rarity);
               const isSelected = card.id === selectedId;
               return (
                 <li key={card.id}>
                   <button
                     type="button"
-                    className={`graveyard-pick-card${isSelected ? ' is-selected' : ''}`}
+                    className={`graveyard-pick-card graveyard-pick-card--${card.rarity}${isSelected ? ' is-selected' : ''}`}
+                    style={{
+                      borderColor: rarityMeta.rowBorder,
+                      borderWidth: rarityMeta.rowBorderWidth,
+                      background: `linear-gradient(165deg, #ffffff 0%, ${rarityMeta.rowBg} 58%, ${rarityMeta.rowBg} 100%)`,
+                      boxShadow: rarityMeta.rowBoxShadow,
+                    }}
                     onClick={() => setSelectedId(card.id)}
                     aria-pressed={isSelected}
                   >
                     <CardPreview pixels={card.pixels} />
                     <span className="graveyard-pick-card-meta">
+                      <RarityBadge
+                        rarity={card.rarity}
+                        className="graveyard-pick-card-rarity"
+                      />
                       <AttributeBadge attribute={card.attribute} />
                       <span className="graveyard-pick-card-name">{card.name}</span>
                     </span>
-                    <span className="graveyard-pick-card-reward">+{reward}px</span>
+                    <span className="graveyard-pick-card-reward">
+                      <PixelReward amount={reward} />
+                    </span>
                   </button>
                 </li>
               );
@@ -117,13 +195,32 @@ export function GraveyardPickModal({
           type="button"
           className="graveyard-pick-confirm"
           disabled={selected == null}
+          aria-label={confirmAriaLabel}
           onClick={() => {
             if (selected) onPick(selected);
           }}
         >
-          {selected
-            ? `報酬 +${totalPixels.toLocaleString()}px / +${expGain.toLocaleString()}EXP ゲット！`
-            : '戦利品を選んでください'}
+          {selected ? (
+            <span className="graveyard-pick-confirm-reward">
+              <ExpReward
+                amount={expGain}
+                iconClassName="graveyard-pick-exp-icon graveyard-pick-exp-icon--confirm"
+              />
+              <span className="graveyard-pick-reward-sep">,</span>
+              <PixelReward
+                amount={totalPixels}
+                iconClassName="graveyard-pick-coin-icon graveyard-pick-coin-icon--confirm"
+              />
+              <span className="graveyard-pick-reward-sep">,</span>
+              <ShardReward
+                attribute={selected.attribute}
+                count={graveyardShards}
+              />
+              <span className="graveyard-pick-confirm-get">ゲット！</span>
+            </span>
+          ) : (
+            '戦利品を選んでください'
+          )}
         </button>
       </div>
     </div>,

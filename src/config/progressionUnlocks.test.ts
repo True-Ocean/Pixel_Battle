@@ -12,11 +12,13 @@ describe('progressionUnlocks', () => {
     ]);
   });
 
-  it('Lv5 は色、Lv6 は属性', () => {
+  it('Lv5 は色・Lost解禁・護符', () => {
     expect(getLevelUpRewardsAtLevel(5).map((reward) => reward.kind)).toEqual([
       'pixels',
       'jewels',
       'palette',
+      'lost_unlock',
+      'talisman',
     ]);
     expect(getLevelUpRewardsAtLevel(6).map((reward) => reward.kind)).toEqual([
       'pixels',

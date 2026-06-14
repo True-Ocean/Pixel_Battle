@@ -368,6 +368,7 @@ function TinyCard({
         fixedSize
         flipEnabled
         side={side}
+        rarity={card.rarity}
         faceDown={faceDown}
         hideBp={faceDown}
         dead={defeated}
@@ -414,6 +415,7 @@ function SetupSlot({
       variant="compact"
       fixedSize
       side={side}
+      rarity={card.rarity}
       faceDown={faceDown}
       flipEnabled={!readOnly}
       hideBp={faceDown}
@@ -739,6 +741,7 @@ function BattleUnitSlot({
           variant="compact"
           fixedSize
           side={side}
+          rarity={unit.rarity}
           hasShield={unit.hasShield}
           bowArrowsRemaining={
             unit.attribute === 'bow' ? unit.bowArrowsRemaining : undefined
@@ -1462,9 +1465,9 @@ export function BattleSetupScreen({
   const battleCards = useMemo(
     () => ({
       player: orderedCards(playerSlots),
-      cpu: orderedCards(cpuFormation),
+      cpu: orderedCards(cpuSlots),
     }),
-    [playerSlots, cpuFormation],
+    [playerSlots, cpuSlots],
   );
 
   const resolvedPlayerIdentity = useMemo(
@@ -1645,12 +1648,29 @@ export function BattleSetupScreen({
 
   const handleBattleFinish = useCallback(
     (outcome: BattleOutcomeCore) => {
+      const cpuSnapshot = structuredClone(battleCards.cpu);
+      const defeatedIds = new Set(outcome.defeatedCpuCards.map((card) => card.id));
+      const rarityById = new Map(
+        outcome.defeatedCpuCards.map((card) => [card.id, card.rarity]),
+      );
+      const starsById = new Map(
+        outcome.defeatedCpuCards.map((card) => [card.id, card.stars]),
+      );
+      const defeatedLoot = cpuSnapshot
+        .filter((card) => defeatedIds.has(card.id))
+        .map((card) => ({
+          ...card,
+          rarity: rarityById.get(card.id) ?? card.rarity,
+          stars: starsById.get(card.id) ?? card.stars,
+        }));
+
       onFinish({
         ...outcome,
+        defeatedCpuCards: defeatedLoot,
         opponent: {
           name: resolvedOpponentIdentity.name,
           level: resolvedOpponentIdentity.level,
-          deck: structuredClone(battleCards.cpu),
+          deck: cpuSnapshot,
         },
       });
     },

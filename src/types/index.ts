@@ -150,6 +150,8 @@ export interface SaveData {
   devPreferSavedLevel?: boolean;
   /** 開発: テスト用レベル適用時の DEV_USER_LEVEL_OVERRIDE スナップショット */
   devFileOverrideLevel?: number | null;
+  /** Lv5 到達時の初回護符を受け取り済みか（生涯1回） */
+  talismanStarterGranted?: boolean;
 }
 
 /** アプリ画面（ルーターなし・state で切替） */

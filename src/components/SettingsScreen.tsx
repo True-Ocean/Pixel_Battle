@@ -30,7 +30,7 @@ interface SettingsScreenProps {
   devCardOptions: DevCardOption[];
   devDeckFillOptions: DevDeckFillOption[];
   onResetBattleRecords: () => void;
-  onDevSetLevel: (level: number) => void;
+  onDevSetLevel: (level: number) => string;
   onDevSetUnlockedDeckCount: (count: number) => void;
   onDevSetFreePixels: (amount: number) => void;
   onDevMarkCardLost: (cardId: string) => string;
@@ -181,8 +181,7 @@ export function SettingsScreen({
       setDevNotice(`レベルは 1〜${MAX_USER_LEVEL} の整数を入力してください。`);
       return;
     }
-    onDevSetLevel(parsed);
-    setDevNotice(`Lv.${parsed} に変更しました。既存カードの BP も再算出されます。`);
+    setDevNotice(onDevSetLevel(parsed));
   };
 
   const handleDevDeckUnlockApply = () => {

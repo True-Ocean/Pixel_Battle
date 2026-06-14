@@ -3,6 +3,7 @@ import {
   calcLevelUpJewelBonus,
   calcLevelUpJewels,
   calcLevelUpPixels,
+  TALISMAN_STARTER_GRANT_LEVEL,
 } from './economy';
 import { getCanvasUnlockLevel, getMaxCanvasSize } from './canvasUnlock';
 import { ATTRIBUTE_UNLOCK_SCHEDULE } from './attributeUnlock';
@@ -21,7 +22,9 @@ export type LevelUpRewardKind =
   | 'tool'
   | 'canvas'
   | 'deck_unlock'
-  | 'limit_break';
+  | 'limit_break'
+  | 'lost_unlock'
+  | 'talisman';
 
 export interface LevelUpRewardEntry {
   kind: LevelUpRewardKind;
@@ -135,6 +138,16 @@ export function getLevelUpRewardsAtLevel(level: number): LevelUpRewardEntry[] {
   ];
   const main = getMainRewardAtLevel(L);
   if (main) rewards.push(main);
+  if (L === TALISMAN_STARTER_GRANT_LEVEL) {
+    rewards.push({
+      kind: 'lost_unlock',
+      label: 'Lv5から敗北するとカードがロストします',
+    });
+    rewards.push({
+      kind: 'talisman',
+      label: '護符を1個プレゼントしました',
+    });
+  }
   return rewards;
 }
 

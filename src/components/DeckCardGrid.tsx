@@ -29,6 +29,7 @@ export function DeckCardGrid({
               pixels={card.pixels}
               attribute={card.attribute}
               currentBp={card.bp}
+              rarity={card.rarity}
               variant="compact"
               interactive={interactive}
               selected={interactive ? sel : false}

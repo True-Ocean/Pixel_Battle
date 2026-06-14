@@ -76,6 +76,7 @@ describe('resetBattleRecords', () => {
       lastBattleDeckIndex: 0,
       unlockedDeckCount: 1,
       battleHistory: [],
+      talismanStarterGranted: false,
     });
   });
 });

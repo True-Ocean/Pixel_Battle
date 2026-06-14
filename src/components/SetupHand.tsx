@@ -88,6 +88,7 @@ export function SetupHand({
                   variant="compact"
                   handSize
                   side={side}
+                  rarity={card.rarity}
                   flipEnabled={useFlip}
                   faceDown={faceDown}
                   hideBp={faceDown}

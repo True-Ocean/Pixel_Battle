@@ -77,6 +77,15 @@ export const COLOR_DIVERSITY_BONUS_PER_EXTRA_COLOR = 0.05;
 /** 色係数の上限 */
 export const COLOR_DIVERSITY_MAX_MULTIPLIER = 1.3;
 
+/** Lost 解禁の最低ユーザーレベル */
+export const LOST_MIN_USER_LEVEL = 5;
+
+/** 初回無償護符の配布レベル */
+export const TALISMAN_STARTER_GRANT_LEVEL = 5;
+
+/** 初回無償護符の個数 */
+export const TALISMAN_STARTER_GRANT_COUNT = 1;
+
 /** レベルアップ1回あたりの px（固定） */
 export const LEVEL_UP_PIXEL_REWARD = 500;
 
@@ -135,6 +144,13 @@ export function calcGraveyardPixelReward(card: Card): number {
   return Math.floor(
     Math.sqrt(painted) * GRAVEYARD_SQRT_MULTIPLIER * colorMult,
   );
+}
+
+/** 墓地戦利品の属性欠片数（レア度別） */
+export function calcGraveyardShardReward(card: Card): number {
+  if (card.rarity === 'SR') return GRAVEYARD_SHARD_REWARD.SR;
+  if (card.rarity === 'R') return GRAVEYARD_SHARD_REWARD.R;
+  return GRAVEYARD_SHARD_REWARD.N;
 }
 
 export interface VictoryPixelBreakdown {

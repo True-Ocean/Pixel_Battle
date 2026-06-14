@@ -1,28 +1,17 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { AdState, Card, ScreenId, UserProfile, UserEconomy, UserInventory, BattleOutcome, BattleHistoryEntry } from './types';
-import { appendBattleHistory, createBattleHistoryEntry } from './battleHistory';
+import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, resolveDeckUnlockOnLevelUp } from './deckSlots';
 import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp } from './card';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
-import { CPU_OPPONENT_LABEL } from './battleHistory';
+import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
-import {
-  calcBattleExpGainForUser,
-  createInitialProfile,
-  createInitialEconomy,
-  createInitialInventory,
-  createInitialAdState,
-  isProfileComplete,
-  recordUserBattleOutcome,
-  totalExpForLevel,
-  addFreePixels,
-  spendFreePixels,
-  setFreePixels,
-} from './user';
-import { calcCardDeleteRefundPixels, calcDowngradeReviveCost, calcFullReviveCost, calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, addLimitBreakShards } from './user';
+import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
+import { calcCardDeleteRefundPixels, calcDowngradeReviveCost, calcFullReviveCost, calcGraveyardShardReward, calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
 import { LevelUpModal } from './components/LevelUpModal';
 import { GraveyardPickModal } from './components/GraveyardPickModal';
 import { LostRouletteModal } from './components/LostRouletteModal';
@@ -56,6 +45,9 @@ function App() {
   );
   const [inventory, setInventory] = useState<UserInventory>(
     () => initialSave.inventory ?? createInitialInventory(),
+  );
+  const [talismanStarterGranted, setTalismanStarterGranted] = useState(
+    () => initialSave.talismanStarterGranted === true,
   );
   const [adState, setAdState] = useState<AdState>(
     () => initialSave.adState ?? createInitialAdState(),
@@ -120,6 +112,7 @@ function App() {
   const userRef = useRef(user);
   const economyRef = useRef(economy);
   const inventoryRef = useRef(inventory);
+  const talismanStarterGrantedRef = useRef(talismanStarterGranted);
   const adStateRef = useRef(adState);
   const decksRef = useRef(decks);
   const activeDeckIndexRef = useRef(activeDeckIndex);
@@ -137,6 +130,7 @@ function App() {
   userRef.current = user;
   economyRef.current = economy;
   inventoryRef.current = inventory;
+  talismanStarterGrantedRef.current = talismanStarterGranted;
   adStateRef.current = adState;
   decksRef.current = decks;
   activeDeckIndexRef.current = activeDeckIndex;
@@ -155,6 +149,7 @@ function App() {
       economy?: UserEconomy;
       inventory?: UserInventory;
       adState?: AdState;
+      talismanStarterGranted?: boolean;
       decks?: Card[][];
       activeDeckIndex?: number;
       lastBattleDeckIndex?: number;
@@ -176,6 +171,8 @@ function App() {
         economy: next.economy ?? economyRef.current,
         inventory: next.inventory ?? inventoryRef.current,
         adState: next.adState ?? adStateRef.current,
+        talismanStarterGranted:
+          next.talismanStarterGranted ?? talismanStarterGrantedRef.current,
         decks: next.decks ?? decks,
         activeDeckIndex: next.activeDeckIndex ?? activeDeckIndex,
         lastBattleDeckIndex: next.lastBattleDeckIndex ?? lastBattleDeckIndex,
@@ -191,7 +188,7 @@ function App() {
           : {}),
       });
     },
-    [activeDeckIndex, adState, deckNames, decks, economy, inventory, lastBattleDeckIndex, unlockedDeckCount, user, initialSave.schemaVersion],
+    [activeDeckIndex, adState, deckNames, decks, economy, inventory, lastBattleDeckIndex, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
   );
 
   const updateActiveDeck = useCallback(
@@ -513,6 +510,8 @@ function App() {
       const prevActiveDeck = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
       let nextUser = prevUser;
       let nextEconomy = prevEconomy;
+      let nextInventory = inventoryRef.current;
+      let nextTalismanStarterGranted = talismanStarterGrantedRef.current;
       let nextUnlockedDeckCount = unlockedDeckCountRef.current;
       if (isProfileComplete(prevUser)) {
         const expInput = {
@@ -522,6 +521,14 @@ function App() {
         const battleRecord = recordUserBattleOutcome(prevUser, prevEconomy, expInput);
         nextUser = battleRecord.user;
         nextEconomy = battleRecord.economy;
+        if (crossedTalismanStarterLevel(prevUser.level, battleRecord.user.level)) {
+          const grant = tryGrantTalismanStarter(
+            nextInventory,
+            nextTalismanStarterGranted,
+          );
+          nextInventory = grant.inventory;
+          nextTalismanStarterGranted = grant.talismanStarterGranted;
+        }
         if (battleRecord.levelsGained.length > 0) {
           nextUnlockedDeckCount = resolveDeckUnlockOnLevelUp(
             nextUnlockedDeckCount,
@@ -550,6 +557,16 @@ function App() {
             );
         if (pixelTotal > 0) {
           nextEconomy = addFreePixels(nextEconomy, pixelTotal);
+        }
+        if (graveyardCard) {
+          const shardAmount = calcGraveyardShardReward(graveyardCard);
+          if (shardAmount > 0) {
+            nextInventory = addLimitBreakShards(
+              nextInventory,
+              graveyardCard.attribute,
+              shardAmount,
+            );
+          }
         }
       }
       let nextActiveDeck = applyCardSurvivalRecords(
@@ -583,8 +600,9 @@ function App() {
         schemaVersion: initialSave.schemaVersion,
         user: nextUser,
         economy: nextEconomy,
-        inventory: inventoryRef.current,
+        inventory: nextInventory,
         adState: adStateRef.current,
+        talismanStarterGranted: nextTalismanStarterGranted,
         decks: nextDecks,
         activeDeckIndex: deckIndex,
         lastBattleDeckIndex: lastBattleIndex,
@@ -599,6 +617,8 @@ function App() {
       battleStartSnapshotRef.current = null;
       setUser(nextUser);
       setEconomy(nextEconomy);
+      setInventory(nextInventory);
+      setTalismanStarterGranted(nextTalismanStarterGranted);
       setDecks(nextDecks);
       setBattleHistory(nextHistory);
     },
@@ -621,6 +641,14 @@ function App() {
         outcome.winner === 'cpu' &&
         outcome.defeatedPlayerCards.length > 0
       ) {
+        const playerLevel =
+          battleStartSnapshotRef.current?.playerLevel ??
+          userRef.current?.level ??
+          1;
+        if (!isLossEnabledAtUserLevel(playerLevel)) {
+          finalizeBattleOutcome(outcome, {});
+          return;
+        }
         setPendingLostRouletteOutcome(outcome);
         return;
       }
@@ -660,6 +688,7 @@ function App() {
       economy,
       inventory,
       adState,
+      talismanStarterGranted,
       decks,
       activeDeckIndex,
       lastBattleDeckIndex,
@@ -671,6 +700,7 @@ function App() {
     setUser(next.user);
     setEconomy(next.economy ?? createInitialEconomy());
     setInventory(next.inventory ?? createInitialInventory());
+    setTalismanStarterGranted(next.talismanStarterGranted === true);
     setAdState(next.adState ?? createInitialAdState());
     setDecks(next.decks);
     setActiveDeckIndex(next.activeDeckIndex);
@@ -680,12 +710,14 @@ function App() {
     setLevelUpModal(null);
     setPendingGraveyardOutcome(null);
     setPendingLostRouletteOutcome(null);
-  }, [activeDeckIndex, adState, battleHistory, deckNames, decks, economy, initialSave.schemaVersion, inventory, lastBattleDeckIndex, persistSave, unlockedDeckCount, user]);
+  }, [activeDeckIndex, adState, battleHistory, deckNames, decks, economy, initialSave.schemaVersion, inventory, lastBattleDeckIndex, persistSave, talismanStarterGranted, unlockedDeckCount, user]);
 
   const handleDevSetLevel = useCallback(
-    (level: number) => {
+    (level: number): string => {
       const currentUser = userRef.current;
-      if (!import.meta.env.DEV || !isProfileComplete(currentUser)) return;
+      if (!import.meta.env.DEV || !isProfileComplete(currentUser)) {
+        return '開発メニューは利用できません。';
+      }
       const clamped = Math.max(1, Math.min(MAX_USER_LEVEL, Math.floor(level)));
       const nextUser = {
         ...currentUser,
@@ -705,14 +737,28 @@ function App() {
           return updated ?? card;
         });
       });
+      let nextInventory = inventoryRef.current;
+      let nextTalismanStarterGranted = talismanStarterGrantedRef.current;
+      let notice = `Lv.${clamped} に変更しました。既存カードの BP も再算出されます。`;
+      if (shouldGrantTalismanStarterOnDevSetLevel(clamped, nextTalismanStarterGranted)) {
+        const grant = tryGrantTalismanStarter(nextInventory, nextTalismanStarterGranted);
+        nextInventory = grant.inventory;
+        nextTalismanStarterGranted = grant.talismanStarterGranted;
+        notice += ' 護符を1個配布しました。';
+      }
       persistSave({
         user: nextUser,
         decks: nextDecks,
+        inventory: nextInventory,
+        talismanStarterGranted: nextTalismanStarterGranted,
         devPreferSavedLevel: true,
         devFileOverrideLevel: DEV_USER_LEVEL_OVERRIDE,
       });
       setUser(nextUser);
       setDecks(nextDecks);
+      setInventory(nextInventory);
+      setTalismanStarterGranted(nextTalismanStarterGranted);
+      return notice;
     },
     [persistSave],
   );
@@ -1099,7 +1145,7 @@ function App() {
       {pendingGraveyardOutcome && (
         <GraveyardPickModal
           survivorCards={pendingGraveyardOutcome.survivorPlayerCards}
-          graveyardCards={pendingGraveyardOutcome.defeatedCpuCards}
+          graveyardCards={resolveGraveyardLootCards(pendingGraveyardOutcome)}
           expGain={pendingBattleExpGain}
           onPick={handleGraveyardPick}
         />

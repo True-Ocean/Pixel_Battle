@@ -82,6 +82,7 @@ export function SetupFlightLayer({
           variant="compact"
           fixedSize
           side={side}
+          rarity={card.rarity}
           flipEnabled={showFaceDown || flipReveal}
           faceDown={showFaceDown}
           hideBp={showFaceDown}

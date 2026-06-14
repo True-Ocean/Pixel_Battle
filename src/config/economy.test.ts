@@ -6,6 +6,9 @@ import {
   FULL_REVIVE_COST,
   DOWNGRADE_REVIVE_COST,
   LEVEL_UP_PIXEL_REWARD,
+  LOST_MIN_USER_LEVEL,
+  TALISMAN_STARTER_GRANT_COUNT,
+  TALISMAN_STARTER_GRANT_LEVEL,
   CARD_DELETE_PIXEL_REFUND_RATE,
   PIXELS_PER_SURVIVOR,
   calcCardDeleteRefundPixels,
@@ -13,6 +16,7 @@ import {
   calcFullReviveCost,
   calcDowngradeReviveCost,
   calcGraveyardPixelReward,
+  calcGraveyardShardReward,
   calcLevelUpPixels,
   calcLevelUpJewels,
   calcLevelUpJewelBonus,
@@ -48,6 +52,9 @@ function makeCard(
 describe('economy constants', () => {
   it('uses agreed balance values', () => {
     expect(LEVEL_UP_PIXEL_REWARD).toBe(500);
+    expect(LOST_MIN_USER_LEVEL).toBe(5);
+    expect(TALISMAN_STARTER_GRANT_LEVEL).toBe(5);
+    expect(TALISMAN_STARTER_GRANT_COUNT).toBe(1);
     expect(FULL_REVIVE_COST).toBe(4000);
     expect(DOWNGRADE_REVIVE_COST).toBe(2000);
     expect(PIXELS_PER_SURVIVOR).toBe(10);
@@ -117,6 +124,15 @@ describe('calcGraveyardPixelReward', () => {
       Array.from({ length: 4 }, () => null),
     );
     expect(calcGraveyardPixelReward(makeCard(empty))).toBe(0);
+  });
+});
+
+describe('calcGraveyardShardReward', () => {
+  it('returns shard count by rarity', () => {
+    const card = makeCard([[ '#ff0000' ]]);
+    expect(calcGraveyardShardReward(card)).toBe(1);
+    expect(calcGraveyardShardReward({ ...card, rarity: 'R' })).toBe(2);
+    expect(calcGraveyardShardReward({ ...card, rarity: 'SR' })).toBe(3);
   });
 });
 
