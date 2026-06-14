@@ -5,7 +5,7 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp } from './card';
+import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp } from './card';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { CPU_OPPONENT_LABEL } from './battleHistory';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
@@ -20,7 +20,7 @@ import {
   spendFreePixels,
   setFreePixels,
 } from './user';
-import { calcCardDeleteRefundPixels, calcFullReviveCost, calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
+import { calcCardDeleteRefundPixels, calcDowngradeReviveCost, calcFullReviveCost, calcSurvivorPixels, calcVictoryBattlePixels, countBattleSurvivors } from './config/economy';
 import { LevelUpModal } from './components/LevelUpModal';
 import { GraveyardPickModal } from './components/GraveyardPickModal';
 import { LostRouletteModal } from './components/LostRouletteModal';
@@ -349,6 +349,34 @@ function App() {
       setEconomy(nextEconomy);
       decksRef.current = nextDecks;
       economyRef.current = nextEconomy;
+    },
+    [persistSave],
+  );
+
+  const downgradeReviveLostCard = useCallback(
+    (id: string) => {
+      const cost = calcDowngradeReviveCost();
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const target = prevLayout.find((card) => card?.id === id);
+      if (!target || !isCardLost(target)) return;
+
+      const userLevel = userRef.current?.level ?? 1;
+      const nextEconomy = spendFreePixels(economyRef.current, cost);
+      if (!nextEconomy) return;
+
+      const nextLayout = prevLayout.map((card) =>
+        card?.id === id ? applyCardDowngradeRevive(card, userLevel) : card,
+      );
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
+
+      persistSave({ decks: nextDecks, economy: nextEconomy });
+      setDecks(nextDecks);
+      setEconomy(nextEconomy);
+      decksRef.current = nextDecks;
+      economyRef.current = nextEconomy;
+      setDetailCardId((current) => (current === id ? null : current));
     },
     [persistSave],
   );
@@ -909,8 +937,10 @@ function App() {
             }}
             onDeleteCard={deleteCard}
             onReviveLostCard={reviveLostCard}
+            onDowngradeReviveLostCard={downgradeReviveLostCard}
             freePixels={economy.freePixels}
             reviveCost={calcFullReviveCost()}
+            downgradeReviveCost={calcDowngradeReviveCost()}
             onReorderDeck={reorderDeck}
             onMoveCardBetweenDecks={moveCardBetweenDecks}
             onPrototypeUnlockDeck={handlePrototypeUnlockNextDeck}

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { canDowngradeRevive } from '../card';
 import type { Card } from '../types';
 import { PixelCoinIcon } from './PixelCoinIcon';
 import { BattleCommonRules } from './BattleCommonRules';
@@ -10,11 +11,13 @@ interface DeckCardDetailOverlayProps {
   isLost: boolean;
   freePixels: number;
   reviveCost: number;
+  downgradeReviveCost: number;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onDeleteLost: () => void;
   onReviveLost: () => void;
+  onDowngradeReviveLost: () => void;
 }
 
 export function DeckCardDetailOverlay({
@@ -22,16 +25,23 @@ export function DeckCardDetailOverlay({
   isLost,
   freePixels,
   reviveCost,
+  downgradeReviveCost,
   onClose,
   onEdit,
   onDelete,
   onDeleteLost,
   onReviveLost,
+  onDowngradeReviveLost,
 }: DeckCardDetailOverlayProps) {
   const canAffordRevive = freePixels >= reviveCost;
+  const showDowngradeRevive = canDowngradeRevive(card);
+  const canAffordDowngradeRevive = freePixels >= downgradeReviveCost;
   const reviveAriaLabel = canAffordRevive
     ? `完全復活 ${reviveCost.toLocaleString()}px`
     : `完全復活 ${reviveCost.toLocaleString()}px 必要・不足`;
+  const downgradeReviveAriaLabel = canAffordDowngradeRevive
+    ? `降格復活 ${downgradeReviveCost.toLocaleString()}px`
+    : `降格復活 ${downgradeReviveCost.toLocaleString()}px 必要・不足`;
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -75,7 +85,13 @@ export function DeckCardDetailOverlay({
           <BattleCommonRules />
         </div>
 
-        <div className="deck-card-detail-actions">
+        <div
+          className={`deck-card-detail-actions${
+            isLost && showDowngradeRevive
+              ? ' deck-card-detail-actions--lost-downgrade'
+              : ''
+          }`}
+        >
           {isLost ? (
             <>
               <button
@@ -93,6 +109,25 @@ export function DeckCardDetailOverlay({
                   {reviveCost.toLocaleString()}
                 </span>
               </button>
+              {showDowngradeRevive && (
+                <button
+                  type="button"
+                  className={`deck-card-detail-downgrade-revive${
+                    canAffordDowngradeRevive
+                      ? ''
+                      : ' deck-card-detail-downgrade-revive--pending'
+                  }`}
+                  disabled={!canAffordDowngradeRevive}
+                  aria-label={downgradeReviveAriaLabel}
+                  onClick={onDowngradeReviveLost}
+                >
+                  <span className="deck-card-detail-revive-label">降格復活</span>
+                  <PixelCoinIcon className="deck-card-detail-revive-coin" />
+                  <span className="deck-card-detail-revive-cost">
+                    {downgradeReviveCost.toLocaleString()}
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 className="deck-card-detail-delete"

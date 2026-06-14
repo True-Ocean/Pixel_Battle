@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Card } from '../types';
 import {
+  applyCardDowngradeRevive,
   applyCardFullRevive,
+  canDowngradeRevive,
+  getDowngradedRarity,
   isCardActive,
   isCardLost,
   markCardActive,
@@ -59,5 +62,28 @@ describe('card lost helpers', () => {
     expect(revived.status).toBe('active');
     expect(revived.reviveCount).toBe(3);
     expect(applyCardFullRevive(revived)).toBe(revived);
+  });
+
+  it('downgrades rarity on downgrade revive', () => {
+    const lost = markCardLost(
+      card({ rarity: 'SR', stars: 2, reviveCount: 1, status: 'lost' }),
+    );
+    expect(canDowngradeRevive(lost)).toBe(true);
+    expect(getDowngradedRarity('SR')).toBe('R');
+    expect(getDowngradedRarity('R')).toBe('N');
+    expect(getDowngradedRarity('N')).toBeNull();
+
+    const revived = applyCardDowngradeRevive(lost, 10);
+    expect(revived.status).toBe('active');
+    expect(revived.rarity).toBe('R');
+    expect(revived.stars).toBe(2);
+    expect(revived.reviveCount).toBe(1);
+    expect(revived.bp).toBeGreaterThan(0);
+  });
+
+  it('rejects downgrade revive for N lost cards', () => {
+    const lost = markCardLost(card({ rarity: 'N', status: 'lost' }));
+    expect(canDowngradeRevive(lost)).toBe(false);
+    expect(applyCardDowngradeRevive(lost, 10)).toBe(lost);
   });
 });

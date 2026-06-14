@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
-import { computeDeckPower, isCardLost } from '../card';
+import { canDowngradeRevive, computeDeckPower, getDowngradedRarity, isCardLost } from '../card';
 import { calcCardDeleteRefundPixels } from '../config/economy';
 import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
 import {
@@ -49,8 +49,10 @@ interface DeckScreenProps {
   onEditCard: (card: Card, options?: { returnToDetail?: boolean }) => void;
   onDeleteCard: (id: string) => void;
   onReviveLostCard: (id: string) => void;
+  onDowngradeReviveLostCard: (id: string) => void;
   freePixels: number;
   reviveCost: number;
+  downgradeReviveCost: number;
   onReorderDeck: (deck: DeckLayout) => void;
   onMoveCardBetweenDecks: (
     fromDeckIndex: number,
@@ -218,6 +220,19 @@ function formatReviveConfirmMessage(card: Card, reviveCost: number): string {
   return `「${card.name}」を完全復活させます。${reviveCost.toLocaleString()}pxを消費します。`;
 }
 
+function formatDowngradeReviveConfirmMessage(
+  card: Card,
+  downgradeReviveCost: number,
+): string {
+  const nextRarity = getDowngradedRarity(card.rarity);
+  const transition =
+    nextRarity != null
+      ? `${card.rarity}★${card.stars}→${nextRarity}★${card.stars}`
+      : '';
+  const transitionNote = transition ? `（${transition}）` : '';
+  return `${downgradeReviveCost.toLocaleString()}px消費して「${card.name}」を降格復活${transitionNote}させます。`;
+}
+
 function formatDeleteConfirmMessage(card: Card): string {
   const refundPixels = calcCardDeleteRefundPixels(card);
   const refundNote =
@@ -242,8 +257,10 @@ export function DeckScreen({
   onEditCard,
   onDeleteCard,
   onReviveLostCard,
+  onDowngradeReviveLostCard,
   freePixels,
   reviveCost,
+  downgradeReviveCost,
   onReorderDeck,
   onMoveCardBetweenDecks,
   onPrototypeUnlockDeck,
@@ -253,6 +270,7 @@ export function DeckScreen({
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
   const [deleteConfirmFinal, setDeleteConfirmFinal] = useState(false);
   const [pendingRevive, setPendingRevive] = useState<Card | null>(null);
+  const [pendingDowngradeRevive, setPendingDowngradeRevive] = useState<Card | null>(null);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
   const [renameDeckIndex, setRenameDeckIndex] = useState<number | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
@@ -343,6 +361,22 @@ export function DeckScreen({
 
   const handleReviveCancel = useCallback(() => {
     setPendingRevive(null);
+  }, []);
+
+  const handleDowngradeReviveRequest = useCallback(() => {
+    if (!selectedCard || !canDowngradeRevive(selectedCard)) return;
+    if (freePixels < downgradeReviveCost) return;
+    setPendingDowngradeRevive(selectedCard);
+  }, [downgradeReviveCost, freePixels, selectedCard]);
+
+  const handleDowngradeReviveConfirm = useCallback(() => {
+    if (!pendingDowngradeRevive) return;
+    onDowngradeReviveLostCard(pendingDowngradeRevive.id);
+    setPendingDowngradeRevive(null);
+  }, [onDowngradeReviveLostCard, pendingDowngradeRevive]);
+
+  const handleDowngradeReviveCancel = useCallback(() => {
+    setPendingDowngradeRevive(null);
   }, []);
 
   const finishDrag = useCallback(
@@ -862,11 +896,13 @@ export function DeckScreen({
           isLost={selectedIsLost}
           freePixels={freePixels}
           reviveCost={reviveCost}
+          downgradeReviveCost={downgradeReviveCost}
           onClose={closeDetail}
           onEdit={handleEditFromDetail}
           onDelete={() => handleDeleteRequest(selectedCard)}
           onDeleteLost={handleLostDeleteRequest}
           onReviveLost={handleReviveRequest}
+          onDowngradeReviveLost={handleDowngradeReviveRequest}
         />
       )}
 
@@ -924,6 +960,23 @@ export function DeckScreen({
         cancelLabel="キャンセル"
         onConfirm={handleReviveConfirm}
         onCancel={handleReviveCancel}
+      />
+
+      <ConfirmDialog
+        open={pendingDowngradeRevive != null}
+        title="降格復活しますか？"
+        message={
+          pendingDowngradeRevive
+            ? formatDowngradeReviveConfirmMessage(
+                pendingDowngradeRevive,
+                downgradeReviveCost,
+              )
+            : ''
+        }
+        confirmLabel="降格復活する"
+        cancelLabel="キャンセル"
+        onConfirm={handleDowngradeReviveConfirm}
+        onCancel={handleDowngradeReviveCancel}
       />
     </section>
   );

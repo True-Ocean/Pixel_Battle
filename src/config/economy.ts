@@ -25,6 +25,9 @@ export const LEVEL_UP_PIXEL_REWARD = 500;
 /** 完全復活に必要な無償ピクセル（一律） */
 export const FULL_REVIVE_COST = 4000;
 
+/** 降格復活に必要な無償ピクセル（一律） */
+export const DOWNGRADE_REVIVE_COST = 2000;
+
 /** 勝利時・生存1枚あたりのピクセル */
 export const PIXELS_PER_SURVIVOR = 10;
 
@@ -43,6 +46,10 @@ export function calcLevelUpPixels(_level?: number): number {
 
 export function calcFullReviveCost(): number {
   return FULL_REVIVE_COST;
+}
+
+export function calcDowngradeReviveCost(): number {
+  return DOWNGRADE_REVIVE_COST;
 }
 
 export function calcColorDiversityMultiplier(uniqueColors: number): number {

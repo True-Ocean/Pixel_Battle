@@ -2982,6 +2982,7 @@ button.battle-hub-deck-icon.is-drop-target {
 }
 
 .deck-card-detail-revive,
+.deck-card-detail-downgrade-revive,
 .deck-card-detail-edit,
 .deck-card-detail-delete,
 .deck-card-detail-close {
@@ -2996,7 +2997,8 @@ button.battle-hub-deck-icon.is-drop-target {
   cursor: pointer;
 }
 
-.deck-card-detail-revive {
+.deck-card-detail-revive,
+.deck-card-detail-downgrade-revive {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3027,6 +3029,31 @@ button.battle-hub-deck-icon.is-drop-target {
   background: #2e7d32;
   color: #fff;
   font-weight: 600;
+}
+
+.deck-card-detail-downgrade-revive--pending {
+  border-color: #94a3b8;
+  background: #cbd5e1;
+  color: #475569;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.deck-card-detail-downgrade-revive:not(
+    .deck-card-detail-downgrade-revive--pending
+  ) {
+  border-color: #1565c0;
+  background: #1976d2;
+  color: #fff;
+  font-weight: 600;
+}
+
+.deck-card-detail-actions--lost-downgrade .deck-card-detail-close {
+  grid-column: auto;
+}
+
+.deck-card-detail-actions--lost-downgrade .deck-card-detail-delete {
+  grid-column: 1 / -1;
 }
 
 .deck-card-detail-edit {

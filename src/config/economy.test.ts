@@ -4,12 +4,14 @@ import {
   COLOR_DIVERSITY_MAX_MULTIPLIER,
   GRAVEYARD_SQRT_MULTIPLIER,
   FULL_REVIVE_COST,
+  DOWNGRADE_REVIVE_COST,
   LEVEL_UP_PIXEL_REWARD,
   CARD_DELETE_PIXEL_REFUND_RATE,
   PIXELS_PER_SURVIVOR,
   calcCardDeleteRefundPixels,
   calcColorDiversityMultiplier,
   calcFullReviveCost,
+  calcDowngradeReviveCost,
   calcGraveyardPixelReward,
   calcLevelUpPixels,
   calcLostSelectionWeight,
@@ -44,6 +46,7 @@ describe('economy constants', () => {
   it('uses agreed balance values', () => {
     expect(LEVEL_UP_PIXEL_REWARD).toBe(500);
     expect(FULL_REVIVE_COST).toBe(4000);
+    expect(DOWNGRADE_REVIVE_COST).toBe(2000);
     expect(PIXELS_PER_SURVIVOR).toBe(10);
     expect(GRAVEYARD_SQRT_MULTIPLIER).toBe(1);
   });
@@ -59,6 +62,12 @@ describe('calcLevelUpPixels', () => {
 describe('calcFullReviveCost', () => {
   it('returns flat revive cost', () => {
     expect(calcFullReviveCost()).toBe(4000);
+  });
+});
+
+describe('calcDowngradeReviveCost', () => {
+  it('returns flat downgrade revive cost', () => {
+    expect(calcDowngradeReviveCost()).toBe(2000);
   });
 });
 

@@ -21,7 +21,10 @@ export { buildCardSeed, hashToUnit } from './hash';
 export { computeCardPower, computeDeckPower, attributePowerConfig } from './power';
 export { applyCardSurvivalRecords, recordCardRevive } from './battleRecord';
 export {
+  applyCardDowngradeRevive,
   applyCardFullRevive,
+  canDowngradeRevive,
+  getDowngradedRarity,
   isCardActive,
   isCardLost,
   markCardActive,
