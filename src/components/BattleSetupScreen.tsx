@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import { CPU_OPPONENT_LEVEL, DECK_MAX, SETUP_TIME_LIMIT_SEC } from '../config/balance';
+import { calcSurvivorPixels, countBattleSurvivors } from '../config/economy';
 import { computeDeckPower } from '../card';
 import type { Card, BattleOutcome, BattleOutcomeCore } from '../types';
 import type { BoardPosition } from '../types/battle';
@@ -114,7 +115,7 @@ interface BattleSetupScreenProps {
   cpuDeck: Card[];
   playerIdentity?: BattleZoneProfile;
   opponentIdentity?: BattleZoneProfile;
-  isPracticeRematch?: boolean;
+  isHistoryRematch?: boolean;
   enableOpponentMatching?: boolean;
   onCancelMatch?: () => void;
   cancelMatchDisabled?: boolean;
@@ -1069,6 +1070,7 @@ function BattleBoard({
     onOpenLog: () => void;
     newBattleLabel: string;
     newBattleDisabled?: boolean;
+    historyRematchRewardPixels?: number | null;
   };
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
@@ -1318,12 +1320,19 @@ function BattleBoard({
                 >
                   {endActions.newBattleLabel}
                 </button>
-                <div className="formation-hint formation-guide-line">
+                <div className="formation-hint formation-guide-line formation-guide-line--ended">
                   {formatBattleGuideLine(
                     battle.turnLabel,
                     battle.hint,
                     result,
                   )}
+                  {endActions.historyRematchRewardPixels != null &&
+                    endActions.historyRematchRewardPixels > 0 && (
+                      <span className="battle-end-history-reward-amount" role="status">
+                        +{endActions.historyRematchRewardPixels.toLocaleString()}
+                        <PixelCoinIcon className="battle-end-history-reward-coin" />
+                      </span>
+                    )}
                 </div>
                 <button
                   type="button"
@@ -1405,6 +1414,7 @@ function BattleSession({
     onOpenLog: () => void;
     newBattleLabel: string;
     newBattleDisabled?: boolean;
+    historyRematchRewardPixels?: number | null;
   };
 }) {
   const battle = useBattle(playerCards, cpuCards, onFinish);
@@ -1445,7 +1455,7 @@ export function BattleSetupScreen({
   cpuDeck,
   playerIdentity,
   opponentIdentity,
-  isPracticeRematch = false,
+  isHistoryRematch = false,
   enableOpponentMatching = false,
   onCancelMatch,
   cancelMatchDisabled = false,
@@ -1494,6 +1504,9 @@ export function BattleSetupScreen({
   const [battleEnded, setBattleEnded] = useState(false);
   const [battleSubView, setBattleSubView] = useState<'play' | 'log'>('play');
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [historyRematchRewardPixels, setHistoryRematchRewardPixels] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     onBattleEndedChange?.(battleEnded);
@@ -1706,11 +1719,25 @@ export function BattleSetupScreen({
       return;
     }
     setBattleEnded(false);
+    setHistoryRematchRewardPixels(null);
     setPhase('battle');
   };
 
   const handleBattleFinish = useCallback(
     (outcome: BattleOutcomeCore) => {
+      if (isHistoryRematch && outcome.winner === 'player') {
+        setHistoryRematchRewardPixels(
+          calcSurvivorPixels(
+            countBattleSurvivors(
+              outcome.playerCardIds,
+              outcome.defeatedPlayerCardIds,
+            ),
+          ),
+        );
+      } else {
+        setHistoryRematchRewardPixels(null);
+      }
+
       const cpuSnapshot = structuredClone(battleCards.cpu);
       const defeatedIds = new Set(outcome.defeatedCpuCards.map((card) => card.id));
       const rarityById = new Map(
@@ -1739,6 +1766,7 @@ export function BattleSetupScreen({
     },
     [
       battleCards.cpu,
+      isHistoryRematch,
       onFinish,
       resolvedOpponentIdentity.level,
       resolvedOpponentIdentity.name,
@@ -1773,11 +1801,6 @@ export function BattleSetupScreen({
       className={`screen setup-reveal formation-screen${phase === 'matching' ? ' is-matching-phase is-reveal-phase' : ''}${phase === 'reveal' ? ' is-reveal-phase' : ''}${phase === 'setup' ? ' is-setup-phase' : ''}${phase === 'battle' ? ' is-battle-active' : ''}${battleSubView === 'log' ? ' is-battle-log' : ''}${battleEnded ? ' has-end-actions' : ''}`}
     >
       <div className="formation-battle-shell">
-        {isPracticeRematch && (
-          <p className="battle-practice-notice" role="status">
-            練習再戦（履歴・報酬なし）
-          </p>
-        )}
         <div
           className={`formation-battle-body${phase === 'reveal' || phase === 'matching' ? ' formation-reveal-body' : ''}${phase === 'battle' ? ' formation-battle-play-body' : ''}`}
         >
@@ -1793,10 +1816,11 @@ export function BattleSetupScreen({
               endActions={{
                 onNewBattle,
                 onOpenLog: () => setBattleSubView('log'),
-                newBattleLabel: isPracticeRematch
-                  ? 'もう一度対戦する'
+                newBattleLabel: isHistoryRematch
+                  ? 'もう一度対戦'
                   : '新規バトル',
                 newBattleDisabled,
+                historyRematchRewardPixels,
               }}
             />
           ) : phase === 'reveal' || phase === 'matching' ? (

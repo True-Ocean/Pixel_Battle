@@ -43,8 +43,11 @@ export {
 } from './inventory';
 export {
   createInitialAdState,
+  dismissHistoryRematchRulesForToday,
   getBattlesDayKey,
   normalizeAdState,
+  shouldRequireHistoryRematchAd,
+  shouldShowHistoryRematchRulesModal,
 } from './adState';
 export {
   calcBattleExpGain,

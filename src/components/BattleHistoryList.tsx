@@ -1,6 +1,8 @@
 import { formatBattleHistoryWhen, CPU_OPPONENT_LABEL } from '../battleHistory';
 import type { BattleHistoryEntry, Card } from '../types';
 import { CardPreview } from './CardPreview';
+import { getRarityMeta } from '../config/rarity';
+import type { CSSProperties } from 'react';
 
 interface BattleHistoryListProps {
   entries: BattleHistoryEntry[];
@@ -10,11 +12,23 @@ interface BattleHistoryListProps {
 function OpponentDeckThumbnails({ cards }: { cards: Card[] }) {
   return (
     <div className="records-history-deck-thumbs" aria-hidden>
-      {cards.slice(0, 5).map((card) => (
-        <div key={card.id} className="records-history-deck-thumb">
-          <CardPreview pixels={card.pixels} />
-        </div>
-      ))}
+      {cards.slice(0, 5).map((card) => {
+        const rarityMeta = getRarityMeta(card.rarity);
+        return (
+          <div
+            key={card.id}
+            className={`records-history-deck-thumb records-history-deck-thumb--${card.rarity}`}
+            style={
+              {
+                '--rarity-border': rarityMeta.rowBorder,
+                '--rarity-bg': rarityMeta.rowBg,
+              } as CSSProperties
+            }
+          >
+            <CardPreview pixels={card.pixels} />
+          </div>
+        );
+      })}
     </div>
   );
 }

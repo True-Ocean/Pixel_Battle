@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { DECK_MAX } from '../config/balance';
+import { useState } from 'react';
 import type { BattleHistoryEntry } from '../types';
 import { BattleHistoryDetailOverlay } from './BattleHistoryDetailOverlay';
 import { BattleHistoryList } from './BattleHistoryList';
@@ -8,14 +7,14 @@ type RecordsSubTab = 'history' | 'ranking';
 
 interface RecordsScreenProps {
   battleHistory: BattleHistoryEntry[];
-  deckCount: number;
-  onPracticeRematch: (entry: BattleHistoryEntry) => void;
+  canRematch: boolean;
+  onRequestRematch: (entry: BattleHistoryEntry) => void;
 }
 
 export function RecordsScreen({
   battleHistory,
-  deckCount,
-  onPracticeRematch,
+  canRematch,
+  onRequestRematch,
 }: RecordsScreenProps) {
   const [subTab, setSubTab] = useState<RecordsSubTab>('history');
   const [selectedEntry, setSelectedEntry] = useState<BattleHistoryEntry | null>(null);
@@ -30,7 +29,7 @@ export function RecordsScreen({
           className={`records-subtab${subTab === 'history' ? ' is-active' : ''}`}
           onClick={() => setSubTab('history')}
         >
-          履歴
+          バトル履歴
         </button>
         <button
           type="button"
@@ -58,11 +57,11 @@ export function RecordsScreen({
       {selectedEntry && (
         <BattleHistoryDetailOverlay
           entry={selectedEntry}
-          deckCount={deckCount}
+          canRematch={canRematch}
           onClose={() => setSelectedEntry(null)}
-          onPracticeRematch={(entry) => {
+          onRematch={(entry) => {
             setSelectedEntry(null);
-            onPracticeRematch(entry);
+            onRequestRematch(entry);
           }}
         />
       )}

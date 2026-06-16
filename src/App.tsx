@@ -3,14 +3,15 @@ import type { AdState, Card, ScreenId, UserProfile, UserEconomy, UserInventory, 
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
-import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp } from './deckSlots';
+import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck } from './deckSlots';
 import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, shouldRequireHistoryRematchAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday } from './user';
+import { prepareHistoryOpponentDeck } from './historyRematch';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
 import {
   calcCardDeleteRefundPixels,
@@ -30,7 +31,10 @@ import { AppDock } from './components/AppDock';
 import { DeckScreen } from './components/DeckScreen';
 import { EditorScreen } from './components/EditorScreen';
 import { BattleHubScreen } from './components/BattleHubScreen';
+import { BattleDeckSelectScreen } from './components/BattleDeckSelectScreen';
 import { BattleSetupScreen } from './components/BattleSetupScreen';
+import { MockRewardAdModal } from './components/MockRewardAdModal';
+import { HistoryRematchRulesModal } from './components/HistoryRematchRulesModal';
 import { RecordsScreen } from './components/RecordsScreen';
 import { InventoryScreen } from './components/InventoryScreen';
 import { SettingsScreen } from './components/SettingsScreen';
@@ -100,7 +104,11 @@ function App() {
   const [battleSetupKey, setBattleSetupKey] = useState(0);
   const [battleHubResetKey, setBattleHubResetKey] = useState(0);
   const [battleEndDock, setBattleEndDock] = useState(false);
-  const [isPracticeRematch, setIsPracticeRematch] = useState(false);
+  const [isHistoryRematch, setIsHistoryRematch] = useState(false);
+  const [historyRematchFlow, setHistoryRematchFlow] = useState<{
+    entry: BattleHistoryEntry;
+    phase: 'rules' | 'ad' | 'deckSelect';
+  } | null>(null);
   const [battleHistory, setBattleHistory] = useState<BattleHistoryEntry[]>(
     () => initialSave.battleHistory ?? [],
   );
@@ -138,8 +146,8 @@ function App() {
   const unlockedDeckCountRef = useRef(unlockedDeckCount);
   const battleHistoryRef = useRef(battleHistory);
   const deckNamesRef = useRef(deckNames);
-  const isPracticeRematchRef = useRef(false);
-  const practiceRematchEntryRef = useRef<BattleHistoryEntry | null>(null);
+  const isHistoryRematchRef = useRef(false);
+  const historyRematchEntryRef = useRef<BattleHistoryEntry | null>(null);
   const battleStartSnapshotRef = useRef<{
     deckIndex: number;
     playerDeck: Card[];
@@ -239,15 +247,16 @@ function App() {
     [persistSave],
   );
 
-  const clearPracticeRematch = useCallback(() => {
-    setIsPracticeRematch(false);
-    isPracticeRematchRef.current = false;
-    practiceRematchEntryRef.current = null;
+  const clearHistoryRematch = useCallback(() => {
+    setIsHistoryRematch(false);
+    isHistoryRematchRef.current = false;
+    historyRematchEntryRef.current = null;
   }, []);
 
   const goToBattleSetup = useCallback(
     (deckIndex?: number) => {
-      clearPracticeRematch();
+      clearHistoryRematch();
+      setHistoryRematchFlow(null);
       const level = user?.level ?? 1;
       const resolvedIndex =
         deckIndex ??
@@ -278,7 +287,7 @@ function App() {
       setBattleEndDock(false);
       setScreen('battleSetup');
     },
-    [clearPracticeRematch, persistSave, user?.level],
+    [clearHistoryRematch, persistSave, user?.level],
   );
 
   const handleCancelBattleMatch = useCallback(() => {
@@ -292,37 +301,102 @@ function App() {
     setEconomy(nextEconomy);
     economyRef.current = nextEconomy;
     setBattleEndDock(false);
-    clearPracticeRematch();
+    clearHistoryRematch();
     setBattleSetupKey((key) => key + 1);
     setBattleHubResetKey((key) => key + 1);
     setScreen('battleHub');
-  }, [clearPracticeRematch, persistSave]);
+  }, [clearHistoryRematch, persistSave]);
 
-  const goToPracticeRematch = useCallback((entry: BattleHistoryEntry) => {
-    setIsPracticeRematch(true);
-    isPracticeRematchRef.current = true;
-    practiceRematchEntryRef.current = entry;
-    const playerDeck =
-      entry.playerDeck && entry.playerDeck.length >= DECK_MAX
-        ? structuredClone(entry.playerDeck)
-        : getDeckCards(decksRef.current[activeDeckIndexRef.current] ?? []);
-    setBattlePlayerDeck(playerDeck);
-    battleStartSnapshotRef.current = null;
-    setCpuDeck(structuredClone(entry.opponentDeck));
-    setCpuOpponent({ name: CPU_OPPONENT_LABEL, level: entry.opponentLevel });
-    setBattleSetupKey((k) => k + 1);
-    setBattleEndDock(false);
-    setScreen('battleSetup');
-  }, []);
+  const continueHistoryRematch = useCallback(
+    (entry: BattleHistoryEntry) => {
+      if (screen !== 'records') {
+        setScreen('records');
+      }
+
+      const starts = adStateRef.current.historyRematchStarts ?? 0;
+      if (shouldRequireHistoryRematchAd(starts)) {
+        setHistoryRematchFlow({ entry, phase: 'ad' });
+        return;
+      }
+      setHistoryRematchFlow({ entry, phase: 'deckSelect' });
+    },
+    [screen],
+  );
+
+  const requestHistoryRematch = useCallback(
+    (entry: BattleHistoryEntry) => {
+      historyRematchEntryRef.current = entry;
+      if (shouldShowHistoryRematchRulesModal(adStateRef.current)) {
+        setHistoryRematchFlow({ entry, phase: 'rules' });
+        return;
+      }
+      continueHistoryRematch(entry);
+    },
+    [continueHistoryRematch],
+  );
+
+  const proceedHistoryRematchAfterRules = useCallback(
+    ({ suppressToday }: { suppressToday: boolean }) => {
+      const entry =
+        historyRematchFlow?.entry ?? historyRematchEntryRef.current;
+      if (!entry) return;
+
+      if (suppressToday) {
+        const nextAdState = dismissHistoryRematchRulesForToday(
+          adStateRef.current,
+        );
+        adStateRef.current = nextAdState;
+        setAdState(nextAdState);
+        persistSave({ adState: nextAdState });
+      }
+
+      continueHistoryRematch(entry);
+    },
+    [continueHistoryRematch, historyRematchFlow, persistSave],
+  );
+
+  const startHistoryRematchBattle = useCallback(
+    (deckIndex: number) => {
+      const entry =
+        historyRematchFlow?.entry ?? historyRematchEntryRef.current;
+      if (!entry) return;
+
+      const level = userRef.current?.level ?? 1;
+      const layout = normalizeDeckLayout(decksRef.current[deckIndex] ?? []);
+      const playerDeck = getDeckCards(layout);
+
+      setIsHistoryRematch(true);
+      isHistoryRematchRef.current = true;
+      historyRematchEntryRef.current = entry;
+      setBattlePlayerDeck(playerDeck);
+      battleStartSnapshotRef.current = null;
+      setCpuDeck(prepareHistoryOpponentDeck(entry.opponentDeck, level));
+      setCpuOpponent({ name: CPU_OPPONENT_LABEL, level });
+
+      const nextAdState = {
+        ...adStateRef.current,
+        historyRematchStarts: (adStateRef.current.historyRematchStarts ?? 0) + 1,
+      };
+      adStateRef.current = nextAdState;
+      setAdState(nextAdState);
+      persistSave({ adState: nextAdState });
+
+      setHistoryRematchFlow(null);
+      setBattleSetupKey((k) => k + 1);
+      setBattleEndDock(false);
+      setScreen('battleSetup');
+    },
+    [historyRematchFlow, persistSave],
+  );
 
   const rematchSameOpponent = useCallback(() => {
-    const entry = practiceRematchEntryRef.current;
+    const entry = historyRematchEntryRef.current;
     if (entry) {
-      goToPracticeRematch(entry);
+      requestHistoryRematch(entry);
       return;
     }
     goToBattleSetup(lastBattleDeckIndexRef.current);
-  }, [goToBattleSetup, goToPracticeRematch]);
+  }, [goToBattleSetup, requestHistoryRematch]);
 
   const restartBattleFromEnd = useCallback(() => {
     goToBattleSetup(lastBattleDeckIndexRef.current);
@@ -597,7 +671,7 @@ function App() {
       outcome: BattleOutcome,
       options: { graveyardCard?: Card | null; lostCard?: Card | null } = {},
     ) => {
-      if (isPracticeRematchRef.current) {
+      if (isHistoryRematchRef.current) {
         return;
       }
       const { graveyardCard = null, lostCard = null } = options;
@@ -745,9 +819,30 @@ function App() {
     [initialSave.schemaVersion],
   );
 
+  const finalizeHistoryRematchOutcome = useCallback(
+    (outcome: BattleOutcome) => {
+      if (outcome.winner !== 'player') return;
+
+      const pixelTotal = calcSurvivorPixels(
+        countBattleSurvivors(
+          outcome.playerCardIds,
+          outcome.defeatedPlayerCardIds,
+        ),
+      );
+      if (pixelTotal <= 0) return;
+
+      const nextEconomy = addFreePixels(economyRef.current, pixelTotal);
+      economyRef.current = nextEconomy;
+      setEconomy(nextEconomy);
+      persistSave({ economy: nextEconomy, adState: adStateRef.current });
+    },
+    [persistSave],
+  );
+
   const handleBattleOutcome = useCallback(
     (outcome: BattleOutcome) => {
-      if (isPracticeRematchRef.current) {
+      if (isHistoryRematchRef.current) {
+        finalizeHistoryRematchOutcome(outcome);
         return;
       }
       if (
@@ -774,7 +869,7 @@ function App() {
       }
       finalizeBattleOutcome(outcome, {});
     },
-    [finalizeBattleOutcome],
+    [finalizeBattleOutcome, finalizeHistoryRematchOutcome],
   );
 
   const handleGraveyardPick = useCallback(
@@ -1118,15 +1213,27 @@ function App() {
 
   const battleEndNewBattleDisabled = useMemo(() => {
     if (pendingLostRouletteOutcome != null) return true;
+    if (isHistoryRematch) {
+      return !hasHistoryRematchDeck(decks, unlockedDeckCount);
+    }
     const deckIndex = lastBattleDeckIndex;
     return deckHasLostCard(normalizeDeckLayout(decks[deckIndex] ?? []));
-  }, [decks, lastBattleDeckIndex, pendingLostRouletteOutcome]);
+  }, [decks, isHistoryRematch, lastBattleDeckIndex, pendingLostRouletteOutcome, unlockedDeckCount]);
 
-  const showProfileBar = isProfileComplete(user) && isTabId(screen);
-  const showDock = isDockVisible(screen) || (screen === 'battleSetup' && battleEndDock);
-  const activeTab: TabId =
-    screen === 'battleSetup' && battleEndDock
-      ? isPracticeRematch
+  const isHistoryRematchDeckSelect =
+    historyRematchFlow?.phase === 'deckSelect';
+
+  const showProfileBar =
+    isProfileComplete(user) &&
+    (isTabId(screen) || isHistoryRematchDeckSelect);
+  const showDock =
+    isDockVisible(screen) ||
+    (screen === 'battleSetup' && battleEndDock) ||
+    isHistoryRematchDeckSelect;
+  const activeTab: TabId = isHistoryRematchDeckSelect
+    ? 'records'
+    : screen === 'battleSetup' && battleEndDock
+      ? isHistoryRematch
         ? 'records'
         : 'battleHub'
       : isTabId(screen)
@@ -1136,13 +1243,14 @@ function App() {
   const selectTab = useCallback(
     (tab: TabId) => {
       setBattleEndDock(false);
-      clearPracticeRematch();
+      clearHistoryRematch();
+      setHistoryRematchFlow(null);
       if (tab !== 'deck') {
         setDeckReorderMode(false);
       }
       setScreen(tab);
     },
-    [clearPracticeRematch],
+    [clearHistoryRematch],
   );
 
   const openSettings = useCallback(() => {
@@ -1237,11 +1345,25 @@ function App() {
             onMoveCardBetweenDecks={moveCardBetweenDecksInHub}
           />
         )}
-        {screen === 'records' && (
+        {isHistoryRematchDeckSelect ? (
+          <BattleDeckSelectScreen
+            decks={decks}
+            deckNames={deckNames}
+            unlockedDeckCount={unlockedDeckCount}
+            lastBattleDeckIndex={lastBattleDeckIndex}
+            deckReadinessMode="historyRematch"
+            backLabel="バトル履歴に戻る"
+            onStartBattle={startHistoryRematchBattle}
+            onBack={() => setHistoryRematchFlow(null)}
+            onGoToMyDeck={goToMyDeckWithCard}
+            onReorderDeckAt={reorderDeckAt}
+            onMoveCardBetweenDecks={moveCardBetweenDecksInHub}
+          />
+        ) : screen === 'records' && (
           <RecordsScreen
             battleHistory={battleHistory}
-            deckCount={activeDeckCardCount}
-            onPracticeRematch={goToPracticeRematch}
+            canRematch={hasHistoryRematchDeck(decks, unlockedDeckCount)}
+            onRequestRematch={requestHistoryRematch}
           />
         )}
         {screen === 'shop' && (
@@ -1294,7 +1416,7 @@ function App() {
             onUpdated={updateCard}
           />
         )}
-        {screen === 'battleSetup' && (
+        {screen === 'battleSetup' && !isHistoryRematchDeckSelect && (
           <BattleSetupScreen
             key={battleSetupKey}
             playerDeck={battlePlayerDeck}
@@ -1305,14 +1427,14 @@ function App() {
                 : undefined
             }
             opponentIdentity={cpuOpponent}
-            isPracticeRematch={isPracticeRematch}
-            enableOpponentMatching={!isPracticeRematch}
-            onCancelMatch={isPracticeRematch ? undefined : handleCancelBattleMatch}
+            isHistoryRematch={isHistoryRematch}
+            enableOpponentMatching={!isHistoryRematch}
+            onCancelMatch={isHistoryRematch ? undefined : handleCancelBattleMatch}
             cancelMatchDisabled={economy.freePixels < BATTLE_MATCH_CANCEL_COST}
             cancelMatchCostPx={BATTLE_MATCH_CANCEL_COST}
             onFinish={handleBattleOutcome}
             onNewBattle={
-              isPracticeRematch ? rematchSameOpponent : restartBattleFromEnd
+              isHistoryRematch ? rematchSameOpponent : restartBattleFromEnd
             }
             newBattleDisabled={battleEndNewBattleDisabled}
             onBattleEndedChange={handleBattleEndedChange}
@@ -1321,6 +1443,25 @@ function App() {
       </main>
 
       {showDock && <AppDock activeTab={activeTab} onSelect={selectTab} />}
+
+      {historyRematchFlow?.phase === 'rules' && (
+        <HistoryRematchRulesModal
+          onConfirm={proceedHistoryRematchAfterRules}
+          onCancel={() => setHistoryRematchFlow(null)}
+        />
+      )}
+      {historyRematchFlow?.phase === 'ad' && (
+        <MockRewardAdModal
+          title="再戦のための広告視聴"
+          message="3回に1回、再戦前にリワード広告の視聴が必要です（モック）"
+          onComplete={() => {
+            setHistoryRematchFlow((current) =>
+              current ? { ...current, phase: 'deckSelect' } : null,
+            );
+          }}
+          onCancel={() => setHistoryRematchFlow(null)}
+        />
+      )}
 
       {screen !== 'setup' && screen !== 'title' && !showDock && (
         <footer className="app-footer">

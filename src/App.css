@@ -1283,6 +1283,15 @@ button.battle-hub-deck-icon.is-move-target {
   border-radius: 3px;
 }
 
+.records-history-deck-thumb {
+  border-style: solid;
+  border-width: 1px;
+  border-color: var(--rarity-border, #e2e8f0);
+  border-radius: 4px;
+  background: var(--rarity-bg, #fafafa);
+  overflow: hidden;
+}
+
 .records-history-when {
   font-size: 0.78rem;
   color: #64748b;
@@ -1532,13 +1541,6 @@ button.battle-hub-deck-icon.is-move-target {
   cursor: pointer;
 }
 
-.records-history-detail-rematch-hint {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.35;
-  text-align: center;
-}
-
 .records-history-detail-notice {
   margin: 0;
   padding: 0.45rem 0.55rem;
@@ -1561,6 +1563,191 @@ button.battle-hub-deck-icon.is-move-target {
   font: inherit;
   font-size: 0.9rem;
   cursor: pointer;
+}
+
+.history-rematch-rules-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.history-rematch-rules-panel {
+  width: min(100%, 22rem);
+  padding: 1rem;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+}
+
+.history-rematch-rules-title {
+  margin: 0 0 0.65rem;
+  font-size: 1.05rem;
+}
+
+.history-rematch-rules-list {
+  margin: 0 0 0.9rem;
+  padding-left: 1.15rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #334155;
+}
+
+.history-rematch-rules-list li + li {
+  margin-top: 0.35rem;
+}
+
+.history-rematch-rules-coin {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin: 0 0.12rem;
+  vertical-align: -0.15em;
+}
+
+.history-rematch-rules-dismiss {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0 0 0.85rem;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: #475569;
+  cursor: pointer;
+}
+
+.history-rematch-rules-dismiss input {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.12rem;
+  accent-color: #3562e8;
+  cursor: pointer;
+}
+
+.history-rematch-rules-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.history-rematch-rules-confirm,
+.history-rematch-rules-cancel {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.65rem;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.history-rematch-rules-confirm {
+  border: none;
+  background: linear-gradient(180deg, #4a7cff 0%, #3562e8 100%);
+  color: #fff;
+  font-weight: 600;
+}
+
+.history-rematch-rules-cancel {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+}
+
+.mock-ad-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.mock-ad-panel {
+  width: min(100%, 22rem);
+  padding: 1rem;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+}
+
+.mock-ad-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.mock-ad-message {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.mock-ad-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  margin-bottom: 0.85rem;
+  border-radius: 10px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+}
+
+.mock-ad-placeholder-label {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.mock-ad-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.mock-ad-watch-btn,
+.mock-ad-cancel-btn {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.65rem;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.mock-ad-watch-btn {
+  border: none;
+  background: linear-gradient(180deg, #4a7cff 0%, #3562e8 100%);
+  color: #fff;
+  font-weight: 600;
+}
+
+.mock-ad-cancel-btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+}
+
+.battle-end-history-reward-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.12rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.battle-end-history-reward-coin {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 /* --- 設定タブ --- */
@@ -9001,6 +9188,14 @@ button.battle-card {
   white-space: nowrap;
   overflow: visible;
   text-overflow: unset;
+}
+
+.formation-screen.is-battle-active .formation-guide-battle--ended .formation-guide-line--ended {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+  white-space: normal;
 }
 
 .formation-screen.is-battle-active .formation-guide-battle .formation-guide-line {

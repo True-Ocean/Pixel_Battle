@@ -1,6 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { DECK_MAX } from '../config/balance';
 import { getRarityMeta } from '../config/rarity';
 import type { BattleHistoryEntry, Card } from '../types';
 import { formatBattleHistoryWhen, CPU_OPPONENT_LABEL } from '../battleHistory';
@@ -10,9 +9,9 @@ import { RarityBadge } from './RarityBadge';
 
 interface BattleHistoryDetailOverlayProps {
   entry: BattleHistoryEntry;
-  deckCount: number;
+  canRematch: boolean;
   onClose: () => void;
-  onPracticeRematch: (entry: BattleHistoryEntry) => void;
+  onRematch: (entry: BattleHistoryEntry) => void;
 }
 
 function HistoryCardRow({ card }: { card: Card }) {
@@ -47,27 +46,18 @@ function HistoryCardRow({ card }: { card: Card }) {
 
 export function BattleHistoryDetailOverlay({
   entry,
-  deckCount,
+  canRematch,
   onClose,
-  onPracticeRematch,
+  onRematch,
 }: BattleHistoryDetailOverlayProps) {
-  const canRematch = deckCount >= DECK_MAX;
   const [notice, setNotice] = useState<string | null>(null);
 
-  useEffect(() => {
+  const handleRematch = () => {
     if (canRematch) {
-      setNotice(null);
-    }
-  }, [canRematch]);
-
-  const handlePracticeRematch = () => {
-    if (canRematch) {
-      onPracticeRematch(entry);
+      onRematch(entry);
       return;
     }
-    setNotice(
-      `デッキが${DECK_MAX}枚揃っていません。あと ${DECK_MAX - deckCount} 枚必要です（現在 ${deckCount}/${DECK_MAX} 枚）。`,
-    );
+    setNotice('5枚揃ったデッキがありません。マイデッキで編成してください。');
   };
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -136,13 +126,10 @@ export function BattleHistoryDetailOverlay({
           <button
             type="button"
             className="records-history-detail-rematch"
-            onClick={handlePracticeRematch}
+            onClick={handleRematch}
           >
             もう一度対戦する
           </button>
-          <p className="records-history-detail-rematch-hint muted">
-            練習再戦（履歴・報酬なし）· 現在のマイデッキで対戦
-          </p>
           {notice && (
             <p className="records-history-detail-notice" role="status">
               {notice}

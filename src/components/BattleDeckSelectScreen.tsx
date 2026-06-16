@@ -11,7 +11,9 @@ import {
   getBattleReadyDeckIndices,
   getDeckCards,
   getDeckDisplayName,
+  getFilledDeckIndices,
   isDeckBattleReady,
+  isDeckFilled,
   isDeckSlotUnlocked,
   moveCardInLayout,
   normalizeDeckLayout,
@@ -24,6 +26,7 @@ import { BattleCard } from './BattleCard';
 import { BattleHubCardDetailOverlay } from './BattleHubCardDetailOverlay';
 
 type BattleHubDeckStatus = 'ready' | 'incomplete';
+type DeckReadinessMode = 'battle' | 'historyRematch';
 
 interface SelectedSlot {
   deckIndex: number;
@@ -40,6 +43,10 @@ export interface BattleDeckSelectScreenProps {
   deckNames?: string[];
   unlockedDeckCount: number;
   lastBattleDeckIndex: number;
+  deckReadinessMode?: DeckReadinessMode;
+  backLabel?: string;
+  title?: string;
+  startButtonLabel?: string;
   onStartBattle: (deckIndex: number) => void;
   onBack: () => void;
   onGoToMyDeck: (deckIndex: number, cardId: string) => void;
@@ -52,11 +59,34 @@ export interface BattleDeckSelectScreenProps {
   ) => void;
 }
 
+function isDeckReadyForMode(
+  layout: DeckLayout,
+  mode: DeckReadinessMode,
+): boolean {
+  return mode === 'historyRematch'
+    ? isDeckFilled(layout)
+    : isDeckBattleReady(layout);
+}
+
+function getReadyDeckIndicesForMode(
+  decks: readonly DeckLayout[],
+  unlockedDeckCount: number,
+  mode: DeckReadinessMode,
+): number[] {
+  return mode === 'historyRematch'
+    ? getFilledDeckIndices(decks, unlockedDeckCount)
+    : getBattleReadyDeckIndices(decks, unlockedDeckCount);
+}
+
 export function BattleDeckSelectScreen({
   decks,
   deckNames,
   unlockedDeckCount,
   lastBattleDeckIndex,
+  deckReadinessMode = 'battle',
+  backLabel = 'モード選択に戻る',
+  title = 'デッキ選択',
+  startButtonLabel = 'バトル開始',
   onStartBattle,
   onBack,
   onGoToMyDeck,
@@ -64,8 +94,8 @@ export function BattleDeckSelectScreen({
   onMoveCardBetweenDecks,
 }: BattleDeckSelectScreenProps) {
   const readyIndices = useMemo(
-    () => getBattleReadyDeckIndices(decks, unlockedDeckCount),
-    [decks, unlockedDeckCount],
+    () => getReadyDeckIndicesForMode(decks, unlockedDeckCount, deckReadinessMode),
+    [decks, unlockedDeckCount, deckReadinessMode],
   );
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(() =>
@@ -91,7 +121,10 @@ export function BattleDeckSelectScreen({
     return Array.from({ length: unlockedDeckCount }, (_, index) => {
       const layout = normalizeDeckLayout(decks[index] ?? []);
       const cardCount = countDeckCards(layout);
-      const status: BattleHubDeckStatus = isDeckBattleReady(layout)
+      const status: BattleHubDeckStatus = isDeckReadyForMode(
+        layout,
+        deckReadinessMode,
+      )
         ? 'ready'
         : 'incomplete';
       return {
@@ -102,7 +135,7 @@ export function BattleDeckSelectScreen({
         power: computeDeckPower(getDeckCards(layout)),
       };
     });
-  }, [decks, unlockedDeckCount]);
+  }, [decks, unlockedDeckCount, deckReadinessMode]);
 
   const handleDeckSelect = useCallback(
     (index: number, status: BattleHubDeckStatus) => {
@@ -180,9 +213,9 @@ export function BattleDeckSelectScreen({
             onBack();
           }}
         >
-          モード選択に戻る
+          {backLabel}
         </button>
-        <h2 className="battle-hub-deck-select-title">デッキ選択</h2>
+        <h2 className="battle-hub-deck-select-title">{title}</h2>
       </div>
 
       <div className="battle-hub-body">
@@ -353,7 +386,7 @@ export function BattleDeckSelectScreen({
             disabled={!canStart}
             onClick={handleStartBattle}
           >
-            バトル開始
+            {startButtonLabel}
           </button>
         </div>
       </div>

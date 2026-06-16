@@ -142,11 +142,36 @@ export function deckHasLostCard(deck: readonly (Card | null)[]): boolean {
   return deck.some((card) => card != null && !isCardActive(card));
 }
 
+export function isDeckFilled(deck: readonly (Card | null)[]): boolean {
+  return deck.length === DECK_MAX && deck.every((card) => card != null);
+}
+
 export function isDeckBattleReady(deck: readonly (Card | null)[]): boolean {
   return (
-    deck.length === DECK_MAX &&
-    deck.every((card) => card != null && isCardActive(card))
+    isDeckFilled(deck) && deck.every((card) => card != null && isCardActive(card))
   );
+}
+
+/** 5枚揃い（ロストカード含む）の解放済みデッキ index 一覧 */
+export function getFilledDeckIndices(
+  decks: readonly DeckLayout[],
+  unlockedDeckCount: number,
+): number[] {
+  const indices: number[] = [];
+  for (let i = 0; i < DECK_SLOT_COUNT; i++) {
+    if (!isDeckSlotUnlocked(i, unlockedDeckCount)) continue;
+    if (isDeckFilled(normalizeDeckLayout(decks[i] ?? []))) {
+      indices.push(i);
+    }
+  }
+  return indices;
+}
+
+export function hasHistoryRematchDeck(
+  decks: readonly DeckLayout[],
+  unlockedDeckCount: number,
+): boolean {
+  return getFilledDeckIndices(decks, unlockedDeckCount).length > 0;
 }
 
 /** 5枚完成かつ解放済みのデッキスロット index 一覧 */

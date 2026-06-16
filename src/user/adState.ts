@@ -23,6 +23,7 @@ export function createInitialAdState(date: Date = new Date()): AdState {
     hasEverCompletedBattleDeck: false,
     battlesToday: 0,
     battlesDayKey: getBattlesDayKey(date),
+    historyRematchStarts: 0,
   };
 }
 
@@ -41,14 +42,56 @@ export function normalizeAdState(raw: unknown, date: Date = new Date()): AdState
     candidate.creativeAdCounter >= 0
       ? Math.floor(candidate.creativeAdCounter)
       : undefined;
+  const historyRematchStarts = normalizeNonNegativeInt(
+    candidate.historyRematchStarts,
+  );
+  const historyRematchRulesDismissedDayKey =
+    typeof candidate.historyRematchRulesDismissedDayKey === 'string' &&
+    candidate.historyRematchRulesDismissedDayKey.length > 0
+      ? candidate.historyRematchRulesDismissedDayKey
+      : undefined;
 
   const todayKey = getBattlesDayKey(date);
   const resetBattlesToday = battlesDayKey !== todayKey ? 0 : battlesToday;
+  const rulesDismissedToday =
+    historyRematchRulesDismissedDayKey === todayKey
+      ? todayKey
+      : undefined;
 
   return {
     hasEverCompletedBattleDeck,
     battlesToday: resetBattlesToday,
     battlesDayKey: todayKey,
+    historyRematchStarts,
+    ...(rulesDismissedToday != null
+      ? { historyRematchRulesDismissedDayKey: rulesDismissedToday }
+      : {}),
     ...(creativeAdCounter != null ? { creativeAdCounter } : {}),
   };
+}
+
+/** 再戦ルールモーダルを表示するか（当日スキップ未設定なら表示） */
+export function shouldShowHistoryRematchRulesModal(
+  adState: AdState,
+  date: Date = new Date(),
+): boolean {
+  const todayKey = getBattlesDayKey(date);
+  return adState.historyRematchRulesDismissedDayKey !== todayKey;
+}
+
+export function dismissHistoryRematchRulesForToday(
+  adState: AdState,
+  date: Date = new Date(),
+): AdState {
+  return {
+    ...adState,
+    historyRematchRulesDismissedDayKey: getBattlesDayKey(date),
+  };
+}
+
+/** 次の履歴再戦開始でリワード広告が必要か（3回に1回） */
+export function shouldRequireHistoryRematchAd(
+  historyRematchStarts: number,
+): boolean {
+  return (historyRematchStarts + 1) % 3 === 0;
 }
