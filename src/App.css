@@ -2305,7 +2305,40 @@ button.battle-hub-deck-icon.is-drop-target {
 .deck-unlock-message {
   margin: 0 0 0.35rem;
   font-size: 0.9rem;
-  line-height: 1.45;
+  line-height: 1.55;
+}
+
+.deck-unlock-jewel-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+  vertical-align: middle;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.deck-unlock-jewel-icon {
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
+}
+
+.jewel-amount-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.jewel-amount-icon {
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
+}
+
+.jewel-amount-value {
+  font-weight: inherit;
 }
 
 .deck-unlock-note {

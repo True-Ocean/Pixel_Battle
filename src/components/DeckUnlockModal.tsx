@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { JEWEL_COST_DECK_UNLOCK } from '../config/economy';
 import { getDeckDisplayName } from '../deckSlots';
+import { JewelAmount } from './JewelIcon';
 
 interface DeckUnlockModalProps {
   slotIndex: number;
@@ -10,36 +11,6 @@ interface DeckUnlockModalProps {
   deckNames?: string[];
   onClose: () => void;
   onPrototypeUnlock?: () => void;
-}
-
-function getDeckUnlockMessage(
-  slotIndex: number,
-  userLevel: number,
-  deckLabel: string,
-): { message: string; note?: string } {
-  if (slotIndex === 1) {
-    if (userLevel >= 10) {
-      return {
-        message: `${deckLabel} はレベル10到達で自動解放されます。`,
-      };
-    }
-    return {
-      message: `${deckLabel} はユーザーレベル10到達で解放されます。`,
-      note: `現在 Lv.${userLevel} です。`,
-    };
-  }
-
-  if (userLevel < 10) {
-    return {
-      message: `${deckLabel} はレベル10到達後に解放できます。`,
-      note: `解放には 💎 ${JEWEL_COST_DECK_UNLOCK.toLocaleString()} が必要です（準備中）。`,
-    };
-  }
-
-  return {
-    message: `${deckLabel} は 💎 ${JEWEL_COST_DECK_UNLOCK.toLocaleString()} で解放できます。`,
-    note: 'ショップ連携は準備中です。',
-  };
 }
 
 export function DeckUnlockModal({
@@ -57,7 +28,44 @@ export function DeckUnlockModal({
     isDev &&
     onPrototypeUnlock != null &&
     slotIndex === nextUnlockIndex;
-  const { message, note } = getDeckUnlockMessage(slotIndex, userLevel, deckLabel);
+
+  let message: ReactNode;
+  let note: ReactNode;
+
+  if (slotIndex === 1) {
+    if (userLevel >= 10) {
+      message = `${deckLabel} はレベル10到達で自動解放されます。`;
+    } else {
+      message = `${deckLabel} はユーザーレベル10到達で解放されます。`;
+      note = `現在 Lv.${userLevel} です。`;
+    }
+  } else if (userLevel < 10) {
+    message = `${deckLabel} はレベル10到達後に解放できます。`;
+    note = (
+      <>
+        解放には{' '}
+        <JewelAmount
+          amount={JEWEL_COST_DECK_UNLOCK}
+          className="deck-unlock-jewel-cost"
+          iconClassName="deck-unlock-jewel-icon"
+        />{' '}
+        が必要です（準備中）。
+      </>
+    );
+  } else {
+    message = (
+      <>
+        {deckLabel} は{' '}
+        <JewelAmount
+          amount={JEWEL_COST_DECK_UNLOCK}
+          className="deck-unlock-jewel-cost"
+          iconClassName="deck-unlock-jewel-icon"
+        />{' '}
+        で解放できます。
+      </>
+    );
+    note = 'ショップ連携は準備中です。';
+  }
 
   useEffect(() => {
     const scrollY = window.scrollY;
