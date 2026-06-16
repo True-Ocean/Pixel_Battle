@@ -15,7 +15,7 @@ import {
   shouldApplyNinjaFirstStrike,
 } from '../ninjaCombat';
 import { grantPoisonStack } from '../poisonCombat';
-import type { BattleLogActionKind } from '../types/battle';
+import type { BattleLogActionKind } from '../../types/battle';
 import type { BattleEvent } from '../../types/battle';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
 import {
@@ -181,30 +181,17 @@ export function applyMeleeBattle(
     damageToAttacker = 0;
   }
 
-  const deferredShieldEvents: BattleEvent[] = [];
+  const deferredStatusEvents: BattleEvent[] = [];
 
   if (attackerShieldConsumed) {
     damageToAttacker = 0;
     attack.attacker.hasShield = false;
     next = appendLog(next, `${attack.attacker.name} の盾が攻撃で壊れた`);
-    deferredShieldEvents.push({
-      type: 'shield_broken',
-      turn,
-      target: unitSnapshot(attack.attacker, attackerBpFrom),
-      blockContext: 'melee',
-    });
   }
   if (targetShieldConsumed) {
     damageToTarget = 0;
     attack.target.hasShield = false;
     next = appendLog(next, `${attack.target.name} の盾が攻撃を防いだ`);
-    deferredShieldEvents.push({
-      type: 'blocked',
-      turn,
-      side: attack.side === 'player' ? 'cpu' : 'player',
-      target: unitSnapshot(attack.target, bpFrom),
-      blockContext: 'melee',
-    });
   }
 
   if (attack.attacker.attribute === 'ninja') {
@@ -235,8 +222,6 @@ export function applyMeleeBattle(
     !attackerShieldConsumed &&
     !(icePoisonMelee && attack.attacker.attribute === 'ice') &&
     !targetFrozenAtMelee;
-
-  const deferredStatusEvents: BattleEvent[] = [];
 
   if (freezeOnTarget) {
     applyFreeze(attack.target, next.turn);
@@ -340,12 +325,11 @@ export function applyMeleeBattle(
     damageToTarget,
     damageToActor: damageToAttacker,
     damage: damageToTarget,
+    targetShieldBroken: targetShieldConsumed,
+    actorShieldBroken: attackerShieldConsumed,
     actorId: attack.attacker.cardId,
     targetId: attack.target.cardId,
   });
-  for (const shieldEvent of deferredShieldEvents) {
-    next = pushBattleEvent(next, shieldEvent);
-  }
   for (const statusEvent of deferredStatusEvents) {
     next = pushBattleEvent(next, statusEvent);
   }

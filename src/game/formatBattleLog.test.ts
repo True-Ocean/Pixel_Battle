@@ -23,7 +23,74 @@ describe('formatBattleLog', () => {
     );
   });
 
-  it('盾で防いだ場合は攻撃ログの後に盾破壊ログを出す', () => {
+  it('近接で盾を防いだ場合は攻撃ログに盾破壊を含め別行は出さない', () => {
+    const events: BattleEvent[] = [
+      { type: 'turn_start', turn: 1 },
+      {
+        type: 'attack',
+        turn: 1,
+        actionKind: 'melee',
+        actor: { name: '剣士', attribute: 'attack', bp: 90, bpAfter: 47 },
+        target: { name: '盾兵', attribute: 'defense', bp: 86 },
+        damageToTarget: 0,
+        damageToActor: 43,
+        targetShieldBroken: true,
+      },
+    ];
+
+    const groups = formatBattleLog(events);
+    expect(groups[0].lines).toHaveLength(1);
+    expect(groups[0].lines[0]).toBe(
+      '剣士（剣・BP90）が 盾兵（盾・BP86）に近接攻撃 → 盾兵の盾が破壊された、剣士は43ダメージを受けた',
+    );
+  });
+
+  it('近接攻撃側の盾が壊れた場合も攻撃ログに含める', () => {
+    const events: BattleEvent[] = [
+      { type: 'turn_start', turn: 1 },
+      {
+        type: 'attack',
+        turn: 1,
+        actionKind: 'melee',
+        actor: { name: '盾兵', attribute: 'defense', bp: 80, bpAfter: 80 },
+        target: { name: '敵', attribute: 'attack', bp: 60, bpAfter: 0 },
+        damageToTarget: 80,
+        damageToActor: 0,
+        actorShieldBroken: true,
+      },
+    ];
+
+    const groups = formatBattleLog(events);
+    expect(groups[0].lines).toHaveLength(1);
+    expect(groups[0].lines[0]).toBe(
+      '盾兵（盾・BP80）が 敵（剣・BP60）に近接攻撃 → 敵に80ダメージを与え、盾兵の盾が破壊された',
+    );
+  });
+
+  it('近接で双方の盾が壊れた場合は1行にまとめる', () => {
+    const events: BattleEvent[] = [
+      { type: 'turn_start', turn: 1 },
+      {
+        type: 'attack',
+        turn: 1,
+        actionKind: 'melee',
+        actor: { name: '盾A', attribute: 'defense', bp: 70 },
+        target: { name: '盾B', attribute: 'defense', bp: 70 },
+        damageToTarget: 0,
+        damageToActor: 0,
+        targetShieldBroken: true,
+        actorShieldBroken: true,
+      },
+    ];
+
+    const groups = formatBattleLog(events);
+    expect(groups[0].lines).toHaveLength(1);
+    expect(groups[0].lines[0]).toBe(
+      '盾A（盾・BP70）が 盾B（盾・BP70）に近接攻撃 → 盾Bの盾が破壊された、盾Aの盾が破壊された',
+    );
+  });
+
+  it('弓攻撃で盾を防いだ場合は攻撃ログの後に盾破壊ログを出す', () => {
     const events: BattleEvent[] = [
       { type: 'turn_start', turn: 1 },
       {

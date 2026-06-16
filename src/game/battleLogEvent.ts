@@ -1,9 +1,9 @@
 import type {
-  Attribute,
   BattleEvent,
   BattleState,
   BattleUnit,
 } from '../types/battle';
+import type { Attribute } from '../types';
 
 export type BattleLogActionKind =
   | 'melee'

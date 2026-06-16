@@ -1,5 +1,6 @@
 import { ATTRIBUTE_META } from '../config/attributes';
-import type { Attribute, BattleEvent, BattleLogUnitSnapshot } from '../types/battle';
+import type { Attribute } from '../types';
+import type { BattleEvent, BattleLogUnitSnapshot } from '../types/battle';
 
 export interface BattleLogTurnGroup {
   turn: number;
@@ -56,7 +57,13 @@ function formatMeleeDamageSuffix(event: BattleEvent): string {
   const target = event.target!;
   const dealt = event.damageToTarget ?? event.damage ?? 0;
   const received = event.damageToActor ?? 0;
-  return `${target.name}に${dealt}ダメージを与え、${actor.name}は${received}ダメージを受けた`;
+  const targetPart = event.targetShieldBroken
+    ? `${target.name}の盾が破壊された`
+    : `${target.name}に${dealt}ダメージを与え`;
+  const actorPart = event.actorShieldBroken
+    ? `${actor.name}の盾が破壊された`
+    : `${actor.name}は${received}ダメージを受けた`;
+  return `${targetPart}、${actorPart}`;
 }
 
 function formatDamageSuffix(event: BattleEvent): string {
@@ -133,6 +140,7 @@ function formatEventLine(
       return `${cardRef(event.actor, ctx)}が ${cardRef(event.target, ctx)}に${actionLabel(event.actionKind)} → ${formatDamageSuffix(event)}`;
     case 'blocked':
       if (!event.target) return null;
+      if (event.blockContext === 'melee') return null;
       return `${cardRef(event.target, ctx)}の盾を破壊`;
     case 'defeated':
       if (!event.target) return null;
@@ -155,6 +163,7 @@ function formatEventLine(
       return `${event.target.name}に毒が付与された`;
     case 'shield_broken':
       if (!event.target) return null;
+      if (event.blockContext === 'melee') return null;
       return `${cardRef(event.target, ctx)}の盾を破壊`;
     case 'attack_preempted':
       if (!event.actor) return null;

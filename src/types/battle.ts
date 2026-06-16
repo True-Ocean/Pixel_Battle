@@ -101,6 +101,10 @@ export interface BattleEvent {
   actionKind?: BattleLogActionKind;
   damageToTarget?: number;
   damageToActor?: number;
+  /** 近接など: 防御側の盾が消費された */
+  targetShieldBroken?: boolean;
+  /** 近接など: 攻撃側の盾が消費された */
+  actorShieldBroken?: boolean;
   healAmount?: number;
   poisonStacksCleared?: number;
   blockContext?: 'melee' | 'bow' | 'storm' | 'dual_secondary';
