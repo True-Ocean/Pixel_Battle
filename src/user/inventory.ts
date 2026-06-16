@@ -48,15 +48,45 @@ export function fillAllLimitBreakShards(
   count: number,
 ): UserInventory {
   const amount = Math.max(0, Math.floor(count));
+  return setUniversalLimitBreakShards(
+    setAllAttributeLimitBreakShards(inventory, amount),
+    amount,
+  );
+}
+
+export function setAllAttributeLimitBreakShards(
+  inventory: UserInventory,
+  count: number,
+): UserInventory {
+  const amount = Math.max(0, Math.floor(count));
   const limitBreakShards: Partial<Record<Attribute, number>> = {};
   for (const attribute of ALL_ATTRIBUTES) {
     limitBreakShards[attribute] = amount;
   }
-  return {
-    ...inventory,
-    limitBreakUniversal: amount,
-    limitBreakShards,
-  };
+  return { ...inventory, limitBreakShards };
+}
+
+export function setUniversalLimitBreakShards(
+  inventory: UserInventory,
+  count: number,
+): UserInventory {
+  const amount = Math.max(0, Math.floor(count));
+  return { ...inventory, limitBreakUniversal: amount };
+}
+
+export function getUniformAttributeShardsCount(inventory: UserInventory): number {
+  let value: number | null = null;
+  for (const attribute of ALL_ATTRIBUTES) {
+    const count = inventory.limitBreakShards[attribute] ?? 0;
+    if (value === null) {
+      value = count;
+      continue;
+    }
+    if (value !== count) {
+      return inventory.limitBreakShards[ALL_ATTRIBUTES[0]!] ?? 0;
+    }
+  }
+  return value ?? 0;
 }
 
 export function applyDevInventoryFill(inventory: UserInventory): UserInventory {

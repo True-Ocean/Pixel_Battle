@@ -9,7 +9,7 @@ import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, addLimitBreakShards, spendLimitBreakResources, fillAllLimitBreakShards } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, addLimitBreakShards, spendLimitBreakResources, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setUniversalLimitBreakShards } from './user';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
 import {
   calcCardDeleteRefundPixels,
@@ -853,15 +853,32 @@ function App() {
     [persistSave],
   );
 
-  const handleDevFillAllShards = useCallback((): string => {
+  const handleDevSetAttributeShards = useCallback((count: number): string => {
     if (!import.meta.env.DEV) {
       return '開発ビルドでのみ利用できます。';
     }
-    const nextInventory = fillAllLimitBreakShards(inventoryRef.current, 100);
+    const nextInventory = setAllAttributeLimitBreakShards(
+      inventoryRef.current,
+      count,
+    );
     persistSave({ inventory: nextInventory });
     setInventory(nextInventory);
     inventoryRef.current = nextInventory;
-    return '汎用かけらと全属性かけらをそれぞれ100個にしました。';
+    return `全属性かけらを ${count.toLocaleString()} 個にしました。`;
+  }, [persistSave]);
+
+  const handleDevSetUniversalShards = useCallback((count: number): string => {
+    if (!import.meta.env.DEV) {
+      return '開発ビルドでのみ利用できます。';
+    }
+    const nextInventory = setUniversalLimitBreakShards(
+      inventoryRef.current,
+      count,
+    );
+    persistSave({ inventory: nextInventory });
+    setInventory(nextInventory);
+    inventoryRef.current = nextInventory;
+    return `汎用かけらを ${count.toLocaleString()} 個にしました。`;
   }, [persistSave]);
 
   const devCardOptions = useMemo(() => {
@@ -1143,6 +1160,8 @@ function App() {
             user={user}
             unlockedDeckCount={unlockedDeckCount}
             freePixels={economy.freePixels}
+            attributeShardsCount={getUniformAttributeShardsCount(inventory)}
+            universalShardCount={inventory.limitBreakUniversal}
             onBack={closeSettings}
             devCardOptions={devCardOptions}
             devDeckFillOptions={devDeckFillOptions}
@@ -1150,7 +1169,8 @@ function App() {
             onDevSetLevel={handleDevSetLevel}
             onDevSetUnlockedDeckCount={handleDevSetUnlockedDeckCount}
             onDevSetFreePixels={handleDevSetFreePixels}
-            onDevFillAllShards={handleDevFillAllShards}
+            onDevSetAttributeShards={handleDevSetAttributeShards}
+            onDevSetUniversalShards={handleDevSetUniversalShards}
             onDevMarkCardLost={handleDevMarkCardLost}
             onDevFillDeckSlots={handleDevFillDeckSlots}
           />

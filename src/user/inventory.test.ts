@@ -5,7 +5,10 @@ import {
   canAffordLimitBreak,
   createInitialInventory,
   fillAllLimitBreakShards,
+  getUniformAttributeShardsCount,
   normalizeUserInventory,
+  setAllAttributeLimitBreakShards,
+  setUniversalLimitBreakShards,
   spendInventoryCount,
   spendLimitBreakShards,
   spendLimitBreakResources,
@@ -127,5 +130,19 @@ describe('user inventory', () => {
     expect(filled.limitBreakShards.attack).toBe(10);
     expect(filled.limitBreakShards.ninja).toBe(10);
     expect(Object.keys(filled.limitBreakShards)).toHaveLength(10);
+  });
+
+  it('属性かけらと汎用かけらを個別に設定できる', () => {
+    const withAttributes = setAllAttributeLimitBreakShards(
+      createInitialInventory(),
+      30,
+    );
+    expect(withAttributes.limitBreakUniversal).toBe(0);
+    expect(withAttributes.limitBreakShards.attack).toBe(30);
+
+    const withUniversal = setUniversalLimitBreakShards(withAttributes, 7);
+    expect(withUniversal.limitBreakUniversal).toBe(7);
+    expect(withUniversal.limitBreakShards.attack).toBe(30);
+    expect(getUniformAttributeShardsCount(withUniversal)).toBe(30);
   });
 });

@@ -181,7 +181,13 @@ export function DeckCardDetailOverlay({
                   </button>
                 </div>
               </div>
-              <div className="deck-card-detail-limit-break-picker-col">
+              <div
+                className={`deck-card-detail-limit-break-picker-col${
+                  universalShardCount === 0
+                    ? ' deck-card-detail-limit-break-picker-col--unavailable'
+                    : ''
+                }`}
+              >
                 <span
                   className="deck-card-detail-limit-break-picker-name"
                   aria-label={`汎用のかけら 所持 ${universalShardCount}`}

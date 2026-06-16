@@ -26,6 +26,8 @@ interface SettingsScreenProps {
   user: UserProfile | null;
   unlockedDeckCount: number;
   freePixels: number;
+  attributeShardsCount: number;
+  universalShardCount: number;
   onBack?: () => void;
   devCardOptions: DevCardOption[];
   devDeckFillOptions: DevDeckFillOption[];
@@ -33,7 +35,8 @@ interface SettingsScreenProps {
   onDevSetLevel: (level: number) => string;
   onDevSetUnlockedDeckCount: (count: number) => void;
   onDevSetFreePixels: (amount: number) => void;
-  onDevFillAllShards: () => string;
+  onDevSetAttributeShards: (count: number) => string;
+  onDevSetUniversalShards: (count: number) => string;
   onDevMarkCardLost: (cardId: string) => string;
   onDevFillDeckSlots: (deckIndex: number) => string;
 }
@@ -88,6 +91,8 @@ export function SettingsScreen({
   user,
   unlockedDeckCount,
   freePixels,
+  attributeShardsCount,
+  universalShardCount,
   onBack,
   devCardOptions,
   devDeckFillOptions,
@@ -95,7 +100,8 @@ export function SettingsScreen({
   onDevSetLevel,
   onDevSetUnlockedDeckCount,
   onDevSetFreePixels,
-  onDevFillAllShards,
+  onDevSetAttributeShards,
+  onDevSetUniversalShards,
   onDevMarkCardLost,
   onDevFillDeckSlots,
 }: SettingsScreenProps) {
@@ -108,6 +114,12 @@ export function SettingsScreen({
   );
   const [devFreePixelsInput, setDevFreePixelsInput] = useState(
     () => String(freePixels),
+  );
+  const [devAttributeShardsInput, setDevAttributeShardsInput] = useState(
+    () => String(attributeShardsCount),
+  );
+  const [devUniversalShardsInput, setDevUniversalShardsInput] = useState(
+    () => String(universalShardCount),
   );
   const [devNotice, setDevNotice] = useState<string | null>(null);
   const [devDeckNotice, setDevDeckNotice] = useState<string | null>(null);
@@ -162,6 +174,14 @@ export function SettingsScreen({
   }, [freePixels]);
 
   useEffect(() => {
+    setDevAttributeShardsInput(String(attributeShardsCount));
+  }, [attributeShardsCount]);
+
+  useEffect(() => {
+    setDevUniversalShardsInput(String(universalShardCount));
+  }, [universalShardCount]);
+
+  useEffect(() => {
     setDevDeckUnlockInput(String(unlockedDeckCount));
   }, [unlockedDeckCount]);
 
@@ -211,8 +231,22 @@ export function SettingsScreen({
     setDevPixelsNotice(`pxコインを ${parsed.toLocaleString()} に変更しました。`);
   };
 
-  const handleDevFillAllShards = () => {
-    setDevShardsNotice(onDevFillAllShards());
+  const handleDevAttributeShardsApply = () => {
+    const parsed = Number.parseInt(devAttributeShardsInput, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setDevShardsNotice('属性かけらは 0 以上の整数を入力してください。');
+      return;
+    }
+    setDevShardsNotice(onDevSetAttributeShards(parsed));
+  };
+
+  const handleDevUniversalShardsApply = () => {
+    const parsed = Number.parseInt(devUniversalShardsInput, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setDevShardsNotice('汎用かけらは 0 以上の整数を入力してください。');
+      return;
+    }
+    setDevShardsNotice(onDevSetUniversalShards(parsed));
   };
 
   const handleDevMarkCardLost = () => {
@@ -370,13 +404,67 @@ export function SettingsScreen({
                 </div>
               </div>
             </div>
-            <button
-              type="button"
-              className="settings-dev-shards-btn"
-              onClick={handleDevFillAllShards}
-            >
-              すべてのかけらを100個にする
-            </button>
+            <div className="settings-dev-shards-row">
+              <div className="settings-dev-quick-cell">
+                <label
+                  className="settings-dev-level-label"
+                  htmlFor="settings-dev-attribute-shards"
+                >
+                  属性かけら（全種）
+                </label>
+                <div className="settings-dev-level-row">
+                  <input
+                    id="settings-dev-attribute-shards"
+                    type="number"
+                    min={0}
+                    step={1}
+                    className="settings-dev-level-input"
+                    value={devAttributeShardsInput}
+                    onChange={(event) =>
+                      setDevAttributeShardsInput(event.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="settings-dev-level-apply"
+                    onClick={handleDevAttributeShardsApply}
+                  >
+                    適用
+                  </button>
+                </div>
+              </div>
+              <div className="settings-dev-quick-cell">
+                <label
+                  className="settings-dev-level-label"
+                  htmlFor="settings-dev-universal-shards"
+                >
+                  汎用かけら
+                </label>
+                <div className="settings-dev-level-row">
+                  <input
+                    id="settings-dev-universal-shards"
+                    type="number"
+                    min={0}
+                    step={1}
+                    className="settings-dev-level-input"
+                    value={devUniversalShardsInput}
+                    onChange={(event) =>
+                      setDevUniversalShardsInput(event.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="settings-dev-level-apply"
+                    onClick={handleDevUniversalShardsApply}
+                  >
+                    適用
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p className="settings-dev-level-hint muted">
+              属性かけらは全属性を同じ数に、汎用かけらは個別に設定できます。
+            </p>
             <div className="settings-dev-level">
               <label
                 className="settings-dev-level-label"
