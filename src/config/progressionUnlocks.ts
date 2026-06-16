@@ -1,4 +1,4 @@
-import { ATTRIBUTE_META } from './attributes';
+import type { Attribute } from '../types';
 import {
   calcLevelUpJewelBonus,
   calcLevelUpJewels,
@@ -13,6 +13,7 @@ import {
   IDEAL_TOOL_ORDER,
 } from './editorTools';
 import { PALETTE_UNLOCK_LEVELS } from './paletteUnlock';
+import { PALETTE_COLOR_LABELS } from './palette';
 
 export type LevelUpRewardKind =
   | 'pixels'
@@ -24,16 +25,19 @@ export type LevelUpRewardKind =
   | 'deck_unlock'
   | 'limit_break'
   | 'lost_unlock'
+  | 'lost_encouragement'
   | 'talisman';
 
 export interface LevelUpRewardEntry {
   kind: LevelUpRewardKind;
   label: string;
+  /** 属性解放報酬の表示用アイコン */
+  attribute?: Attribute;
+  /** パレット色解放報酬の表示用スウォッチ */
+  paletteIndex?: number;
   /** 経済・限界突破など未実装の表示用 */
   pending?: boolean;
 }
-
-const PALETTE_COLOR_NAMES = ['白', '黒', '赤', '青', '黄', '緑', '橙', '桃', '紫', '茶'] as const;
 
 const TOOL_LABELS: Record<EditorToolId, string> = {
   pen: 'ペン',
@@ -49,30 +53,37 @@ const TOOL_LABELS: Record<EditorToolId, string> = {
   selection: '選択',
 };
 
-function paletteLabelForLevel(level: number): string {
+function paletteRewardForLevel(level: number): LevelUpRewardEntry {
   const index = PALETTE_UNLOCK_LEVELS.indexOf(
     level as (typeof PALETTE_UNLOCK_LEVELS)[number],
   );
-  if (index < 0) return '新しい色が使えるようになりました！';
+  if (index < 0) return { kind: 'palette', label: '新しい色が使えるようになりました！' };
+
   const paletteIndex = 3 + index;
-  const name = PALETTE_COLOR_NAMES[paletteIndex] ?? '色';
-  return `お絵描きで「${name}」が使えるようになりました！`;
+  const label = PALETTE_COLOR_LABELS[paletteIndex] ?? '色';
+  return {
+    kind: 'palette',
+    label: `お絵描きで${label}が使えるようになりました！`,
+    paletteIndex,
+  };
 }
 
-function attributeLabelForLevel(level: number): string {
+function attributeRewardForLevel(level: number): LevelUpRewardEntry {
   const entry = ATTRIBUTE_UNLOCK_SCHEDULE.find(({ level: unlockLevel }) => unlockLevel === level);
-  if (!entry) return '新しい属性でカードが作れるようになりました！';
-  const meta = ATTRIBUTE_META[entry.attribute];
-  return `新しい属性「${meta.label}」でカードが作れるようになりました！`;
+  return {
+    kind: 'attribute',
+    label: '新しい属性が解放されました！',
+    attribute: entry?.attribute,
+  };
 }
 
 function toolLabelForLevel(level: number): string {
   for (const tool of IDEAL_TOOL_ORDER) {
     if (getToolUnlockLevel(tool) === level) {
-      return `「${TOOL_LABELS[tool]}」が使えるようになりました！`;
+      return `お絵描きツール「${TOOL_LABELS[tool]}」が使えるようになりました！`;
     }
   }
-  return '新しい描画ツールが使えるようになりました！';
+  return '新しいお絵描きツールが使えるようになりました！';
 }
 
 function canvasLabelForLevel(level: number): string {
@@ -101,10 +112,10 @@ function getMainRewardAtLevel(level: number): LevelUpRewardEntry | null {
     };
   }
   if (mod10 === 5) {
-    return { kind: 'palette', label: paletteLabelForLevel(level) };
+    return paletteRewardForLevel(level);
   }
   if (mod5 === 1) {
-    return { kind: 'attribute', label: attributeLabelForLevel(level) };
+    return attributeRewardForLevel(level);
   }
   if (mod5 === 2) {
     return { kind: 'tool', label: toolLabelForLevel(level) };
@@ -139,12 +150,16 @@ export function getLevelUpRewardsAtLevel(level: number): LevelUpRewardEntry[] {
   if (main) rewards.push(main);
   if (L === TALISMAN_STARTER_GRANT_LEVEL) {
     rewards.push({
-      kind: 'lost_unlock',
-      label: 'Lv5から敗北するとカードがロストします',
-    });
-    rewards.push({
       kind: 'talisman',
       label: '護符を1個プレゼントしました',
+    });
+    rewards.push({
+      kind: 'lost_unlock',
+      label: 'これからは敗北するとカードを1枚ロストします',
+    });
+    rewards.push({
+      kind: 'lost_encouragement',
+      label: '慎重に戦っていきましょう！ご武運を！',
     });
   }
   return rewards;

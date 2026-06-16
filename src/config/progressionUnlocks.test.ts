@@ -17,8 +17,9 @@ describe('progressionUnlocks', () => {
       'pixels',
       'jewels',
       'palette',
-      'lost_unlock',
       'talisman',
+      'lost_unlock',
+      'lost_encouragement',
     ]);
     expect(getLevelUpRewardsAtLevel(6).map((reward) => reward.kind)).toEqual([
       'pixels',

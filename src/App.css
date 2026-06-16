@@ -2472,6 +2472,54 @@ button.battle-hub-deck-icon.is-drop-target {
   text-align: center;
 }
 
+.level-up-attribute-unlock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  flex-wrap: wrap;
+}
+
+.level-up-attribute-badge {
+  vertical-align: middle;
+}
+
+.level-up-palette-unlock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  flex-wrap: wrap;
+}
+
+.level-up-palette-unlock-icon {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 6px;
+  border: 2px solid rgba(15, 23, 42, 0.35);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  flex-shrink: 0;
+}
+
+.level-up-talisman-unlock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  flex-wrap: wrap;
+}
+
+.level-up-talisman-unlock-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+}
+
+.level-up-lost-unlock {
+  color: #e11d48;
+  font-weight: 900;
+}
+
 .level-up-extra-item.is-pending {
   color: #64748b;
 }

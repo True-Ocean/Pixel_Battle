@@ -1,8 +1,13 @@
 import { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { PALETTE_16 } from '../config/balance';
+import { PALETTE_COLOR_LABELS } from '../config/palette';
+import { getAttributeMeta } from '../config/attributes';
 import { collectLevelUpRewards } from '../config/progressionUnlocks';
+import { AttributeBadge } from './AttributeBadge';
 import { JewelIcon } from './JewelIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
+import { TalismanIcon } from './TalismanIcon';
 
 interface LevelUpModalProps {
   fromLevel: number;
@@ -102,17 +107,82 @@ export function LevelUpModal({
         )}
         {extraRewards.length > 0 && (
           <ul className="level-up-extra-list">
-            {extraRewards.map((reward) => (
-              <li
-                key={`${reward.level}-${reward.kind}-${reward.label}`}
-                className={`level-up-extra-item${reward.pending ? ' is-pending' : ''}`}
-              >
-                {reward.label}
-                {reward.pending ? (
-                  <span className="level-up-reward-pending">（準備中）</span>
-                ) : null}
-              </li>
-            ))}
+            {extraRewards.map((reward) => {
+              const attributeAriaLabel =
+                reward.kind === 'attribute' && reward.attribute
+                  ? `新しい${getAttributeMeta(reward.attribute).ariaName}が解放されました！`
+                  : reward.label;
+
+              const paletteAriaLabel =
+                reward.kind === 'palette' && reward.paletteIndex != null
+                  ? `お絵描きで${PALETTE_COLOR_LABELS[reward.paletteIndex]}が使えるようになりました！`
+                  : reward.label;
+
+              const talismanAriaLabel =
+                reward.kind === 'talisman'
+                  ? '護符を1個プレゼントしました'
+                  : reward.label;
+
+              const lostUnlockAriaLabel =
+                reward.kind === 'lost_unlock' ? reward.label : reward.label;
+
+              const ariaLabel =
+                reward.kind === 'attribute'
+                  ? attributeAriaLabel
+                  : reward.kind === 'palette'
+                    ? paletteAriaLabel
+                    : reward.kind === 'talisman'
+                      ? talismanAriaLabel
+                      : reward.kind === 'lost_unlock'
+                        ? lostUnlockAriaLabel
+                        : reward.label;
+
+              return (
+                <li
+                  key={`${reward.level}-${reward.kind}-${reward.label}-${reward.attribute ?? ''}`}
+                  className={`level-up-extra-item${reward.pending ? ' is-pending' : ''}`}
+                  aria-label={ariaLabel}
+                >
+                  {reward.kind === 'attribute' && reward.attribute ? (
+                    <span className="level-up-attribute-unlock">
+                      新しい属性
+                      <AttributeBadge
+                        attribute={reward.attribute}
+                        className="level-up-attribute-badge"
+                        size="deck"
+                      />
+                      が解放されました！
+                    </span>
+                  ) : reward.kind === 'palette' && reward.paletteIndex != null ? (
+                    <span className="level-up-palette-unlock">
+                      お絵描きで
+                      <span
+                        className="level-up-palette-unlock-icon"
+                        style={{ background: PALETTE_16[reward.paletteIndex] }}
+                        aria-hidden="true"
+                      />
+                      が使えるようになりました！
+                    </span>
+                  ) : reward.kind === 'talisman' ? (
+                    <span className="level-up-talisman-unlock">
+                      護符
+                      <TalismanIcon
+                        className="level-up-talisman-unlock-icon"
+                        aria-hidden="true"
+                      />
+                      を1個プレゼントしました
+                    </span>
+                  ) : reward.kind === 'lost_unlock' ? (
+                    <span className="level-up-lost-unlock">{reward.label}</span>
+                  ) : (
+                    reward.label
+                  )}
+                  {reward.pending ? (
+                    <span className="level-up-reward-pending">（準備中）</span>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         )}
         <button type="button" className="level-up-close" onClick={onClose}>
