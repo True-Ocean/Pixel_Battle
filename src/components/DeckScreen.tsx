@@ -914,6 +914,7 @@ export function DeckScreen({
         <DeckRenameDialog
           deckIndex={renameDeckIndex}
           deckNames={deckNames}
+          unlockedDeckCount={unlockedDeckCount}
           onSave={onRenameDeck}
           onClose={() => setRenameDeckIndex(null)}
         />

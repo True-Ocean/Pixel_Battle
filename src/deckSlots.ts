@@ -60,6 +60,23 @@ export function sanitizeDeckNameInput(raw: string): string {
   return raw.trim().slice(0, DECK_NAME_MAX_LENGTH);
 }
 
+/** 解放済みの別デッキが同じカスタム名を使っているか（空欄は重複なし） */
+export function isDeckNameTakenByOtherDeck(
+  deckNames: string[] | undefined,
+  deckIndex: number,
+  rawName: string,
+  unlockedDeckCount: number,
+): boolean {
+  const name = sanitizeDeckNameInput(rawName);
+  if (!name) return false;
+
+  for (let i = 0; i < unlockedDeckCount; i++) {
+    if (i === deckIndex) continue;
+    if ((deckNames?.[i]?.trim() ?? '') === name) return true;
+  }
+  return false;
+}
+
 /** ヘッダー・Hub 等の表示名（未設定時は「デッキN」） */
 export function getDeckDisplayName(index: number, deckNames?: string[]): string {
   const custom = deckNames?.[index]?.trim();

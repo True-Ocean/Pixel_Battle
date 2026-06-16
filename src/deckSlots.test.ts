@@ -9,6 +9,7 @@ import {
   getBattleReadyDeckIndices,
   getDeckDisplayName,
   getDeckTabShortLabel,
+  isDeckNameTakenByOtherDeck,
   isDeckSlotUnlocked,
   resolveDeckUnlockOnLevelUp,
   isDeckBattleReady,
@@ -73,6 +74,15 @@ describe('deck display names', () => {
   it('normalizes deck names array', () => {
     expect(normalizeDeckNames([' 攻撃 ', '', '守備'])).toEqual(['攻撃', '', '守備']);
     expect(normalizeDeckNames(['', '   '])).toBeUndefined();
+  });
+
+  it('detects duplicate names among unlocked decks', () => {
+    const names = ['攻撃', '守備', '', '', ''];
+    expect(isDeckNameTakenByOtherDeck(names, 1, '攻撃', 2)).toBe(true);
+    expect(isDeckNameTakenByOtherDeck(names, 1, '守備', 2)).toBe(false);
+    expect(isDeckNameTakenByOtherDeck(names, 0, '攻撃', 2)).toBe(false);
+    expect(isDeckNameTakenByOtherDeck(names, 1, '', 2)).toBe(false);
+    expect(isDeckNameTakenByOtherDeck(names, 1, '  攻撃  ', 2)).toBe(true);
   });
 });
 

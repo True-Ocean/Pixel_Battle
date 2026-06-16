@@ -3,7 +3,7 @@ import type { AdState, Card, ScreenId, UserProfile, UserEconomy, UserInventory, 
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
-import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, resolveDeckUnlockOnLevelUp } from './deckSlots';
+import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp } from './deckSlots';
 import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakResult, type LimitBreakShardSpendPlan } from './card';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
@@ -134,6 +134,7 @@ function App() {
   const lastBattleDeckIndexRef = useRef(lastBattleDeckIndex);
   const unlockedDeckCountRef = useRef(unlockedDeckCount);
   const battleHistoryRef = useRef(battleHistory);
+  const deckNamesRef = useRef(deckNames);
   const isPracticeRematchRef = useRef(false);
   const practiceRematchEntryRef = useRef<BattleHistoryEntry | null>(null);
   const battleStartSnapshotRef = useRef<{
@@ -152,6 +153,7 @@ function App() {
   lastBattleDeckIndexRef.current = lastBattleDeckIndex;
   unlockedDeckCountRef.current = unlockedDeckCount;
   battleHistoryRef.current = battleHistory;
+  deckNamesRef.current = deckNames;
 
   const devPreferSavedLevelRef = useRef(initialSave.devPreferSavedLevel === true);
   const devFileOverrideLevelRef = useRef<number | null | undefined>(
@@ -193,7 +195,7 @@ function App() {
         lastBattleDeckIndex: next.lastBattleDeckIndex ?? lastBattleDeckIndex,
         unlockedDeckCount: next.unlockedDeckCount ?? unlockedDeckCount,
         battleHistory: next.battleHistory ?? battleHistoryRef.current,
-        deckNames: next.deckNames !== undefined ? next.deckNames : deckNames,
+        deckNames: next.deckNames !== undefined ? next.deckNames : deckNamesRef.current,
         ...(devPreferSavedLevelRef.current
           ? {
               devPreferSavedLevel: true as const,
@@ -203,7 +205,7 @@ function App() {
           : {}),
       });
     },
-    [activeDeckIndex, adState, deckNames, decks, economy, inventory, lastBattleDeckIndex, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
+    [activeDeckIndex, adState, decks, economy, inventory, lastBattleDeckIndex, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
   );
 
   const updateActiveDeck = useCallback(
@@ -668,6 +670,7 @@ function App() {
         lastBattleDeckIndex: lastBattleIndex,
         unlockedDeckCount: nextUnlockedDeckCount,
         battleHistory: nextHistory,
+        deckNames: deckNamesRef.current,
       });
       setLastBattleDeckIndex(lastBattleIndex);
       lastBattleDeckIndexRef.current = lastBattleIndex;
@@ -1014,11 +1017,22 @@ function App() {
 
   const handleRenameDeck = useCallback(
     (deckIndex: number, name: string) => {
-      const nextDeckNames = setDeckNameAt(deckNames, deckIndex, name);
+      if (
+        isDeckNameTakenByOtherDeck(
+          deckNamesRef.current,
+          deckIndex,
+          name,
+          unlockedDeckCountRef.current,
+        )
+      ) {
+        return;
+      }
+      const nextDeckNames = setDeckNameAt(deckNamesRef.current, deckIndex, name);
       setDeckNames(nextDeckNames);
+      deckNamesRef.current = nextDeckNames;
       persistSave({ deckNames: nextDeckNames });
     },
-    [deckNames, persistSave],
+    [persistSave],
   );
 
   const completeTitle = useCallback(() => {

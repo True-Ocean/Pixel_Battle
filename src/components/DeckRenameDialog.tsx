@@ -1,11 +1,12 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { DECK_NAME_MAX_LENGTH } from '../config/balance';
-import { getDeckDisplayName, sanitizeDeckNameInput } from '../deckSlots';
+import { getDeckDisplayName, isDeckNameTakenByOtherDeck, sanitizeDeckNameInput } from '../deckSlots';
 
 interface DeckRenameDialogProps {
   deckIndex: number;
   deckNames?: string[];
+  unlockedDeckCount: number;
   onSave: (deckIndex: number, name: string) => void;
   onClose: () => void;
 }
@@ -13,17 +14,21 @@ interface DeckRenameDialogProps {
 export function DeckRenameDialog({
   deckIndex,
   deckNames,
+  unlockedDeckCount,
   onSave,
   onClose,
 }: DeckRenameDialogProps) {
   const inputId = useId();
+  const errorId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const defaultLabel = `デッキ${deckIndex + 1}`;
   const currentCustomName = deckNames?.[deckIndex]?.trim() ?? '';
   const [nameInput, setNameInput] = useState(currentCustomName);
+  const [nameError, setNameError] = useState<string | null>(null);
 
   useEffect(() => {
     setNameInput(currentCustomName);
+    setNameError(null);
   }, [currentCustomName, deckIndex]);
 
   useEffect(() => {
@@ -53,8 +58,24 @@ export function DeckRenameDialog({
   }, []);
 
   const handleSave = () => {
+    if (
+      isDeckNameTakenByOtherDeck(
+        deckNames,
+        deckIndex,
+        nameInput,
+        unlockedDeckCount,
+      )
+    ) {
+      setNameError('この名前は他のデッキで使われています。');
+      return;
+    }
     onSave(deckIndex, sanitizeDeckNameInput(nameInput));
     onClose();
+  };
+
+  const handleInputChange = (value: string) => {
+    setNameInput(value);
+    if (nameError) setNameError(null);
   };
 
   return createPortal(
@@ -80,11 +101,13 @@ export function DeckRenameDialog({
           ref={inputRef}
           id={inputId}
           type="text"
-          className="deck-rename-input"
+          className={`deck-rename-input${nameError ? ' deck-rename-input--error' : ''}`}
           maxLength={DECK_NAME_MAX_LENGTH}
           placeholder={defaultLabel}
           value={nameInput}
-          onChange={(event) => setNameInput(event.target.value)}
+          aria-invalid={nameError ? true : undefined}
+          aria-describedby={nameError ? errorId : undefined}
+          onChange={(event) => handleInputChange(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault();
@@ -92,6 +115,11 @@ export function DeckRenameDialog({
             }
           }}
         />
+        {nameError && (
+          <p id={errorId} className="deck-rename-error" role="alert">
+            {nameError}
+          </p>
+        )}
         <div className="deck-rename-actions">
           <button type="button" className="deck-rename-cancel" onClick={onClose}>
             キャンセル

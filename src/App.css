@@ -3090,6 +3090,17 @@ button.battle-hub-deck-icon.is-drop-target {
   font-size: 0.95rem;
 }
 
+.deck-rename-input--error {
+  border-color: #dc2626;
+}
+
+.deck-rename-error {
+  margin: -0.45rem 0 0.75rem;
+  font-size: 0.82rem;
+  color: #dc2626;
+  line-height: 1.4;
+}
+
 .deck-rename-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
