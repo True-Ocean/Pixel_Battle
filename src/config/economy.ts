@@ -34,6 +34,9 @@ export const JEWEL_COST_RENAME = 50;
 /** デッキ3〜5解放のジュエルコスト（各1回） */
 export const JEWEL_COST_DECK_UNLOCK = 200;
 
+/** バトルマッチングキャンセル時の px コスト */
+export const BATTLE_MATCH_CANCEL_COST = 25;
+
 /** 限界突破に必要な属性かけら数 */
 export const LIMIT_BREAK_SHARDS_REQUIRED = 10;
 

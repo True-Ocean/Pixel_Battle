@@ -6,7 +6,7 @@ import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp } from './deckSlots';
 import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, type LimitBreakShardSpendPlan } from './card';
-import { getLimitBreakRarityJewelCost } from './config/economy';
+import { getLimitBreakRarityJewelCost, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
@@ -98,6 +98,7 @@ function App() {
     level: initialSave.user?.level ?? 1,
   }));
   const [battleSetupKey, setBattleSetupKey] = useState(0);
+  const [battleHubResetKey, setBattleHubResetKey] = useState(0);
   const [battleEndDock, setBattleEndDock] = useState(false);
   const [isPracticeRematch, setIsPracticeRematch] = useState(false);
   const [battleHistory, setBattleHistory] = useState<BattleHistoryEntry[]>(
@@ -279,6 +280,23 @@ function App() {
     },
     [clearPracticeRematch, persistSave, user?.level],
   );
+
+  const handleCancelBattleMatch = useCallback(() => {
+    const nextEconomy = spendFreePixels(
+      economyRef.current,
+      BATTLE_MATCH_CANCEL_COST,
+    );
+    if (!nextEconomy) return;
+
+    persistSave({ economy: nextEconomy });
+    setEconomy(nextEconomy);
+    economyRef.current = nextEconomy;
+    setBattleEndDock(false);
+    clearPracticeRematch();
+    setBattleSetupKey((key) => key + 1);
+    setBattleHubResetKey((key) => key + 1);
+    setScreen('battleHub');
+  }, [clearPracticeRematch, persistSave]);
 
   const goToPracticeRematch = useCallback((entry: BattleHistoryEntry) => {
     setIsPracticeRematch(true);
@@ -1208,6 +1226,7 @@ function App() {
         )}
         {screen === 'battleHub' && (
           <BattleHubScreen
+            key={battleHubResetKey}
             decks={decks}
             deckNames={deckNames}
             unlockedDeckCount={unlockedDeckCount}
@@ -1287,6 +1306,10 @@ function App() {
             }
             opponentIdentity={cpuOpponent}
             isPracticeRematch={isPracticeRematch}
+            enableOpponentMatching={!isPracticeRematch}
+            onCancelMatch={isPracticeRematch ? undefined : handleCancelBattleMatch}
+            cancelMatchDisabled={economy.freePixels < BATTLE_MATCH_CANCEL_COST}
+            cancelMatchCostPx={BATTLE_MATCH_CANCEL_COST}
             onFinish={handleBattleOutcome}
             onNewBattle={
               isPracticeRematch ? rematchSameOpponent : restartBattleFromEnd

@@ -950,25 +950,25 @@ button.battle-hub-deck-icon.battle-hub-deck-tile-select-area {
 
 .battle-hub-deck-icon--interactive {
   cursor: pointer;
-  touch-action: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
 }
 
-.battle-hub-deck-icon.is-drag-source {
-  opacity: 0.35;
-}
-
-.battle-hub-deck-icon.is-drop-target,
-button.battle-hub-deck-icon.is-drop-target {
+.battle-hub-deck-icon.is-selected-for-move {
   box-shadow: 0 0 0 2px #646cff;
   border-color: #646cff !important;
+  z-index: 1;
 }
 
-.screen-battle-hub-dragging .battle-hub-deck-tile-select-area:disabled {
+.battle-hub-deck-icon.is-move-target,
+button.battle-hub-deck-icon.is-move-target {
+  box-shadow: 0 0 0 2px #a5b4fc;
+  border-color: #818cf8 !important;
+}
+
+.screen-battle-hub-card-selected .battle-hub-deck-tile-select-area:disabled {
   pointer-events: none;
-}
-
-.battle-hub-drag-chip-float {
-  z-index: 1100;
 }
 
 .battle-hub-deck-icon--lost .battle-hub-deck-icon-art {
@@ -1043,6 +1043,103 @@ button.battle-hub-deck-icon.is-drop-target {
   position: relative;
   display: flex;
   justify-content: center;
+}
+
+.battle-hub-mode-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2.125rem;
+  width: min(100%, 18rem);
+}
+
+.screen-battle-hub-modes .battle-hub-mode-btn {
+  width: 100%;
+  min-height: 4.25rem;
+  height: 4.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  padding: 0.65rem 1rem;
+}
+
+.battle-hub-mode-btn-label {
+  line-height: 1.25;
+}
+
+.battle-hub-mode-btn-soon {
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  opacity: 0.92;
+}
+
+.battle-hub-deck-select-head {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  padding: 0.15rem 0.15rem 0;
+}
+
+.battle-hub-back-btn {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0.35rem 0.1rem;
+  border: none;
+  background: transparent;
+  color: #646cff;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.battle-hub-deck-select-title {
+  margin: 0;
+  padding: 0 0.1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.screen-battle-hub-deck-select {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.battle-hub-actions--deck-select {
+  position: static;
+  padding-top: 0.25rem;
+}
+
+.battle-hub-deck-select-notice,
+.battle-hub-deck-select-hint {
+  margin: 0;
+  text-align: center;
+  line-height: 1.45;
+  font-size: 0.85rem;
+}
+
+.battle-hub-deck-select-notice {
+  color: #b45309;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+}
+
+.battle-hub-deck-select-hint {
+  color: #4338ca;
+}
+
+.battle-hub-start-btn {
+  width: min(100%, 14rem);
 }
 
 .battle-hub-mode-btn {
@@ -8602,6 +8699,141 @@ button.battle-card {
 .formation-screen.is-reveal-phase .setup-actions.formation-actions {
   flex-shrink: 0;
   padding-bottom: 0.15rem;
+}
+
+.formation-field-matching {
+  min-height: calc(var(--formation-card-h, 5rem) * 2 + 0.5rem);
+}
+
+.formation-matching-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.78);
+}
+
+.formation-matching-message {
+  margin: 0;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+  animation: formation-matching-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes formation-matching-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.formation-actions-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.formation-actions-row .formation-cancel-match-btn,
+.formation-actions-row .primary {
+  width: 100%;
+  min-height: 2.65rem;
+  font-size: 0.9rem;
+}
+
+.formation-actions-row--reserved .formation-cancel-match-btn,
+.formation-actions-row--reserved .primary {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.formation-cancel-match-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.formation-cancel-match-btn-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+}
+
+.formation-cancel-match-coin {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+}
+
+.formation-cancel-match-cost-value {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.formation-cancel-confirm-dialog .confirm-dialog-title,
+.formation-cancel-confirm-dialog .confirm-dialog-message {
+  text-align: center;
+}
+
+.formation-cancel-confirm-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  line-height: 1.5;
+}
+
+.formation-cancel-confirm-message-line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+
+.formation-cancel-confirm-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.formation-cancel-confirm-coin {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+}
+
+.formation-cancel-confirm-message strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.formation-cancel-match-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* バトル準備（フェーズ2）: 自分の配置のみ中央に大きく表示 */

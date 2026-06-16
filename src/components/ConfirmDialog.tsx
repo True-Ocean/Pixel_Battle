@@ -1,12 +1,14 @@
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  message: string;
+  message: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   confirmVariant?: 'danger' | 'primary';
+  className?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -18,15 +20,18 @@ export function ConfirmDialog({
   confirmLabel = '削除',
   cancelLabel = 'キャンセル',
   confirmVariant = 'danger',
+  className,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   if (!open) return null;
 
+  const dialogClassName = ['confirm-dialog', className].filter(Boolean).join(' ');
+
   return createPortal(
     <div className="confirm-dialog-backdrop" onClick={onCancel}>
       <div
-        className="confirm-dialog"
+        className={dialogClassName}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"

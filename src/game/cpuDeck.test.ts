@@ -12,6 +12,7 @@ import {
   buildDeckTargets,
   pickCpuBattleLineup,
   rollCpuDifficulty,
+  rollMatchingDurationMs,
 } from './cpuDeck';
 
 function stubPlayerDeck(): Card[] {
@@ -132,6 +133,22 @@ describe('buildBalancedCpuDeck', () => {
     expect(strong.powerMax).toBeGreaterThan(even.powerMax);
   });
 
+  it('プレイヤーのレア・★構成を CPU に反映する', () => {
+    const player = stubPlayerDeck().map((card, index) => ({
+      ...card,
+      rarity: (['N', 'R', 'SR', 'UR', 'R'] as const)[index]!,
+      stars: (index % 4) as 0 | 1 | 2 | 3,
+      bp: card.bp + index * 15,
+    }));
+    const cpu = buildBalancedCpuDeck(player, () => 0.42, 10);
+    const playerRarities = player.map((card) => card.rarity).sort();
+    const cpuRarities = cpu.map((card) => card.rarity).sort();
+    const playerStars = player.map((card) => card.stars).sort();
+    const cpuStars = cpu.map((card) => card.stars).sort();
+    expect(cpuRarities).toEqual(playerRarities);
+    expect(cpuStars).toEqual(playerStars);
+  });
+
   it('追加色のみの模様でもクラッシュせず生成できる', () => {
     const pixels = createEmptyGrid(24).map((row) =>
       row.map(() => '#2222ff'),
@@ -171,6 +188,15 @@ describe('rollCpuDifficulty', () => {
   it('強敵判定が動く', () => {
     expect(rollCpuDifficulty(() => 0)).toBe('strong');
     expect(rollCpuDifficulty(() => 0.99)).toBe('even');
+  });
+});
+
+describe('rollMatchingDurationMs', () => {
+  it('2〜4秒の範囲を返す', () => {
+    expect(rollMatchingDurationMs(() => 0)).toBe(2000);
+    expect(rollMatchingDurationMs(() => 0.999)).toBeGreaterThanOrEqual(3998);
+    expect(rollMatchingDurationMs(() => 0.999)).toBeLessThan(4000);
+    expect(rollMatchingDurationMs(() => 0.5)).toBe(3000);
   });
 });
 

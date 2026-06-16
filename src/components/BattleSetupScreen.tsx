@@ -10,6 +10,7 @@ import { CPU_OPPONENT_LEVEL, DECK_MAX, SETUP_TIME_LIMIT_SEC } from '../config/ba
 import { computeDeckPower } from '../card';
 import type { Card, BattleOutcome, BattleOutcomeCore } from '../types';
 import type { BoardPosition } from '../types/battle';
+import { rollMatchingDurationMs } from '../game/cpuDeck';
 import {
   BACK_POSITIONS,
   BOARD_POSITIONS,
@@ -29,6 +30,8 @@ import { relRect } from './setupMeasure';
 import type { LayoutRect } from './flightMeasure';
 import { useBattle } from './useBattle';
 import { FormationBattleLog } from './FormationBattleLog';
+import { ConfirmDialog } from './ConfirmDialog';
+import { PixelCoinIcon } from './PixelCoinIcon';
 
 type SlotKey = `${'cpu' | 'player'}:${BoardPosition}`;
 
@@ -112,6 +115,10 @@ interface BattleSetupScreenProps {
   playerIdentity?: BattleZoneProfile;
   opponentIdentity?: BattleZoneProfile;
   isPracticeRematch?: boolean;
+  enableOpponentMatching?: boolean;
+  onCancelMatch?: () => void;
+  cancelMatchDisabled?: boolean;
+  cancelMatchCostPx?: number;
   onFinish: (outcome: BattleOutcome) => void;
   onNewBattle: () => void;
   newBattleDisabled?: boolean;
@@ -129,6 +136,16 @@ function shuffle<T>(items: T[]): T[] {
     [arr[i], arr[j]] = [arr[j]!, arr[i]!];
   }
   return arr;
+}
+
+function emptyFormation(): Record<BoardPosition, Card | null> {
+  return BOARD_POSITIONS.reduce(
+    (acc, position) => {
+      acc[position] = null;
+      return acc;
+    },
+    {} as Record<BoardPosition, Card | null>,
+  );
 }
 
 function randomFormation(cards: Card[]): Record<BoardPosition, Card | null> {
@@ -452,22 +469,37 @@ function FormationDeckReveal({
   cpuSlots,
   opponentIdentity,
   playerIdentity,
+  isSearchingOpponent = false,
 }: {
   playerSlots: Record<BoardPosition, Card | null>;
   cpuSlots: Record<BoardPosition, Card | null>;
   opponentIdentity: BattleZoneIdentity;
   playerIdentity?: BattleZoneIdentity;
+  isSearchingOpponent?: boolean;
 }) {
+  const searchingIdentity: BattleZoneIdentity = {
+    name: '？？？',
+    level: opponentIdentity.level,
+    power: 0,
+  };
+  const resolvedOpponentIdentity = isSearchingOpponent
+    ? searchingIdentity
+    : opponentIdentity;
+
   return (
     <div className="formation-reveal-stack">
       <div className="formation-zone formation-zone-cpu">
-        <FormationZoneBanner identity={opponentIdentity} side="cpu" />
-        <div className="formation-field formation-field-cpu">
+        <FormationZoneBanner identity={resolvedOpponentIdentity} side="cpu" />
+        <div
+          className={`formation-field formation-field-cpu${
+            isSearchingOpponent ? ' formation-field-matching' : ''
+          }`}
+        >
           <div className="formation-row formation-row-back">
             {BACK_POSITIONS.map((position) => (
               <SetupSlot
                 key={`reveal-cpu-${position}`}
-                card={cpuSlots[position]}
+                card={isSearchingOpponent ? null : cpuSlots[position]}
                 position={position}
                 side="cpu"
                 hideFrame
@@ -479,7 +511,7 @@ function FormationDeckReveal({
             {FRONT_POSITIONS.map((position) => (
               <SetupSlot
                 key={`reveal-cpu-front-${position}`}
-                card={cpuSlots[position]}
+                card={isSearchingOpponent ? null : cpuSlots[position]}
                 position={position}
                 side="cpu"
                 hideFrame
@@ -487,6 +519,11 @@ function FormationDeckReveal({
               />
             ))}
           </div>
+          {isSearchingOpponent && (
+            <div className="formation-matching-overlay" role="status" aria-live="polite">
+              <p className="formation-matching-message">対戦相手を探しています…</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1409,6 +1446,10 @@ export function BattleSetupScreen({
   playerIdentity,
   opponentIdentity,
   isPracticeRematch = false,
+  enableOpponentMatching = false,
+  onCancelMatch,
+  cancelMatchDisabled = false,
+  cancelMatchCostPx = 25,
   onFinish,
   onNewBattle,
   newBattleDisabled = false,
@@ -1425,7 +1466,9 @@ export function BattleSetupScreen({
   const [cpuFormation] = useState<Record<BoardPosition, Card | null>>(() =>
     randomFormation(cpuDeck),
   );
-  const [phase, setPhase] = useState<'reveal' | 'setup' | 'battle'>('reveal');
+  const [phase, setPhase] = useState<'matching' | 'reveal' | 'setup' | 'battle'>(
+    () => (enableOpponentMatching ? 'matching' : 'reveal'),
+  );
   const [timeLeft, setTimeLeft] = useState(SETUP_TIME_LIMIT_SEC);
   const [playerHand, setPlayerHand] = useState<Card[]>(() => []);
   const [playerSlots, setPlayerSlots] = useState<
@@ -1433,7 +1476,7 @@ export function BattleSetupScreen({
   >(() => ({ ...playerFormation }));
   const [cpuHand, setCpuHand] = useState<Card[]>(() => []);
   const [cpuSlots, setCpuSlots] = useState<Record<BoardPosition, Card | null>>(
-    () => ({ ...cpuFormation }),
+    () => (enableOpponentMatching ? emptyFormation() : { ...cpuFormation }),
   );
   const [cpuDeployIndex, setCpuDeployIndex] = useState<number>(
     BOARD_POSITIONS.length,
@@ -1450,11 +1493,24 @@ export function BattleSetupScreen({
   const [selected, setSelected] = useState<SelectedSetupCard | null>(null);
   const [battleEnded, setBattleEnded] = useState(false);
   const [battleSubView, setBattleSubView] = useState<'play' | 'log'>('play');
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   useEffect(() => {
     onBattleEndedChange?.(battleEnded);
     return () => onBattleEndedChange?.(false);
   }, [battleEnded, onBattleEndedChange]);
+
+  useEffect(() => {
+    if (!enableOpponentMatching || phase !== 'matching') return;
+
+    const durationMs = rollMatchingDurationMs();
+    const timer = window.setTimeout(() => {
+      setCpuSlots({ ...cpuFormation });
+      setPhase('reveal');
+    }, durationMs);
+
+    return () => window.clearTimeout(timer);
+  }, [cpuFormation, enableOpponentMatching, phase]);
 
   const formationScreenRef = useRef<HTMLElement>(null);
   const cpuHandRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -1699,10 +1755,22 @@ export function BattleSetupScreen({
     );
   }
 
+  const showMatchActionRow =
+    enableOpponentMatching && onCancelMatch != null && (phase === 'matching' || phase === 'reveal');
+
+  const handleCancelMatchRequest = () => {
+    if (phase !== 'reveal' || cancelMatchDisabled || !onCancelMatch) return;
+    setCancelConfirmOpen(true);
+  };
+
+  const handleCancelMatchConfirm = () => {
+    onCancelMatch?.();
+  };
+
   return (
     <section
       ref={formationScreenRef}
-      className={`screen setup-reveal formation-screen${phase === 'reveal' ? ' is-reveal-phase' : ''}${phase === 'setup' ? ' is-setup-phase' : ''}${phase === 'battle' ? ' is-battle-active' : ''}${battleSubView === 'log' ? ' is-battle-log' : ''}${battleEnded ? ' has-end-actions' : ''}`}
+      className={`screen setup-reveal formation-screen${phase === 'matching' ? ' is-matching-phase is-reveal-phase' : ''}${phase === 'reveal' ? ' is-reveal-phase' : ''}${phase === 'setup' ? ' is-setup-phase' : ''}${phase === 'battle' ? ' is-battle-active' : ''}${battleSubView === 'log' ? ' is-battle-log' : ''}${battleEnded ? ' has-end-actions' : ''}`}
     >
       <div className="formation-battle-shell">
         {isPracticeRematch && (
@@ -1711,7 +1779,7 @@ export function BattleSetupScreen({
           </p>
         )}
         <div
-          className={`formation-battle-body${phase === 'reveal' ? ' formation-reveal-body' : ''}${phase === 'battle' ? ' formation-battle-play-body' : ''}`}
+          className={`formation-battle-body${phase === 'reveal' || phase === 'matching' ? ' formation-reveal-body' : ''}${phase === 'battle' ? ' formation-battle-play-body' : ''}`}
         >
           {phase === 'battle' ? (
             <BattleSession
@@ -1731,7 +1799,7 @@ export function BattleSetupScreen({
                 newBattleDisabled,
               }}
             />
-          ) : phase === 'reveal' ? (
+          ) : phase === 'reveal' || phase === 'matching' ? (
             <>
               <div className="formation-reveal-spacer" aria-hidden />
               <FormationDeckReveal
@@ -1739,6 +1807,7 @@ export function BattleSetupScreen({
                 cpuSlots={cpuSlots}
                 opponentIdentity={resolvedOpponentIdentity}
                 playerIdentity={resolvedPlayerIdentity}
+                isSearchingOpponent={phase === 'matching'}
               />
               <div className="formation-reveal-spacer" aria-hidden />
             </>
@@ -1755,7 +1824,42 @@ export function BattleSetupScreen({
           )}
         </div>
 
-        {phase === 'reveal' && (
+        {showMatchActionRow && (
+          <div
+            className={`actions setup-actions formation-actions formation-actions-row${
+              phase === 'matching' ? ' formation-actions-row--reserved' : ''
+            }`}
+          >
+            <button
+              type="button"
+              className="formation-cancel-match-btn"
+              onClick={handleCancelMatchRequest}
+              disabled={phase === 'matching' || cancelMatchDisabled}
+              aria-hidden={phase === 'matching'}
+              tabIndex={phase === 'matching' ? -1 : undefined}
+              aria-label={`キャンセル ${cancelMatchCostPx}ピクセルコイン`}
+            >
+              <span className="formation-cancel-match-btn-inner">
+                <span className="formation-cancel-match-btn-label">キャンセル</span>
+                <PixelCoinIcon className="formation-cancel-match-coin" />
+                <span className="formation-cancel-match-cost-value">
+                  {cancelMatchCostPx}
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="primary"
+              onClick={handleRevealContinue}
+              disabled={phase === 'matching'}
+              aria-hidden={phase === 'matching'}
+              tabIndex={phase === 'matching' ? -1 : undefined}
+            >
+              バトル準備
+            </button>
+          </div>
+        )}
+        {phase === 'reveal' && !showMatchActionRow && (
           <div className="actions setup-actions formation-actions">
             <button
               type="button"
@@ -1800,6 +1904,31 @@ export function BattleSetupScreen({
           onComplete={handleCpuFlightComplete}
         />
       )}
+
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        className="formation-cancel-confirm-dialog"
+        title="マッチングキャンセル"
+        message={
+          <span className="formation-cancel-confirm-message">
+            <span className="formation-cancel-confirm-message-line">
+              <span className="formation-cancel-confirm-cost">
+                <PixelCoinIcon className="formation-cancel-confirm-coin" />
+                <strong>{cancelMatchCostPx}</strong>
+              </span>
+              を消費してキャンセルします。
+            </span>
+            <span className="formation-cancel-confirm-message-line">
+              よろしいですか？
+            </span>
+          </span>
+        }
+        confirmLabel="キャンセルする"
+        cancelLabel="戻る"
+        confirmVariant="primary"
+        onConfirm={handleCancelMatchConfirm}
+        onCancel={() => setCancelConfirmOpen(false)}
+      />
     </section>
   );
 }
