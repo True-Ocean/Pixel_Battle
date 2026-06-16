@@ -554,11 +554,18 @@ function FormationBoardSetup({
       <div className="formation-setup-focus">
         <div className="formation-guide formation-guide-setup">
           <div className="formation-hint formation-guide-line">
-            バトル準備：カードを配置してください（残り {timeLeft} 秒）
+            バトル準備：タップでカードを自由に入れ替え
           </div>
         </div>
 
         <div className="formation-zone formation-zone-player formation-setup-player-zone">
+          <div
+            className="formation-setup-countdown"
+            aria-live="polite"
+            aria-label={`残り${timeLeft}秒`}
+          >
+            {timeLeft}
+          </div>
           <div className="formation-field formation-field-player">
             <div className="formation-row formation-row-front">
               {FRONT_POSITIONS.map((position) => (

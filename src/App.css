@@ -8575,6 +8575,21 @@ button.battle-card {
   flex-shrink: 0;
 }
 
+.formation-screen.is-setup-phase .formation-setup-countdown {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.28rem;
+  z-index: 4;
+  font-family: 'Oswald', 'Arial Black', Impact, sans-serif;
+  font-size: clamp(1.85rem, 8.5vw, 2.45rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  pointer-events: none;
+}
+
 .formation-screen.is-setup-phase .formation-setup-player-zone .formation-row {
   gap: calc(var(--formation-card-w) * 0.1);
 }
