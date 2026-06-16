@@ -57,7 +57,7 @@
 | **毎レベル** | 無償 px（現行 500）＋ **💎 少量**（TBD） |
 | L ≡ 4 (mod 5), L ≥ 5 | **💎 ボーナス**（旧「ショップ試供品」枠の置き換え） |
 | **Lv10** | **デッキ2 解放**（汎用かけらは **配布しない**） |
-| **L ≡ 0 (mod 10), L ≥ 20** | **汎用かけら ×1**（Lv20 から開始。20, 30, 40, 50…） |
+| **L ≡ 0 (mod 10), L ≥ 20** | **汎用かけら ×10**（Lv20 から開始。20, 30, 40, 50…） |
 | その他 mod 5 | 色・属性・ツール・キャンバス（現行 §5.9 どおり） |
 
 ### 1.5 限界突破
@@ -77,6 +77,7 @@
 | **創作ゲート** | 初回 **バトル可能デッキ完成後**、作成保存・編集保存のたび | 完成前（`hasEverCompletedBattleDeck` false）は無広告 |
 | **バトル回数** | 非会員: **1日10戦まで** 無料、以降は **1戦ごとにリワード広告** | 日次リセット（TZ TBD） |
 | **勝利2倍** | **任意**リワード広告 | **px のみ2倍**（かけらは2倍にしない） |
+| **履歴再戦** | 再戦フロー開始時（ルール後・デッキ選択前） | **3回に1回**モック広告（`historyRematchStarts`） |
 | **会員** | ライト: 軽減 / プレミアム: 広告非表示 | 詳細 TBD |
 
 ### 1.7 ショップ・サブスク（役割）
@@ -94,7 +95,7 @@
 
 ---
 
-## 2. 現状（2026-06-14 時点・フェーズ6完了後）
+## 2. 現状（2026-06-16 時点・フェーズ6完了＋履歴再戦）
 
 | 領域 | 状態 |
 |------|------|
@@ -106,9 +107,14 @@
 | デッキ2 Lv10 解放 | ✅ レベルアップ時自動解放（フェーズ2） |
 | ヘッダー 💎 表示 | ✅ フェーズ2 |
 | 限界突破 gameplay | ✅ マイデッキ詳細 UI・かけら消費・★/レア昇格・均等BP加算（フェーズ6） |
-| Lv20+ 汎用かけら配布 | ✅ `calcLevelUpUniversalLimitBreak`（フェーズ6） |
+| Lv20+ 汎用かけら配布 | ✅ `calcLevelUpUniversalLimitBreak`（**×10**/回。フェーズ6） |
+| バトル履歴・履歴再戦 | ✅ `RecordsScreen`・`BattleHistoryList`・再戦フロー・生存 px のみ報酬 |
+| 履歴再戦モック広告 | ✅ 3回に1回（`MockRewardAdModal`, `adState.historyRematchStarts`） |
+| レベルアップ UI | ✅ px 数値→アイコン、L≡4 💎 は「3・更に10」分離表示 |
+| デッキ選択 UI | ✅ 常時2行ヒント、通常戦の黄色注意削除 |
+| ヘッダーメニュー | ✅ 三本線を `user-profile-bar` 内に配置 |
 | 開発メニュー | ✅ 設定画面 — 「すべてのかけらを100個にする」 |
-| 広告 | ❌ 未実装（仕様 §11 のみ） |
+| 広告（創作・cap・2倍） | ❌ 未実装（仕様 §11.1〜11.3） |
 | ショップ画面 | ❌ プレースホルダ |
 | デッキ3〜 💎 解放 | ❌ フェーズ3 未着手 |
 | 削除・リネーム 💎 | ❌ フェーズ4 未着手 |
@@ -153,8 +159,10 @@
    interface AdState {
      hasEverCompletedBattleDeck: boolean;
      battlesToday: number;
-     battlesDayKey: string; // "YYYY-MM-DD"
+     battlesDayKey: string; // "YYYY-MM-DD"（JST）
      creativeAdCounter?: number; // ライト用
+     historyRematchStarts?: number;
+     historyRematchRulesDismissedDayKey?: string;
    }
    ```
 2. `SaveData` に `inventory?`, `adState?` を追加
@@ -277,12 +285,13 @@
 3. **バトル cap**: 開始前チェック、11戦目以降は広告後に `battlesToday++`
 4. **2倍**: 勝利モーダルに「広告で px 2倍」、かけらは対象外
 5. 日次リセット `battlesDayKey`
+6. ~~**履歴再戦**: 3回に1回、ルールモーダル後にモック広告~~ — **2026-06-16 完了**（`MockRewardAdModal`, `historyRematch.ts`）
+
+**完了条件**: モックで3種の広告フローが end-to-end で通る。（履歴再戦のみ ✅。創作・cap・2倍は未着手）
 
 **サブステップ 7b — 本番 SDK**（環境依存・後回し可）
 
 - AdMob 等のリワード API に `showRewardedAd` を差し替え
-
-**完了条件**: モックで3種の広告フローが end-to-end で通る。
 
 ---
 
@@ -395,6 +404,7 @@ flowchart TD
 | `BATTLE_DAILY_FREE_LIMIT` | 10 | 非会員 |
 | `SHOP_TALISMAN_PX` | 300 | 旧仕様踏襲 |
 | `SHOP_TALISMAN_JEWELS` | 25 | 💎 枠（px と両方で購入可） |
+| `UNIVERSAL_LIMIT_BREAK_LEVEL_REWARD` | 10 | L≡0 (mod 10), L≥20 |
 | `MOCK_JEWEL_PACK_SMALL` | 100 | 開発用 |
 
 ---
@@ -408,7 +418,7 @@ flowchart TD
 | 4 | `src/components/DeckScreen.tsx`, `DeckCardDetailOverlay.tsx` |
 | 5 | `src/components/GraveyardPickModal.tsx`, `src/battle/graveyardLoot.ts`, `src/components/InventoryScreen.tsx`, `src/config/economy.ts`, `src/App.tsx` |
 | 6 | `src/card/limitBreak.ts`, `DeckCardDetailOverlay.tsx`, `DeckScreen.tsx`, `SettingsScreen.tsx`, `src/user/profile.ts` |
-| 7 | 新規 `src/ad/*`, エディタ保存経路, バトル開始経路 |
+| 7 | 新規 `src/ad/*`, エディタ保存経路, バトル開始経路, `MockRewardAdModal`, `historyRematch.ts`, `HistoryRematchRulesModal` |
 | 8 | `src/components/ShopScreen.tsx`（新規）, `App.tsx` routing |
 
 ---
@@ -446,11 +456,12 @@ flowchart TD
 4. ~~フェーズ **2b** — Lv5 未満ロスト無効・Lv5 到達時護符 ×1~~ — **2026-06-14 完了**
 5. ~~フェーズ **5** — 勝利戦利品・属性かけら・戦利品 UI~~ — **2026-06-14 完了**
 6. ~~フェーズ **6** — 限界突破 UI~~ — **2026-06-14 完了**
+7. ~~履歴再戦・バトル履歴 UI~~ — **2026-06-16 完了**（フェーズ7a の一部）
 
 **次の推奨**
 
-7. フェーズ **3** — デッキ3以降の 💎 解放
-8. フェーズ **7a** — 広告モック
+8. フェーズ **3** — デッキ3以降の 💎 解放
+9. フェーズ **7a** 残り — 創作ゲート・バトル cap・勝利2倍の広告モック
 
 **判断待ち（確定済み）**
 
