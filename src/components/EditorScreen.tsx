@@ -20,7 +20,9 @@ import {
   CardCreationError,
   computeColorRatios,
   createCardFromDrawing,
+  sanitizeCardNameInput,
   updateCardFromDrawing,
+  validateCardNameForCreation,
 } from '../card';
 import {
   getUnlockedPaletteCount,
@@ -109,6 +111,8 @@ export function EditorScreen({
   const [tool, setTool] = useState<EditorToolId>('pen');
   const [error, setError] = useState<string | null>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
+  const isComposingNameRef = useRef(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [devForceAttribute, setDevForceAttribute] = useState<Attribute | null>(
     null,
   );
@@ -208,6 +212,10 @@ export function EditorScreen({
     });
   };
 
+  const applyCardNameInput = useCallback((raw: string) => {
+    setName(sanitizeCardNameInput(raw));
+  }, []);
+
   const persistCard = () => {
     setError(null);
     if (!isEditing && deckCount >= DECK_MAX) {
@@ -225,6 +233,11 @@ export function EditorScreen({
         );
         onUpdated?.(card);
       } else {
+        const nameError = validateCardNameForCreation(name);
+        if (nameError) {
+          setError(nameError);
+          return;
+        }
         const card = createCardFromDrawing(name, pixels, {
           userLevel,
           unlockedPaletteCount: getUnlockedPaletteCount(userLevel),
@@ -242,6 +255,11 @@ export function EditorScreen({
   };
 
   const handleCreateRequest = () => {
+    const nameError = validateCardNameForCreation(name);
+    if (nameError) {
+      setError(nameError);
+      return;
+    }
     const validationError = validateDrawing(name, pixels, userLevel);
     if (validationError) {
       setError(validationError);
@@ -252,6 +270,7 @@ export function EditorScreen({
       return;
     }
     setError(null);
+    nameInputRef.current?.blur();
     setConfirmCreateOpen(true);
   };
 
@@ -325,15 +344,44 @@ export function EditorScreen({
 
         <div className="editor-name-section">
           <label className="field editor-field">
-            <span>カード名</span>
+            <span className="editor-field-label">
+              カード名
+              {!isEditing && (
+                <span className="editor-name-limit-note">（全角10文字まで）</span>
+              )}
+            </span>
             <input
+              ref={nameInputRef}
               type="text"
               value={name}
-              maxLength={32}
               placeholder="例：ほのおの剣"
-              readOnly={isEditing}
+              readOnly={isEditing || confirmCreateOpen}
               className={isEditing ? 'editor-name-readonly' : undefined}
-              onChange={(e) => setName(e.target.value)}
+              onCompositionStart={() => {
+                isComposingNameRef.current = true;
+              }}
+              onCompositionEnd={(event) => {
+                isComposingNameRef.current = false;
+                if (!isEditing) {
+                  applyCardNameInput(event.currentTarget.value);
+                }
+              }}
+              onChange={(e) => {
+                if (isEditing) {
+                  setName(e.target.value);
+                  return;
+                }
+                if (isComposingNameRef.current) {
+                  setName(e.target.value);
+                  return;
+                }
+                applyCardNameInput(e.target.value);
+              }}
+              onBlur={(e) => {
+                if (!isEditing) {
+                  applyCardNameInput(e.target.value);
+                }
+              }}
             />
           </label>
           {DEV_MODE && !isEditing && (
@@ -389,6 +437,11 @@ export function EditorScreen({
           confirmVariant="primary"
           onConfirm={() => {
             setConfirmCreateOpen(false);
+            const nameError = validateCardNameForCreation(name);
+            if (nameError) {
+              setError(nameError);
+              return;
+            }
             persistCard();
           }}
           onCancel={() => setConfirmCreateOpen(false)}

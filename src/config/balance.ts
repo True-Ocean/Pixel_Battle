@@ -15,6 +15,10 @@ export const DECK_SLOT_COUNT = 5;
 export const DECK_SLOT_INITIAL_UNLOCKED = 1;
 /** デッキ名の最大文字数（タブ・Hub 表示用） */
 export const DECK_NAME_MAX_LENGTH = 12;
+/** カード名の最大文字数（新規作成時・全角換算） */
+export const CARD_NAME_MAX_LENGTH = 10;
+/** カード名の最大半角ユニット（半角1・全角2。10全角＝20半角） */
+export const CARD_NAME_MAX_HALF_UNITS = CARD_NAME_MAX_LENGTH * 2;
 export const FRONT_SIZE = 2;
 export const BACK_SIZE = 3;
 export const FIELD_SIZE = 3;

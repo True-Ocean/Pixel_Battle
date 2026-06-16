@@ -12,6 +12,11 @@ import {
   rescaleDeckBp,
   updateCardFromDrawing,
 } from './createCard';
+import {
+  finalizeCardNameForCreation,
+  sanitizeCardNameInput,
+  validateCardNameForCreation,
+} from './cardNameInput';
 import { buildCardSeed, hashToUnit } from './hash';
 
 function fillGrid(color: string): ReturnType<typeof createEmptyGrid> {
@@ -114,6 +119,38 @@ describe('deriveCardStats', () => {
 });
 
 describe('createCardFromDrawing', () => {
+  it('名前が空ならエラー', () => {
+    expect(validateCardNameForCreation('   ')).toBe('カード名を入力してください');
+    expect(() => createCardFromDrawing('   ', fillGrid('#ff0000'))).toThrow(
+      'カード名を入力してください',
+    );
+  });
+
+  it('名前が長すぎるとエラー', () => {
+    const longName = 'あ'.repeat(11);
+    expect(validateCardNameForCreation(longName)).toBe(
+      'カード名は全角10文字以内にしてください',
+    );
+    expect(() => createCardFromDrawing(longName, fillGrid('#ff0000'))).toThrow(
+      'カード名は全角10文字以内にしてください',
+    );
+  });
+
+  it('半角20文字まで作成できる', () => {
+    const name = 'a'.repeat(20);
+    expect(validateCardNameForCreation(name)).toBeNull();
+    const card = createCardFromDrawing(name, fillGrid('#ff0000'));
+    expect(card.name).toBe(name);
+  });
+
+  it('sanitizeCardNameInput は全角10文字で切り詰める', () => {
+    expect(sanitizeCardNameInput('あ'.repeat(12))).toBe('あ'.repeat(10));
+  });
+
+  it('finalizeCardNameForCreation は前後空白を除いて表示幅制限する', () => {
+    expect(finalizeCardNameForCreation(`  ${'あ'.repeat(12)}  `)).toBe('あ'.repeat(10));
+  });
+
   it('forceAttribute で解放前の属性を固定できる', () => {
     const card = createCardFromDrawing('弓テスト', fillGrid('#ff0000'), {
       userLevel: 1,

@@ -8,6 +8,12 @@ export {
   rescaleDeckBp,
   CardCreationError,
 } from './createCard';
+export {
+  sanitizeCardNameInput,
+  finalizeCardNameForCreation,
+  validateCardNameForCreation,
+  getCardNameHalfUnits,
+} from './cardNameInput';
 export { computeColorRatios, normalizePixelColor } from './colors';
 export {
   rollRarity,

@@ -15,6 +15,10 @@ import type { ColorRatios } from './colors';
 import { buildCardSeed, hashToUnit } from './hash';
 import { rollRarity } from './rarity';
 import { createId } from '../utils/createId';
+import {
+  finalizeCardNameForCreation,
+  validateCardNameForCreation,
+} from './cardNameInput';
 
 export interface CardDraft {
   attribute: Attribute;
@@ -149,11 +153,17 @@ export function createCardFromDrawing(
   pixels: PixelGrid,
   options: CreateCardOptions = {},
 ): Card {
+  const nameError = validateCardNameForCreation(name);
+  if (nameError) {
+    throw new CardCreationError(nameError);
+  }
+  const finalName = finalizeCardNameForCreation(name);
+
   const userLevel = options.userLevel ?? USER_INITIAL_LEVEL;
   const unlockedPaletteCount =
     options.unlockedPaletteCount ?? getUnlockedPaletteCount(userLevel);
   const normalized = normalizeGrid(pixels, unlockedPaletteCount);
-  const { attribute, bp, ratios } = deriveCardStats(name, normalized, userLevel, {
+  const { attribute, bp, ratios } = deriveCardStats(finalName, normalized, userLevel, {
     forceAttribute: options.forceAttribute,
   });
   const rarity = rollRarity(
@@ -168,7 +178,7 @@ export function createCardFromDrawing(
 
   return {
     id: createId(),
-    name: name.trim(),
+    name: finalName,
     pixels: normalized,
     canvasSize,
     attribute,

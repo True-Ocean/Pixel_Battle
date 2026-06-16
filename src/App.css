@@ -3758,9 +3758,9 @@ button.battle-hub-deck-icon.is-drop-target {
   font-size: 1.08rem;
   line-height: 1.3;
   min-width: 0;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .deck-card-meta-row {
@@ -4510,6 +4510,19 @@ button.battle-hub-deck-icon.is-drop-target {
 
 .editor-name-section .field {
   gap: 0.45rem;
+}
+
+.editor-field-label {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+}
+
+.editor-name-limit-note {
+  font-size: 0.82em;
+  font-weight: 400;
+  color: #777;
 }
 
 .editor-field {
