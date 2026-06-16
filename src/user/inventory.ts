@@ -74,6 +74,14 @@ export function setUniversalLimitBreakShards(
   return { ...inventory, limitBreakUniversal: amount };
 }
 
+export function setTalismanCount(
+  inventory: UserInventory,
+  count: number,
+): UserInventory {
+  const amount = Math.max(0, Math.floor(count));
+  return { ...inventory, talisman: amount };
+}
+
 export function getUniformAttributeShardsCount(inventory: UserInventory): number {
   let value: number | null = null;
   for (const attribute of ALL_ATTRIBUTES) {

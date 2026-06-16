@@ -22,12 +22,13 @@ interface DevDeckFillOption {
   locked: boolean;
 }
 
-interface SettingsScreenProps {
+export interface SettingsScreenProps {
   user: UserProfile | null;
   unlockedDeckCount: number;
   freePixels: number;
   attributeShardsCount: number;
   universalShardCount: number;
+  talismanCount: number;
   onBack?: () => void;
   devCardOptions: DevCardOption[];
   devDeckFillOptions: DevDeckFillOption[];
@@ -37,6 +38,7 @@ interface SettingsScreenProps {
   onDevSetFreePixels: (amount: number) => void;
   onDevSetAttributeShards: (count: number) => string;
   onDevSetUniversalShards: (count: number) => string;
+  onDevSetTalisman: (count: number) => string;
   onDevMarkCardLost: (cardId: string) => string;
   onDevFillDeckSlots: (deckIndex: number) => string;
 }
@@ -93,6 +95,7 @@ export function SettingsScreen({
   freePixels,
   attributeShardsCount,
   universalShardCount,
+  talismanCount,
   onBack,
   devCardOptions,
   devDeckFillOptions,
@@ -102,6 +105,7 @@ export function SettingsScreen({
   onDevSetFreePixels,
   onDevSetAttributeShards,
   onDevSetUniversalShards,
+  onDevSetTalisman,
   onDevMarkCardLost,
   onDevFillDeckSlots,
 }: SettingsScreenProps) {
@@ -120,6 +124,9 @@ export function SettingsScreen({
   );
   const [devUniversalShardsInput, setDevUniversalShardsInput] = useState(
     () => String(universalShardCount),
+  );
+  const [devTalismanInput, setDevTalismanInput] = useState(
+    () => String(talismanCount),
   );
   const [devNotice, setDevNotice] = useState<string | null>(null);
   const [devDeckNotice, setDevDeckNotice] = useState<string | null>(null);
@@ -180,6 +187,10 @@ export function SettingsScreen({
   useEffect(() => {
     setDevUniversalShardsInput(String(universalShardCount));
   }, [universalShardCount]);
+
+  useEffect(() => {
+    setDevTalismanInput(String(talismanCount));
+  }, [talismanCount]);
 
   useEffect(() => {
     setDevDeckUnlockInput(String(unlockedDeckCount));
@@ -247,6 +258,15 @@ export function SettingsScreen({
       return;
     }
     setDevShardsNotice(onDevSetUniversalShards(parsed));
+  };
+
+  const handleDevTalismanApply = () => {
+    const parsed = Number.parseInt(devTalismanInput, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setDevShardsNotice('護符は 0 以上の整数を入力してください。');
+      return;
+    }
+    setDevShardsNotice(onDevSetTalisman(parsed));
   };
 
   const handleDevMarkCardLost = () => {
@@ -461,9 +481,35 @@ export function SettingsScreen({
                   </button>
                 </div>
               </div>
+              <div className="settings-dev-quick-cell">
+                <label
+                  className="settings-dev-level-label"
+                  htmlFor="settings-dev-talisman"
+                >
+                  護符
+                </label>
+                <div className="settings-dev-level-row">
+                  <input
+                    id="settings-dev-talisman"
+                    type="number"
+                    min={0}
+                    step={1}
+                    className="settings-dev-level-input"
+                    value={devTalismanInput}
+                    onChange={(event) => setDevTalismanInput(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="settings-dev-level-apply"
+                    onClick={handleDevTalismanApply}
+                  >
+                    適用
+                  </button>
+                </div>
+              </div>
             </div>
             <p className="settings-dev-level-hint muted">
-              属性かけらは全属性を同じ数に、汎用かけらは個別に設定できます。
+              属性かけらは全属性を同じ数に、汎用かけらと護符は個別に設定できます。
             </p>
             <div className="settings-dev-level">
               <label

@@ -8,6 +8,7 @@ import {
   getUniformAttributeShardsCount,
   normalizeUserInventory,
   setAllAttributeLimitBreakShards,
+  setTalismanCount,
   setUniversalLimitBreakShards,
   spendInventoryCount,
   spendLimitBreakShards,
@@ -144,5 +145,9 @@ describe('user inventory', () => {
     expect(withUniversal.limitBreakUniversal).toBe(7);
     expect(withUniversal.limitBreakShards.attack).toBe(30);
     expect(getUniformAttributeShardsCount(withUniversal)).toBe(30);
+
+    const withTalisman = setTalismanCount(withUniversal, 3);
+    expect(withTalisman.talisman).toBe(3);
+    expect(withTalisman.limitBreakUniversal).toBe(7);
   });
 });

@@ -9,7 +9,7 @@ import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, addLimitBreakShards, spendLimitBreakResources, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setUniversalLimitBreakShards } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, addLimitBreakShards, spendLimitBreakResources, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards } from './user';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
 import {
   calcCardDeleteRefundPixels,
@@ -881,6 +881,17 @@ function App() {
     return `汎用かけらを ${count.toLocaleString()} 個にしました。`;
   }, [persistSave]);
 
+  const handleDevSetTalisman = useCallback((count: number): string => {
+    if (!import.meta.env.DEV) {
+      return '開発ビルドでのみ利用できます。';
+    }
+    const nextInventory = setTalismanCount(inventoryRef.current, count);
+    persistSave({ inventory: nextInventory });
+    setInventory(nextInventory);
+    inventoryRef.current = nextInventory;
+    return `護符を ${count.toLocaleString()} 個にしました。`;
+  }, [persistSave]);
+
   const devCardOptions = useMemo(() => {
     const options: { id: string; label: string; isLost: boolean }[] = [];
     decks.forEach((deck, deckIndex) => {
@@ -1162,6 +1173,7 @@ function App() {
             freePixels={economy.freePixels}
             attributeShardsCount={getUniformAttributeShardsCount(inventory)}
             universalShardCount={inventory.limitBreakUniversal}
+            talismanCount={inventory.talisman}
             onBack={closeSettings}
             devCardOptions={devCardOptions}
             devDeckFillOptions={devDeckFillOptions}
@@ -1171,6 +1183,7 @@ function App() {
             onDevSetFreePixels={handleDevSetFreePixels}
             onDevSetAttributeShards={handleDevSetAttributeShards}
             onDevSetUniversalShards={handleDevSetUniversalShards}
+            onDevSetTalisman={handleDevSetTalisman}
             onDevMarkCardLost={handleDevMarkCardLost}
             onDevFillDeckSlots={handleDevFillDeckSlots}
           />

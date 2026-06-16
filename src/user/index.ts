@@ -35,6 +35,7 @@ export {
   inventoryMatchesDevFill,
   normalizeUserInventory,
   setAllAttributeLimitBreakShards,
+  setTalismanCount,
   setUniversalLimitBreakShards,
   spendInventoryCount,
   spendLimitBreakShards,

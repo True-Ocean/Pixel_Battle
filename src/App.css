@@ -1532,6 +1532,17 @@ button.battle-hub-deck-icon.is-drop-target {
   color: #1e293b;
 }
 
+.inventory-empty {
+  margin: 0.25rem 0 0;
+  padding: 0.85rem 0.65rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-size: 0.88rem;
+  text-align: center;
+  line-height: 1.45;
+}
+
 .inventory-section {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
@@ -1824,8 +1835,8 @@ button.battle-hub-deck-icon.is-drop-target {
 
 .settings-dev-shards-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0.55rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.45rem;
   margin-top: 0.4rem;
 }
 
