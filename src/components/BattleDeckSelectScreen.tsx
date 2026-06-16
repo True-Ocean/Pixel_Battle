@@ -365,17 +365,19 @@ export function BattleDeckSelectScreen({
         </ul>
 
         <div className="battle-hub-actions battle-hub-actions--deck-select">
-          {selectedSlot && (
-            <p className="battle-hub-deck-select-hint" role="status">
-              移動先のスロットをタップしてください（同じカードをもう一度タップで詳細）
-            </p>
-          )}
-          {readyIndices.length === 0 && (
+          <div className="battle-hub-deck-select-hint" role="note">
+            <p>カードをタップして別のカードをタップすると入替</p>
+            <p>同じカードをもう一度タップで詳細画面</p>
+          </div>
+          {deckReadinessMode !== 'battle' && readyIndices.length === 0 && (
             <p className="battle-hub-deck-select-notice" role="status">
               5枚揃ったデッキがありません。マイデッキで編成してください。
             </p>
           )}
-          {readyIndices.length > 1 && selectedIndex == null && !selectedSlot && (
+          {deckReadinessMode !== 'battle' &&
+            readyIndices.length > 1 &&
+            selectedIndex == null &&
+            !selectedSlot && (
             <p className="battle-hub-deck-select-notice" role="status">
               使用するデッキを選んでください（デッキ名または空スロットをタップ）。
             </p>

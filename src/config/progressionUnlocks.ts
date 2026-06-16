@@ -3,6 +3,7 @@ import {
   calcLevelUpJewelBonus,
   calcLevelUpJewels,
   calcLevelUpPixels,
+  calcLevelUpUniversalLimitBreak,
   TALISMAN_STARTER_GRANT_LEVEL,
 } from './economy';
 import { getCanvasUnlockLevel, getMaxCanvasSize } from './canvasUnlock';
@@ -106,9 +107,10 @@ function getMainRewardAtLevel(level: number): LevelUpRewardEntry | null {
     return { kind: 'deck_unlock', label: 'デッキ2が使えるようになりました！' };
   }
   if (mod10 === 0 && level >= 20) {
+    const amount = calcLevelUpUniversalLimitBreak(level);
     return {
       kind: 'limit_break',
-      label: '汎用かけら ×1',
+      label: `汎用かけら ×${amount.toLocaleString()}`,
     };
   }
   if (mod10 === 5) {

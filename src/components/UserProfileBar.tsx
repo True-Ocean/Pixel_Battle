@@ -80,16 +80,16 @@ export function UserProfileBar({
             </div>
           </div>
         </div>
-      </div>
 
-      <button
-        type="button"
-        className="user-profile-menu-btn"
-        aria-label="設定を開く"
-        onClick={onOpenSettings}
-      >
-        <HamburgerMenuIcon className="user-profile-menu-icon" />
-      </button>
+        <button
+          type="button"
+          className="user-profile-menu-btn"
+          aria-label="設定を開く"
+          onClick={onOpenSettings}
+        >
+          <HamburgerMenuIcon className="user-profile-menu-icon" />
+        </button>
+      </div>
     </div>
   );
 }

@@ -233,8 +233,8 @@ describe('recordUserBattleOutcome', () => {
       opponentDeckPower: 50000,
     });
     if (result.levelsGained.includes(20)) {
-      expect(result.universalGranted).toBeGreaterThanOrEqual(1);
-      expect(result.inventory.limitBreakUniversal).toBeGreaterThanOrEqual(1);
+      expect(result.universalGranted).toBeGreaterThanOrEqual(10);
+      expect(result.inventory.limitBreakUniversal).toBeGreaterThanOrEqual(10);
     }
   });
 

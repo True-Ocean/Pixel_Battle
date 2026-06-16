@@ -3,6 +3,10 @@ import { createPortal } from 'react-dom';
 import { PALETTE_16 } from '../config/balance';
 import { PALETTE_COLOR_LABELS } from '../config/palette';
 import { getAttributeMeta } from '../config/attributes';
+import {
+  calcLevelUpJewelBonus,
+  JEWELS_PER_LEVEL,
+} from '../config/economy';
 import { collectLevelUpRewards } from '../config/progressionUnlocks';
 import { AttributeBadge } from './AttributeBadge';
 import { JewelIcon } from './JewelIcon';
@@ -17,16 +21,32 @@ interface LevelUpModalProps {
   onClose: () => void;
 }
 
-function formatRewardLine(
+function computeJewelBreakdown(fromLevel: number, toLevel: number) {
+  let base = 0;
+  let bonus = 0;
+  const start = Math.floor(fromLevel);
+  const end = Math.floor(toLevel);
+  for (let level = start + 1; level <= end; level++) {
+    base += JEWELS_PER_LEVEL;
+    bonus += calcLevelUpJewelBonus(level);
+  }
+  return { base, bonus };
+}
+
+function buildRewardAriaLabel(
   totalPixelsGranted: number,
-  totalJewelsGranted: number,
+  jewelBreakdown: { base: number; bonus: number },
 ): string {
   const parts: string[] = [];
   if (totalPixelsGranted > 0) {
-    parts.push(`${totalPixelsGranted.toLocaleString()}px`);
+    parts.push(`${totalPixelsGranted.toLocaleString()}ピクセルコイン`);
   }
-  if (totalJewelsGranted > 0) {
-    parts.push(`${totalJewelsGranted.toLocaleString()}ジュエル`);
+  if (jewelBreakdown.bonus > 0) {
+    parts.push(
+      `${jewelBreakdown.base.toLocaleString()}ジュエル・更に${jewelBreakdown.bonus.toLocaleString()}ジュエル`,
+    );
+  } else if (jewelBreakdown.base > 0) {
+    parts.push(`${jewelBreakdown.base.toLocaleString()}ジュエル`);
   }
   if (parts.length === 0) return '';
   return `${parts.join('・')} ゲット！`;
@@ -39,6 +59,11 @@ export function LevelUpModal({
   totalJewelsGranted,
   onClose,
 }: LevelUpModalProps) {
+  const jewelBreakdown = useMemo(
+    () => computeJewelBreakdown(fromLevel, toLevel),
+    [fromLevel, toLevel],
+  );
+
   const extraRewards = useMemo(() => {
     return collectLevelUpRewards(fromLevel, toLevel).flatMap(({ level, rewards }) =>
       rewards
@@ -47,7 +72,8 @@ export function LevelUpModal({
     );
   }, [fromLevel, toLevel]);
 
-  const rewardLine = formatRewardLine(totalPixelsGranted, totalJewelsGranted);
+  const rewardAriaLabel = buildRewardAriaLabel(totalPixelsGranted, jewelBreakdown);
+  const showJewels = totalJewelsGranted > 0;
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -85,23 +111,35 @@ export function LevelUpModal({
         <h2 id="level-up-title" className="level-up-title">
           レベルアップ！（Lv.{fromLevel}→Lv.{toLevel}）
         </h2>
-        {rewardLine && (
-          <p className="level-up-reward-main" aria-label={rewardLine}>
+        {rewardAriaLabel && (
+          <p className="level-up-reward-main" aria-label={rewardAriaLabel}>
             {totalPixelsGranted > 0 && (
               <span className="level-up-reward-px">
-                <PixelCoinIcon className="level-up-reward-coin-icon" />
                 <span>{totalPixelsGranted.toLocaleString()}</span>
+                <PixelCoinIcon className="level-up-reward-coin-icon" />
               </span>
             )}
-            {totalPixelsGranted > 0 && totalJewelsGranted > 0 && (
+            {totalPixelsGranted > 0 && showJewels && (
               <span className="level-up-reward-sep">・</span>
             )}
-            {totalJewelsGranted > 0 && (
+            {showJewels && jewelBreakdown.bonus > 0 ? (
+              <>
+                <span className="level-up-reward-jewels">
+                  <span>{jewelBreakdown.base.toLocaleString()}</span>
+                  <JewelIcon className="level-up-reward-jewel-icon" />
+                </span>
+                <span className="level-up-reward-sep">・更に</span>
+                <span className="level-up-reward-jewels">
+                  <span>{jewelBreakdown.bonus.toLocaleString()}</span>
+                  <JewelIcon className="level-up-reward-jewel-icon" />
+                </span>
+              </>
+            ) : showJewels ? (
               <span className="level-up-reward-jewels">
                 <span>{totalJewelsGranted.toLocaleString()}</span>
                 <JewelIcon className="level-up-reward-jewel-icon" />
               </span>
-            )}
+            ) : null}
             <span className="level-up-reward-get"> ゲット！</span>
           </p>
         )}

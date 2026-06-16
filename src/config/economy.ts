@@ -25,6 +25,9 @@ export const JEWELS_PER_LEVEL = 3;
 /** L ≡ 4 (mod 5), L ≥ 5 のジュエル追加ボーナス */
 export const JEWELS_BONUS_MOD4 = 10;
 
+/** Lv20,30,40… 到達時の汎用かけら付与数 */
+export const UNIVERSAL_LIMIT_BREAK_LEVEL_REWARD = 10;
+
 /** 通常カード削除のジュエルコスト */
 export const JEWEL_COST_DELETE = 30;
 
@@ -76,7 +79,7 @@ export function calcLimitBreakBpGain(foundationBp: number): number {
 export function calcLevelUpUniversalLimitBreak(level: number): number {
   const L = Math.floor(level);
   if (L < 20 || L % 10 !== 0) return 0;
-  return 1;
+  return UNIVERSAL_LIMIT_BREAK_LEVEL_REWARD;
 }
 
 /** 墓地戦利品の属性かけら（レア度別） */
