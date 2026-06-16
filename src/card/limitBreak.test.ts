@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyLimitBreakToCard,
+  canAffordLimitBreakUpgrade,
   canLimitBreakCard,
   describeLimitBreakCost,
+  describeLimitBreakRaritySuccessTitle,
   describeLimitBreakSpendPlan,
   formatLimitBreakStars,
   getLimitBreakAttrSpendRange,
@@ -94,10 +96,16 @@ describe('describeLimitBreakCost', () => {
 });
 
 describe('limit break rules', () => {
-  it('SR★3 は上限', () => {
-    const card = makeCard({ rarity: 'SR', stars: 3 });
+  it('UR★3 は上限', () => {
+    const card = makeCard({ rarity: 'UR', stars: 3 });
     expect(isLimitBreakCapReached(card)).toBe(true);
     expect(canLimitBreakCard(card)).toBe(false);
+  });
+
+  it('SR★3 はレア昇格可能', () => {
+    const card = makeCard({ rarity: 'SR', stars: 3 });
+    expect(isLimitBreakCapReached(card)).toBe(false);
+    expect(getLimitBreakOutcomeKind(card)).toBe('rarity');
   });
 
   it('N★0 は ★アップ', () => {
@@ -138,6 +146,33 @@ describe('limit break rules', () => {
     expect(next.rarity).toBe('SR');
     expect(next.stars).toBe(0);
     expect(next.bp).toBeGreaterThanOrEqual(card.bp);
+  });
+
+  it('SR★3 は UR に昇格', () => {
+    const card = makeCard({ rarity: 'SR', stars: 3, bp: 130 });
+    const next = applyLimitBreakToCard(card, 10);
+    expect(next.rarity).toBe('UR');
+    expect(next.stars).toBe(0);
+    expect(next.bp).toBeGreaterThanOrEqual(card.bp);
+  });
+
+  it('レア昇格はジュエル所持が必要', () => {
+    const card = makeCard({ rarity: 'N', stars: 3 });
+    expect(canAffordLimitBreakUpgrade(card, 10, 0, 9)).toBe(false);
+    expect(canAffordLimitBreakUpgrade(card, 10, 0, 10)).toBe(true);
+    expect(canAffordLimitBreakUpgrade(card, 5, 5, 10)).toBe(true);
+  });
+
+  it('★アップはジュエル不要', () => {
+    const card = makeCard({ rarity: 'N', stars: 0 });
+    expect(canAffordLimitBreakUpgrade(card, 10, 0, 0)).toBe(true);
+  });
+
+  it('レア昇格成功メッセージ', () => {
+    const card = makeCard({ rarity: 'N', stars: 3 });
+    expect(describeLimitBreakRaritySuccessTitle(card)).toBe(
+      '限界突破！NからRになりました！',
+    );
   });
 
   it('ロストカードは不可', () => {

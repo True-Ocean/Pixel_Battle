@@ -53,6 +53,7 @@ interface DeckScreenProps {
   inventory: UserInventory;
   onLimitBreakCard: (id: string, spend: LimitBreakShardSpendPlan) => void;
   freePixels: number;
+  jewels: number;
   reviveCost: number;
   downgradeReviveCost: number;
   onReorderDeck: (deck: DeckLayout) => void;
@@ -264,6 +265,7 @@ export function DeckScreen({
   inventory,
   onLimitBreakCard,
   freePixels,
+  jewels,
   reviveCost,
   downgradeReviveCost,
   onReorderDeck,
@@ -900,6 +902,7 @@ export function DeckScreen({
             inventory.limitBreakShards[selectedCard.attribute] ?? 0
           }
           universalShardCount={inventory.limitBreakUniversal}
+          jewels={jewels}
           onClose={closeDetail}
           onEdit={handleEditFromDetail}
           onDelete={() => handleDeleteRequest(selectedCard)}

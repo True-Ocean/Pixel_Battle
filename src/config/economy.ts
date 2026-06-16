@@ -37,6 +37,23 @@ export const JEWEL_COST_DECK_UNLOCK = 200;
 /** 限界突破に必要な属性かけら数 */
 export const LIMIT_BREAK_SHARDS_REQUIRED = 10;
 
+/** レア昇格時のジュエルコスト（現在レア→次レア） */
+export const LIMIT_BREAK_RARITY_JEWEL_COST: Partial<
+  Record<Extract<CardRarity, 'N' | 'R' | 'SR'>, number>
+> = {
+  N: 10,
+  R: 20,
+  SR: 40,
+};
+
+export function getLimitBreakRarityJewelCost(rarity: CardRarity): number | null {
+  return (
+    LIMIT_BREAK_RARITY_JEWEL_COST[
+      rarity as keyof typeof LIMIT_BREAK_RARITY_JEWEL_COST
+    ] ?? null
+  );
+}
+
 /** ★数ごとの BP 倍率（非推奨: 限界突破は `LIMIT_BREAK_BP_GAIN_RATE` で均等加算） */
 export const LIMIT_BREAK_STAR_BP_MULTIPLIER: Record<CardStars, number> = {
   0: 1,

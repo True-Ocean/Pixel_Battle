@@ -23,6 +23,7 @@ import {
   calcLevelUpUniversalLimitBreak,
   calcLimitBreakBpGain,
   calcTotalLevelUpJewels,
+  getLimitBreakRarityJewelCost,
   calcLostSelectionWeight,
   calcSurvivorPixels,
   calcVictoryBattlePixels,
@@ -69,6 +70,15 @@ describe('calcLimitBreakBpGain', () => {
     expect(calcLimitBreakBpGain(100)).toBe(3);
     expect(calcLimitBreakBpGain(40)).toBe(1);
     expect(calcLimitBreakBpGain(0)).toBe(1);
+  });
+});
+
+describe('getLimitBreakRarityJewelCost', () => {
+  it('レア昇格ごとのジュエルコスト', () => {
+    expect(getLimitBreakRarityJewelCost('N')).toBe(10);
+    expect(getLimitBreakRarityJewelCost('R')).toBe(20);
+    expect(getLimitBreakRarityJewelCost('SR')).toBe(40);
+    expect(getLimitBreakRarityJewelCost('UR')).toBeNull();
   });
 });
 

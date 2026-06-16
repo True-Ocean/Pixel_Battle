@@ -5,11 +5,12 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakResult, type LimitBreakShardSpendPlan } from './card';
+import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, type LimitBreakShardSpendPlan } from './card';
+import { getLimitBreakRarityJewelCost } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, addLimitBreakShards, spendLimitBreakResources, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards } from './user';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
 import {
   calcCardDeleteRefundPixels,
@@ -121,7 +122,8 @@ function App() {
     cardName: string;
     previousBp: number;
     newBp: number;
-    outcomeLine: string;
+    title?: string;
+    outcomeLine?: string;
   } | null>(null);
 
   const userRef = useRef(user);
@@ -423,12 +425,27 @@ function App() {
       if (!target || !canLimitBreakCard(target)) return;
 
       const userLevel = userRef.current?.level ?? 1;
+      const outcomeKind = getLimitBreakOutcomeKind(target);
+      if (outcomeKind === 'rarity') {
+        const jewelCost = getLimitBreakRarityJewelCost(target.rarity);
+        if (!jewelCost || economyRef.current.jewels < jewelCost) return;
+      }
+
       const spent = spendLimitBreakResources(
         inventoryRef.current,
         target.attribute,
         spend,
       );
       if (!spent) return;
+
+      let nextEconomy = economyRef.current;
+      if (outcomeKind === 'rarity') {
+        const jewelCost = getLimitBreakRarityJewelCost(target.rarity);
+        if (!jewelCost) return;
+        const spentEconomy = spendJewels(nextEconomy, jewelCost);
+        if (!spentEconomy) return;
+        nextEconomy = spentEconomy;
+      }
 
       const upgraded = applyLimitBreakToCard(target, userLevel);
       if (upgraded === target) return;
@@ -438,16 +455,23 @@ function App() {
       );
       const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
 
-      persistSave({ decks: nextDecks, inventory: spent });
+      persistSave({ decks: nextDecks, inventory: spent, economy: nextEconomy });
       setDecks(nextDecks);
       setInventory(spent);
+      setEconomy(nextEconomy);
       decksRef.current = nextDecks;
       inventoryRef.current = spent;
+      economyRef.current = nextEconomy;
       setLimitBreakSuccessModal({
         cardName: target.name,
         previousBp: target.bp,
         newBp: upgraded.bp,
-        outcomeLine: describeLimitBreakResult(target),
+        title:
+          outcomeKind === 'rarity'
+            ? describeLimitBreakRaritySuccessTitle(target) ?? undefined
+            : undefined,
+        outcomeLine:
+          outcomeKind === 'star' ? describeLimitBreakResult(target) : undefined,
       });
     },
     [persistSave],
@@ -871,6 +895,17 @@ function App() {
     [persistSave],
   );
 
+  const handleDevSetJewels = useCallback(
+    (amount: number) => {
+      if (!import.meta.env.DEV) return;
+      const nextEconomy = setJewels(economyRef.current, amount);
+      persistSave({ economy: nextEconomy });
+      setEconomy(nextEconomy);
+      economyRef.current = nextEconomy;
+    },
+    [persistSave],
+  );
+
   const handleDevSetAttributeShards = useCallback((count: number): string => {
     if (!import.meta.env.DEV) {
       return '開発ビルドでのみ利用できます。';
@@ -1162,6 +1197,7 @@ function App() {
             inventory={inventory}
             onLimitBreakCard={limitBreakCard}
             freePixels={economy.freePixels}
+            jewels={economy.jewels}
             reviveCost={calcFullReviveCost()}
             downgradeReviveCost={calcDowngradeReviveCost()}
             onReorderDeck={reorderDeck}
@@ -1200,6 +1236,7 @@ function App() {
             user={user}
             unlockedDeckCount={unlockedDeckCount}
             freePixels={economy.freePixels}
+            jewels={economy.jewels}
             attributeShardsCount={getUniformAttributeShardsCount(inventory)}
             universalShardCount={inventory.limitBreakUniversal}
             talismanCount={inventory.talisman}
@@ -1210,6 +1247,7 @@ function App() {
             onDevSetLevel={handleDevSetLevel}
             onDevSetUnlockedDeckCount={handleDevSetUnlockedDeckCount}
             onDevSetFreePixels={handleDevSetFreePixels}
+            onDevSetJewels={handleDevSetJewels}
             onDevSetAttributeShards={handleDevSetAttributeShards}
             onDevSetUniversalShards={handleDevSetUniversalShards}
             onDevSetTalisman={handleDevSetTalisman}
@@ -1283,6 +1321,7 @@ function App() {
           cardName={limitBreakSuccessModal.cardName}
           previousBp={limitBreakSuccessModal.previousBp}
           newBp={limitBreakSuccessModal.newBp}
+          title={limitBreakSuccessModal.title}
           outcomeLine={limitBreakSuccessModal.outcomeLine}
           onClose={() => setLimitBreakSuccessModal(null)}
         />

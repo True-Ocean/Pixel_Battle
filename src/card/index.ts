@@ -22,9 +22,11 @@ export {
 } from './rarity';
 export {
   applyLimitBreakToCard,
+  canAffordLimitBreakUpgrade,
   canLimitBreakCard,
   defaultLimitBreakAttrSpend,
   describeLimitBreakCost,
+  describeLimitBreakRaritySuccessTitle,
   describeLimitBreakResult,
   describeLimitBreakSpendPlan,
   formatLimitBreakStars,

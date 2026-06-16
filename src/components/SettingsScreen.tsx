@@ -26,6 +26,7 @@ export interface SettingsScreenProps {
   user: UserProfile | null;
   unlockedDeckCount: number;
   freePixels: number;
+  jewels: number;
   attributeShardsCount: number;
   universalShardCount: number;
   talismanCount: number;
@@ -36,6 +37,7 @@ export interface SettingsScreenProps {
   onDevSetLevel: (level: number) => string;
   onDevSetUnlockedDeckCount: (count: number) => void;
   onDevSetFreePixels: (amount: number) => void;
+  onDevSetJewels: (amount: number) => void;
   onDevSetAttributeShards: (count: number) => string;
   onDevSetUniversalShards: (count: number) => string;
   onDevSetTalisman: (count: number) => string;
@@ -93,6 +95,7 @@ export function SettingsScreen({
   user,
   unlockedDeckCount,
   freePixels,
+  jewels,
   attributeShardsCount,
   universalShardCount,
   talismanCount,
@@ -103,6 +106,7 @@ export function SettingsScreen({
   onDevSetLevel,
   onDevSetUnlockedDeckCount,
   onDevSetFreePixels,
+  onDevSetJewels,
   onDevSetAttributeShards,
   onDevSetUniversalShards,
   onDevSetTalisman,
@@ -119,6 +123,7 @@ export function SettingsScreen({
   const [devFreePixelsInput, setDevFreePixelsInput] = useState(
     () => String(freePixels),
   );
+  const [devJewelsInput, setDevJewelsInput] = useState(() => String(jewels));
   const [devAttributeShardsInput, setDevAttributeShardsInput] = useState(
     () => String(attributeShardsCount),
   );
@@ -131,6 +136,7 @@ export function SettingsScreen({
   const [devNotice, setDevNotice] = useState<string | null>(null);
   const [devDeckNotice, setDevDeckNotice] = useState<string | null>(null);
   const [devPixelsNotice, setDevPixelsNotice] = useState<string | null>(null);
+  const [devJewelsNotice, setDevJewelsNotice] = useState<string | null>(null);
   const [devLostNotice, setDevLostNotice] = useState<string | null>(null);
   const [devFillNotice, setDevFillNotice] = useState<string | null>(null);
   const [devShardsNotice, setDevShardsNotice] = useState<string | null>(null);
@@ -179,6 +185,10 @@ export function SettingsScreen({
   useEffect(() => {
     setDevFreePixelsInput(String(freePixels));
   }, [freePixels]);
+
+  useEffect(() => {
+    setDevJewelsInput(String(jewels));
+  }, [jewels]);
 
   useEffect(() => {
     setDevAttributeShardsInput(String(attributeShardsCount));
@@ -240,6 +250,16 @@ export function SettingsScreen({
     }
     onDevSetFreePixels(parsed);
     setDevPixelsNotice(`pxコインを ${parsed.toLocaleString()} に変更しました。`);
+  };
+
+  const handleDevJewelsApply = () => {
+    const parsed = Number.parseInt(devJewelsInput, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setDevJewelsNotice('ジュエルは 0 以上の整数を入力してください。');
+      return;
+    }
+    onDevSetJewels(parsed);
+    setDevJewelsNotice(`ジュエルを ${parsed.toLocaleString()} に変更しました。`);
   };
 
   const handleDevAttributeShardsApply = () => {
@@ -418,6 +438,32 @@ export function SettingsScreen({
                     type="button"
                     className="settings-dev-level-apply"
                     onClick={handleDevFreePixelsApply}
+                  >
+                    適用
+                  </button>
+                </div>
+              </div>
+              <div className="settings-dev-quick-cell settings-dev-quick-cell--compact">
+                <label
+                  className="settings-dev-level-label"
+                  htmlFor="settings-dev-jewels"
+                >
+                  ジュエル
+                </label>
+                <div className="settings-dev-level-row">
+                  <input
+                    id="settings-dev-jewels"
+                    type="number"
+                    min={0}
+                    step={1}
+                    className="settings-dev-level-input"
+                    value={devJewelsInput}
+                    onChange={(event) => setDevJewelsInput(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="settings-dev-level-apply"
+                    onClick={handleDevJewelsApply}
                   >
                     適用
                   </button>
@@ -608,6 +654,11 @@ export function SettingsScreen({
             {devPixelsNotice && (
               <p className="settings-dev-notice" role="status">
                 {devPixelsNotice}
+              </p>
+            )}
+            {devJewelsNotice && (
+              <p className="settings-dev-notice" role="status">
+                {devJewelsNotice}
               </p>
             )}
             {devShardsNotice && (

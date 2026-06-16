@@ -1,5 +1,6 @@
 import {
   calcLimitBreakBpGain,
+  getLimitBreakRarityJewelCost,
   LIMIT_BREAK_SHARDS_REQUIRED,
 } from '../config/economy';
 import { getCardFoundationBp } from './createCard';
@@ -115,12 +116,13 @@ export function getLimitBreakStarColor(
 export function getUpgradedRarity(rarity: CardRarity): CardRarity | null {
   if (rarity === 'N') return 'R';
   if (rarity === 'R') return 'SR';
+  if (rarity === 'SR') return 'UR';
   return null;
 }
 
-/** v1 上限: SR★3 まで（UR 未実装のためレア昇格不可） */
+/** v1 上限: UR★3 まで */
 export function isLimitBreakCapReached(card: Card): boolean {
-  return card.rarity === 'SR' && card.stars >= 3;
+  return card.rarity === 'UR' && card.stars >= 3;
 }
 
 export function getLimitBreakOutcomeKind(card: Card): LimitBreakOutcomeKind | null {
@@ -131,6 +133,27 @@ export function getLimitBreakOutcomeKind(card: Card): LimitBreakOutcomeKind | nu
 
 export function canLimitBreakCard(card: Card): boolean {
   return !isCardLost(card) && getLimitBreakOutcomeKind(card) != null;
+}
+
+export function canAffordLimitBreakUpgrade(
+  card: Card,
+  attributeShardCount: number,
+  universalShardCount: number,
+  jewels: number,
+): boolean {
+  if (planLimitBreakShardSpend(attributeShardCount, universalShardCount) == null) {
+    return false;
+  }
+  if (getLimitBreakOutcomeKind(card) !== 'rarity') return true;
+  const jewelCost = getLimitBreakRarityJewelCost(card.rarity);
+  return jewelCost != null && jewels >= jewelCost;
+}
+
+export function describeLimitBreakRaritySuccessTitle(card: Card): string | null {
+  if (getLimitBreakOutcomeKind(card) !== 'rarity') return null;
+  const nextRarity = getUpgradedRarity(card.rarity);
+  if (!nextRarity) return null;
+  return `限界突破！${card.rarity}から${nextRarity}になりました！`;
 }
 
 export function applyLimitBreakToCard(card: Card, userLevel: number): Card {

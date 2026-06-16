@@ -4,17 +4,20 @@ import {
   canDowngradeRevive,
   canLimitBreakCard,
   defaultLimitBreakAttrSpend,
+  getLimitBreakOutcomeKind,
   getLimitBreakAttrSpendRange,
+  getUpgradedRarity,
   isLimitBreakCapReached,
   isValidLimitBreakShardSpend,
   type LimitBreakShardSpendPlan,
 } from '../card';
-import { LIMIT_BREAK_SHARDS_REQUIRED } from '../config/economy';
+import { getLimitBreakRarityJewelCost, LIMIT_BREAK_SHARDS_REQUIRED } from '../config/economy';
 import { getAttributeMeta } from '../config/attributes';
 import { canAffordLimitBreak } from '../user/inventory';
 import type { Card } from '../types';
 import { AttributeBadge } from './AttributeBadge';
 import { PixelCoinIcon } from './PixelCoinIcon';
+import { JewelAmount } from './JewelIcon';
 import { BattleCommonRules } from './BattleCommonRules';
 import { DeckCardDetailCard } from './DeckCardDetailCard';
 import { UniversalShardIcon } from './UniversalShardIcon';
@@ -27,6 +30,7 @@ interface DeckCardDetailOverlayProps {
   downgradeReviveCost: number;
   attributeShardCount: number;
   universalShardCount: number;
+  jewels: number;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -44,6 +48,7 @@ export function DeckCardDetailOverlay({
   downgradeReviveCost,
   attributeShardCount,
   universalShardCount,
+  jewels,
   onClose,
   onEdit,
   onDelete,
@@ -56,10 +61,16 @@ export function DeckCardDetailOverlay({
   const showDowngradeRevive = canDowngradeRevive(card);
   const canAffordDowngradeRevive = freePixels >= downgradeReviveCost;
   const showLimitBreak = !isLost && canLimitBreakCard(card);
-  const hasLimitBreakResources = canAffordLimitBreak(
+  const limitBreakKind = getLimitBreakOutcomeKind(card);
+  const rarityJewelCost =
+    limitBreakKind === 'rarity' ? getLimitBreakRarityJewelCost(card.rarity) : null;
+  const nextRarity =
+    limitBreakKind === 'rarity' ? getUpgradedRarity(card.rarity) : null;
+  const hasLimitBreakShards = canAffordLimitBreak(
     attributeShardCount,
     universalShardCount,
   );
+  const canAffordJewels = rarityJewelCost == null || jewels >= rarityJewelCost;
   const limitBreakCap = isLimitBreakCapReached(card);
   const attrMeta = getAttributeMeta(card.attribute);
   const attrSpendRange = getLimitBreakAttrSpendRange(
@@ -142,11 +153,11 @@ export function DeckCardDetailOverlay({
 
         {!isLost && limitBreakCap && (
           <p className="deck-card-detail-limit-break-cap muted">
-            限界突破の上限（SR★3）に達しています
+            限界突破の上限（UR★3）に達しています
           </p>
         )}
 
-        {!isLost && showLimitBreak && hasLimitBreakResources && attrSpendRange && (
+        {!isLost && showLimitBreak && hasLimitBreakShards && attrSpendRange && (
           <div className="deck-card-detail-limit-break">
             <div className="deck-card-detail-limit-break-picker deck-card-detail-limit-break-picker--split">
               <div
@@ -234,12 +245,31 @@ export function DeckCardDetailOverlay({
             </div>
             <button
               type="button"
-              className="deck-card-detail-limit-break-btn"
-              disabled={!spendIsValid}
-              aria-label={`限界突破 ${attrMeta.label}のかけら ${attrSpend}、汎用 ${universalSpend}`}
+              className={`deck-card-detail-limit-break-btn${
+                !canAffordJewels ? ' deck-card-detail-limit-break-btn--pending' : ''
+              }`}
+              disabled={!spendIsValid || !canAffordJewels}
+              aria-label={
+                limitBreakKind === 'rarity' && nextRarity != null && rarityJewelCost != null
+                  ? `限界突破（${card.rarity}→${nextRarity}）ジュエル${rarityJewelCost}、${attrMeta.label}のかけら ${attrSpend}、汎用 ${universalSpend}`
+                  : `限界突破 ${attrMeta.label}のかけら ${attrSpend}、汎用 ${universalSpend}`
+              }
               onClick={() => onLimitBreak(spendPlan)}
             >
-              限界突破
+              {limitBreakKind === 'rarity' && nextRarity != null && rarityJewelCost != null ? (
+                <span className="deck-card-detail-limit-break-btn-content">
+                  <span>
+                    限界突破（{card.rarity}→{nextRarity}）
+                  </span>
+                  <JewelAmount
+                    amount={rarityJewelCost}
+                    className="deck-card-detail-limit-break-jewel"
+                    iconClassName="deck-card-detail-limit-break-jewel-icon"
+                  />
+                </span>
+              ) : (
+                '限界突破'
+              )}
             </button>
           </div>
         )}

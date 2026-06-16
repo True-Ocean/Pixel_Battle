@@ -215,7 +215,7 @@ export function getCardFoundationBp(card: Card, userLevel: number): number {
  * SR★0=8, SR★1=9, ...
  */
 function countLimitBreaks(card: Pick<Card, 'rarity' | 'stars'>): number {
-  const rarityOffset: Record<string, number> = { N: 0, R: 4, SR: 8 };
+  const rarityOffset: Record<string, number> = { N: 0, R: 4, SR: 8, UR: 12 };
   return (rarityOffset[card.rarity] ?? 0) + card.stars;
 }
 

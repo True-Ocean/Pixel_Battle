@@ -5,7 +5,8 @@ interface LimitBreakSuccessModalProps {
   cardName: string;
   previousBp: number;
   newBp: number;
-  outcomeLine: string;
+  title?: string;
+  outcomeLine?: string;
   onClose: () => void;
 }
 
@@ -13,6 +14,7 @@ export function LimitBreakSuccessModal({
   cardName,
   previousBp,
   newBp,
+  title = '限界突破しました！',
   outcomeLine,
   onClose,
 }: LimitBreakSuccessModalProps) {
@@ -52,7 +54,7 @@ export function LimitBreakSuccessModal({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="limit-break-success-title" className="limit-break-success-title">
-          限界突破しました！
+          {title}
         </h2>
         <p className="limit-break-success-card-name">{cardName}</p>
         <p className="limit-break-success-message">BPがアップしました！</p>
@@ -66,7 +68,9 @@ export function LimitBreakSuccessModal({
             <span className="limit-break-success-bp-gain">(+{bpGain})</span>
           )}
         </p>
-        <p className="limit-break-success-outcome">{outcomeLine}</p>
+        {outcomeLine ? (
+          <p className="limit-break-success-outcome">{outcomeLine}</p>
+        ) : null}
         <button type="button" className="limit-break-success-close" onClick={onClose}>
           OK
         </button>

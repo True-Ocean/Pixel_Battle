@@ -1829,7 +1829,8 @@ button.battle-hub-deck-icon.is-drop-target {
 
 .settings-dev-quick-row {
   display: grid;
-  grid-template-columns: minmax(0, 0.78fr) minmax(0, 0.78fr) minmax(0, 1.44fr);
+  grid-template-columns:
+    minmax(0, 0.72fr) minmax(0, 0.72fr) minmax(0, 1.1fr) minmax(0, 0.72fr);
   gap: 0.4rem;
 }
 
@@ -3069,6 +3070,30 @@ button.battle-hub-deck-icon.is-drop-target {
   font-size: 0.78rem;
   font-weight: 800;
   cursor: pointer;
+}
+
+.deck-card-detail-limit-break-btn-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.deck-card-detail-limit-break-jewel {
+  gap: 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: inherit;
+}
+
+.deck-card-detail-limit-break-jewel-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.deck-card-detail-limit-break-btn--pending {
+  opacity: 0.45;
 }
 
 .graveyard-pick-confirm {
