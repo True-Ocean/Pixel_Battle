@@ -4,6 +4,8 @@ import {
   getCardBaseBpRange,
   getUserBaseBp,
 } from '../config/balance';
+import { PALETTE_16 } from '../config/palette';
+import { CREATE_BONUS_COLOR_SHARE_TOTAL } from '../config/rarity';
 import { createEmptyGrid } from '../canvas';
 import {
   createCardFromDrawing,
@@ -21,6 +23,26 @@ import { buildCardSeed, hashToUnit } from './hash';
 
 function fillGrid(color: string): ReturnType<typeof createEmptyGrid> {
   return createEmptyGrid().map((row) => row.map(() => color));
+}
+
+function buildBonusGrid(unlockedCount: number) {
+  const colors = PALETTE_16.slice(0, unlockedCount);
+  const total = CANVAS_SIZE * CANVAS_SIZE;
+  const minEach = Math.ceil((total * CREATE_BONUS_COLOR_SHARE_TOTAL) / unlockedCount);
+  const counts = colors.map(() => minEach);
+  counts[0] += total - minEach * unlockedCount;
+
+  const grid = createEmptyGrid().map((row) => row.map(() => null as string | null));
+  let cursor = 0;
+  for (let colorIndex = 0; colorIndex < unlockedCount; colorIndex++) {
+    for (let n = 0; n < counts[colorIndex]; n++) {
+      const row = Math.floor(cursor / CANVAS_SIZE);
+      const col = cursor % CANVAS_SIZE;
+      grid[row][col] = colors[colorIndex];
+      cursor++;
+    }
+  }
+  return grid;
 }
 
 describe('hash', () => {
@@ -172,13 +194,11 @@ describe('createCardFromDrawing', () => {
   });
 
   it('創作ボーナス時は高レア抽選に従う', () => {
-    const grid = fillGrid('#ff0000');
-    grid[0][0] = '#ffffff';
-    grid[0][1] = '#000000';
+    const grid = buildBonusGrid(3);
     const card = createCardFromDrawing('bonus', grid, {
       userLevel: 10,
       unlockedPaletteCount: 3,
-      random: () => 0.9,
+      random: () => 0.96,
     });
     expect(card.rarity).toBe('SR');
     const { min } = getCardBaseBpRange(10, card.attribute);

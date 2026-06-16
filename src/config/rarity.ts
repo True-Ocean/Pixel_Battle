@@ -19,20 +19,23 @@ export interface RarityMeta {
 
 /** 新規作成時のデフォルト抽選（§9.2.1） */
 export const CREATE_RARITY_DEFAULT: Record<RollableCardRarity, number> = {
+  N: 0.92,
+  R: 0.06,
+  SR: 0.02,
+};
+
+/** 創作ボーナス達成時の抽選（§9.2.2） */
+export const CREATE_RARITY_BONUS: Record<RollableCardRarity, number> = {
   N: 0.8,
   R: 0.15,
   SR: 0.05,
 };
 
-/** 創作ボーナス達成時の抽選（§9.2.2） */
-export const CREATE_RARITY_BONUS: Record<RollableCardRarity, number> = {
-  N: 0.5,
-  R: 0.35,
-  SR: 0.15,
-};
+/** 創作ボーナス: 塗り比率の下限（100%） */
+export const CREATE_BONUS_PAINT_RATIO = 1;
 
-/** 創作ボーナス: 塗り比率の下限 */
-export const CREATE_BONUS_PAINT_RATIO = 0.8;
+/** 創作ボーナス: 各色のキャンバス占有率の合計分子（(100-20)% を N 色で分配） */
+export const CREATE_BONUS_COLOR_SHARE_TOTAL = 0.8;
 
 export const RARITY_META: Record<CardRarity, RarityMeta> = {
   N: {
