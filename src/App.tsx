@@ -5,7 +5,7 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, resolveDeckUnlockOnLevelUp } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, type LimitBreakShardSpendPlan } from './card';
+import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakResult, type LimitBreakShardSpendPlan } from './card';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
@@ -21,6 +21,7 @@ import {
   countBattleSurvivors,
 } from './config/economy';
 import { LevelUpModal } from './components/LevelUpModal';
+import { LimitBreakSuccessModal } from './components/LimitBreakSuccessModal';
 import { GraveyardPickModal } from './components/GraveyardPickModal';
 import { LostRouletteModal } from './components/LostRouletteModal';
 import { AppTitle } from './components/AppTitle';
@@ -115,6 +116,12 @@ function App() {
     toLevel: number;
     pixelsGranted: number;
     jewelsGranted: number;
+  } | null>(null);
+  const [limitBreakSuccessModal, setLimitBreakSuccessModal] = useState<{
+    cardName: string;
+    previousBp: number;
+    newBp: number;
+    outcomeLine: string;
   } | null>(null);
 
   const userRef = useRef(user);
@@ -422,6 +429,8 @@ function App() {
       if (!spent) return;
 
       const upgraded = applyLimitBreakToCard(target, userLevel);
+      if (upgraded === target) return;
+
       const nextLayout = prevLayout.map((card) =>
         card?.id === id ? upgraded : card,
       );
@@ -432,6 +441,12 @@ function App() {
       setInventory(spent);
       decksRef.current = nextDecks;
       inventoryRef.current = spent;
+      setLimitBreakSuccessModal({
+        cardName: target.name,
+        previousBp: target.bp,
+        newBp: upgraded.bp,
+        outcomeLine: describeLimitBreakResult(target),
+      });
     },
     [persistSave],
   );
@@ -1199,6 +1214,15 @@ function App() {
           totalPixelsGranted={levelUpModal.pixelsGranted}
           totalJewelsGranted={levelUpModal.jewelsGranted}
           onClose={() => setLevelUpModal(null)}
+        />
+      )}
+      {limitBreakSuccessModal && (
+        <LimitBreakSuccessModal
+          cardName={limitBreakSuccessModal.cardName}
+          previousBp={limitBreakSuccessModal.previousBp}
+          newBp={limitBreakSuccessModal.newBp}
+          outcomeLine={limitBreakSuccessModal.outcomeLine}
+          onClose={() => setLimitBreakSuccessModal(null)}
         />
       )}
       {pendingGraveyardOutcome && (

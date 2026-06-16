@@ -2527,6 +2527,108 @@ button.battle-hub-deck-icon.is-drop-target {
   cursor: pointer;
 }
 
+.limit-break-success-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1350;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    max(0.5rem, env(safe-area-inset-top, 0px))
+    max(0.5rem, env(safe-area-inset-right, 0px))
+    max(0.5rem, env(safe-area-inset-bottom, 0px))
+    max(0.5rem, env(safe-area-inset-left, 0px));
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.limit-break-success-panel {
+  width: min(100%, 22rem);
+  padding: 1.15rem 1rem 1rem;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.22);
+  text-align: center;
+}
+
+.limit-break-success-title {
+  margin: 0 0 0.55rem;
+  font-size: 1.12rem;
+  line-height: 1.35;
+  color: #d97706;
+}
+
+.limit-break-success-card-name {
+  margin: 0 0 0.65rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.limit-break-success-message {
+  margin: 0 0 0.55rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.limit-break-success-bp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.2rem 0.35rem;
+  margin: 0 0 0.55rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #1e293b;
+}
+
+.limit-break-success-bp-prev {
+  color: #64748b;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.limit-break-success-bp-arrow {
+  color: #94a3b8;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.limit-break-success-bp-next {
+  color: #4f46e5;
+}
+
+.limit-break-success-bp-gain {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #16a34a;
+}
+
+.limit-break-success-outcome {
+  margin: 0 0 0.9rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.limit-break-success-close {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .graveyard-pick-backdrop {
   position: fixed;
   inset: 0;
