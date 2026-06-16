@@ -44,7 +44,7 @@ describe('formatLimitBreakStars', () => {
 
 describe('getLimitBreakStarColor', () => {
   it('獲得★はレア枠色、未獲得はグレー', () => {
-    expect(getLimitBreakStarColor(true, 'SR')).toBe('#c9a227');
+    expect(getLimitBreakStarColor(true, 'SR')).toBe('#9a7815');
     expect(getLimitBreakStarColor(false, 'SR')).toBe('#c8ced8');
   });
 });

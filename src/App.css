@@ -2604,6 +2604,14 @@ button.battle-hub-deck-icon.is-drop-target {
   margin: 0 0 0.85rem;
 }
 
+.level-up-bp-notice {
+  margin: 0 0 0.75rem;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
 .level-up-close {
   box-sizing: border-box;
   width: 100%;

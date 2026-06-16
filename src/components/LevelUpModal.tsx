@@ -185,6 +185,7 @@ export function LevelUpModal({
             })}
           </ul>
         )}
+        <p className="level-up-bp-notice">全カードのBPがアップしました！</p>
         <button type="button" className="level-up-close" onClick={onClose}>
           OK
         </button>

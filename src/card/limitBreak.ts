@@ -2,12 +2,20 @@ import {
   calcLimitBreakBpGain,
   LIMIT_BREAK_SHARDS_REQUIRED,
 } from '../config/economy';
-import { getRarityMeta } from '../config/rarity';
 import { getCardFoundationBp } from './createCard';
 import { isCardLost } from './status';
 import type { Card, CardRarity, CardStars } from '../types';
 
 const STAR_EMPTY_COLOR = '#c8ced8';
+
+/** 獲得★の塗りつぶし色（レア枠色よりやや濃い） */
+const LIMIT_BREAK_STAR_FILLED_COLOR: Record<CardRarity, string> = {
+  N: '#8e98a6',
+  R: '#2579a8',
+  SR: '#9a7815',
+  UR: '#6636a3',
+  L: '#9f182e',
+};
 
 export type LimitBreakOutcomeKind = 'star' | 'rarity';
 
@@ -101,7 +109,7 @@ export function getLimitBreakStarColor(
   filled: boolean,
   rarity: CardRarity,
 ): string {
-  return filled ? getRarityMeta(rarity).rowBorder : STAR_EMPTY_COLOR;
+  return filled ? LIMIT_BREAK_STAR_FILLED_COLOR[rarity] : STAR_EMPTY_COLOR;
 }
 
 export function getUpgradedRarity(rarity: CardRarity): CardRarity | null {

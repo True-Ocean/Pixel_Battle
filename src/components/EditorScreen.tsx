@@ -111,6 +111,7 @@ export function EditorScreen({
   const [tool, setTool] = useState<EditorToolId>('pen');
   const [error, setError] = useState<string | null>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const isComposingNameRef = useRef(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [devForceAttribute, setDevForceAttribute] = useState<Attribute | null>(
@@ -280,7 +281,8 @@ export function EditorScreen({
       setError(validationError);
       return;
     }
-    persistCard();
+    setError(null);
+    setConfirmSaveOpen(true);
   };
 
   return (
@@ -355,7 +357,7 @@ export function EditorScreen({
               type="text"
               value={name}
               placeholder="例：ほのおの剣"
-              readOnly={isEditing || confirmCreateOpen}
+              readOnly={isEditing || confirmCreateOpen || confirmSaveOpen}
               className={isEditing ? 'editor-name-readonly' : undefined}
               onCompositionStart={() => {
                 isComposingNameRef.current = true;
@@ -427,6 +429,21 @@ export function EditorScreen({
         </button>
       </div>
 
+      {isEditing && (
+        <ConfirmDialog
+          open={confirmSaveOpen}
+          title="編集内容を保存しますか？"
+          message="編集内容によってBPが増減する可能性があります。よろしいですか？"
+          confirmLabel="保存する"
+          cancelLabel="キャンセル"
+          confirmVariant="primary"
+          onConfirm={() => {
+            setConfirmSaveOpen(false);
+            persistCard();
+          }}
+          onCancel={() => setConfirmSaveOpen(false)}
+        />
+      )}
       {!isEditing && (
         <ConfirmDialog
           open={confirmCreateOpen}

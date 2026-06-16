@@ -81,6 +81,9 @@ export function DeckCardDetailOverlay({
     attributeShardCount,
     universalShardCount,
   );
+  const attributeShardsUnavailable =
+    attributeShardCount === 0 &&
+    universalShardCount >= LIMIT_BREAK_SHARDS_REQUIRED;
   const reviveAriaLabel = canAffordRevive
     ? `完全復活 ${reviveCost.toLocaleString()}px`
     : `完全復活 ${reviveCost.toLocaleString()}px 必要・不足`;
@@ -146,7 +149,13 @@ export function DeckCardDetailOverlay({
         {!isLost && showLimitBreak && hasLimitBreakResources && attrSpendRange && (
           <div className="deck-card-detail-limit-break">
             <div className="deck-card-detail-limit-break-picker deck-card-detail-limit-break-picker--split">
-              <div className="deck-card-detail-limit-break-picker-col">
+              <div
+                className={`deck-card-detail-limit-break-picker-col${
+                  attributeShardsUnavailable
+                    ? ' deck-card-detail-limit-break-picker-col--unavailable'
+                    : ''
+                }`}
+              >
                 <span
                   className="deck-card-detail-limit-break-picker-name"
                   aria-label={`${attrMeta.label}のかけら 所持 ${attributeShardCount}`}

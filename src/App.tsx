@@ -643,7 +643,22 @@ function App() {
           return updated ? markCardLost(updated) : markCardLost(lostCard);
         });
       }
-      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextActiveDeck);
+      let nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextActiveDeck);
+      if (nextUser && nextUser.level > (prevUser?.level ?? 1)) {
+        const newLevel = nextUser.level;
+        nextDecks = nextDecks.map((deck) => {
+          const cards = getDeckCards(deck);
+          const rescaled = rescaleDeckBp(cards, newLevel);
+          const normalized = normalizeDeckLayout(deck);
+          let cursor = 0;
+          return normalized.map((card) => {
+            if (card == null) return null;
+            const updated = rescaled[cursor];
+            cursor += 1;
+            return updated ?? card;
+          });
+        });
+      }
       const nextHistory = appendBattleHistory(
         battleHistoryRef.current,
         createBattleHistoryEntry(outcome, {

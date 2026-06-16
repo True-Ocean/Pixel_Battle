@@ -19,6 +19,7 @@ import {
   finalizeCardNameForCreation,
   validateCardNameForCreation,
 } from './cardNameInput';
+import { calcLimitBreakBpGain } from '../config/economy';
 
 export interface CardDraft {
   attribute: Attribute;
@@ -207,7 +208,18 @@ export function getCardFoundationBp(card: Card, userLevel: number): number {
   return computeCardBaseBp(bpBlend, userLevel, card.attribute);
 }
 
-/** 既存カードの BP をユーザーレベルに合わせて再算出（絵・属性・レアは維持） */
+/**
+ * レアリティと★数から、累計の限界突破回数を返す。
+ * N★0=0, N★1=1, N★2=2, N★3=3
+ * R★0=4 (N★3→R昇格で+1), R★1=5, ...
+ * SR★0=8, SR★1=9, ...
+ */
+function countLimitBreaks(card: Pick<Card, 'rarity' | 'stars'>): number {
+  const rarityOffset: Record<string, number> = { N: 0, R: 4, SR: 8 };
+  return (rarityOffset[card.rarity] ?? 0) + card.stars;
+}
+
+/** 既存カードの BP をユーザーレベルに合わせて再算出（絵・属性・レア・限界突破済みBPを維持） */
 export function recalculateCardBp(card: Card, userLevel: number): number {
   const size = gridSize(card.pixels);
   const ratios = computeColorRatios(
@@ -219,7 +231,13 @@ export function recalculateCardBp(card: Card, userLevel: number): number {
 
   const bpBlend = computeBpBlend(card.name.trim(), card.pixels, ratios);
   const baseBp = computeCardBaseBp(bpBlend, userLevel, card.attribute);
-  return applyRarityToBp(baseBp, card.attribute, card.rarity, userLevel);
+  const rarityBp = applyRarityToBp(baseBp, card.attribute, card.rarity, userLevel);
+
+  const limitBreakCount = countLimitBreaks(card);
+  if (limitBreakCount === 0) return rarityBp;
+
+  const gainPerBreak = calcLimitBreakBpGain(baseBp);
+  return rarityBp + gainPerBreak * limitBreakCount;
 }
 
 export function rescaleDeckBp(deck: Card[], userLevel: number): Card[] {
@@ -229,7 +247,7 @@ export function rescaleDeckBp(deck: Card[], userLevel: number): Card[] {
   }));
 }
 
-/** 既存カードの見た目・名前を更新（属性・レア・戦績等は維持、BPのみ再算出） */
+/** 既存カードの見た目・名前を更新（属性・レア・戦績等は維持、BPのみ再算出。限界突破済みのBP加算も維持） */
 export function updateCardFromDrawing(
   existing: Card,
   name: string,
@@ -245,12 +263,18 @@ export function updateCardFromDrawing(
   );
   const bpBlend = computeBpBlend(trimmed, normalized, ratios);
   const baseBp = computeCardBaseBp(bpBlend, userLevel, existing.attribute);
-  const bp = applyRarityToBp(
+  const rarityBp = applyRarityToBp(
     baseBp,
     existing.attribute,
     existing.rarity,
     userLevel,
   );
+
+  const limitBreakCount = countLimitBreaks(existing);
+  const bp =
+    limitBreakCount > 0
+      ? rarityBp + calcLimitBreakBpGain(baseBp) * limitBreakCount
+      : rarityBp;
 
   return {
     ...existing,
