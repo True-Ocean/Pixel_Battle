@@ -7,7 +7,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
+import { DECK_MAX } from '../config/balance';
 import {
   countDeckCards,
   getBattleReadyDeckIndices,
@@ -32,7 +32,7 @@ const BATTLE_HUB_LONG_PRESS_MS = 500;
 const BATTLE_HUB_DRAG_CHIP_SIZE = 56;
 const BATTLE_HUB_MOVE_THRESHOLD = 8;
 
-type BattleHubDeckStatus = 'ready' | 'incomplete' | 'locked';
+type BattleHubDeckStatus = 'ready' | 'incomplete';
 
 interface BattleHubDragState {
   cardId: string;
@@ -128,18 +128,12 @@ export function BattleHubScreen({
   };
 
   const deckRows = useMemo(() => {
-    return Array.from({ length: DECK_SLOT_COUNT }, (_, index) => {
-      const unlocked = isDeckSlotUnlocked(index, unlockedDeckCount);
+    return Array.from({ length: unlockedDeckCount }, (_, index) => {
       const layout = normalizeDeckLayout(decks[index] ?? []);
       const cardCount = countDeckCards(layout);
-      let status: BattleHubDeckStatus;
-      if (!unlocked) {
-        status = 'locked';
-      } else if (isDeckBattleReady(layout)) {
-        status = 'ready';
-      } else {
-        status = 'incomplete';
-      }
+      const status: BattleHubDeckStatus = isDeckBattleReady(layout)
+        ? 'ready'
+        : 'incomplete';
       return {
         index,
         layout,
@@ -326,17 +320,13 @@ export function BattleHubScreen({
             const isSelected = status === 'ready' && selectedIndex === index;
             const isSelectable = status === 'ready';
             const statusLabel =
-              status === 'locked'
-                ? '未解放'
-                : status === 'incomplete'
-                  ? `${cardCount}/${DECK_MAX}枚`
-                  : `戦力 ${power}`;
+              status === 'incomplete'
+                ? `${cardCount}/${DECK_MAX}枚`
+                : `戦力 ${power}`;
             const tileLabel =
               status === 'ready'
                 ? `${deckLabel} 戦力${power}`
-                : status === 'locked'
-                  ? `${deckLabel} 未解放`
-                  : `${deckLabel} ${cardCount}/${DECK_MAX}枚`;
+                : `${deckLabel} ${cardCount}/${DECK_MAX}枚`;
 
             return (
               <li key={index}>
@@ -344,7 +334,6 @@ export function BattleHubScreen({
                   className={[
                     'battle-hub-deck-tile',
                     isSelected ? 'is-selected' : '',
-                    status === 'locked' ? 'is-locked' : '',
                     status === 'incomplete' ? 'is-incomplete' : '',
                   ]
                     .filter(Boolean)
@@ -365,13 +354,6 @@ export function BattleHubScreen({
                           <>
                             戦力 <strong>{power}</strong>
                           </>
-                        ) : status === 'locked' ? (
-                          <>
-                            <span className="battle-hub-deck-lock" aria-hidden>
-                              🔒
-                            </span>{' '}
-                            未解放
-                          </>
                         ) : (
                           <>
                             <strong>{cardCount}</strong>/{DECK_MAX}枚
@@ -382,16 +364,6 @@ export function BattleHubScreen({
                   </button>
                   <div className="battle-hub-deck-icons">
                     {layout.map((card, slotIndex) => {
-                      if (status === 'locked') {
-                        return (
-                          <div
-                            key={`locked-${slotIndex}`}
-                            className="battle-hub-deck-icon battle-hub-deck-icon--locked"
-                            data-battle-hub-deck-index={index}
-                            data-battle-hub-slot-index={slotIndex}
-                          />
-                        );
-                      }
                       if (!card) {
                         const isDropTarget =
                           dragState != null &&
