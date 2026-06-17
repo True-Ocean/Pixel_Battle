@@ -1470,12 +1470,25 @@ button.battle-hub-deck-icon.is-move-target {
   display: flex;
   align-items: center;
   gap: 0.55rem;
+  width: 100%;
   padding: 0.35rem 0.45rem;
   border-style: solid;
   border-width: 1px;
   border-color: var(--rarity-border, #e2e8f0);
   border-radius: 10px;
   background: var(--rarity-bg, #fafafa);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.records-history-card-row:hover {
+  filter: brightness(0.98);
+}
+
+.records-history-card-row:active {
+  filter: brightness(0.96);
 }
 
 .records-history-card-art .card-preview {
@@ -3729,6 +3742,10 @@ button.battle-hub-deck-icon.is-move-target {
 
 .card-list-reordering .deck-card-row {
   cursor: default;
+}
+
+.deck-card-detail-backdrop--stacked {
+  z-index: 1200;
 }
 
 .deck-card-detail-backdrop {
