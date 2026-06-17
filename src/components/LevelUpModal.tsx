@@ -115,8 +115,8 @@ export function LevelUpModal({
           <p className="level-up-reward-main" aria-label={rewardAriaLabel}>
             {totalPixelsGranted > 0 && (
               <span className="level-up-reward-px">
-                <span>{totalPixelsGranted.toLocaleString()}</span>
                 <PixelCoinIcon className="level-up-reward-coin-icon" />
+                <span>{totalPixelsGranted.toLocaleString()}</span>
               </span>
             )}
             {totalPixelsGranted > 0 && showJewels && (
@@ -125,19 +125,19 @@ export function LevelUpModal({
             {showJewels && jewelBreakdown.bonus > 0 ? (
               <>
                 <span className="level-up-reward-jewels">
-                  <span>{jewelBreakdown.base.toLocaleString()}</span>
                   <JewelIcon className="level-up-reward-jewel-icon" />
+                  <span>{jewelBreakdown.base.toLocaleString()}</span>
                 </span>
                 <span className="level-up-reward-sep">・更に</span>
                 <span className="level-up-reward-jewels">
-                  <span>{jewelBreakdown.bonus.toLocaleString()}</span>
                   <JewelIcon className="level-up-reward-jewel-icon" />
+                  <span>{jewelBreakdown.bonus.toLocaleString()}</span>
                 </span>
               </>
             ) : showJewels ? (
               <span className="level-up-reward-jewels">
-                <span>{totalJewelsGranted.toLocaleString()}</span>
                 <JewelIcon className="level-up-reward-jewel-icon" />
+                <span>{totalJewelsGranted.toLocaleString()}</span>
               </span>
             ) : null}
             <span className="level-up-reward-get"> ゲット！</span>

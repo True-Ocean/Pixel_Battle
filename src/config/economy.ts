@@ -1,9 +1,6 @@
 import { countPaintedCells, countUniqueColors } from '../card/paintStats';
 import type { Card, CardRarity, CardStars } from '../types';
 
-/** カード削除時のピクセル返還率（塗り数に対する割合） */
-export const CARD_DELETE_PIXEL_REFUND_RATE = 0.01;
-
 /** ロスト抽選: レア度倍率 */
 export const LOST_WEIGHT_RARITY: Record<Extract<CardRarity, 'N' | 'R' | 'SR'>, number> = {
   N: 1.0,
@@ -29,7 +26,7 @@ export const JEWELS_BONUS_MOD4 = 10;
 export const UNIVERSAL_LIMIT_BREAK_LEVEL_REWARD = 10;
 
 /** 通常カード削除のジュエルコスト */
-export const JEWEL_COST_DELETE = 30;
+export const JEWEL_COST_DELETE = 1;
 
 /** カード名変更（2回目以降）のジュエルコスト。初回命名は無料 */
 export const JEWEL_COST_RENAME = 50;
@@ -104,11 +101,8 @@ export const SHOP_TALISMAN_JEWELS = 25;
 /** 開発用モックジュエルパック */
 export const MOCK_JEWEL_PACK_SMALL = 100;
 
-/** 完全復活に必要な px（一律） */
-export const FULL_REVIVE_COST = 4000;
-
-/** 降格復活に必要な px（一律） */
-export const DOWNGRADE_REVIVE_COST = 2000;
+/** 復活コスト: 塗りマス数に対する倍率 */
+export const REVIVE_PAINTED_MULTIPLIER = 3;
 
 /** 勝利時・生存1枚あたりのピクセル */
 export const PIXELS_PER_SURVIVOR = 10;
@@ -157,12 +151,41 @@ export function calcTotalLevelUpJewels(levelsGained: readonly number[]): number 
   return total;
 }
 
-export function calcFullReviveCost(): number {
-  return FULL_REVIVE_COST;
+export function reviveRarityMultiplier(rarity: CardRarity): number {
+  if (rarity === 'R' || rarity === 'SR') return LOST_WEIGHT_RARITY[rarity];
+  if (rarity === 'N') return LOST_WEIGHT_RARITY.N;
+  return LOST_WEIGHT_RARITY.SR;
 }
 
-export function calcDowngradeReviveCost(): number {
-  return DOWNGRADE_REVIVE_COST;
+export function reviveStarsMultiplier(stars: CardStars): number {
+  return LOST_WEIGHT_STARS[stars];
+}
+
+function calcReviveCostFromSlope(
+  card: Card,
+  rarity: CardRarity,
+  stars: CardStars,
+): number {
+  const painted = countPaintedCells(card.pixels);
+  if (painted <= 0) return 1;
+  const cost =
+    painted *
+    REVIVE_PAINTED_MULTIPLIER *
+    reviveRarityMultiplier(rarity) *
+    reviveStarsMultiplier(stars);
+  return Math.floor(cost);
+}
+
+/** 復活に必要な px（塗り×3 × 現レア × ★） */
+export function calcFullReviveCost(card: Card): number {
+  return calcReviveCostFromSlope(card, card.rarity, card.stars);
+}
+
+/** 降格復活に必要な px（塗り×3 × 復活後レア × 現★） */
+export function calcDowngradeReviveCost(card: Card): number {
+  const nextRarity: CardRarity =
+    card.rarity === 'SR' ? 'R' : card.rarity === 'R' ? 'N' : card.rarity;
+  return calcReviveCostFromSlope(card, nextRarity, card.stars);
 }
 
 export function calcColorDiversityMultiplier(uniqueColors: number): number {
@@ -258,8 +281,20 @@ export function pickWeightedLostCard(
   return cards[cards.length - 1]!;
 }
 
-/** カード削除時の px 返還 */
+/** カード削除時の px 返還（勝利時の墓地戦利品と同式） */
 export function calcCardDeleteRefundPixels(card: Card): number {
-  const painted = countPaintedCells(card.pixels);
-  return Math.ceil(painted * CARD_DELETE_PIXEL_REFUND_RATE);
+  return calcGraveyardPixelReward(card);
+}
+
+export interface LostCardDeleteRewards {
+  pixels: number;
+  shards: number;
+}
+
+/** カード削除時に付与する px と属性かけら */
+export function calcLostCardDeleteRewards(card: Card): LostCardDeleteRewards {
+  return {
+    pixels: calcCardDeleteRefundPixels(card),
+    shards: calcGraveyardShardReward(card),
+  };
 }

@@ -3,20 +3,19 @@ import type { Card } from '../types';
 import {
   COLOR_DIVERSITY_MAX_MULTIPLIER,
   GRAVEYARD_SQRT_MULTIPLIER,
-  FULL_REVIVE_COST,
-  DOWNGRADE_REVIVE_COST,
+  REVIVE_PAINTED_MULTIPLIER,
   LEVEL_UP_PIXEL_REWARD,
   LOST_MIN_USER_LEVEL,
   TALISMAN_STARTER_GRANT_COUNT,
   TALISMAN_STARTER_GRANT_LEVEL,
-  CARD_DELETE_PIXEL_REFUND_RATE,
   PIXELS_PER_SURVIVOR,
   calcCardDeleteRefundPixels,
   calcColorDiversityMultiplier,
-  calcFullReviveCost,
   calcDowngradeReviveCost,
+  calcFullReviveCost,
   calcGraveyardPixelReward,
   calcGraveyardShardReward,
+  calcLostCardDeleteRewards,
   calcLevelUpPixels,
   calcLevelUpJewels,
   calcLevelUpJewelBonus,
@@ -58,8 +57,7 @@ describe('economy constants', () => {
     expect(LOST_MIN_USER_LEVEL).toBe(5);
     expect(TALISMAN_STARTER_GRANT_LEVEL).toBe(5);
     expect(TALISMAN_STARTER_GRANT_COUNT).toBe(1);
-    expect(FULL_REVIVE_COST).toBe(4000);
-    expect(DOWNGRADE_REVIVE_COST).toBe(2000);
+    expect(REVIVE_PAINTED_MULTIPLIER).toBe(3);
     expect(PIXELS_PER_SURVIVOR).toBe(10);
     expect(GRAVEYARD_SQRT_MULTIPLIER).toBe(1);
   });
@@ -103,14 +101,39 @@ describe('calcLevelUpJewels', () => {
 });
 
 describe('calcFullReviveCost', () => {
-  it('returns flat revive cost', () => {
-    expect(calcFullReviveCost()).toBe(4000);
+  it('uses floor(painted × 3 × rarity × stars); min 1 when unpainted', () => {
+    const filled = Array.from({ length: 16 }, () =>
+      Array.from({ length: 16 }, () => '#ff0000'),
+    );
+    const card256 = makeCard(filled);
+    expect(calcFullReviveCost(card256)).toBe(768);
+
+    const srStars3 = makeCard(filled, { rarity: 'SR', stars: 3 });
+    expect(calcFullReviveCost(srStars3)).toBe(
+      Math.floor(256 * 3 * 1.6 * 1.5),
+    );
+
+    const empty = makeCard(
+      Array.from({ length: 4 }, () => Array.from({ length: 4 }, () => null)),
+    );
+    expect(calcFullReviveCost(empty)).toBe(1);
   });
 });
 
 describe('calcDowngradeReviveCost', () => {
-  it('returns flat downgrade revive cost', () => {
-    expect(calcDowngradeReviveCost()).toBe(2000);
+  it('uses post-downgrade rarity and current stars', () => {
+    const filled = Array.from({ length: 16 }, () =>
+      Array.from({ length: 16 }, () => '#ff0000'),
+    );
+    const srCard = makeCard(filled, { rarity: 'SR', stars: 3 });
+    expect(calcDowngradeReviveCost(srCard)).toBe(
+      Math.floor(256 * 3 * 1.3 * 1.5),
+    );
+
+    const rCard = makeCard(filled, { rarity: 'R', stars: 2 });
+    expect(calcDowngradeReviveCost(rCard)).toBe(
+      Math.floor(256 * 3 * 1.0 * 1.3),
+    );
   });
 });
 
@@ -209,14 +232,19 @@ describe('lost economy helpers', () => {
     expect(pickWeightedLostCard(cards, () => 0.999).id).toBe('b');
   });
 
-  it('returns refund pixels as ceil of painted cells × rate', () => {
+  it('returns refund pixels using graveyard reward formula', () => {
     const card = makeCard([
       ['#ff0000', '#00ff00'],
       ['#0000ff', null],
     ]);
-    expect(CARD_DELETE_PIXEL_REFUND_RATE).toBe(0.01);
-    expect(calcCardDeleteRefundPixels(card)).toBe(
-      Math.ceil(3 * CARD_DELETE_PIXEL_REFUND_RATE),
-    );
+    expect(calcCardDeleteRefundPixels(card)).toBe(calcGraveyardPixelReward(card));
+  });
+
+  it('returns card delete rewards as px refund and graveyard shards', () => {
+    const card = makeCard([[ '#ff0000', '#00ff00' ]], { rarity: 'R' });
+    expect(calcLostCardDeleteRewards(card)).toEqual({
+      pixels: calcCardDeleteRefundPixels(card),
+      shards: calcGraveyardShardReward(card),
+    });
   });
 });

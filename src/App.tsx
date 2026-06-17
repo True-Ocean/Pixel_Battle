@@ -14,13 +14,14 @@ import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, c
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
 import {
-  calcCardDeleteRefundPixels,
   calcDowngradeReviveCost,
   calcFullReviveCost,
   calcGraveyardShardReward,
+  calcLostCardDeleteRewards,
   calcSurvivorPixels,
   calcVictoryBattlePixels,
   countBattleSurvivors,
+  JEWEL_COST_DELETE,
 } from './config/economy';
 import { LevelUpModal } from './components/LevelUpModal';
 import { LimitBreakSuccessModal } from './components/LimitBreakSuccessModal';
@@ -466,7 +467,19 @@ function App() {
     [updateActiveDeck],
   );
 
-  const removeCardFromActiveDeck = useCallback(
+  const removeCardFromDeck = useCallback((id: string) => {
+    const deckIndex = activeDeckIndexRef.current;
+    const prevDecks = decksRef.current;
+    const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+    const nextLayout = prevLayout.map((card) => (card?.id === id ? null : card));
+    const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
+    setDecks(nextDecks);
+    decksRef.current = nextDecks;
+    setDetailCardId((current) => (current === id ? null : current));
+    return nextDecks;
+  }, []);
+
+  const deleteDeckCard = useCallback(
     (id: string) => {
       const deckIndex = activeDeckIndexRef.current;
       const prevDecks = decksRef.current;
@@ -474,37 +487,43 @@ function App() {
       const target = prevLayout.find((card) => card?.id === id);
       if (!target) return;
 
-      const refundPixels = calcCardDeleteRefundPixels(target);
-      const nextLayout = prevLayout.map((card) =>
-        card?.id === id ? null : card,
-      );
-      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
-      const nextEconomy = addFreePixels(economyRef.current, refundPixels);
+      const nextEconomy = spendJewels(economyRef.current, JEWEL_COST_DELETE);
+      if (!nextEconomy) return;
 
-      persistSave({ decks: nextDecks, economy: nextEconomy });
-      setDecks(nextDecks);
-      setEconomy(nextEconomy);
-      decksRef.current = nextDecks;
-      economyRef.current = nextEconomy;
-      setDetailCardId((current) => (current === id ? null : current));
+      const { pixels, shards } = calcLostCardDeleteRewards(target);
+      const economyAfter = addFreePixels(nextEconomy, pixels);
+      let inventoryAfter = inventoryRef.current;
+      if (shards > 0) {
+        inventoryAfter = addLimitBreakShards(
+          inventoryAfter,
+          target.attribute,
+          shards,
+        );
+      }
+
+      const nextDecks = removeCardFromDeck(id);
+      persistSave({
+        decks: nextDecks,
+        economy: economyAfter,
+        inventory: inventoryAfter,
+      });
+      setEconomy(economyAfter);
+      setInventory(inventoryAfter);
+      economyRef.current = economyAfter;
+      inventoryRef.current = inventoryAfter;
     },
-    [persistSave],
-  );
-
-  const deleteCard = useCallback(
-    (id: string) => removeCardFromActiveDeck(id),
-    [removeCardFromActiveDeck],
+    [persistSave, removeCardFromDeck],
   );
 
   const reviveLostCard = useCallback(
     (id: string) => {
-      const cost = calcFullReviveCost();
       const deckIndex = activeDeckIndexRef.current;
       const prevDecks = decksRef.current;
       const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
       const target = prevLayout.find((card) => card?.id === id);
       if (!target || !isCardLost(target)) return;
 
+      const cost = calcFullReviveCost(target);
       const nextEconomy = spendFreePixels(economyRef.current, cost);
       if (!nextEconomy) return;
 
@@ -524,13 +543,13 @@ function App() {
 
   const downgradeReviveLostCard = useCallback(
     (id: string) => {
-      const cost = calcDowngradeReviveCost();
       const deckIndex = activeDeckIndexRef.current;
       const prevDecks = decksRef.current;
       const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
       const target = prevLayout.find((card) => card?.id === id);
       if (!target || !isCardLost(target)) return;
 
+      const cost = calcDowngradeReviveCost(target);
       const userLevel = userRef.current?.level ?? 1;
       const nextEconomy = spendFreePixels(economyRef.current, cost);
       if (!nextEconomy) return;
@@ -1381,15 +1400,13 @@ function App() {
               setDeckReorderMode(false);
               setScreen('editor');
             }}
-            onDeleteCard={deleteCard}
+            onDeleteCard={deleteDeckCard}
             onReviveLostCard={reviveLostCard}
             onDowngradeReviveLostCard={downgradeReviveLostCard}
             inventory={inventory}
             onLimitBreakCard={limitBreakCard}
             freePixels={economy.freePixels}
             jewels={economy.jewels}
-            reviveCost={calcFullReviveCost()}
-            downgradeReviveCost={calcDowngradeReviveCost()}
             onReorderDeck={reorderDeck}
             onMoveCardBetweenDecks={moveCardBetweenDecks}
             onPrototypeUnlockDeck={handlePrototypeUnlockNextDeck}

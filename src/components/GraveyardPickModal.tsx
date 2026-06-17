@@ -57,8 +57,8 @@ function PixelReward({
 }) {
   return (
     <span className="graveyard-pick-px-reward">
-      +{amount.toLocaleString()}
       <PixelCoinIcon className={iconClassName} />
+      {amount.toLocaleString()}
     </span>
   );
 }
@@ -72,8 +72,8 @@ function ExpReward({
 }) {
   return (
     <span className="graveyard-pick-exp-reward">
-      +{amount.toLocaleString()}
       <ExpIcon className={iconClassName} />
+      {amount.toLocaleString()}
     </span>
   );
 }

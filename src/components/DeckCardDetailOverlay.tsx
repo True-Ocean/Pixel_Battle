@@ -11,7 +11,7 @@ import {
   isValidLimitBreakShardSpend,
   type LimitBreakShardSpendPlan,
 } from '../card';
-import { getLimitBreakRarityJewelCost, LIMIT_BREAK_SHARDS_REQUIRED } from '../config/economy';
+import { getLimitBreakRarityJewelCost, JEWEL_COST_DELETE, LIMIT_BREAK_SHARDS_REQUIRED } from '../config/economy';
 import { getAttributeMeta } from '../config/attributes';
 import { canAffordLimitBreak } from '../user/inventory';
 import type { Card } from '../types';
@@ -57,6 +57,7 @@ export function DeckCardDetailOverlay({
   onDowngradeReviveLost,
   onLimitBreak,
 }: DeckCardDetailOverlayProps) {
+  const canAffordDelete = jewels >= JEWEL_COST_DELETE;
   const canAffordRevive = freePixels >= reviveCost;
   const showDowngradeRevive = canDowngradeRevive(card);
   const canAffordDowngradeRevive = freePixels >= downgradeReviveCost;
@@ -96,8 +97,8 @@ export function DeckCardDetailOverlay({
     attributeShardCount === 0 &&
     universalShardCount >= LIMIT_BREAK_SHARDS_REQUIRED;
   const reviveAriaLabel = canAffordRevive
-    ? `完全復活 ${reviveCost.toLocaleString()}px`
-    : `完全復活 ${reviveCost.toLocaleString()}px 必要・不足`;
+    ? `復活 ${reviveCost.toLocaleString()}px`
+    : `復活 ${reviveCost.toLocaleString()}px 必要・不足`;
   const downgradeReviveAriaLabel = canAffordDowngradeRevive
     ? `降格復活 ${downgradeReviveCost.toLocaleString()}px`
     : `降格復活 ${downgradeReviveCost.toLocaleString()}px 必要・不足`;
@@ -292,7 +293,7 @@ export function DeckCardDetailOverlay({
                 aria-label={reviveAriaLabel}
                 onClick={onReviveLost}
               >
-                <span className="deck-card-detail-revive-label">完全復活</span>
+                <span className="deck-card-detail-revive-label">復活</span>
                 <PixelCoinIcon className="deck-card-detail-revive-coin" />
                 <span className="deck-card-detail-revive-cost">
                   {reviveCost.toLocaleString()}
@@ -319,10 +320,18 @@ export function DeckCardDetailOverlay({
               )}
               <button
                 type="button"
-                className="deck-card-detail-delete"
+                className={`deck-card-detail-delete${
+                  canAffordDelete ? '' : ' deck-card-detail-delete--pending'
+                }`}
+                disabled={!canAffordDelete}
                 onClick={onDeleteLost}
               >
-                削除
+                <span className="deck-card-detail-delete-label">削除</span>
+                <JewelAmount
+                  amount={JEWEL_COST_DELETE}
+                  className="deck-card-detail-delete-jewel"
+                  iconClassName="deck-card-detail-delete-jewel-icon"
+                />
               </button>
             </>
           ) : (
@@ -330,8 +339,20 @@ export function DeckCardDetailOverlay({
               <button type="button" className="deck-card-detail-edit" onClick={onEdit}>
                 編集
               </button>
-              <button type="button" className="deck-card-detail-delete" onClick={onDelete}>
-                削除
+              <button
+                type="button"
+                className={`deck-card-detail-delete${
+                  canAffordDelete ? '' : ' deck-card-detail-delete--pending'
+                }`}
+                disabled={!canAffordDelete}
+                onClick={onDelete}
+              >
+                <span className="deck-card-detail-delete-label">削除</span>
+                <JewelAmount
+                  amount={JEWEL_COST_DELETE}
+                  className="deck-card-detail-delete-jewel"
+                  iconClassName="deck-card-detail-delete-jewel-icon"
+                />
               </button>
             </>
           )}

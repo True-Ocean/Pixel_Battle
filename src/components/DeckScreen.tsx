@@ -1,6 +1,11 @@
 import { useCallback, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
 import { canDowngradeRevive, computeDeckPower, getDowngradedRarity, isCardLost, type LimitBreakShardSpendPlan } from '../card';
-import { calcCardDeleteRefundPixels } from '../config/economy';
+import {
+  calcDowngradeReviveCost,
+  calcFullReviveCost,
+  calcLostCardDeleteRewards,
+  JEWEL_COST_DELETE,
+} from '../config/economy';
 import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
 import {
   countDeckCards,
@@ -23,6 +28,8 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
 import { DeckRenameDialog } from './DeckRenameDialog';
 import { DeckUnlockModal } from './DeckUnlockModal';
+import { JewelAmount } from './JewelIcon';
+import { PixelCoinIcon } from './PixelCoinIcon';
 import {
   findDeckDropIndex,
   findDeckTabIndexAtPoint,
@@ -33,7 +40,7 @@ const DECK_DRAG_CHIP_SIZE = 56;
 const DECK_TAB_LONG_PRESS_MS = 500;
 const DECK_TAB_DOUBLE_TAP_MS = 320;
 
-interface DeckScreenProps {
+export interface DeckScreenProps {
   deck: DeckLayout;
   decks: DeckLayout[];
   activeDeckIndex: number;
@@ -54,8 +61,6 @@ interface DeckScreenProps {
   onLimitBreakCard: (id: string, spend: LimitBreakShardSpendPlan) => void;
   freePixels: number;
   jewels: number;
-  reviveCost: number;
-  downgradeReviveCost: number;
   onReorderDeck: (deck: DeckLayout) => void;
   onMoveCardBetweenDecks: (
     fromDeckIndex: number,
@@ -219,14 +224,13 @@ function DeckCardRowBody({ card }: { card: Card }) {
   );
 }
 
-function formatReviveConfirmMessage(card: Card, reviveCost: number): string {
-  return `「${card.name}」を完全復活させます。${reviveCost.toLocaleString()}pxを消費します。`;
+function formatReviveConfirmMessage(card: Card): string {
+  const reviveCost = calcFullReviveCost(card);
+  return `「${card.name}」を復活させます。${reviveCost.toLocaleString()}pxを消費します。`;
 }
 
-function formatDowngradeReviveConfirmMessage(
-  card: Card,
-  downgradeReviveCost: number,
-): string {
+function formatDowngradeReviveConfirmMessage(card: Card): string {
+  const downgradeReviveCost = calcDowngradeReviveCost(card);
   const nextRarity = getDowngradedRarity(card.rarity);
   const transition =
     nextRarity != null
@@ -236,13 +240,45 @@ function formatDowngradeReviveConfirmMessage(
   return `${downgradeReviveCost.toLocaleString()}px消費して「${card.name}」を降格復活${transitionNote}させます。`;
 }
 
-function formatDeleteConfirmMessage(card: Card): string {
-  const refundPixels = calcCardDeleteRefundPixels(card);
-  const refundNote =
-    refundPixels > 0
-      ? ` 削除すると +${refundPixels.toLocaleString()}px 返還されます。`
-      : '';
-  return `「${card.name}」をデッキから削除します。戦績も失われます。${refundNote}`;
+function DeleteConfirmMessage({ card }: { card: Card }) {
+  const { pixels, shards } = calcLostCardDeleteRewards(card);
+  const hasRefund = pixels > 0 || shards > 0;
+
+  return (
+    <span className="confirm-dialog-message-body">
+      <span className="confirm-dialog-message-line">
+        <JewelAmount
+          amount={JEWEL_COST_DELETE}
+          className="confirm-dialog-jewel-amount"
+          iconClassName="confirm-dialog-jewel-icon"
+        />
+        を消費して、「{card.name}」をデッキから削除します。
+      </span>
+      {hasRefund && (
+        <span className="confirm-dialog-message-line confirm-dialog-message-line--refund">
+          {pixels > 0 && (
+            <span className="confirm-dialog-px-reward">
+              <PixelCoinIcon className="confirm-dialog-coin-icon" />
+              {pixels.toLocaleString()}
+            </span>
+          )}
+          {pixels > 0 && shards > 0 ? 'と' : null}
+          {shards > 0 && (
+            <span className="confirm-dialog-shard-reward">
+              <AttributeBadge
+                attribute={card.attribute}
+                className="confirm-dialog-shard-badge"
+              />
+              <span className="confirm-dialog-shard-label">
+                のかけら{shards > 1 ? `${shards.toLocaleString()}個` : '1個'}
+              </span>
+            </span>
+          )}
+          が返還されます。
+        </span>
+      )}
+    </span>
+  );
 }
 
 export function DeckScreen({
@@ -266,8 +302,6 @@ export function DeckScreen({
   onLimitBreakCard,
   freePixels,
   jewels,
-  reviveCost,
-  downgradeReviveCost,
   onReorderDeck,
   onMoveCardBetweenDecks,
   onPrototypeUnlockDeck,
@@ -314,13 +348,18 @@ export function DeckScreen({
     [deckLayout, onReorderDeck],
   );
 
-  const handleDeleteRequest = useCallback((card: Card) => {
-    setDeleteConfirmFinal(false);
-    setPendingDelete(card);
-  }, []);
+  const handleDeleteRequest = useCallback(
+    (card: Card) => {
+      if (jewels < JEWEL_COST_DELETE) return;
+      setDeleteConfirmFinal(false);
+      setPendingDelete(card);
+    },
+    [jewels],
+  );
 
   const handleDeleteConfirm = useCallback(() => {
     if (!pendingDelete) return;
+    if (jewels < JEWEL_COST_DELETE) return;
     if (!deleteConfirmFinal) {
       setDeleteConfirmFinal(true);
       return;
@@ -335,6 +374,7 @@ export function DeckScreen({
     deckCardCount,
     deleteConfirmFinal,
     exitReorderMode,
+    jewels,
     onDeleteCard,
     pendingDelete,
   ]);
@@ -356,9 +396,9 @@ export function DeckScreen({
 
   const handleReviveRequest = useCallback(() => {
     if (!selectedCard || !isCardLost(selectedCard)) return;
-    if (freePixels < reviveCost) return;
+    if (freePixels < calcFullReviveCost(selectedCard)) return;
     setPendingRevive(selectedCard);
-  }, [freePixels, reviveCost, selectedCard]);
+  }, [freePixels, selectedCard]);
 
   const handleReviveConfirm = useCallback(() => {
     if (!pendingRevive) return;
@@ -372,9 +412,9 @@ export function DeckScreen({
 
   const handleDowngradeReviveRequest = useCallback(() => {
     if (!selectedCard || !canDowngradeRevive(selectedCard)) return;
-    if (freePixels < downgradeReviveCost) return;
+    if (freePixels < calcDowngradeReviveCost(selectedCard)) return;
     setPendingDowngradeRevive(selectedCard);
-  }, [downgradeReviveCost, freePixels, selectedCard]);
+  }, [freePixels, selectedCard]);
 
   const handleDowngradeReviveConfirm = useCallback(() => {
     if (!pendingDowngradeRevive) return;
@@ -896,8 +936,8 @@ export function DeckScreen({
           card={selectedCard}
           isLost={selectedIsLost}
           freePixels={freePixels}
-          reviveCost={reviveCost}
-          downgradeReviveCost={downgradeReviveCost}
+          reviveCost={calcFullReviveCost(selectedCard)}
+          downgradeReviveCost={calcDowngradeReviveCost(selectedCard)}
           attributeShardCount={
             inventory.limitBreakShards[selectedCard.attribute] ?? 0
           }
@@ -948,7 +988,7 @@ export function DeckScreen({
           pendingDelete
             ? deleteConfirmFinal
               ? 'この操作は取り消せません。'
-              : formatDeleteConfirmMessage(pendingDelete)
+              : <DeleteConfirmMessage card={pendingDelete} />
             : ''
         }
         confirmLabel={deleteConfirmFinal ? 'はい（削除する）' : '削除する'}
@@ -959,11 +999,9 @@ export function DeckScreen({
 
       <ConfirmDialog
         open={pendingRevive != null}
-        title="完全復活しますか？"
+        title="復活しますか？"
         message={
-          pendingRevive
-            ? formatReviveConfirmMessage(pendingRevive, reviveCost)
-            : ''
+          pendingRevive ? formatReviveConfirmMessage(pendingRevive) : ''
         }
         confirmLabel="復活する"
         cancelLabel="キャンセル"
@@ -976,10 +1014,7 @@ export function DeckScreen({
         title="降格復活しますか？"
         message={
           pendingDowngradeRevive
-            ? formatDowngradeReviveConfirmMessage(
-                pendingDowngradeRevive,
-                downgradeReviveCost,
-              )
+            ? formatDowngradeReviveConfirmMessage(pendingDowngradeRevive)
             : ''
         }
         confirmLabel="降格復活する"

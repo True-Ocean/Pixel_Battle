@@ -4207,10 +4207,32 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .deck-card-detail-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   border-color: #e53935;
   background: #e53935;
   color: #fff;
   font-weight: 600;
+}
+
+.deck-card-detail-delete-jewel {
+  gap: 0.15rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: inherit;
+}
+
+.deck-card-detail-delete-jewel-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+}
+
+.deck-card-detail-delete--pending {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .deck-card-detail-close {
@@ -4256,6 +4278,60 @@ button.battle-hub-deck-icon.is-move-target {
   color: #555;
   font-size: 0.92rem;
   line-height: 1.5;
+}
+
+.confirm-dialog-jewel-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+  margin: 0 0.1rem;
+  vertical-align: middle;
+  white-space: nowrap;
+  font-weight: 700;
+  color: inherit;
+}
+
+.confirm-dialog-jewel-icon {
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
+}
+
+.confirm-dialog-message-body {
+  display: block;
+}
+
+.confirm-dialog-message-line {
+  display: block;
+}
+
+.confirm-dialog-message-line--refund {
+  margin-top: 0.4rem;
+}
+
+.confirm-dialog-px-reward,
+.confirm-dialog-shard-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.confirm-dialog-coin-icon {
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
+}
+
+.confirm-dialog-shard-badge {
+  width: 1.15em;
+  height: 1.15em;
+  flex-shrink: 0;
+}
+
+.confirm-dialog-shard-label {
+  font-weight: inherit;
 }
 
 .confirm-dialog-actions {

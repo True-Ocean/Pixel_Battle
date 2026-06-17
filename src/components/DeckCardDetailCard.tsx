@@ -90,8 +90,8 @@ export function DeckCardDetailCard({
         <p className="deck-detail-card-lost-note">
           バトルに出せません。削除するか、
           {canDowngradeRevive(card)
-            ? `完全復活（${calcFullReviveCost().toLocaleString()}px）・降格復活（${calcDowngradeReviveCost().toLocaleString()}px）`
-            : `完全復活（${calcFullReviveCost().toLocaleString()}px）`}
+            ? `復活（${calcFullReviveCost(card).toLocaleString()}px）・降格復活（${calcDowngradeReviveCost(card).toLocaleString()}px）`
+            : `復活（${calcFullReviveCost(card).toLocaleString()}px）`}
           で復活できます。
         </p>
       )}

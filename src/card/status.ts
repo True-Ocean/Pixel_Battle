@@ -35,7 +35,7 @@ export function getDowngradedRarity(rarity: CardRarity): CardRarity | null {
   return null;
 }
 
-/** ロストカードを完全復活（active 化 + reviveCount +1） */
+/** ロストカードを復活（active 化 + reviveCount +1） */
 export function applyCardFullRevive(card: Card): Card {
   if (!isCardLost(card)) return card;
   return {
