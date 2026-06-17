@@ -98,6 +98,86 @@ export function isDeckSlotUnlocked(
   return slotIndex >= 0 && slotIndex < unlockedDeckCount;
 }
 
+/** 解放条件モーダル用の固定表示名（カスタム名は使わない） */
+export function getDefaultDeckSlotLabel(index: number): string {
+  return `デッキ${index + 1}`;
+}
+
+export interface DeckUnlockModalContent {
+  title: string;
+  message: string;
+  note?: string;
+  showJewelCost: boolean;
+  allowPrototypeUnlock: boolean;
+}
+
+/** デッキ3（index 2）未解放時の順次解放案内 */
+const DECK_3_PREREQUISITE_NOTE = '先にデッキ2から順に解放してください。';
+
+/** 未解放デッキタップ時のモーダル文言（順次解放: デッキNはデッキN-1解放後） */
+export function getDeckUnlockModalContent(
+  slotIndex: number,
+  unlockedDeckCount: number,
+  userLevel: number,
+): DeckUnlockModalContent {
+  const deckLabel = getDefaultDeckSlotLabel(slotIndex);
+  const nextUnlockIndex = unlockedDeckCount;
+  const previousDeckLabel = getDefaultDeckSlotLabel(slotIndex - 1);
+  const nextDeckLabel = getDefaultDeckSlotLabel(nextUnlockIndex);
+  const title = `${deckLabel} は未解放`;
+  const isDeck3 = slotIndex === 2;
+
+  if (slotIndex > nextUnlockIndex) {
+    return {
+      title,
+      message: `${deckLabel}は${previousDeckLabel}解放後に解放できます。`,
+      note: isDeck3 ? DECK_3_PREREQUISITE_NOTE : `先に${nextDeckLabel}から順に解放してください。`,
+      showJewelCost: false,
+      allowPrototypeUnlock: false,
+    };
+  }
+
+  if (slotIndex === 1) {
+    if (userLevel >= 10) {
+      return {
+        title,
+        message: `${deckLabel}はレベル10到達で自動解放されます。`,
+        showJewelCost: false,
+        allowPrototypeUnlock: true,
+      };
+    }
+    return {
+      title,
+      message: `${deckLabel}はユーザーレベル10到達で解放されます。`,
+      note: `現在 Lv.${userLevel} です。`,
+      showJewelCost: false,
+      allowPrototypeUnlock: true,
+    };
+  }
+
+  const sequentialMessage = `${deckLabel}は${previousDeckLabel}解放後に解放できます。`;
+
+  if (userLevel < 10) {
+    return {
+      title,
+      message: sequentialMessage,
+      note: isDeck3
+        ? DECK_3_PREREQUISITE_NOTE
+        : `現在 Lv.${userLevel} です。ユーザーレベル10到達後にジュエルで解放できます（準備中）。`,
+      showJewelCost: false,
+      allowPrototypeUnlock: true,
+    };
+  }
+
+  return {
+    title,
+    message: sequentialMessage,
+    note: '解放にはジュエルが必要です。ショップ連携は準備中です。',
+    showJewelCost: true,
+    allowPrototypeUnlock: true,
+  };
+}
+
 /** レベルアップ到達時にデッキ2（Lv10）を自動解放 */
 export function resolveDeckUnlockOnLevelUp(
   unlockedDeckCount: number,

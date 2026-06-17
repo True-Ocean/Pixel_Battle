@@ -9,6 +9,7 @@ import {
   getBattleReadyDeckIndices,
   getDeckDisplayName,
   getDeckTabShortLabel,
+  getDeckUnlockModalContent,
   isDeckNameTakenByOtherDeck,
   isDeckSlotUnlocked,
   resolveDeckUnlockOnLevelUp,
@@ -83,6 +84,62 @@ describe('deck display names', () => {
     expect(isDeckNameTakenByOtherDeck(names, 0, '攻撃', 2)).toBe(false);
     expect(isDeckNameTakenByOtherDeck(names, 1, '', 2)).toBe(false);
     expect(isDeckNameTakenByOtherDeck(names, 1, '  攻撃  ', 2)).toBe(true);
+  });
+});
+
+describe('getDeckUnlockModalContent', () => {
+  it('deck 4 requires deck 3 when skipping ahead', () => {
+    const content = getDeckUnlockModalContent(3, 2, 15);
+    expect(content.message).toBe('デッキ4はデッキ3解放後に解放できます。');
+    expect(content.note).toBe('先にデッキ3から順に解放してください。');
+    expect(content.showJewelCost).toBe(false);
+  });
+
+  it('deck 5 requires deck 4 when skipping ahead', () => {
+    const content = getDeckUnlockModalContent(4, 3, 15);
+    expect(content.message).toBe('デッキ5はデッキ4解放後に解放できます。');
+    expect(content.note).toBe('先にデッキ4から順に解放してください。');
+  });
+
+  it('next unlock deck 4 shows jewel offer after deck 3', () => {
+    const content = getDeckUnlockModalContent(3, 3, 15);
+    expect(content.message).toBe('デッキ4はデッキ3解放後に解放できます。');
+    expect(content.showJewelCost).toBe(true);
+    expect(content.allowPrototypeUnlock).toBe(true);
+  });
+
+  it('next unlock deck 3 matches deck 4 wording', () => {
+    const content = getDeckUnlockModalContent(2, 2, 15);
+    expect(content.message).toBe('デッキ3はデッキ2解放後に解放できます。');
+    expect(content.showJewelCost).toBe(true);
+    expect(content.note).toBe('解放にはジュエルが必要です。ショップ連携は準備中です。');
+  });
+
+  it('deck 3 before level 10 uses sequential message', () => {
+    const content = getDeckUnlockModalContent(2, 2, 5);
+    expect(content.message).toBe('デッキ3はデッキ2解放後に解放できます。');
+    expect(content.note).toBe('先にデッキ2から順に解放してください。');
+  });
+
+  it('deck 3 when skipping ahead shows deck 2 prerequisite note', () => {
+    const content = getDeckUnlockModalContent(2, 1, 15);
+    expect(content.note).toBe('先にデッキ2から順に解放してください。');
+  });
+
+  it('deck 2 stays level 10 gated', () => {
+    const content = getDeckUnlockModalContent(1, 1, 5);
+    expect(content.title).toBe('デッキ2 は未解放');
+    expect(content.message).toBe('デッキ2はユーザーレベル10到達で解放されます。');
+    expect(content.note).toBe('現在 Lv.5 です。');
+  });
+
+  it('ignores custom deck names in unlock messages', () => {
+    const content = getDeckUnlockModalContent(2, 2, 15);
+    expect(content.message).toBe('デッキ3はデッキ2解放後に解放できます。');
+    expect(content.message).not.toContain('メイン');
+    expect(getDeckUnlockModalContent(3, 2, 15).message).toBe(
+      'デッキ4はデッキ3解放後に解放できます。',
+    );
   });
 });
 

@@ -968,7 +968,6 @@ export function DeckScreen({
           slotIndex={unlockModalSlot}
           unlockedDeckCount={unlockedDeckCount}
           userLevel={userLevel}
-          deckNames={deckNames}
           onClose={() => setUnlockModalSlot(null)}
           onPrototypeUnlock={
             onPrototypeUnlockDeck

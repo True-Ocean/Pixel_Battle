@@ -1,14 +1,13 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { JEWEL_COST_DECK_UNLOCK } from '../config/economy';
-import { getDeckDisplayName } from '../deckSlots';
+import { getDeckUnlockModalContent } from '../deckSlots';
 import { JewelAmount } from './JewelIcon';
 
 interface DeckUnlockModalProps {
   slotIndex: number;
   unlockedDeckCount: number;
   userLevel: number;
-  deckNames?: string[];
   onClose: () => void;
   onPrototypeUnlock?: () => void;
 }
@@ -17,55 +16,20 @@ export function DeckUnlockModal({
   slotIndex,
   unlockedDeckCount,
   userLevel,
-  deckNames,
   onClose,
   onPrototypeUnlock,
 }: DeckUnlockModalProps) {
-  const deckLabel = getDeckDisplayName(slotIndex, deckNames);
   const isDev = import.meta.env.DEV;
-  const nextUnlockIndex = unlockedDeckCount;
+  const content = getDeckUnlockModalContent(
+    slotIndex,
+    unlockedDeckCount,
+    userLevel,
+  );
   const canPrototypeUnlock =
     isDev &&
     onPrototypeUnlock != null &&
-    slotIndex === nextUnlockIndex;
-
-  let message: ReactNode;
-  let note: ReactNode;
-
-  if (slotIndex === 1) {
-    if (userLevel >= 10) {
-      message = `${deckLabel} はレベル10到達で自動解放されます。`;
-    } else {
-      message = `${deckLabel} はユーザーレベル10到達で解放されます。`;
-      note = `現在 Lv.${userLevel} です。`;
-    }
-  } else if (userLevel < 10) {
-    message = `${deckLabel} はレベル10到達後に解放できます。`;
-    note = (
-      <>
-        解放には{' '}
-        <JewelAmount
-          amount={JEWEL_COST_DECK_UNLOCK}
-          className="deck-unlock-jewel-cost"
-          iconClassName="deck-unlock-jewel-icon"
-        />{' '}
-        が必要です（準備中）。
-      </>
-    );
-  } else {
-    message = (
-      <>
-        {deckLabel} は{' '}
-        <JewelAmount
-          amount={JEWEL_COST_DECK_UNLOCK}
-          className="deck-unlock-jewel-cost"
-          iconClassName="deck-unlock-jewel-icon"
-        />{' '}
-        で解放できます。
-      </>
-    );
-    note = 'ショップ連携は準備中です。';
-  }
+    content.allowPrototypeUnlock &&
+    slotIndex === unlockedDeckCount;
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -101,16 +65,20 @@ export function DeckUnlockModal({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="deck-unlock-title" className="deck-unlock-title">
-          {deckLabel} は未解放
+          {content.title}
         </h2>
-        <p className="deck-unlock-message">{message}</p>
-        {note && <p className="deck-unlock-note muted">{note}</p>}
-        {isDev && !canPrototypeUnlock && slotIndex > nextUnlockIndex && (
-          <p className="deck-unlock-note muted">
-            プロトタイプでは {getDeckDisplayName(nextUnlockIndex, deckNames)}{' '}
-            から順に解放できます。
+        <p className="deck-unlock-message">{content.message}</p>
+        {content.showJewelCost && (
+          <p className="deck-unlock-jewel-row">
+            必要:{' '}
+            <JewelAmount
+              amount={JEWEL_COST_DECK_UNLOCK}
+              className="deck-unlock-jewel-cost"
+              iconClassName="deck-unlock-jewel-icon"
+            />
           </p>
         )}
+        {content.note && <p className="deck-unlock-note muted">{content.note}</p>}
         {canPrototypeUnlock && (
           <button
             type="button"
