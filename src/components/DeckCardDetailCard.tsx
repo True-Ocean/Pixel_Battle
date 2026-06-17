@@ -4,21 +4,29 @@ import { canDowngradeRevive } from '../card';
 import { calcDowngradeReviveCost, calcFullReviveCost } from '../config/economy';
 import { getRarityMeta } from '../config/rarity';
 import type { Card } from '../types';
+import { isTalismanEquipped } from '../card';
 import { AttributeBadge } from './AttributeBadge';
 import { AttributeBattleGuide } from './AttributeBattleGuide';
 import { CardBattleRecord } from './CardBattleRecord';
 import { CardPreview } from './CardPreview';
 import { LimitBreakStars } from './LimitBreakStars';
 import { RarityBadge } from './RarityBadge';
+import { TalismanCardBadge } from './TalismanCardBadge';
 
 interface DeckCardDetailCardProps {
   card: Card;
   isLost: boolean;
+  showTalismanUi?: boolean;
+  unusedTalismanCount?: number;
+  onTalismanPress?: () => void;
 }
 
 export function DeckCardDetailCard({
   card,
   isLost,
+  showTalismanUi = false,
+  unusedTalismanCount = 0,
+  onTalismanPress,
 }: DeckCardDetailCardProps) {
   const rarityMeta = getRarityMeta(card.rarity);
   const attrMeta = getAttributeMeta(card.attribute);
@@ -67,7 +75,21 @@ export function DeckCardDetailCard({
         )}
       </div>
 
-      <h3 className="deck-detail-card-name">{card.name}</h3>
+      <div className="deck-detail-card-name-row">
+        <span className="deck-detail-card-name-side" aria-hidden="true" />
+        <h3 className="deck-detail-card-name">{card.name}</h3>
+        <span className="deck-detail-card-name-side deck-detail-card-name-side--end">
+          {showTalismanUi && isTalismanEquipped(card) && onTalismanPress && (
+            <TalismanCardBadge variant="equipped" onPress={onTalismanPress} />
+          )}
+          {showTalismanUi &&
+            !isTalismanEquipped(card) &&
+            unusedTalismanCount > 0 &&
+            onTalismanPress && (
+              <TalismanCardBadge variant="available" onPress={onTalismanPress} />
+            )}
+        </span>
+      </div>
 
       <div className="deck-detail-card-attr">
         <div className="deck-detail-card-attr-icon-wrap">

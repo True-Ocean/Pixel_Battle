@@ -52,3 +52,13 @@ export {
   markCardLost,
   normalizeCardStatus,
 } from './status';
+export {
+  consumeTalismanFromCard,
+  countEquippedTalismans,
+  equipTalismanOnCard,
+  isTalismanEquipped,
+  normalizeTalismanEquipped,
+  tryEquipTalismanInDeck,
+  tryUnequipTalismanInDeck,
+  unequipTalismanFromCard,
+} from './talisman';

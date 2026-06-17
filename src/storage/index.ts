@@ -24,6 +24,7 @@ import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
 import { gridSize } from '../canvas';
 import { effectiveDevPreferSavedLevel, normalizeUserProfile, resolveDevUserProfileOnLoad } from '../user';
 import { normalizeCardStatus } from '../card/status';
+import { normalizeTalismanEquipped } from '../card/talisman';
 import { createInitialEconomy, normalizeUserEconomy } from '../user/economy';
 import { createInitialInventory, applyDevInventoryFill, inventoryMatchesDevFill, normalizeUserInventory } from '../user/inventory';
 import { createInitialAdState, normalizeAdState } from '../user/adState';
@@ -78,6 +79,7 @@ function migrateCard(raw: Record<string, unknown>): Card | null {
     rarity,
     stars,
     status,
+    talismanEquipped,
     createdAt,
     canvasSize,
     ...rest
@@ -102,6 +104,7 @@ function migrateCard(raw: Record<string, unknown>): Card | null {
       | 'rarity'
       | 'stars'
       | 'status'
+      | 'talismanEquipped'
       | 'createdAt'
     >),
     canvasSize: resolvedCanvasSize,
@@ -112,6 +115,7 @@ function migrateCard(raw: Record<string, unknown>): Card | null {
     rarity: parseRarity(rarity),
     stars: parseStars(stars),
     status: normalizeCardStatus(status),
+    talismanEquipped: normalizeTalismanEquipped(talismanEquipped),
     createdAt: typeof createdAt === 'string' ? createdAt : new Date().toISOString(),
   };
 }

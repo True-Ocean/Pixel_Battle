@@ -40,6 +40,8 @@ export interface Card {
   stars: CardStars;
   /** 未設定セーブは active */
   status?: CardStatus;
+  /** 護符装備（ロスト1回免れ。装備時に inventory から消費） */
+  talismanEquipped?: boolean;
   /** 有償リネームの実行回数（0 = 初回リネームは px） */
   renameCount?: number;
   createdAt: string;

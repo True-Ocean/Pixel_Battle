@@ -190,6 +190,7 @@ export function createCardFromDrawing(
     rarity,
     stars: 0,
     status: 'active',
+    talismanEquipped: false,
     createdAt: new Date().toISOString(),
   };
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { pickWeightedLostCard } from '../config/economy';
+import { isTalismanEquipped } from '../card';
 import type { Card } from '../types';
 import { CardPreview } from './CardPreview';
 
@@ -70,6 +71,7 @@ export function LostRouletteModal({ cards, onComplete }: LostRouletteModalProps)
   }, [cards, phase, winner.id]);
 
   const highlighted = cards[highlightIndex] ?? winner;
+  const winnerHasTalisman = isTalismanEquipped(winner);
 
   return createPortal(
     <div className="lost-roulette-backdrop">
@@ -80,7 +82,11 @@ export function LostRouletteModal({ cards, onComplete }: LostRouletteModalProps)
         aria-labelledby="lost-roulette-title"
       >
         <h2 id="lost-roulette-title" className="lost-roulette-title">
-          {phase === 'spinning' ? 'ロスト対象を抽選中…' : 'ロスト！'}
+          {phase === 'spinning'
+            ? 'ロスト対象を抽選中…'
+            : winnerHasTalisman
+              ? 'ロスト対象に選ばれました'
+              : 'ロスト！'}
         </h2>
 
         <ul className="lost-roulette-list">
@@ -100,7 +106,15 @@ export function LostRouletteModal({ cards, onComplete }: LostRouletteModalProps)
 
         {phase === 'result' && (
           <p className="lost-roulette-result">
-            <strong>{winner.name}</strong> をロストしました！
+            {winnerHasTalisman ? (
+              <>
+                <strong>{winner.name}</strong> がロスト対象に選ばれました。
+              </>
+            ) : (
+              <>
+                <strong>{winner.name}</strong> をロストしました！
+              </>
+            )}
           </p>
         )}
 

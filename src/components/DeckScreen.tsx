@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
-import { canDowngradeRevive, computeDeckPower, getDowngradedRarity, isCardLost, type LimitBreakShardSpendPlan } from '../card';
+import { canDowngradeRevive, computeDeckPower, getDowngradedRarity, isCardLost, isTalismanEquipped, type LimitBreakShardSpendPlan } from '../card';
 import {
   calcDowngradeReviveCost,
   calcFullReviveCost,
@@ -28,6 +28,8 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
 import { DeckRenameDialog } from './DeckRenameDialog';
 import { DeckUnlockModal } from './DeckUnlockModal';
+import { TalismanCardBadge } from './TalismanCardBadge';
+import { TalismanIcon } from './TalismanIcon';
 import { JewelAmount } from './JewelIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
 import {
@@ -35,6 +37,7 @@ import {
   findDeckTabIndexAtPoint,
   getDeckRowShift,
 } from './deckReorder';
+import { isLossEnabledAtUserLevel } from '../user/talismanStarter';
 
 const DECK_DRAG_CHIP_SIZE = 56;
 const DECK_TAB_LONG_PRESS_MS = 500;
@@ -70,6 +73,8 @@ export interface DeckScreenProps {
   ) => void;
   onPrototypeUnlockDeck?: () => void;
   onRenameDeck?: (deckIndex: number, name: string) => void;
+  onEquipTalisman: (cardId: string) => void;
+  onUnequipTalisman: (cardId: string) => void;
 }
 
 interface DeckDragState {
@@ -202,7 +207,12 @@ function DeckCardRowBody({ card }: { card: Card }) {
           <CardPreview pixels={card.pixels} />
         </div>
         <div className="deck-card-body">
-          <span className="deck-card-name">{card.name}</span>
+          <div className="deck-card-name-row">
+            <span className="deck-card-name">{card.name}</span>
+            {isTalismanEquipped(card) && (
+              <TalismanCardBadge variant="equipped" size="deck" />
+            )}
+          </div>
           <div className="deck-card-meta-row">
             <div className="deck-card-stats-primary">
               <span className="deck-card-bp">{card.bp}</span>
@@ -244,6 +254,7 @@ function formatDowngradeReviveConfirmMessage(card: Card): string {
 function DeleteConfirmMessage({ card }: { card: Card }) {
   const { pixels, shards } = calcLostCardDeleteRewards(card);
   const hasRefund = pixels > 0 || shards > 0;
+  const returnsTalisman = isTalismanEquipped(card);
 
   return (
     <span className="confirm-dialog-message-body">
@@ -255,7 +266,7 @@ function DeleteConfirmMessage({ card }: { card: Card }) {
         />
         を消費して、「{card.name}」をデッキから削除します。
       </span>
-      {hasRefund && (
+      {(hasRefund || returnsTalisman) && (
         <span className="confirm-dialog-message-line confirm-dialog-message-line--refund">
           {pixels > 0 && (
             <span className="confirm-dialog-px-reward">
@@ -273,6 +284,13 @@ function DeleteConfirmMessage({ card }: { card: Card }) {
               <span className="confirm-dialog-shard-label">
                 のかけら{shards > 1 ? `${shards.toLocaleString()}個` : '1個'}
               </span>
+            </span>
+          )}
+          {returnsTalisman && (
+            <span className="confirm-dialog-talisman-reward">
+              {(pixels > 0 || shards > 0) && 'と'}
+              <TalismanIcon className="confirm-dialog-talisman-icon" />
+              <span className="confirm-dialog-talisman-label">護符1個</span>
             </span>
           )}
           が返還されます。
@@ -307,12 +325,16 @@ export function DeckScreen({
   onMoveCardBetweenDecks,
   onPrototypeUnlockDeck,
   onRenameDeck,
+  onEquipTalisman,
+  onUnequipTalisman,
 }: DeckScreenProps) {
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
   const [deleteConfirmFinal, setDeleteConfirmFinal] = useState(false);
   const [pendingRevive, setPendingRevive] = useState<Card | null>(null);
   const [pendingDowngradeRevive, setPendingDowngradeRevive] = useState<Card | null>(null);
+  const [pendingEquipTalisman, setPendingEquipTalisman] = useState<Card | null>(null);
+  const [pendingUnequipTalisman, setPendingUnequipTalisman] = useState<Card | null>(null);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
   const [renameDeckIndex, setRenameDeckIndex] = useState<number | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
@@ -438,6 +460,41 @@ export function DeckScreen({
 
   const handleDowngradeReviveCancel = useCallback(() => {
     setPendingDowngradeRevive(null);
+  }, []);
+
+  const showTalismanUi =
+    isLossEnabledAtUserLevel(userLevel) &&
+    selectedCard != null &&
+    !isCardLost(selectedCard);
+
+  const handleTalismanPress = useCallback(() => {
+    if (!selectedCard || !showTalismanUi) return;
+    if (isTalismanEquipped(selectedCard)) {
+      setPendingUnequipTalisman(selectedCard);
+      return;
+    }
+    if (inventory.talisman <= 0) return;
+    setPendingEquipTalisman(selectedCard);
+  }, [inventory.talisman, selectedCard, showTalismanUi]);
+
+  const handleEquipTalismanConfirm = useCallback(() => {
+    if (!pendingEquipTalisman) return;
+    onEquipTalisman(pendingEquipTalisman.id);
+    setPendingEquipTalisman(null);
+  }, [onEquipTalisman, pendingEquipTalisman]);
+
+  const handleEquipTalismanCancel = useCallback(() => {
+    setPendingEquipTalisman(null);
+  }, []);
+
+  const handleUnequipTalismanConfirm = useCallback(() => {
+    if (!pendingUnequipTalisman) return;
+    onUnequipTalisman(pendingUnequipTalisman.id);
+    setPendingUnequipTalisman(null);
+  }, [onUnequipTalisman, pendingUnequipTalisman]);
+
+  const handleUnequipTalismanCancel = useCallback(() => {
+    setPendingUnequipTalisman(null);
   }, []);
 
   const finishDrag = useCallback(
@@ -1010,6 +1067,9 @@ export function DeckScreen({
           onReviveLost={handleReviveRequest}
           onDowngradeReviveLost={handleDowngradeReviveRequest}
           onLimitBreak={(spend) => onLimitBreakCard(selectedCard.id, spend)}
+          showTalismanUi={showTalismanUi}
+          unusedTalismanCount={inventory.talisman}
+          onTalismanPress={showTalismanUi ? handleTalismanPress : undefined}
         />
       )}
 
@@ -1080,6 +1140,36 @@ export function DeckScreen({
         cancelLabel="キャンセル"
         onConfirm={handleDowngradeReviveConfirm}
         onCancel={handleDowngradeReviveCancel}
+      />
+
+      <ConfirmDialog
+        open={pendingEquipTalisman != null}
+        title="護符をつけますか？"
+        message={
+          pendingEquipTalisman
+            ? `このカードに護符を適用します。よろしいですか？`
+            : ''
+        }
+        confirmLabel="はい"
+        cancelLabel="いいえ"
+        confirmVariant="primary"
+        onConfirm={handleEquipTalismanConfirm}
+        onCancel={handleEquipTalismanCancel}
+      />
+
+      <ConfirmDialog
+        open={pendingUnequipTalisman != null}
+        title="護符を外しますか？"
+        message={
+          pendingUnequipTalisman
+            ? `このカードから護符を外します。よろしいですか？`
+            : ''
+        }
+        confirmLabel="はい"
+        cancelLabel="いいえ"
+        confirmVariant="primary"
+        onConfirm={handleUnequipTalismanConfirm}
+        onCancel={handleUnequipTalismanCancel}
       />
     </section>
   );

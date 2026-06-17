@@ -38,6 +38,9 @@ interface DeckCardDetailOverlayProps {
   onReviveLost: () => void;
   onDowngradeReviveLost: () => void;
   onLimitBreak: (spend: LimitBreakShardSpendPlan) => void;
+  showTalismanUi?: boolean;
+  unusedTalismanCount?: number;
+  onTalismanPress?: () => void;
 }
 
 export function DeckCardDetailOverlay({
@@ -56,6 +59,9 @@ export function DeckCardDetailOverlay({
   onReviveLost,
   onDowngradeReviveLost,
   onLimitBreak,
+  showTalismanUi = false,
+  unusedTalismanCount = 0,
+  onTalismanPress,
 }: DeckCardDetailOverlayProps) {
   const canAffordDelete = jewels >= JEWEL_COST_DELETE;
   const canAffordRevive = freePixels >= reviveCost;
@@ -148,7 +154,13 @@ export function DeckCardDetailOverlay({
         </h2>
 
         <div className="deck-card-detail-scroll">
-          <DeckCardDetailCard card={card} isLost={isLost} />
+          <DeckCardDetailCard
+            card={card}
+            isLost={isLost}
+            showTalismanUi={showTalismanUi}
+            unusedTalismanCount={unusedTalismanCount}
+            onTalismanPress={onTalismanPress}
+          />
           <BattleCommonRules />
         </div>
 

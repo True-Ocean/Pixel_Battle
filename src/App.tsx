@@ -5,12 +5,12 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, finalizeCardNameForCreation, type LimitBreakShardSpendPlan } from './card';
+import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, finalizeCardNameForCreation, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleHistory, saveSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireHistoryRematchAd, shouldRequireNormalBattleAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireHistoryRematchAd, shouldRequireNormalBattleAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
 import {
@@ -31,6 +31,7 @@ import { LevelUpModal } from './components/LevelUpModal';
 import { LimitBreakSuccessModal } from './components/LimitBreakSuccessModal';
 import { GraveyardPickModal } from './components/GraveyardPickModal';
 import { LostRouletteModal } from './components/LostRouletteModal';
+import { TalismanSaveModal } from './components/TalismanSaveModal';
 import { AppTitle } from './components/AppTitle';
 import { AppDock } from './components/AppDock';
 import { DeckScreen } from './components/DeckScreen';
@@ -95,6 +96,11 @@ function App() {
     [activeDeck],
   );
 
+  const equippedTalismanCount = useMemo(
+    () => countEquippedTalismans(decks),
+    [decks],
+  );
+
   const [cpuDeck, setCpuDeck] = useState<Card[]>(() =>
     buildBalancedCpuDeck(
       getDeckCards(initialSave.decks[initialSave.activeDeckIndex] ?? []),
@@ -133,6 +139,10 @@ function App() {
     useState<BattleOutcome | null>(null);
   const [pendingLostRouletteOutcome, setPendingLostRouletteOutcome] =
     useState<BattleOutcome | null>(null);
+  const [pendingTalismanSave, setPendingTalismanSave] = useState<{
+    outcome: BattleOutcome;
+    card: Card;
+  } | null>(null);
   const [levelUpModal, setLevelUpModal] = useState<{
     fromLevel: number;
     toLevel: number;
@@ -542,6 +552,9 @@ function App() {
       const { pixels, shards } = calcLostCardDeleteRewards(target);
       const economyAfter = addFreePixels(nextEconomy, pixels);
       let inventoryAfter = inventoryRef.current;
+      if (isTalismanEquipped(target)) {
+        inventoryAfter = addInventoryCount(inventoryAfter, 'talisman', 1);
+      }
       if (shards > 0) {
         inventoryAfter = addLimitBreakShards(
           inventoryAfter,
@@ -562,6 +575,50 @@ function App() {
       inventoryRef.current = inventoryAfter;
     },
     [persistSave, removeCardFromDeck],
+  );
+
+  const equipTalismanOnCard = useCallback(
+    (id: string) => {
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const result = tryEquipTalismanInDeck(
+        prevLayout,
+        id,
+        inventoryRef.current,
+      );
+      if (!result) return;
+
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, result.deck);
+      persistSave({ decks: nextDecks, inventory: result.inventory });
+      setDecks(nextDecks);
+      setInventory(result.inventory);
+      decksRef.current = nextDecks;
+      inventoryRef.current = result.inventory;
+    },
+    [persistSave],
+  );
+
+  const unequipTalismanOnCard = useCallback(
+    (id: string) => {
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const result = tryUnequipTalismanInDeck(
+        prevLayout,
+        id,
+        inventoryRef.current,
+      );
+      if (!result) return;
+
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, result.deck);
+      persistSave({ decks: nextDecks, inventory: result.inventory });
+      setDecks(nextDecks);
+      setInventory(result.inventory);
+      decksRef.current = nextDecks;
+      inventoryRef.current = result.inventory;
+    },
+    [persistSave],
   );
 
   const reviveLostCard = useCallback(
@@ -782,6 +839,7 @@ function App() {
       options: {
         graveyardCard?: Card | null;
         lostCard?: Card | null;
+        talismanSavedCard?: Card | null;
         doubleVictoryPixels?: boolean;
       } = {},
     ) => {
@@ -791,6 +849,7 @@ function App() {
       const {
         graveyardCard = null,
         lostCard = null,
+        talismanSavedCard = null,
         doubleVictoryPixels = false,
       } = options;
       const prevUser = userRef.current;
@@ -876,6 +935,13 @@ function App() {
           if (card?.id !== lostCard.id) return card;
           const updated = nextActiveDeck.find((c) => c?.id === lostCard.id);
           return updated ? markCardLost(updated) : markCardLost(lostCard);
+        });
+      }
+      if (talismanSavedCard) {
+        nextActiveDeck = nextActiveDeck.map((card) => {
+          if (card?.id !== talismanSavedCard.id) return card;
+          const updated = nextActiveDeck.find((c) => c?.id === talismanSavedCard.id);
+          return consumeTalismanFromCard(updated ?? talismanSavedCard);
         });
       }
       let nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextActiveDeck);
@@ -1014,10 +1080,21 @@ function App() {
       const outcome = pendingLostRouletteOutcome;
       if (!outcome) return;
       setPendingLostRouletteOutcome(null);
+      if (isTalismanEquipped(card)) {
+        setPendingTalismanSave({ outcome, card });
+        return;
+      }
       finalizeBattleOutcome(outcome, { lostCard: card });
     },
     [finalizeBattleOutcome, pendingLostRouletteOutcome],
   );
+
+  const handleTalismanSaveConfirm = useCallback(() => {
+    const pending = pendingTalismanSave;
+    if (!pending) return;
+    setPendingTalismanSave(null);
+    finalizeBattleOutcome(pending.outcome, { talismanSavedCard: pending.card });
+  }, [finalizeBattleOutcome, pendingTalismanSave]);
 
   const handleBattleEndedChange = useCallback((ended: boolean) => {
     setBattleEndDock(ended);
@@ -1347,12 +1424,13 @@ function App() {
 
   const battleEndNewBattleDisabled = useMemo(() => {
     if (pendingLostRouletteOutcome != null) return true;
+    if (pendingTalismanSave != null) return true;
     if (isHistoryRematch) {
       return !hasHistoryRematchDeck(decks, unlockedDeckCount);
     }
     const deckIndex = lastBattleDeckIndex;
     return deckHasLostCard(normalizeDeckLayout(decks[deckIndex] ?? []));
-  }, [decks, isHistoryRematch, lastBattleDeckIndex, pendingLostRouletteOutcome, unlockedDeckCount]);
+  }, [decks, isHistoryRematch, lastBattleDeckIndex, pendingLostRouletteOutcome, pendingTalismanSave, unlockedDeckCount]);
 
   const isHistoryRematchDeckSelect =
     historyRematchFlow?.phase === 'deckSelect';
@@ -1464,6 +1542,8 @@ function App() {
             onMoveCardBetweenDecks={moveCardBetweenDecks}
             onPrototypeUnlockDeck={handlePrototypeUnlockNextDeck}
             onRenameDeck={handleRenameDeck}
+            onEquipTalisman={equipTalismanOnCard}
+            onUnequipTalisman={unequipTalismanOnCard}
           />
         )}
         {screen === 'battleHub' && (
@@ -1504,7 +1584,10 @@ function App() {
           <PlaceholderScreen title="ショップ" />
         )}
         {screen === 'inventory' && (
-          <InventoryScreen inventory={inventory} />
+          <InventoryScreen
+            inventory={inventory}
+            equippedTalismanCount={equippedTalismanCount}
+          />
         )}
         {screen === 'settings' && (
           <SettingsScreen
@@ -1692,6 +1775,12 @@ function App() {
         <LostRouletteModal
           cards={pendingLostRouletteOutcome.defeatedPlayerCards}
           onComplete={handleLostRouletteComplete}
+        />
+      )}
+      {pendingTalismanSave && (
+        <TalismanSaveModal
+          card={pendingTalismanSave.card}
+          onConfirm={handleTalismanSaveConfirm}
         />
       )}
     </div>

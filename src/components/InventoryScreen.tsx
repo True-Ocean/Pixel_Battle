@@ -13,9 +13,13 @@ function formatItemCount(count: number): string {
 
 interface InventoryScreenProps {
   inventory: UserInventory;
+  equippedTalismanCount: number;
 }
 
-export function InventoryScreen({ inventory }: InventoryScreenProps) {
+export function InventoryScreen({
+  inventory,
+  equippedTalismanCount,
+}: InventoryScreenProps) {
   const ownedAttributeShards = ALL_ATTRIBUTES.flatMap((attribute) => {
     const count = inventory.limitBreakShards[attribute] ?? 0;
     if (count <= 0) return [];
@@ -23,7 +27,9 @@ export function InventoryScreen({ inventory }: InventoryScreenProps) {
   });
   const hasUniversalShards = inventory.limitBreakUniversal > 0;
   const hasAnyShards = hasUniversalShards || ownedAttributeShards.length > 0;
-  const hasTalisman = inventory.talisman > 0;
+  const hasUnusedTalisman = inventory.talisman > 0;
+  const hasEquippedTalisman = equippedTalismanCount > 0;
+  const hasTalisman = hasUnusedTalisman || hasEquippedTalisman;
   const isEmpty = !hasTalisman && !hasAnyShards;
 
   return (
@@ -41,21 +47,40 @@ export function InventoryScreen({ inventory }: InventoryScreenProps) {
               アイテム
             </h2>
             <div className="inventory-section-body">
-              <div
-                className="inventory-item-row"
-                aria-label={`護符 ${formatItemCount(inventory.talisman)}`}
-              >
-                <span
-                  className="inventory-item-icon inventory-item-icon--talisman"
-                  aria-hidden="true"
+              {hasUnusedTalisman && (
+                <div
+                  className="inventory-item-row"
+                  aria-label={`護符（未使用） ${formatItemCount(inventory.talisman)}`}
                 >
-                  <TalismanIcon className="inventory-item-icon-svg inventory-item-icon-svg--talisman" />
-                </span>
-                <span className="inventory-item-label">護符</span>
-                <span className="inventory-item-value">
-                  {formatItemCount(inventory.talisman)}
-                </span>
-              </div>
+                  <span
+                    className="inventory-item-icon inventory-item-icon--talisman"
+                    aria-hidden="true"
+                  >
+                    <TalismanIcon className="inventory-item-icon-svg inventory-item-icon-svg--talisman" />
+                  </span>
+                  <span className="inventory-item-label">護符（未使用）</span>
+                  <span className="inventory-item-value">
+                    {formatItemCount(inventory.talisman)}
+                  </span>
+                </div>
+              )}
+              {hasEquippedTalisman && (
+                <div
+                  className="inventory-item-row"
+                  aria-label={`護符（使用中） ${formatItemCount(equippedTalismanCount)}`}
+                >
+                  <span
+                    className="inventory-item-icon inventory-item-icon--talisman inventory-item-icon--talisman-equipped"
+                    aria-hidden="true"
+                  >
+                    <TalismanIcon className="inventory-item-icon-svg inventory-item-icon-svg--talisman" />
+                  </span>
+                  <span className="inventory-item-label">護符（使用中）</span>
+                  <span className="inventory-item-value">
+                    {formatItemCount(equippedTalismanCount)}
+                  </span>
+                </div>
+              )}
             </div>
           </section>
         )}
