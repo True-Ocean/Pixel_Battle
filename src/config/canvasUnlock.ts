@@ -1,19 +1,25 @@
 import { CANVAS_SIZE_DEFAULT } from './balance';
 
-/** 解放可能なキャンバスサイズ（昇順・Lv50 上限 34px） */
-export const CANVAS_SIZE_MILESTONES = [16, 18, 20, 22, 24, 26, 28, 30, 32, 34] as const;
+/** 選択可能な最小一辺長 */
+export const CANVAS_SIZE_MIN = CANVAS_SIZE_DEFAULT;
 
-/** 各サイズの必要ユーザーレベル（docs §5.7） */
+/** 上限引き上げのマイルストーン（Lv50 上限 34px） */
+export const CANVAS_MAX_MILESTONES = [16, 18, 20, 22, 24, 26, 28, 30, 32, 34] as const;
+
+/** @deprecated CANVAS_MAX_MILESTONES を使用 */
+export const CANVAS_SIZE_MILESTONES = CANVAS_MAX_MILESTONES;
+
+/** 各上限の必要ユーザーレベル（docs §5.7） */
 export const CANVAS_UNLOCK_LEVELS = [1, 8, 13, 18, 23, 28, 33, 38, 43, 48] as const;
 
-export type CanvasSize = (typeof CANVAS_SIZE_MILESTONES)[number];
+export type CanvasSize = number;
 
-export function getMaxCanvasSize(userLevel: number): CanvasSize {
+export function getMaxCanvasSize(userLevel: number): number {
   const level = Math.max(1, Math.floor(userLevel));
-  let maxSize: CanvasSize = CANVAS_SIZE_DEFAULT as CanvasSize;
-  for (let i = 0; i < CANVAS_SIZE_MILESTONES.length; i++) {
+  let maxSize = CANVAS_SIZE_MIN;
+  for (let i = 0; i < CANVAS_MAX_MILESTONES.length; i++) {
     if (level >= CANVAS_UNLOCK_LEVELS[i]!) {
-      maxSize = CANVAS_SIZE_MILESTONES[i]!;
+      maxSize = CANVAS_MAX_MILESTONES[i]!;
     } else {
       break;
     }
@@ -21,29 +27,48 @@ export function getMaxCanvasSize(userLevel: number): CanvasSize {
   return maxSize;
 }
 
-export function getUnlockedCanvasSizes(userLevel: number): CanvasSize[] {
-  const maxSize = getMaxCanvasSize(userLevel);
-  const sizes: CanvasSize[] = [];
-  for (const size of CANVAS_SIZE_MILESTONES) {
+/** ドロップダウン用: minSize 〜 解放済み上限の整数列（1px 刻み） */
+export function getSelectableCanvasSizes(
+  userLevel: number,
+  minSize: number = CANVAS_SIZE_MIN,
+): number[] {
+  const max = getMaxCanvasSize(userLevel);
+  const min = Math.max(CANVAS_SIZE_MIN, Math.floor(minSize));
+  if (min > max) return [min];
+
+  const sizes: number[] = [];
+  for (let size = min; size <= max; size++) {
     sizes.push(size);
-    if (size === maxSize) break;
   }
-  return sizes.length > 0 ? sizes : [CANVAS_SIZE_DEFAULT as CanvasSize];
+  return sizes;
+}
+
+/** @deprecated getSelectableCanvasSizes を使用 */
+export function getUnlockedCanvasSizes(userLevel: number): number[] {
+  return getSelectableCanvasSizes(userLevel);
 }
 
 export function isCanvasSizeUnlocked(
   size: number,
   userLevel: number,
 ): boolean {
-  return getUnlockedCanvasSizes(userLevel).includes(size as CanvasSize);
+  const normalized = Math.floor(size);
+  if (normalized < CANVAS_SIZE_MIN) return false;
+  return normalized <= getMaxCanvasSize(userLevel);
 }
 
 /** 新規作成時のデフォルト（解放済みの最大サイズ） */
-export function getDefaultCanvasSize(userLevel: number): CanvasSize {
+export function getDefaultCanvasSize(userLevel: number): number {
   return getMaxCanvasSize(userLevel);
 }
 
-export function getCanvasUnlockLevel(size: CanvasSize): number {
-  const index = CANVAS_SIZE_MILESTONES.indexOf(size);
-  return index >= 0 ? CANVAS_UNLOCK_LEVELS[index]! : 1;
+/** 指定サイズが使えるようになるレベル（上限モデル） */
+export function getCanvasUnlockLevel(size: number): number {
+  const target = Math.max(CANVAS_SIZE_MIN, Math.floor(size));
+  for (let i = 0; i < CANVAS_MAX_MILESTONES.length; i++) {
+    if (target <= CANVAS_MAX_MILESTONES[i]!) {
+      return CANVAS_UNLOCK_LEVELS[i]!;
+    }
+  }
+  return CANVAS_UNLOCK_LEVELS[CANVAS_UNLOCK_LEVELS.length - 1]!;
 }

@@ -5557,6 +5557,33 @@ button.battle-hub-deck-icon.is-move-target {
   font-weight: 600;
 }
 
+.canvas-size-select {
+  flex: 1;
+  min-width: 0;
+  max-width: 8.5rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 1.6rem 0.2rem 0.45rem;
+  border: 1px solid #bbb;
+  border-radius: 5px;
+  background: #f4f4f8;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23555' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.45rem center;
+}
+
+.canvas-size-select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background-color: #ececf0;
+  color: #888;
+}
+
 .canvas-size-picker-chips {
   display: flex;
   flex-wrap: wrap;

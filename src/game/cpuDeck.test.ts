@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DECK_MAX, FIELD_SIZE, PALETTE_16 } from '../config/balance';
-import { getUnlockedCanvasSizes } from '../config/canvasUnlock';
+import { getMaxCanvasSize } from '../config/canvasUnlock';
 import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import { createEmptyGrid } from '../canvas';
 import type { Card } from '../types';
@@ -165,7 +165,7 @@ describe('buildBalancedCpuDeck', () => {
   it('ユーザーレベルに応じたキャンバスサイズと色で生成する', () => {
     const userLevel = 20;
     const cpu = buildBalancedCpuDeck(stubPlayerDeck(), () => 0.42, userLevel);
-    const allowedSizes = getUnlockedCanvasSizes(userLevel);
+    const maxSize = getMaxCanvasSize(userLevel);
     const allowedColors = new Set(
       PALETTE_16.slice(0, getUnlockedPaletteCount(userLevel)).map((c) =>
         c.toLowerCase(),
@@ -173,7 +173,8 @@ describe('buildBalancedCpuDeck', () => {
     );
 
     for (const card of cpu) {
-      expect(allowedSizes).toContain(card.canvasSize);
+      expect(card.canvasSize).toBeGreaterThanOrEqual(16);
+      expect(card.canvasSize).toBeLessThanOrEqual(maxSize);
       expect(card.pixels).toHaveLength(card.canvasSize);
       for (const cell of card.pixels.flat()) {
         if (cell != null) {

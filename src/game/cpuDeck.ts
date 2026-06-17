@@ -7,10 +7,7 @@ import {
   USER_INITIAL_LEVEL,
   MAX_USER_LEVEL,
 } from '../config/balance';
-import {
-  getUnlockedCanvasSizes,
-  type CanvasSize,
-} from '../config/canvasUnlock';
+import { getSelectableCanvasSizes } from '../config/canvasUnlock';
 import { unlockedPaletteColors } from '../config/palette';
 import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import type { Card, CardStars } from '../types';
@@ -212,8 +209,8 @@ function inferUserLevelFromDeck(deck: Card[]): number {
 function pickUnlockedCanvasSize(
   userLevel: number,
   random: () => number,
-): CanvasSize {
-  return pickRandom(getUnlockedCanvasSizes(userLevel), random);
+): number {
+  return pickRandom(getSelectableCanvasSizes(userLevel), random);
 }
 
 function buildOneCpuCard(

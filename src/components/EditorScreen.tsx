@@ -11,10 +11,10 @@ import { ATTRIBUTE_META } from '../config/attributes';
 import { DECK_MAX } from '../config/balance';
 import { PALETTE_16 } from '../config/palette';
 import {
+  CANVAS_SIZE_MIN,
   getDefaultCanvasSize,
-  getUnlockedCanvasSizes,
+  getSelectableCanvasSizes,
   isCanvasSizeUnlocked,
-  type CanvasSize,
 } from '../config/canvasUnlock';
 import {
   CardCreationError,
@@ -102,15 +102,19 @@ export function EditorScreen({
   onRenameCard,
 }: EditorScreenProps) {
   const isEditing = editTarget != null;
-  const unlockedCanvasSizes = getUnlockedCanvasSizes(userLevel);
   const editCanvasSize = editTarget?.canvasSize ?? gridSize(editTarget?.pixels ?? []);
+  const maxCanvasSize = getDefaultCanvasSize(userLevel);
+  const selectableCanvasSizes = getSelectableCanvasSizes(
+    userLevel,
+    isEditing ? editCanvasSize : CANVAS_SIZE_MIN,
+  );
 
   const [name, setName] = useState(() => editTarget?.name ?? '');
-  const [canvasSize, setCanvasSize] = useState<CanvasSize>(() => {
+  const [canvasSize, setCanvasSize] = useState<number>(() => {
     if (isEditing && editTarget) {
-      return editCanvasSize as CanvasSize;
+      return editCanvasSize;
     }
-    return getDefaultCanvasSize(userLevel);
+    return maxCanvasSize;
   });
   const [pixels, setPixels] = useState(() =>
     editTarget ? cloneGrid(editTarget.pixels) : createEmptyGrid(canvasSize),
@@ -129,7 +133,7 @@ export function EditorScreen({
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [canvasUpgradeOpen, setCanvasUpgradeOpen] = useState(false);
   const [pendingCanvasUpgradeSize, setPendingCanvasUpgradeSize] =
-    useState<CanvasSize | null>(null);
+    useState<number | null>(null);
   const isComposingNameRef = useRef(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [devForceAttribute, setDevForceAttribute] = useState<Attribute | null>(
@@ -170,7 +174,7 @@ export function EditorScreen({
       setEditorHistory(nextPast);
       setEditorFuture([]);
       if (target.canvasSize !== current.canvasSize) {
-        setCanvasSize(target.canvasSize as CanvasSize);
+        setCanvasSize(target.canvasSize);
       }
       setPixels(cloneGrid(target.pixels));
     },
@@ -191,7 +195,7 @@ export function EditorScreen({
     editorFutureRef.current = result.future;
     setEditorHistory(result.past);
     setEditorFuture(result.future);
-    setCanvasSize(result.next.canvasSize as CanvasSize);
+    setCanvasSize(result.next.canvasSize);
     setPixels(cloneGrid(result.next.pixels));
   }, []);
 
@@ -218,11 +222,11 @@ export function EditorScreen({
     editorFutureRef.current = result.future;
     setEditorHistory(result.past);
     setEditorFuture(result.future);
-    setCanvasSize(result.next.canvasSize as CanvasSize);
+    setCanvasSize(result.next.canvasSize);
     setPixels(cloneGrid(result.next.pixels));
   }, []);
 
-  const handleCanvasSizeChange = (nextSize: CanvasSize) => {
+  const handleCanvasSizeChange = (nextSize: number) => {
     if (!isCanvasSizeUnlocked(nextSize, userLevel)) return;
 
     const currentSize = editorSnapshotRef.current.canvasSize;
@@ -401,9 +405,9 @@ export function EditorScreen({
           <div className="editor-canvas-meta-row">
             <CanvasSizePicker
               selectedSize={canvasSize}
-              unlockedSizes={unlockedCanvasSizes}
+              selectableSizes={selectableCanvasSizes}
               onSelectSize={handleCanvasSizeChange}
-              minSelectableSize={isEditing ? editCanvasSize : undefined}
+              disabled={isEditing && selectableCanvasSizes.length <= 1}
             />
             <div
               className="editor-screen-mini-preview"
