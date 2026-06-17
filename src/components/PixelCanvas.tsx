@@ -100,6 +100,14 @@ export function PixelCanvas({
   const displayPixels = draftPixels ?? pixels;
 
   useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const prevent = (e: Event) => e.preventDefault();
+    el.addEventListener('selectstart', prevent);
+    return () => el.removeEventListener('selectstart', prevent);
+  }, []);
+
+  useEffect(() => {
     if (!isDrawingRef.current) {
       draftPixelsRef.current = null;
       setDraftPixels(null);
@@ -389,6 +397,7 @@ export function PixelCanvas({
       onPointerUp={endStroke}
       onPointerCancel={endStroke}
       onLostPointerCapture={endStroke}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {displayPixels.map((row, ri) =>
         row.map((cell, ci) => {

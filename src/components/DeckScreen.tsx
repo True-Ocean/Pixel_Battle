@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
 import { canDowngradeRevive, computeDeckPower, getDowngradedRarity, isCardLost, type LimitBreakShardSpendPlan } from '../card';
 import {
   calcDowngradeReviveCost,
@@ -81,9 +81,10 @@ interface DeckDragState {
   targetDropIndex: number | null;
   ghostLeft: number;
   ghostTop: number;
+  ghostWidth: number;
   rowHeight: number;
-  pointerOffsetX: number;
-  pointerOffsetY: number;
+  rowPointerOffsetX: number;
+  rowPointerOffsetY: number;
 }
 
 function isPointInRect(x: number, y: number, rect: DOMRect): boolean {
@@ -325,6 +326,19 @@ export function DeckScreen({
   const deckLayout = normalizeDeckLayout(deck);
   const deckCardCount = countDeckCards(deckLayout);
 
+  useEffect(() => {
+    if (!reorderMode) return;
+    const el = listRef.current;
+    if (!el) return;
+    const prevent = (e: Event) => e.preventDefault();
+    el.addEventListener('selectstart', prevent);
+    el.addEventListener('contextmenu', prevent);
+    return () => {
+      el.removeEventListener('selectstart', prevent);
+      el.removeEventListener('contextmenu', prevent);
+    };
+  }, [reorderMode]);
+
   const selectedCard =
     detailCardId != null
       ? deckLayout.find((item) => item?.id === detailCardId) ?? null
@@ -497,6 +511,9 @@ export function DeckScreen({
       const rect = row.getBoundingClientRect();
       listRef.current.style.setProperty('--deck-row-shift', `${rect.height}px`);
 
+      const rowPointerOffsetX = event.clientX - rect.left;
+      const rowPointerOffsetY = event.clientY - rect.top;
+
       const session: DeckDragState = {
         cardId: deckLayout[index]?.id ?? '',
         sourceDeckIndex: activeDeckIndex,
@@ -504,11 +521,12 @@ export function DeckScreen({
         dropIndex: index,
         targetDeckIndex: null,
         targetDropIndex: null,
-        ghostLeft: event.clientX - DECK_DRAG_CHIP_SIZE / 2,
-        ghostTop: event.clientY - DECK_DRAG_CHIP_SIZE / 2,
+        ghostLeft: event.clientX - rowPointerOffsetX,
+        ghostTop: event.clientY - rowPointerOffsetY,
+        ghostWidth: rect.width,
         rowHeight: rect.height,
-        pointerOffsetX: DECK_DRAG_CHIP_SIZE / 2,
-        pointerOffsetY: DECK_DRAG_CHIP_SIZE / 2,
+        rowPointerOffsetX,
+        rowPointerOffsetY,
       };
       dragSessionRef.current = session;
       setDragState(session);
@@ -562,10 +580,17 @@ export function DeckScreen({
           dropIndex = prev.fromIndex;
         }
 
+        const ghostLeft = crossDeckTarget
+          ? clientX - DECK_DRAG_CHIP_SIZE / 2
+          : clientX - prev.rowPointerOffsetX;
+        const ghostTop = crossDeckTarget
+          ? clientY - DECK_DRAG_CHIP_SIZE / 2
+          : clientY - prev.rowPointerOffsetY;
+
         const next: DeckDragState = {
           ...prev,
-          ghostLeft: clientX - prev.pointerOffsetX,
-          ghostTop: clientY - prev.pointerOffsetY,
+          ghostLeft,
+          ghostTop,
           dropIndex,
           targetDeckIndex,
           targetDropIndex,
@@ -691,7 +716,9 @@ export function DeckScreen({
   const deckPower = computeDeckPower(getDeckCards(deckLayout));
 
   return (
-    <section className={`screen screen-deck${dragState ? ' screen-deck-dragging' : ''}`}>
+    <section
+      className={`screen screen-deck${reorderMode ? ' screen-deck-reordering' : ''}${dragState ? ' screen-deck-dragging' : ''}`}
+    >
       <div
         ref={tabsRef}
         className={`deck-slot-tabs${reorderMode ? ' deck-slot-tabs-reordering' : ''}${dragState ? ' deck-slot-tabs-dragging' : ''}`}
@@ -915,20 +942,53 @@ export function DeckScreen({
       )}
 
       {dragState && draggedCard && (
-        <div
-          className={`deck-drag-chip-float${
-            crossDeckTargetIndex != null ? ' deck-drag-chip-float--cross-deck' : ''
-          }${dragState.targetDropIndex != null ? ' deck-drag-chip-float--slot-ready' : ''}`}
-          style={{
-            left: dragState.ghostLeft,
-            top: dragState.ghostTop,
-            width: DECK_DRAG_CHIP_SIZE,
-            height: DECK_DRAG_CHIP_SIZE,
-          }}
-          aria-hidden
-        >
-          <DeckDragChip card={draggedCard} />
-        </div>
+        crossDeckTargetIndex != null ? (
+          <div
+            className={`deck-drag-chip-float deck-drag-chip-float--cross-deck${
+              dragState.targetDropIndex != null ? ' deck-drag-chip-float--slot-ready' : ''
+            }`}
+            style={{
+              left: dragState.ghostLeft,
+              top: dragState.ghostTop,
+              width: DECK_DRAG_CHIP_SIZE,
+              height: DECK_DRAG_CHIP_SIZE,
+            }}
+            aria-hidden
+          >
+            <DeckDragChip card={draggedCard} />
+          </div>
+        ) : (
+          <div
+            className={[
+              'deck-drag-ghost',
+              'deck-card-row',
+              `deck-card-row--${draggedCard.rarity}`,
+              isCardLost(draggedCard) ? 'deck-card-row--lost' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            style={{
+              left: dragState.ghostLeft,
+              top: dragState.ghostTop,
+              width: dragState.ghostWidth,
+              minHeight: dragState.rowHeight,
+              ...deckRowStyle(getRarityMeta(draggedCard.rarity)),
+            }}
+            aria-hidden
+          >
+            <div className="deck-card-main deck-drag-ghost-inner">
+              <DeckCardRowBody card={draggedCard} />
+              {isCardLost(draggedCard) && (
+                <span className="card-lost-badge card-lost-badge--row" aria-hidden>
+                  ロスト中
+                </span>
+              )}
+            </div>
+            <span className="deck-card-drag-handle deck-drag-ghost-spacer" aria-hidden>
+              ≡
+            </span>
+          </div>
+        )
       )}
 
       {selectedCard && (

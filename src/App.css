@@ -3583,6 +3583,15 @@ button.battle-hub-deck-icon.is-move-target {
   touch-action: none;
 }
 
+.screen-deck-reordering .card-list,
+.screen-deck-reordering .deck-card-row-reordering,
+.screen-deck-reordering .deck-card-drag-handle {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+
 .card-list-dragging .deck-card-row {
   transition: transform 0.2s ease;
 }
@@ -3625,6 +3634,16 @@ button.battle-hub-deck-icon.is-move-target {
     0 2px 8px #646cff33;
   transform: scale(1.02) rotate(-0.4deg);
   opacity: 0.96;
+}
+
+.deck-drag-ghost.deck-card-row {
+  margin-bottom: 0;
+  width: auto;
+}
+
+.deck-drag-ghost .deck-card-main {
+  pointer-events: none;
+  cursor: grabbing;
 }
 
 .deck-drag-ghost-inner {
@@ -5049,8 +5068,18 @@ button.battle-hub-deck-icon.is-move-target {
   width: min(100%, 16rem);
   aspect-ratio: 1;
   margin-bottom: 1rem;
-  touch-action: none;
+  -webkit-user-select: none;
   user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+
+.editor-screen .editor-image-area,
+.editor-screen .editor-canvas-wrap {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
 }
 
 .editor-screen {
