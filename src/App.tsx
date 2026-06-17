@@ -107,8 +107,10 @@ function App() {
   const [isHistoryRematch, setIsHistoryRematch] = useState(false);
   const [historyRematchFlow, setHistoryRematchFlow] = useState<{
     entry: BattleHistoryEntry;
-    phase: 'rules' | 'ad' | 'deckSelect';
+    phase: 'rules' | 'deckSelect';
   } | null>(null);
+  const [historyRematchPendingAdDeckIndex, setHistoryRematchPendingAdDeckIndex] =
+    useState<number | null>(null);
   const [battleHistory, setBattleHistory] = useState<BattleHistoryEntry[]>(
     () => initialSave.battleHistory ?? [],
   );
@@ -253,10 +255,15 @@ function App() {
     historyRematchEntryRef.current = null;
   }, []);
 
+  const resetHistoryRematchFlow = useCallback(() => {
+    setHistoryRematchFlow(null);
+    setHistoryRematchPendingAdDeckIndex(null);
+  }, []);
+
   const goToBattleSetup = useCallback(
     (deckIndex?: number) => {
       clearHistoryRematch();
-      setHistoryRematchFlow(null);
+      resetHistoryRematchFlow();
       const level = user?.level ?? 1;
       const resolvedIndex =
         deckIndex ??
@@ -287,7 +294,7 @@ function App() {
       setBattleEndDock(false);
       setScreen('battleSetup');
     },
-    [clearHistoryRematch, persistSave, user?.level],
+    [clearHistoryRematch, resetHistoryRematchFlow, persistSave, user?.level],
   );
 
   const handleCancelBattleMatch = useCallback(() => {
@@ -311,12 +318,6 @@ function App() {
     (entry: BattleHistoryEntry) => {
       if (screen !== 'records') {
         setScreen('records');
-      }
-
-      const starts = adStateRef.current.historyRematchStarts ?? 0;
-      if (shouldRequireHistoryRematchAd(starts)) {
-        setHistoryRematchFlow({ entry, phase: 'ad' });
-        return;
       }
       setHistoryRematchFlow({ entry, phase: 'deckSelect' });
     },
@@ -355,7 +356,7 @@ function App() {
     [continueHistoryRematch, historyRematchFlow, persistSave],
   );
 
-  const startHistoryRematchBattle = useCallback(
+  const executeHistoryRematchBattle = useCallback(
     (deckIndex: number) => {
       const entry =
         historyRematchFlow?.entry ?? historyRematchEntryRef.current;
@@ -381,12 +382,25 @@ function App() {
       setAdState(nextAdState);
       persistSave({ adState: nextAdState });
 
-      setHistoryRematchFlow(null);
+      setHistoryRematchPendingAdDeckIndex(null);
+      resetHistoryRematchFlow();
       setBattleSetupKey((k) => k + 1);
       setBattleEndDock(false);
       setScreen('battleSetup');
     },
-    [historyRematchFlow, persistSave],
+    [historyRematchFlow, persistSave, resetHistoryRematchFlow],
+  );
+
+  const startHistoryRematchBattle = useCallback(
+    (deckIndex: number) => {
+      const starts = adStateRef.current.historyRematchStarts ?? 0;
+      if (shouldRequireHistoryRematchAd(starts)) {
+        setHistoryRematchPendingAdDeckIndex(deckIndex);
+        return;
+      }
+      executeHistoryRematchBattle(deckIndex);
+    },
+    [executeHistoryRematchBattle],
   );
 
   const rematchSameOpponent = useCallback(() => {
@@ -1244,13 +1258,13 @@ function App() {
     (tab: TabId) => {
       setBattleEndDock(false);
       clearHistoryRematch();
-      setHistoryRematchFlow(null);
+      resetHistoryRematchFlow();
       if (tab !== 'deck') {
         setDeckReorderMode(false);
       }
       setScreen(tab);
     },
-    [clearHistoryRematch],
+    [clearHistoryRematch, resetHistoryRematchFlow],
   );
 
   const openSettings = useCallback(() => {
@@ -1354,7 +1368,7 @@ function App() {
             deckReadinessMode="historyRematch"
             backLabel="バトル履歴に戻る"
             onStartBattle={startHistoryRematchBattle}
-            onBack={() => setHistoryRematchFlow(null)}
+            onBack={resetHistoryRematchFlow}
             onGoToMyDeck={goToMyDeckWithCard}
             onReorderDeckAt={reorderDeckAt}
             onMoveCardBetweenDecks={moveCardBetweenDecksInHub}
@@ -1447,19 +1461,22 @@ function App() {
       {historyRematchFlow?.phase === 'rules' && (
         <HistoryRematchRulesModal
           onConfirm={proceedHistoryRematchAfterRules}
-          onCancel={() => setHistoryRematchFlow(null)}
+          onCancel={resetHistoryRematchFlow}
         />
       )}
-      {historyRematchFlow?.phase === 'ad' && (
+      {historyRematchPendingAdDeckIndex != null && (
         <MockRewardAdModal
           title="再戦のための広告視聴"
-          message="3回に1回、再戦前にリワード広告の視聴が必要です（モック）"
+          message="3回に1回、バトル開始前にリワード広告の視聴が必要です（モック）"
           onComplete={() => {
-            setHistoryRematchFlow((current) =>
-              current ? { ...current, phase: 'deckSelect' } : null,
-            );
+            setHistoryRematchPendingAdDeckIndex((deckIndex) => {
+              if (deckIndex != null) {
+                executeHistoryRematchBattle(deckIndex);
+              }
+              return null;
+            });
           }}
-          onCancel={() => setHistoryRematchFlow(null)}
+          onCancel={() => setHistoryRematchPendingAdDeckIndex(null)}
         />
       )}
 

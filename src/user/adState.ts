@@ -89,7 +89,7 @@ export function dismissHistoryRematchRulesForToday(
   };
 }
 
-/** 次の履歴再戦開始でリワード広告が必要か（3回に1回） */
+/** 次の履歴再戦のバトル開始でリワード広告が必要か（3回に1回） */
 export function shouldRequireHistoryRematchAd(
   historyRematchStarts: number,
 ): boolean {

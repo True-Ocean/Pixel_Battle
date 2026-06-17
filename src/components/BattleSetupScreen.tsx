@@ -1484,7 +1484,6 @@ export function BattleSetupScreen({
   const [playerSlots, setPlayerSlots] = useState<
     Record<BoardPosition, Card | null>
   >(() => ({ ...playerFormation }));
-  const [cpuHand, setCpuHand] = useState<Card[]>(() => []);
   const [cpuSlots, setCpuSlots] = useState<Record<BoardPosition, Card | null>>(
     () => (enableOpponentMatching ? emptyFormation() : { ...cpuFormation }),
   );
@@ -1497,7 +1496,6 @@ export function BattleSetupScreen({
     from: LayoutRect;
     to: LayoutRect;
   } | null>(null);
-  const [cpuFlyingCardId, setCpuFlyingCardId] = useState<string | null>(null);
   const [cpuDeployCooldown, setCpuDeployCooldown] = useState(false);
   const [cpuMeasureTick, setCpuMeasureTick] = useState(0);
   const [selected, setSelected] = useState<SelectedSetupCard | null>(null);
@@ -1568,9 +1566,7 @@ export function BattleSetupScreen({
 
     const { card, position } = current;
     setCpuSlots((prev) => ({ ...prev, [position]: card }));
-    setCpuHand((prev) => prev.filter((c) => c.id !== card.id));
     setCpuFlight(null);
-    setCpuFlyingCardId(null);
     setCpuDeployIndex((index) => index + 1);
     setCpuDeployCooldown(true);
   }, []);
@@ -1611,7 +1607,6 @@ export function BattleSetupScreen({
       return () => cancelAnimationFrame(id);
     }
 
-    setCpuFlyingCardId(card.id);
     setCpuFlight({
       card,
       position,
