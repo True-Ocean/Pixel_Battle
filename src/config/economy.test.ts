@@ -29,10 +29,12 @@ import {
   countBattleSurvivors,
   canAffordCardRename,
   canAffordCanvasUpgrade,
+  canAffordDeckUnlock,
   calcCanvasUpgradeCost,
   getCardRenameCount,
   isFirstCardRename,
   JEWEL_COST_RENAME,
+  JEWEL_COST_DECK_UNLOCK,
   PIXEL_COST_RENAME_FIRST,
   pickWeightedLostCard,
 } from './economy';
@@ -272,6 +274,13 @@ describe('lost economy helpers', () => {
     expect(
       canAffordCardRename({ freePixels: 999, jewels: JEWEL_COST_RENAME - 1 }, 2),
     ).toBe(false);
+  });
+
+  it('checks deck unlock affordability', () => {
+    expect(canAffordDeckUnlock({ jewels: JEWEL_COST_DECK_UNLOCK })).toBe(true);
+    expect(canAffordDeckUnlock({ jewels: JEWEL_COST_DECK_UNLOCK - 1 })).toBe(
+      false,
+    );
   });
 
   it('calculates canvas upgrade cost as area difference', () => {

@@ -97,7 +97,7 @@
 
 ---
 
-## 2. 現状（2026-06-17 時点・リネーム・広告一部反映後）
+## 2. 現状（2026-06-17 時点・デッキ3💎解放反映後）
 
 | 領域 | 状態 |
 |------|------|
@@ -126,7 +126,7 @@
 | 開発メニュー | ✅ 設定画面 — 「すべてのかけらを100個にする」 |
 | 広告（創作保存・日次 cap） | ❌ `hasEverCompletedBattleDeck` 未使用、`battlesToday` cap 未接続 |
 | ショップ画面 | ❌ プレースホルダ |
-| デッキ3〜 💎 解放 | ❌ フェーズ3 未着手（モーダルにコスト表示のみ・DEV 順次解放可） |
+| デッキ3〜 💎 解放 | ✅ `unlockDeckWithJewels()`・`canUnlockDeckSlotWithJewels`・`DeckUnlockModal`（フェーズ3） |
 | 💎 不足→ショップ誘導 | ❌ 文言のみ（フェーズ8 と連動予定） |
 
 ---
@@ -231,11 +231,19 @@
 
 **作業**
 
-1. `DeckUnlockModal` — 次スロット解放で 💎 消費確認
-2. `App.tsx` — `unlockDeckWithJewels()`（Lv10 未満 / 順序外は拒否）
-3. DEV メニューは従来どおり上書き可能
+1. ~~`DeckUnlockModal` — 次スロット解放で 💎 消費確認~~ — **✅ 2026-06-17 完了**
+2. ~~`App.tsx` — `unlockDeckWithJewels()`（Lv10 未満 / 順序外は拒否）~~ — **✅ 2026-06-17 完了**
+3. `canUnlockDeckSlotWithJewels` / `canAffordDeckUnlock`（`deckSlots.ts` / `economy.ts`）
+4. DEV メニュー（設定画面の `unlockedDeckCount` 上書き）は従来どおり可。**モーダル内の無料解放ボタンは廃止**（本番と同じ 💎 消費フローのみ）
 
-**完了条件**: Lv10 以上で 💎 を消費してデッキ3が開く（モックで jewels 付与可）。
+**UI（解放可能時）**
+
+- タイトル: **デッキ解放**
+- ジュエル不足: 「解放に必要な 💎 が不足しています。」
+- 解放ボタン: **`デッキNを解放する` + 💎 + `200`**（1タップで消費。二段階確認なし）
+- 順番外タップ: 「デッキNはデッキN-1解放後に解放できます。」のみ（「先に…から順に」注記は出さない）
+
+**完了条件**: Lv10 以上で 💎 を消費してデッキ3が開く（モックで jewels 付与可）。 — **✅ 達成**
 
 ---
 
@@ -432,6 +440,7 @@ flowchart TD
 |----------|----------|
 | 1 | `src/types/index.ts`, `src/user/economy.ts`, `src/storage/index.ts` |
 | 2 | `src/config/progressionUnlocks.ts`, `src/App.tsx`, `src/components/DeckUnlockModal.tsx` |
+| 3 | `src/deckSlots.ts`, `src/App.tsx`, `src/components/DeckUnlockModal.tsx`, `src/components/DeckScreen.tsx` |
 | 4 | `DeckScreen.tsx`, `DeckCardDetailOverlay.tsx`, `CardRenameDialog.tsx`, `EditorScreen.tsx`, `App.tsx` |
 | 5 | `src/components/GraveyardPickModal.tsx`, `src/battle/graveyardLoot.ts`, `src/components/InventoryScreen.tsx`, `src/config/economy.ts`, `src/App.tsx` |
 | 6 | `src/card/limitBreak.ts`, `DeckCardDetailOverlay.tsx`, `DeckScreen.tsx`, `SettingsScreen.tsx`, `src/user/profile.ts` |
@@ -454,7 +463,7 @@ flowchart TD
 |----|----------------------|
 | E0 データモデル | フェーズ 1 |
 | E1 Lost/勝利/墓地 | ✅ 済（px＋属性かけら。フェーズ5） |
-| E2 ポーション/溶解/ショップ | **分割** → フェーズ 3,4,8（ジュエル直消費モデル）。**削除・リネームは ✅ フェーズ4完了** |
+| E2 ポーション/溶解/ショップ | **分割** → フェーズ 3,4,8（ジュエル直消費モデル）。**デッキ3〜解放・削除・リネームは ✅ フェーズ3〜4完了** |
 | E3 広告 | フェーズ 7（**一部 ✅** — 2倍・履歴再戦・通常戦3回に1回） |
 | E4 サブスク | フェーズ 9 |
 | E5 レア抽選 | フェーズ 10 |
@@ -477,11 +486,12 @@ flowchart TD
 8. ~~フェーズ **4**（削除）— 💎1・返還・復活コスト塗り式~~ — **2026-06-17 完了**
 9. ~~フェーズ **4**（リネーム）— 初回100px・2回目以降💎1~~ — **2026-06-17 完了**
 10. ~~フェーズ **7a**（勝利2倍・通常戦3回に1回）~~ — **2026-06-17 完了**（日次 cap は未着手）
+11. ~~フェーズ **3** — デッキ3〜 💎 解放（`unlockDeckWithJewels`）~~ — **2026-06-17 完了**
 
 **次の推奨**
 
-11. フェーズ **3** ＋ **8** MVP — デッキ3〜 💎 解放とショップ（ジュエルパック・護符・不足時 deep link）
-12. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）・日次10戦 cap（`battlesToday`）
+12. フェーズ **8** MVP — ショップ（ジュエルパック・護符・不足時 deep link）
+13. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）・日次10戦 cap（`battlesToday`）
 
 **判断待ち（確定済み）**
 

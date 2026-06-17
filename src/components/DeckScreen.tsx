@@ -71,7 +71,7 @@ export interface DeckScreenProps {
     toDeckIndex: number,
     toCardIndex: number,
   ) => void;
-  onPrototypeUnlockDeck?: () => void;
+  onUnlockDeck?: (slotIndex: number) => string | null;
   onRenameDeck?: (deckIndex: number, name: string) => void;
   onEquipTalisman: (cardId: string) => void;
   onUnequipTalisman: (cardId: string) => void;
@@ -323,7 +323,7 @@ export function DeckScreen({
   jewels,
   onReorderDeck,
   onMoveCardBetweenDecks,
-  onPrototypeUnlockDeck,
+  onUnlockDeck,
   onRenameDeck,
   onEquipTalisman,
   onUnequipTalisman,
@@ -1088,12 +1088,16 @@ export function DeckScreen({
           slotIndex={unlockModalSlot}
           unlockedDeckCount={unlockedDeckCount}
           userLevel={userLevel}
+          jewels={jewels}
           onClose={() => setUnlockModalSlot(null)}
-          onPrototypeUnlock={
-            onPrototypeUnlockDeck
-              ? () => {
-                  onPrototypeUnlockDeck();
-                  setUnlockModalSlot(null);
+          onUnlock={
+            onUnlockDeck
+              ? (slotIndex) => {
+                  const error = onUnlockDeck(slotIndex);
+                  if (!error) {
+                    setUnlockModalSlot(null);
+                  }
+                  return error;
                 }
               : undefined
           }

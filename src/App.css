@@ -2817,7 +2817,11 @@ button.battle-hub-deck-icon.is-move-target {
   font-size: 0.82rem;
 }
 
-.deck-unlock-prototype-btn {
+.deck-unlock-panel--ready .deck-unlock-title {
+  margin-bottom: 0.75rem;
+}
+
+.deck-unlock-confirm-btn {
   box-sizing: border-box;
   width: 100%;
   min-height: 2.65rem;
@@ -2831,6 +2835,48 @@ button.battle-hub-deck-icon.is-move-target {
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.deck-unlock-confirm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.deck-unlock-confirm-jewel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  font-weight: inherit;
+}
+
+.deck-unlock-confirm-jewel-icon {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.deck-unlock-insufficient {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  margin-bottom: 0.65rem;
+}
+
+.deck-unlock-insufficient-jewel-icon {
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.deck-unlock-error {
+  margin: 0 0 0.45rem;
+  font-size: 0.82rem;
+  color: #c62828;
 }
 
 .deck-unlock-close {

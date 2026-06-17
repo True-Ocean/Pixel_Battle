@@ -324,6 +324,10 @@ export function canAffordCardRename(
   return economy.jewels >= JEWEL_COST_RENAME;
 }
 
+export function canAffordDeckUnlock(economy: { jewels: number }): boolean {
+  return economy.jewels >= JEWEL_COST_DECK_UNLOCK;
+}
+
 /** キャンバス拡大コスト（増分マス数 = 新² − 旧²） */
 export function calcCanvasUpgradeCost(fromSize: number, toSize: number): number {
   const from = Math.max(1, Math.floor(fromSize));

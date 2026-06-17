@@ -3,7 +3,7 @@ import type { AdState, Card, ScreenId, UserProfile, UserEconomy, UserInventory, 
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
-import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck } from './deckSlots';
+import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, finalizeCardNameForCreation, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, BATTLE_MATCH_CANCEL_COST } from './config/economy';
@@ -23,6 +23,7 @@ import {
   countBattleSurvivors,
   JEWEL_COST_DELETE,
   JEWEL_COST_RENAME,
+  JEWEL_COST_DECK_UNLOCK,
   PIXEL_COST_RENAME_FIRST,
   getCardRenameCount,
   isFirstCardRename,
@@ -1393,18 +1394,46 @@ function App() {
     return `${deckLabel} の空き ${newCards.length} 枚に CPU 風カードを追加しました。`;
   }, [deckNames, persistSave]);
 
-  const handlePrototypeUnlockNextDeck = useCallback(() => {
-    if (!import.meta.env.DEV) return;
-    const nextCount = clampUnlockedDeckCount(unlockedDeckCountRef.current + 1);
-    const nextIndex = nextCount - 1;
-    setUnlockedDeckCount(nextCount);
-    setActiveDeckIndex(nextIndex);
-    setDetailCardId(null);
-    persistSave({
-      unlockedDeckCount: nextCount,
-      activeDeckIndex: nextIndex,
-    });
-  }, [persistSave]);
+  const unlockDeckWithJewels = useCallback(
+    (slotIndex: number): string | null => {
+      const userLevel = userRef.current?.level ?? 1;
+      if (
+        !canUnlockDeckSlotWithJewels(
+          slotIndex,
+          unlockedDeckCountRef.current,
+          userLevel,
+        )
+      ) {
+        return 'このデッキはまだ解放できません。';
+      }
+
+      const nextEconomy = spendJewels(
+        economyRef.current,
+        JEWEL_COST_DECK_UNLOCK,
+      );
+      if (!nextEconomy) {
+        return `ジュエルが ${JEWEL_COST_DECK_UNLOCK.toLocaleString()} 不足しています。`;
+      }
+
+      const nextCount = clampUnlockedDeckCount(
+        unlockedDeckCountRef.current + 1,
+      );
+      const nextIndex = nextCount - 1;
+      setUnlockedDeckCount(nextCount);
+      setActiveDeckIndex(nextIndex);
+      setDetailCardId(null);
+      setEconomy(nextEconomy);
+      economyRef.current = nextEconomy;
+      unlockedDeckCountRef.current = nextCount;
+      persistSave({
+        unlockedDeckCount: nextCount,
+        activeDeckIndex: nextIndex,
+        economy: nextEconomy,
+      });
+      return null;
+    },
+    [persistSave],
+  );
 
   const handleRenameDeck = useCallback(
     (deckIndex: number, name: string) => {
@@ -1562,7 +1591,7 @@ function App() {
             jewels={economy.jewels}
             onReorderDeck={reorderDeck}
             onMoveCardBetweenDecks={moveCardBetweenDecks}
-            onPrototypeUnlockDeck={handlePrototypeUnlockNextDeck}
+            onUnlockDeck={unlockDeckWithJewels}
             onRenameDeck={handleRenameDeck}
             onEquipTalisman={equipTalismanOnCard}
             onUnequipTalisman={unequipTalismanOnCard}

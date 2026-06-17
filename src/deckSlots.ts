@@ -108,11 +108,26 @@ export interface DeckUnlockModalContent {
   message: string;
   note?: string;
   showJewelCost: boolean;
-  allowPrototypeUnlock: boolean;
+  canUnlockWithJewels: boolean;
 }
 
-/** デッキ3（index 2）未解放時の順次解放案内 */
-const DECK_3_PREREQUISITE_NOTE = '先にデッキ2から順に解放してください。';
+/** ジュエルで解放できる最小デッキ index（デッキ3 = index 2） */
+export const DECK_JEWEL_UNLOCK_MIN_SLOT_INDEX = 2;
+
+/** ジュエル解放に必要な最低ユーザーレベル */
+export const DECK_JEWEL_UNLOCK_MIN_USER_LEVEL = 10;
+
+export function canUnlockDeckSlotWithJewels(
+  slotIndex: number,
+  unlockedDeckCount: number,
+  userLevel: number,
+): boolean {
+  if (userLevel < DECK_JEWEL_UNLOCK_MIN_USER_LEVEL) return false;
+  if (slotIndex < DECK_JEWEL_UNLOCK_MIN_SLOT_INDEX) return false;
+  if (slotIndex !== unlockedDeckCount) return false;
+  if (unlockedDeckCount >= DECK_SLOT_COUNT) return false;
+  return true;
+}
 
 /** 未解放デッキタップ時のモーダル文言（順次解放: デッキNはデッキN-1解放後） */
 export function getDeckUnlockModalContent(
@@ -123,17 +138,14 @@ export function getDeckUnlockModalContent(
   const deckLabel = getDefaultDeckSlotLabel(slotIndex);
   const nextUnlockIndex = unlockedDeckCount;
   const previousDeckLabel = getDefaultDeckSlotLabel(slotIndex - 1);
-  const nextDeckLabel = getDefaultDeckSlotLabel(nextUnlockIndex);
   const title = `${deckLabel} は未解放`;
-  const isDeck3 = slotIndex === 2;
 
   if (slotIndex > nextUnlockIndex) {
     return {
       title,
       message: `${deckLabel}は${previousDeckLabel}解放後に解放できます。`,
-      note: isDeck3 ? DECK_3_PREREQUISITE_NOTE : `先に${nextDeckLabel}から順に解放してください。`,
       showJewelCost: false,
-      allowPrototypeUnlock: false,
+      canUnlockWithJewels: false,
     };
   }
 
@@ -143,7 +155,7 @@ export function getDeckUnlockModalContent(
         title,
         message: `${deckLabel}はレベル10到達で自動解放されます。`,
         showJewelCost: false,
-        allowPrototypeUnlock: true,
+        canUnlockWithJewels: false,
       };
     }
     return {
@@ -151,30 +163,32 @@ export function getDeckUnlockModalContent(
       message: `${deckLabel}はユーザーレベル10到達で解放されます。`,
       note: `現在 Lv.${userLevel} です。`,
       showJewelCost: false,
-      allowPrototypeUnlock: true,
+      canUnlockWithJewels: false,
     };
   }
 
   const sequentialMessage = `${deckLabel}は${previousDeckLabel}解放後に解放できます。`;
+  const canUnlockWithJewels = canUnlockDeckSlotWithJewels(
+    slotIndex,
+    unlockedDeckCount,
+    userLevel,
+  );
 
-  if (userLevel < 10) {
+  if (userLevel < DECK_JEWEL_UNLOCK_MIN_USER_LEVEL) {
     return {
       title,
       message: sequentialMessage,
-      note: isDeck3
-        ? DECK_3_PREREQUISITE_NOTE
-        : `現在 Lv.${userLevel} です。ユーザーレベル10到達後にジュエルで解放できます（準備中）。`,
+      note: `現在 Lv.${userLevel} です。ユーザーレベル10到達後にジュエルで解放できます。`,
       showJewelCost: false,
-      allowPrototypeUnlock: true,
+      canUnlockWithJewels: false,
     };
   }
 
   return {
     title,
-    message: sequentialMessage,
-    note: '解放にはジュエルが必要です。ショップ連携は準備中です。',
-    showJewelCost: true,
-    allowPrototypeUnlock: true,
+    message: '',
+    showJewelCost: false,
+    canUnlockWithJewels,
   };
 }
 

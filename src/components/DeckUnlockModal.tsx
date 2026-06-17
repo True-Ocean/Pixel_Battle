@@ -1,35 +1,40 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { JEWEL_COST_DECK_UNLOCK } from '../config/economy';
-import { getDeckUnlockModalContent } from '../deckSlots';
-import { JewelAmount } from './JewelIcon';
+import {
+  canAffordDeckUnlock,
+  JEWEL_COST_DECK_UNLOCK,
+} from '../config/economy';
+import { getDeckUnlockModalContent, getDefaultDeckSlotLabel } from '../deckSlots';
+import { JewelAmount, JewelIcon } from './JewelIcon';
 
 interface DeckUnlockModalProps {
   slotIndex: number;
   unlockedDeckCount: number;
   userLevel: number;
+  jewels: number;
   onClose: () => void;
-  onPrototypeUnlock?: () => void;
+  onUnlock?: (slotIndex: number) => string | null;
 }
 
 export function DeckUnlockModal({
   slotIndex,
   unlockedDeckCount,
   userLevel,
+  jewels,
   onClose,
-  onPrototypeUnlock,
+  onUnlock,
 }: DeckUnlockModalProps) {
-  const isDev = import.meta.env.DEV;
+  const [unlockError, setUnlockError] = useState<string | null>(null);
   const content = getDeckUnlockModalContent(
     slotIndex,
     unlockedDeckCount,
     userLevel,
   );
-  const canPrototypeUnlock =
-    isDev &&
-    onPrototypeUnlock != null &&
-    content.allowPrototypeUnlock &&
-    slotIndex === unlockedDeckCount;
+  const canAfford = canAffordDeckUnlock({ jewels });
+  const readyToUnlock = content.canUnlockWithJewels;
+  const showUnlockButton = readyToUnlock && onUnlock != null;
+  const deckLabel = getDefaultDeckSlotLabel(slotIndex);
+  const unlockButtonLabel = `${deckLabel}を解放する`;
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -55,37 +60,61 @@ export function DeckUnlockModal({
     };
   }, []);
 
+  const handleUnlock = () => {
+    if (!showUnlockButton || !canAfford) return;
+    const error = onUnlock(slotIndex);
+    if (error) {
+      setUnlockError(error);
+    }
+  };
+
   return createPortal(
     <div className="deck-unlock-backdrop" onClick={onClose}>
       <div
-        className="deck-unlock-panel"
+        className={`deck-unlock-panel${readyToUnlock ? ' deck-unlock-panel--ready' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="deck-unlock-title"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="deck-unlock-title" className="deck-unlock-title">
-          {content.title}
+          {readyToUnlock ? 'デッキ解放' : content.title}
         </h2>
-        <p className="deck-unlock-message">{content.message}</p>
-        {content.showJewelCost && (
-          <p className="deck-unlock-jewel-row">
-            必要:{' '}
-            <JewelAmount
-              amount={JEWEL_COST_DECK_UNLOCK}
-              className="deck-unlock-jewel-cost"
-              iconClassName="deck-unlock-jewel-icon"
-            />
+        {!readyToUnlock && content.message && (
+          <p className="deck-unlock-message">{content.message}</p>
+        )}
+        {!readyToUnlock && content.note && (
+          <p className="deck-unlock-note muted">{content.note}</p>
+        )}
+        {showUnlockButton && !canAfford && (
+          <p
+            className="deck-unlock-message deck-unlock-insufficient"
+            aria-label="解放に必要なジュエルが不足しています。"
+          >
+            解放に必要な
+            <JewelIcon className="deck-unlock-insufficient-jewel-icon" />
+            が不足しています。
           </p>
         )}
-        {content.note && <p className="deck-unlock-note muted">{content.note}</p>}
-        {canPrototypeUnlock && (
+        {unlockError && (
+          <p className="deck-unlock-error" role="alert">
+            {unlockError}
+          </p>
+        )}
+        {showUnlockButton && (
           <button
             type="button"
-            className="deck-unlock-prototype-btn"
-            onClick={onPrototypeUnlock}
+            className="deck-unlock-confirm-btn"
+            disabled={!canAfford}
+            aria-label={`${unlockButtonLabel}、ジュエル ${JEWEL_COST_DECK_UNLOCK.toLocaleString()}`}
+            onClick={handleUnlock}
           >
-            プロトタイプで解放
+            <span>{unlockButtonLabel}</span>
+            <JewelAmount
+              amount={JEWEL_COST_DECK_UNLOCK}
+              className="deck-unlock-confirm-jewel"
+              iconClassName="deck-unlock-confirm-jewel-icon"
+            />
           </button>
         )}
         <button type="button" className="deck-unlock-close" onClick={onClose}>
