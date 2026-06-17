@@ -10,14 +10,28 @@ import type { CardRarity, PixelGrid } from '../types';
 import type { ColorRatios } from './colors';
 import { normalizePixelColor } from './colors';
 
+function resolveUnlockedIndices(
+  unlocked: number | readonly number[],
+): readonly number[] {
+  if (typeof unlocked === 'number') {
+    const count = unlocked > 0 ? unlocked : PALETTE_16.length;
+    return Array.from({ length: count }, (_, index) => index);
+  }
+  return unlocked;
+}
+
 export function countDistinctUsedColors(
   pixels: PixelGrid,
-  unlockedPaletteCount: number,
+  unlocked: number | readonly number[],
 ): number {
+  const indices = resolveUnlockedIndices(unlocked);
+  const allowed = new Set(
+    indices.map((index) => PALETTE_16[index]!.toLowerCase()),
+  );
   const used = new Set<string>();
   for (const row of pixels) {
     for (const cell of row) {
-      const normalized = normalizePixelColor(cell, unlockedPaletteCount);
+      const normalized = normalizePixelColor(cell, allowed);
       if (normalized) used.add(normalized);
     }
   }
@@ -27,19 +41,17 @@ export function countDistinctUsedColors(
 /** 解放済み各色の使用マス数（未使用色は 0） */
 export function countUnlockedColorCells(
   pixels: PixelGrid,
-  unlockedPaletteCount: number,
+  unlocked: number | readonly number[],
 ): Map<string, number> {
-  const unlocked =
-    unlockedPaletteCount > 0
-      ? unlockedPaletteCount
-      : PALETTE_16.length;
+  const indices = resolveUnlockedIndices(unlocked);
   const counts = new Map<string, number>();
-  for (let i = 0; i < unlocked; i++) {
-    counts.set(PALETTE_16[i].toLowerCase(), 0);
+  for (const index of indices) {
+    counts.set(PALETTE_16[index]!.toLowerCase(), 0);
   }
+  const allowed = new Set(counts.keys());
   for (const row of pixels) {
     for (const cell of row) {
-      const normalized = normalizePixelColor(cell, unlockedPaletteCount);
+      const normalized = normalizePixelColor(cell, allowed);
       if (normalized == null) continue;
       counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
     }
@@ -56,22 +68,20 @@ export function countUnlockedColorCells(
 export function meetsCreationBonus(
   ratios: ColorRatios,
   pixels: PixelGrid,
-  unlockedPaletteCount: number,
+  unlocked: number | readonly number[],
 ): boolean {
-  const unlocked =
-    unlockedPaletteCount > 0
-      ? unlockedPaletteCount
-      : PALETTE_16.length;
+  const indices = resolveUnlockedIndices(unlocked);
+  const unlockedCount = indices.length;
   const totalCells = ratios.totalCells;
-  if (totalCells <= 0) return false;
+  if (unlockedCount <= 0 || totalCells <= 0) return false;
   if (ratios.density < CREATE_BONUS_PAINT_RATIO) return false;
   if (ratios.painted !== totalCells) return false;
 
-  const minSharePerColor = CREATE_BONUS_COLOR_SHARE_TOTAL / unlocked;
-  const counts = countUnlockedColorCells(pixels, unlockedPaletteCount);
+  const minSharePerColor = CREATE_BONUS_COLOR_SHARE_TOTAL / unlockedCount;
+  const counts = countUnlockedColorCells(pixels, indices);
 
-  for (let i = 0; i < unlocked; i++) {
-    const color = PALETTE_16[i].toLowerCase();
+  for (const index of indices) {
+    const color = PALETTE_16[index]!.toLowerCase();
     const count = counts.get(color) ?? 0;
     if (count === 0) return false;
     if (count / totalCells < minSharePerColor) return false;
@@ -82,10 +92,10 @@ export function meetsCreationBonus(
 export function rollRarity(
   ratios: ColorRatios,
   pixels: PixelGrid,
-  unlockedPaletteCount: number,
+  unlocked: number | readonly number[],
   random: () => number = Math.random,
 ): CardRarity {
-  const weights = meetsCreationBonus(ratios, pixels, unlockedPaletteCount)
+  const weights = meetsCreationBonus(ratios, pixels, unlocked)
     ? CREATE_RARITY_BONUS
     : CREATE_RARITY_DEFAULT;
 

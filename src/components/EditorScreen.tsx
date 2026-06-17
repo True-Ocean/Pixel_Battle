@@ -25,8 +25,8 @@ import {
   validateCardNameForCreation,
 } from '../card';
 import {
-  getUnlockedPaletteCount,
-  isPaletteColorUnlockedAtLevel,
+  buildUnlockedColorSet,
+  isPaletteColorUnlocked,
 } from '../config/paletteUnlock';
 import type { Attribute, Card, PixelGrid } from '../types';
 import { CanvasSizePicker } from './CanvasSizePicker';
@@ -35,6 +35,7 @@ import { ColorPalette } from './ColorPalette';
 import { ConfirmDialog } from './ConfirmDialog';
 import { CardRenameDialog } from './CardRenameDialog';
 import { EditorSaveBpConfirmModal } from './EditorSaveBpConfirmModal';
+import { PaletteUnlockModal } from './PaletteUnlockModal';
 import { getCardRenameCount, calcCanvasUpgradeCost, canAffordCanvasUpgrade } from '../config/economy';
 import {
   isEditorToolImplemented,
@@ -51,11 +52,14 @@ interface EditorScreenProps {
   editTarget?: Card | null;
   freePixels?: number;
   jewels?: number;
+  paletteShopUnlocks?: readonly number[];
   backLabel?: string;
   onBack: () => void;
   onCreated: (card: Card) => void;
   onUpdated?: (card: Card, options?: { canvasUpgradePx?: number }) => void;
   onRenameCard?: (cardId: string, newName: string) => string | null;
+  onUnlockPaletteWithPixels?: (index: number) => string | null;
+  onUnlockPaletteWithJewels?: (index: number) => string | null;
 }
 
 const MINI_PREVIEW_SIZE = 48;
@@ -73,6 +77,7 @@ function validateDrawing(
   name: string,
   pixels: PixelGrid,
   userLevel: number,
+  shopUnlocks: readonly number[],
 ): string | null {
   if (!name.trim()) {
     return 'カード名を入力してください';
@@ -81,7 +86,7 @@ function validateDrawing(
   const ratios = computeColorRatios(
     pixels,
     size * size,
-    getUnlockedPaletteCount(userLevel),
+    buildUnlockedColorSet(userLevel, shopUnlocks),
   );
   if (!ratios) {
     return '1マス以上塗ってください';
@@ -95,11 +100,14 @@ export function EditorScreen({
   editTarget = null,
   freePixels = 0,
   jewels = 0,
+  paletteShopUnlocks = [],
   backLabel = 'マイデッキに戻る',
   onBack,
   onCreated,
   onUpdated,
   onRenameCard,
+  onUnlockPaletteWithPixels,
+  onUnlockPaletteWithJewels,
 }: EditorScreenProps) {
   const isEditing = editTarget != null;
   const editCanvasSize = editTarget?.canvasSize ?? gridSize(editTarget?.pixels ?? []);
@@ -132,6 +140,9 @@ export function EditorScreen({
   } | null>(null);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [canvasUpgradeOpen, setCanvasUpgradeOpen] = useState(false);
+  const [paletteUnlockIndex, setPaletteUnlockIndex] = useState<number | null>(
+    null,
+  );
   const [pendingCanvasUpgradeSize, setPendingCanvasUpgradeSize] =
     useState<number | null>(null);
   const isComposingNameRef = useRef(false);
@@ -148,10 +159,10 @@ export function EditorScreen({
   editorFutureRef.current = editorFuture;
 
   useEffect(() => {
-    if (!isPaletteColorUnlockedAtLevel(brushColor, userLevel)) {
+    if (!isPaletteColorUnlocked(brushColor, userLevel, paletteShopUnlocks)) {
       setBrushColor(PALETTE_16[0]!);
     }
-  }, [userLevel, brushColor]);
+  }, [userLevel, brushColor, paletteShopUnlocks]);
 
   useEffect(() => {
     if (!isEditorToolImplemented(tool) || !isEditorToolUnlocked(tool, userLevel)) {
@@ -289,7 +300,7 @@ export function EditorScreen({
           name,
           pixels,
           userLevel,
-          getUnlockedPaletteCount(userLevel),
+          { paletteShopUnlocks },
         );
         onUpdated?.(card);
       } else {
@@ -300,7 +311,7 @@ export function EditorScreen({
         }
         const card = createCardFromDrawing(name, pixels, {
           userLevel,
-          unlockedPaletteCount: getUnlockedPaletteCount(userLevel),
+          paletteShopUnlocks,
           canvasSize,
           ...(DEV_MODE && devForceAttribute
             ? { forceAttribute: devForceAttribute }
@@ -320,7 +331,7 @@ export function EditorScreen({
       setError(nameError);
       return;
     }
-    const validationError = validateDrawing(name, pixels, userLevel);
+    const validationError = validateDrawing(name, pixels, userLevel, paletteShopUnlocks);
     if (validationError) {
       setError(validationError);
       return;
@@ -336,7 +347,7 @@ export function EditorScreen({
 
   const handleSave = () => {
     if (!editTarget) return;
-    const validationError = validateDrawing(name, pixels, userLevel);
+    const validationError = validateDrawing(name, pixels, userLevel, paletteShopUnlocks);
     if (validationError) {
       setError(validationError);
       return;
@@ -358,7 +369,7 @@ export function EditorScreen({
         name,
         pixels,
         userLevel,
-        getUnlockedPaletteCount(userLevel),
+        { paletteShopUnlocks },
       );
       onUpdated?.(
         card,
@@ -447,7 +458,9 @@ export function EditorScreen({
               <ColorPalette
                 brushColor={brushColor}
                 userLevel={userLevel}
+                shopUnlocks={paletteShopUnlocks}
                 onSelectColor={setBrushColor}
+                onRequestShopUnlock={setPaletteUnlockIndex}
               />
             </div>
           </div>
@@ -627,6 +640,26 @@ export function EditorScreen({
             persistCard();
           }}
           onCancel={() => setConfirmCreateOpen(false)}
+        />
+      )}
+      {paletteUnlockIndex != null && (
+        <PaletteUnlockModal
+          paletteIndex={paletteUnlockIndex}
+          userLevel={userLevel}
+          freePixels={freePixels}
+          jewels={jewels}
+          shopUnlocks={paletteShopUnlocks}
+          onClose={() => setPaletteUnlockIndex(null)}
+          onUnlockWithPixels={(index) => {
+            const error = onUnlockPaletteWithPixels?.(index) ?? null;
+            if (!error) setPaletteUnlockIndex(null);
+            return error;
+          }}
+          onUnlockWithJewels={(index) => {
+            const error = onUnlockPaletteWithJewels?.(index) ?? null;
+            if (!error) setPaletteUnlockIndex(null);
+            return error;
+          }}
         />
       )}
     </section>

@@ -376,10 +376,12 @@ attribute = 最終攻撃 >= 最終防御 ? "attack" : "defense"
 
 ### 5.6 パレットとレベル解放
 
-`PALETTE_16` の先頭10色がプレイ用。index 10〜15 は将来用に予約。
+`PALETTE_16`（実質20色・2×10 グリッド）の全色定義。index 0〜7 はレベル解放、index 8〜19 は Lv50 以降のショップ永久解放。
 
-| index | 色 | 解放レベル |
-|-------|-----|-----------|
+**1行目（index 0〜9）**
+
+| index | 色 | 解放 |
+|-------|-----|------|
 | 0 | 白 | 1（初期） |
 | 1 | 黒 | 1 |
 | 2 | 赤 | 1 |
@@ -388,12 +390,28 @@ attribute = 最終攻撃 >= 最終防御 ? "attack" : "defense"
 | 5 | 緑 | **25** |
 | 6 | 橙 | **35** |
 | 7 | 桃 | **45** |
-| 8 | 紫 | **55**（Lv50 上限では未解放） |
-| 9 | 茶 | **65**（同上） |
+| 8 | 紫 | ショップ（Lv50+・2000px） |
+| 9 | 濃い緑 | ショップ（Lv50+・2000px） |
 
-- 解放ルール: **L ≡ 5 (mod 10)** かつ L ≥ 5（**5, 15, 25, 35, 45**）で index 3 から **1 色ずつ** 追加
-- Lv50 時点の利用可能色数: **8色**（白・黒・赤・青・黄・緑・橙・桃）
-- 実装: `src/config/paletteUnlock.ts` の `getUnlockedPaletteCount(userLevel)`（**5n+m 統一後に更新予定**）
+**2行目（index 10〜19）— 上段の同列と用途が揃う**
+
+| index | 色 | 上段の対応 | 用途の目安 | 解放 |
+|-------|-----|-----------|-----------|------|
+| 10 | 灰 | 白 | 影・雲・金属のハイライト | tier2 |
+| 11 | 茶 | 黒 | 土・木・髪の暗部 | tier1 |
+| 12 | 薄赤 | 赤 | 肌・唇の淡い色 | tier2 |
+| 13 | 薄青 | 青 | 空・水・氷の淡色 | tier2 |
+| 14 | 薄黄 | 黄 | 光・星・淡い暖色 | tier2 |
+| 15 | 薄緑 | 緑 | 草地の明部・若葉 | tier2 |
+| 16 | 薄橙 | 橙 | 肌の影・夕焼けの淡色 | tier2 |
+| 17 | 薄桃 | 桃 | 頬・花の淡いピンク | tier2 |
+| 18 | 薄紫 | 紫 | 夕暮れ・魔法の淡色 | tier2 |
+| 19 | 赤茶 | 濃い緑 | 土・レンガ・暗い暖色 | tier1 |
+
+- レベル解放ルール: **L ≡ 5 (mod 10)** かつ L ≥ 5（**5, 15, 25, 35, 45**）で index 3 から **1 色ずつ** 追加
+- Lv50 時点のレベル解放色数: **8色**（白・黒・赤・青・黄・緑・橙・桃）
+- ショップ追加色: **12色**（紫〜薄紫）。`SaveData.paletteShopUnlocks` に購入済み index を保持
+- 実装: `src/config/paletteUnlock.ts` / `src/config/paletteShop.ts` / `src/user/paletteShop.ts`
 
 **色の役割**
 
@@ -409,9 +427,10 @@ attribute = 最終攻撃 >= 最終防御 ? "attack" : "defense"
 
 **UI 配置**
 
-- キャンバス下: 色 index 0〜7（8 枠固定、未解放はロック）
+- キャンバス下: **2行×10列**（計20スロット）。**列ごとに用途が揃う**（白の下に灰、青の下に薄青 等）
+- ショップ価格帯（tier1/tier2）は **index ではなく色コード** で判定（並べ替え自由）
 - キャンバス左: 描画ツール縦列（`getVisibleEditorTools`）
-- 紫・茶（index 8〜9）: 現 UI では非表示。上限引き上げ時に色パレット行を拡張
+- ショップ色タップ: 購入モーダル（エディタ）またはショップ画面から購入
 
 ### 5.7 キャンバスサイズとレベル解放
 
@@ -1095,8 +1114,13 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | `ATTRIBUTE_UNLOCK_LEVELS` | 6,11,…,41 | L≡1 (mod 5)（§5.9 / ATTRIBUTE_SPEC） |
 | `POWER_BP_RATIO` | 1.5 | 力属性 BP 中心（ATTRIBUTE_SPEC §4.3） |
 | `DECK_MAX` | 5 | |
-| `PALETTE_GRID_COLS` | 8 | パレット列数 |
+| `PALETTE_GRID_COLS` | 10 | パレット列数 |
 | `PALETTE_GRID_ROWS` | 2 | パレット行数 |
+| `PALETTE_EDITOR_COLOR_COUNT` | 20 | エディタ表示スロット数 |
+| `PALETTE_SHOP_MIN_USER_LEVEL` | 50 | 追加色ショップ購入の最低レベル |
+| `PIXEL_COST_PALETTE_SHOP_TIER1` | 2000 | 紫・濃い緑・茶・赤茶（各1回） |
+| `JEWEL_COST_PALETTE_SHOP_TIER2` | 20 | 薄色系8色（💎支払い） |
+| `PIXEL_COST_PALETTE_SHOP_TIER2` | 2200 | 薄色系8色（px支払い） |
 | `PALETTE_UNLOCKED_COUNT_LV0` | 3 | Lv1 で選択可能な初期色数（白・黒・赤） |
 | `FRONT_SIZE` | 2 | 前衛スロット数 |
 | `BACK_SIZE` | 3 | 後衛スロット数 |
@@ -1129,8 +1153,6 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 
 ### 14.2 カード・作成
 
-- ★（スター）・紫・茶の色解放（Lv55/65）
-- パレット index 10〜15
 - **AI 属性決定**（[§5.4.2](#542-将来方針ai-による漢字1文字属性未実装)）
 - 編集 UI：名前読み取り専用・属性表示
 

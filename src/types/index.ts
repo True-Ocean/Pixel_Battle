@@ -162,6 +162,8 @@ export interface SaveData {
   devFileOverrideLevel?: number | null;
   /** Lv5 到達時の初回護符を受け取り済みか（生涯1回） */
   talismanStarterGranted?: boolean;
+  /** ショップで解放済みのパレット index（8〜19） */
+  paletteShopUnlocks?: number[];
 }
 
 /** アプリ画面（ルーターなし・state で切替） */

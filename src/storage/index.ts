@@ -28,9 +28,21 @@ import { normalizeTalismanEquipped } from '../card/talisman';
 import { createInitialEconomy, normalizeUserEconomy } from '../user/economy';
 import { createInitialInventory, applyDevInventoryFill, inventoryMatchesDevFill, normalizeUserInventory } from '../user/inventory';
 import { createInitialAdState, normalizeAdState } from '../user/adState';
+import { normalizePaletteShopUnlocks, migratePaletteShopUnlocksForSchema } from '../config/paletteUnlock';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
-export const SAVE_SCHEMA_VERSION = 2;
+export const SAVE_SCHEMA_VERSION = 5;
+
+function readPaletteShopUnlocks(
+  raw: unknown,
+  schemaVersion: number,
+): number[] {
+  return migratePaletteShopUnlocksForSchema(
+    raw,
+    schemaVersion,
+    SAVE_SCHEMA_VERSION,
+  );
+}
 
 function emptySave(): SaveData {
   return {
@@ -45,6 +57,7 @@ function emptySave(): SaveData {
     unlockedDeckCount: DECK_SLOT_INITIAL_UNLOCKED,
     battleHistory: [],
     talismanStarterGranted: false,
+    paletteShopUnlocks: [],
   };
 }
 
@@ -275,10 +288,14 @@ function normalizeSaveFields(parsed: Record<string, unknown>, _decks: DeckLayout
   };
 }
 
-function rescaleAllDecks(decks: DeckLayout[], level: number): DeckLayout[] {
+function rescaleAllDecks(
+  decks: DeckLayout[],
+  level: number,
+  paletteShopUnlocks: readonly number[] = [],
+): DeckLayout[] {
   return decks.map((deck) => {
     const cards = getDeckCards(deck);
-    const rescaled = rescaleDeckBp(cards, level);
+    const rescaled = rescaleDeckBp(cards, level, paletteShopUnlocks);
     const next = normalizeDeckLayout(deck);
     let cursor = 0;
     return next.map((card) => {
@@ -298,6 +315,7 @@ export function applyProgressionMigrations(save: SaveData): SaveData {
     inventory: normalizeUserInventory(save.inventory),
     adState: normalizeAdState(save.adState),
     talismanStarterGranted: save.talismanStarterGranted === true,
+    paletteShopUnlocks: normalizePaletteShopUnlocks(save.paletteShopUnlocks),
   };
 
   if (next.user && next.user.level >= 10 && next.unlockedDeckCount < 2) {
@@ -353,6 +371,13 @@ export function loadSave(): SaveData {
       devFileOverrideLevel,
     );
 
+    const parsedVersion =
+      typeof parsed.schemaVersion === 'number' ? parsed.schemaVersion : 0;
+    const paletteShopUnlocks = readPaletteShopUnlocks(
+      parsed.paletteShopUnlocks,
+      parsedVersion,
+    );
+
     const baseSave = applyProgressionMigrations({
       schemaVersion: SAVE_SCHEMA_VERSION,
       user,
@@ -366,6 +391,7 @@ export function loadSave(): SaveData {
       deckNames,
       battleHistory,
       talismanStarterGranted: parsed.talismanStarterGranted === true,
+      paletteShopUnlocks,
       ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
     });
 
@@ -377,7 +403,11 @@ export function loadSave(): SaveData {
       });
       const rescale = shouldRescaleDeckForDev() || preferSaved;
       const finalDecks = rescale
-        ? rescaleAllDecks(decks, devAdjusted.level)
+        ? rescaleAllDecks(
+            decks,
+            devAdjusted.level,
+            paletteShopUnlocks,
+          )
         : decks;
       const finalSave = applyProgressionMigrations({
         ...baseSave,
@@ -428,6 +458,10 @@ export function saveSave(data: SaveData): void {
   };
   if (data.talismanStarterGranted === true) {
     payload.talismanStarterGranted = true;
+  }
+  const paletteShopUnlocks = normalizePaletteShopUnlocks(data.paletteShopUnlocks);
+  if (paletteShopUnlocks.length > 0) {
+    payload.paletteShopUnlocks = paletteShopUnlocks;
   }
   if (data.devPreferSavedLevel === true) {
     payload.devPreferSavedLevel = true;

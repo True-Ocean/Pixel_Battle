@@ -8,6 +8,10 @@ import { clampUnlockedDeckCount } from '../deckSlots';
 import { getLevelProgress } from '../user';
 import type { UserProfile } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
+import {
+  PALETTE_SHOP_TIER1_COUNT,
+  PALETTE_SHOP_TIER2_COUNT,
+} from '../config/paletteShop';
 
 interface DevCardOption {
   id: string;
@@ -43,6 +47,9 @@ export interface SettingsScreenProps {
   onDevSetTalisman: (count: number) => string;
   onDevMarkCardLost: (cardId: string) => string;
   onDevFillDeckSlots: (deckIndex: number) => string;
+  paletteShopUnlockCount?: number;
+  onDevUnlockAllPaletteColors: () => string;
+  onDevClearPaletteShopUnlocks: () => string;
 }
 
 interface PlaceholderRow {
@@ -112,6 +119,9 @@ export function SettingsScreen({
   onDevSetTalisman,
   onDevMarkCardLost,
   onDevFillDeckSlots,
+  paletteShopUnlockCount = 0,
+  onDevUnlockAllPaletteColors,
+  onDevClearPaletteShopUnlocks,
 }: SettingsScreenProps) {
   const [resetOpen, setResetOpen] = useState(false);
   const [devLevelInput, setDevLevelInput] = useState(
@@ -139,6 +149,7 @@ export function SettingsScreen({
   const [devJewelsNotice, setDevJewelsNotice] = useState<string | null>(null);
   const [devLostNotice, setDevLostNotice] = useState<string | null>(null);
   const [devFillNotice, setDevFillNotice] = useState<string | null>(null);
+  const [devPaletteNotice, setDevPaletteNotice] = useState<string | null>(null);
   const [devShardsNotice, setDevShardsNotice] = useState<string | null>(null);
   const [devLostCardId, setDevLostCardId] = useState('');
   const [devFillDeckIndex, setDevFillDeckIndex] = useState(0);
@@ -296,6 +307,16 @@ export function SettingsScreen({
   const handleDevFillDeckSlots = () => {
     setDevFillNotice(onDevFillDeckSlots(devFillDeckIndex));
   };
+
+  const handleDevUnlockAllPaletteColors = () => {
+    setDevPaletteNotice(onDevUnlockAllPaletteColors());
+  };
+
+  const handleDevClearPaletteShopUnlocks = () => {
+    setDevPaletteNotice(onDevClearPaletteShopUnlocks());
+  };
+
+  const shopPaletteTotal = PALETTE_SHOP_TIER1_COUNT + PALETTE_SHOP_TIER2_COUNT;
 
   const selectedDevCard = devCardOptions.find((option) => option.id === devLostCardId);
   const selectedDevFillDeck = devDeckFillOptions.find(
@@ -558,6 +579,28 @@ export function SettingsScreen({
               属性かけらは全属性を同じ数に、汎用かけらと護符は個別に設定できます。
             </p>
             <div className="settings-dev-level">
+              <span className="settings-dev-level-label">色パレット（ショップ追加分）</span>
+              <div className="settings-dev-level-row settings-dev-palette-row">
+                <button
+                  type="button"
+                  className="settings-dev-level-apply settings-dev-level-apply--wide"
+                  onClick={handleDevUnlockAllPaletteColors}
+                >
+                  全解放
+                </button>
+                <button
+                  type="button"
+                  className="settings-dev-level-apply settings-dev-level-apply--wide"
+                  onClick={handleDevClearPaletteShopUnlocks}
+                >
+                  未解放
+                </button>
+              </div>
+              <p className="settings-dev-level-hint muted">
+                解放済み {paletteShopUnlockCount}/{shopPaletteTotal} 色（Lv50以上で利用可能）
+              </p>
+            </div>
+            <div className="settings-dev-level">
               <label
                 className="settings-dev-level-label"
                 htmlFor="settings-dev-fill-deck"
@@ -674,6 +717,11 @@ export function SettingsScreen({
             {devFillNotice && (
               <p className="settings-dev-notice" role="status">
                 {devFillNotice}
+              </p>
+            )}
+            {devPaletteNotice && (
+              <p className="settings-dev-notice" role="status">
+                {devPaletteNotice}
               </p>
             )}
           </SettingsSection>

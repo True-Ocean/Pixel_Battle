@@ -25,9 +25,12 @@ describe('palette', () => {
     expect(isPaletteColorUnlocked('#ff8800', 7)).toBe(true);
   });
 
-  it('エディタ1行目は index 0〜7 を横並び', () => {
-    expect(PALETTE_EDITOR_COLOR_COUNT).toBe(8);
+  it('エディタは 2×10 グリッド（計20色）', () => {
+    expect(PALETTE_EDITOR_COLOR_COUNT).toBe(20);
+    expect(PALETTE_16).toHaveLength(20);
     expect(paletteGridPlacement(0)).toEqual({ row: 1, col: 1 });
-    expect(paletteGridPlacement(7)).toEqual({ row: 1, col: 8 });
+    expect(paletteGridPlacement(9)).toEqual({ row: 1, col: 10 });
+    expect(paletteGridPlacement(10)).toEqual({ row: 2, col: 1 });
+    expect(paletteGridPlacement(19)).toEqual({ row: 2, col: 10 });
   });
 });

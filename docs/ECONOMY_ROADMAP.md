@@ -125,7 +125,7 @@
 | ヘッダーメニュー | ✅ 三本線を `user-profile-bar` 内に配置 |
 | 開発メニュー | ✅ 設定画面 — 「すべてのかけらを100個にする」 |
 | 広告（創作保存・日次 cap） | ❌ `hasEverCompletedBattleDeck` 未使用、`battlesToday` cap 未接続 |
-| ショップ画面 | ❌ プレースホルダ |
+| ショップ画面 | ✅ 追加色パレット購入（フェーズ8 一部） |
 | デッキ3〜 💎 解放 | ✅ `unlockDeckWithJewels()`・`canUnlockDeckSlotWithJewels`・`DeckUnlockModal`（フェーズ3） |
 | 💎 不足→ショップ誘導 | ❌ 文言のみ（フェーズ8 と連動予定） |
 

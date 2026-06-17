@@ -36,9 +36,13 @@ export const BLACK_ATTACK_WEIGHT = 0.7;
 export const CPU_AGGRESSIVE_CHANCE = 0.7;
 
 /**
- * 2×8 マスターパレット（左上から行優先・計16色）。
- * index 0〜9: プレイ用（白→茶、§5.6 の順でレベル解放）。
- * index 10〜15: 将来用に予約。
+ * 2×10 マスターパレット（左上から行優先・計20色）。
+ * 列ごとに用途が揃う配置（0〜7 はレベル解放で固定）。
+ *
+ * 列:   白   黒   赤   青   黄   緑   橙   桃   紫 濃い緑
+ * 上段:  0    1    2    3    4    5    6    7    8    9
+ * 下段:  灰   茶  薄赤 薄青 薄黄 薄緑 薄橙 薄桃 薄紫  赤茶
+ *       10   11   12   13   14   15   16   17   18   19
  */
 export const PALETTE_16 = [
   '#ffffff',
@@ -50,22 +54,101 @@ export const PALETTE_16 = [
   '#ff8800',
   '#ff44ff',
   '#8844ff',
+  '#1a7a3a',
+  '#aaaaaa',
   '#886644',
-  '#44dddd',
-  '#4488ff',
-  '#ff4488',
-  '#bbbbbb',
-  '#555555',
-  '#ffcccc',
+  '#ffaaaa',
+  '#aaccff',
+  '#ffffcc',
+  '#ccffcc',
+  '#ffddaa',
+  '#ffccff',
+  '#ddccff',
+  '#aa4422',
 ] as const;
 
-/** マスターパレットのプレイ用色数（index 0〜9。紫・茶含む） */
-export const PALETTE_PLAYABLE_COUNT = 10;
+/** schema v2 以前の並び（paletteShopUnlocks 移行用） */
+export const PALETTE_16_LEGACY_ORDER = [
+  '#ffffff',
+  '#000000',
+  '#ff0000',
+  '#2222ff',
+  '#ffdd00',
+  '#44cc44',
+  '#ff8800',
+  '#ff44ff',
+  '#8844ff',
+  '#44dddd',
+  '#88cc44',
+  '#886644',
+  '#aaaaaa',
+  '#ffaaaa',
+  '#aaccff',
+  '#ffffcc',
+  '#ccffcc',
+  '#ffddaa',
+  '#ffccff',
+  '#ddccff',
+] as const;
 
-/** エディタ1行目に表示する色スロット数（index 0〜7。Lv50 まで） */
-export const PALETTE_EDITOR_COLOR_COUNT = 8;
+/** schema v3 の並び（paletteShopUnlocks 移行用） */
+export const PALETTE_16_SCHEMA_3 = [
+  '#ffffff',
+  '#000000',
+  '#ff0000',
+  '#2222ff',
+  '#ffdd00',
+  '#44cc44',
+  '#ff8800',
+  '#ff44ff',
+  '#8844ff',
+  '#44dddd',
+  '#88cc44',
+  '#886644',
+  '#ffaaaa',
+  '#aaccff',
+  '#ffffcc',
+  '#ccffcc',
+  '#ffddaa',
+  '#ffccff',
+  '#ddccff',
+  '#aaaaaa',
+] as const;
 
-export const PALETTE_GRID_COLS = 8;
+/** schema v4 の並び（paletteShopUnlocks 移行用） */
+export const PALETTE_16_SCHEMA_4 = [
+  '#ffffff',
+  '#000000',
+  '#ff0000',
+  '#2222ff',
+  '#ffdd00',
+  '#44cc44',
+  '#ff8800',
+  '#ff44ff',
+  '#8844ff',
+  '#88cc44',
+  '#aaaaaa',
+  '#886644',
+  '#ffaaaa',
+  '#44dddd',
+  '#ffffcc',
+  '#ccffcc',
+  '#ffddaa',
+  '#ffccff',
+  '#ddccff',
+  '#aaccff',
+] as const;
+
+/** マスターパレットの全色数 */
+export const PALETTE_PLAYABLE_COUNT = 20;
+
+/** エディタに表示する色スロット数（2行×10列） */
+export const PALETTE_EDITOR_COLOR_COUNT = 20;
+
+/** エディタでレベル解放対象の色数（index 0〜7。白→桃） */
+export const PALETTE_EDITOR_LEVEL_UNLOCK_COUNT = 8;
+
+export const PALETTE_GRID_COLS = 10;
 export const PALETTE_GRID_ROWS = 2;
 export const PALETTE_UNLOCKED_COUNT_LV0 = 3;
 

@@ -2,12 +2,17 @@ import {
   BLACK_ATTACK_WEIGHT,
   COLOR_WEIGHT,
   HASH_WEIGHT,
+  PALETTE_16,
   USER_INITIAL_LEVEL,
   applyRarityToBp,
   computeCardBaseBp,
 } from '../config/balance';
 import { getUnlockedAttributes } from '../config/attributeUnlock';
-import { getUnlockedPaletteCount } from '../config/paletteUnlock';
+import {
+  buildUnlockedColorSet,
+  getUnlockedPaletteCount,
+  getUnlockedPaletteIndices,
+} from '../config/paletteUnlock';
 import { gridSize } from '../canvas';
 import type { Attribute, Card, PixelGrid } from '../types';
 import { computeColorRatios, normalizePixelColor } from './colors';
@@ -34,7 +39,9 @@ export interface DeriveCardStatsOptions {
 
 export interface CreateCardOptions extends DeriveCardStatsOptions {
   userLevel?: number;
+  /** @deprecated buildUnlockedColorSet(userLevel, paletteShopUnlocks) を使用 */
   unlockedPaletteCount?: number;
+  paletteShopUnlocks?: readonly number[];
   canvasSize?: number;
   random?: () => number;
 }
@@ -49,7 +56,7 @@ export class CardCreationError extends Error {
 function validateDrawingInput(
   name: string,
   pixels: PixelGrid,
-  unlockedPaletteCount: number,
+  allowedColors: ReadonlySet<string>,
 ): { trimmed: string; ratios: ColorRatios } {
   const trimmed = name.trim();
   if (!trimmed) {
@@ -58,12 +65,44 @@ function validateDrawingInput(
 
   const size = gridSize(pixels);
   const totalCells = size * size;
-  const ratios = computeColorRatios(pixels, totalCells, unlockedPaletteCount);
+  const ratios = computeColorRatios(pixels, totalCells, allowedColors);
   if (!ratios) {
     throw new CardCreationError('1マス以上塗ってください');
   }
 
   return { trimmed, ratios };
+}
+
+function resolvePaletteUnlock(
+  userLevel: number,
+  options: {
+    unlockedPaletteCount?: number;
+    paletteShopUnlocks?: readonly number[];
+  } = {},
+): {
+  allowedColors: ReadonlySet<string>;
+  unlockedIndices: readonly number[];
+} {
+  if (options.paletteShopUnlocks != null) {
+    return {
+      allowedColors: buildUnlockedColorSet(
+        userLevel,
+        options.paletteShopUnlocks,
+      ),
+      unlockedIndices: getUnlockedPaletteIndices(
+        userLevel,
+        options.paletteShopUnlocks,
+      ),
+    };
+  }
+  const count = options.unlockedPaletteCount ?? getUnlockedPaletteCount(userLevel);
+  const unlockedIndices = Array.from({ length: count }, (_, index) => index);
+  return {
+    allowedColors: new Set(
+      unlockedIndices.map((index) => PALETTE_16[index]!.toLowerCase()),
+    ),
+    unlockedIndices,
+  };
 }
 
 function computeBpBlend(
@@ -123,14 +162,13 @@ export function deriveCardStats(
   name: string,
   pixels: PixelGrid,
   userLevel: number = USER_INITIAL_LEVEL,
-  options: DeriveCardStatsOptions = {},
+  options: DeriveCardStatsOptions & {
+    unlockedPaletteCount?: number;
+    paletteShopUnlocks?: readonly number[];
+  } = {},
 ): CardDraft {
-  const unlockedPaletteCount = getUnlockedPaletteCount(userLevel);
-  const { trimmed, ratios } = validateDrawingInput(
-    name,
-    pixels,
-    unlockedPaletteCount,
-  );
+  const { allowedColors } = resolvePaletteUnlock(userLevel, options);
+  const { trimmed, ratios } = validateDrawingInput(name, pixels, allowedColors);
   const attribute =
     options.forceAttribute ??
     deriveAttribute(trimmed, pixels, ratios, userLevel);
@@ -142,10 +180,10 @@ export function deriveCardStats(
 
 function normalizeGrid(
   pixels: PixelGrid,
-  unlockedPaletteCount: number,
+  allowedColors: ReadonlySet<string>,
 ): PixelGrid {
   return pixels.map((row) =>
-    row.map((c) => normalizePixelColor(c, unlockedPaletteCount)),
+    row.map((c) => normalizePixelColor(c, allowedColors)),
   );
 }
 
@@ -161,16 +199,20 @@ export function createCardFromDrawing(
   const finalName = finalizeCardNameForCreation(name);
 
   const userLevel = options.userLevel ?? USER_INITIAL_LEVEL;
-  const unlockedPaletteCount =
-    options.unlockedPaletteCount ?? getUnlockedPaletteCount(userLevel);
-  const normalized = normalizeGrid(pixels, unlockedPaletteCount);
+  const { allowedColors, unlockedIndices } = resolvePaletteUnlock(
+    userLevel,
+    options,
+  );
+  const normalized = normalizeGrid(pixels, allowedColors);
   const { attribute, bp, ratios } = deriveCardStats(finalName, normalized, userLevel, {
     forceAttribute: options.forceAttribute,
+    paletteShopUnlocks: options.paletteShopUnlocks,
+    unlockedPaletteCount: options.unlockedPaletteCount,
   });
   const rarity = rollRarity(
     ratios,
     normalized,
-    unlockedPaletteCount,
+    unlockedIndices,
     options.random,
   );
   const finalBp = applyRarityToBp(bp, attribute, rarity, userLevel);
@@ -196,13 +238,14 @@ export function createCardFromDrawing(
 }
 
 /** 絵・名前から基礎BPのみ算出（レア・★倍率なし） */
-export function getCardFoundationBp(card: Card, userLevel: number): number {
+export function getCardFoundationBp(
+  card: Card,
+  userLevel: number,
+  paletteShopUnlocks: readonly number[] = [],
+): number {
   const size = gridSize(card.pixels);
-  const ratios = computeColorRatios(
-    card.pixels,
-    size * size,
-    getUnlockedPaletteCount(userLevel),
-  );
+  const allowedColors = buildUnlockedColorSet(userLevel, paletteShopUnlocks);
+  const ratios = computeColorRatios(card.pixels, size * size, allowedColors);
   if (!ratios) return card.bp;
 
   const bpBlend = computeBpBlend(card.name.trim(), card.pixels, ratios);
@@ -221,13 +264,14 @@ function countLimitBreaks(card: Pick<Card, 'rarity' | 'stars'>): number {
 }
 
 /** 既存カードの BP をユーザーレベルに合わせて再算出（絵・属性・レア・限界突破済みBPを維持） */
-export function recalculateCardBp(card: Card, userLevel: number): number {
+export function recalculateCardBp(
+  card: Card,
+  userLevel: number,
+  paletteShopUnlocks: readonly number[] = [],
+): number {
   const size = gridSize(card.pixels);
-  const ratios = computeColorRatios(
-    card.pixels,
-    size * size,
-    getUnlockedPaletteCount(userLevel),
-  );
+  const allowedColors = buildUnlockedColorSet(userLevel, paletteShopUnlocks);
+  const ratios = computeColorRatios(card.pixels, size * size, allowedColors);
   if (!ratios) return card.bp;
 
   const bpBlend = computeBpBlend(card.name.trim(), card.pixels, ratios);
@@ -241,10 +285,14 @@ export function recalculateCardBp(card: Card, userLevel: number): number {
   return rarityBp + gainPerBreak * limitBreakCount;
 }
 
-export function rescaleDeckBp(deck: Card[], userLevel: number): Card[] {
+export function rescaleDeckBp(
+  deck: Card[],
+  userLevel: number,
+  paletteShopUnlocks: readonly number[] = [],
+): Card[] {
   return deck.map((card) => ({
     ...card,
-    bp: recalculateCardBp(card, userLevel),
+    bp: recalculateCardBp(card, userLevel, paletteShopUnlocks),
   }));
 }
 
@@ -254,13 +302,17 @@ export function updateCardFromDrawing(
   name: string,
   pixels: PixelGrid,
   userLevel: number = USER_INITIAL_LEVEL,
-  unlockedPaletteCount: number = getUnlockedPaletteCount(userLevel),
+  paletteUnlock: {
+    unlockedPaletteCount?: number;
+    paletteShopUnlocks?: readonly number[];
+  } = {},
 ): Card {
-  const normalized = normalizeGrid(pixels, unlockedPaletteCount);
+  const { allowedColors } = resolvePaletteUnlock(userLevel, paletteUnlock);
+  const normalized = normalizeGrid(pixels, allowedColors);
   const { trimmed, ratios } = validateDrawingInput(
     name,
     normalized,
-    unlockedPaletteCount,
+    allowedColors,
   );
   const bpBlend = computeBpBlend(trimmed, normalized, ratios);
   const baseBp = computeCardBaseBp(bpBlend, userLevel, existing.attribute);

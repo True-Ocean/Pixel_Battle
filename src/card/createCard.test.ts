@@ -301,7 +301,9 @@ describe('updateCardFromDrawing', () => {
     const grid = fillGrid('#ff0000');
     grid[0][0] = '#2222ff';
 
-    const updated = updateCardFromDrawing(original, '色', grid, 50, 8);
+    const updated = updateCardFromDrawing(original, '色', grid, 50, {
+      unlockedPaletteCount: 8,
+    });
 
     expect(updated.pixels[0][0]).toBe('#2222ff');
     expect(updated.pixels[0][1]).toBe('#ff0000');

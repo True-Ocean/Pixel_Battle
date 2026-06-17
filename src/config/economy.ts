@@ -37,6 +37,15 @@ export const PIXEL_COST_RENAME_FIRST = 100;
 /** デッキ3〜5解放のジュエルコスト（各1回） */
 export const JEWEL_COST_DECK_UNLOCK = 200;
 
+/** 追加色パレット tier1（紫・濃い緑・茶・赤茶）の px コスト */
+export const PIXEL_COST_PALETTE_SHOP_TIER1 = 2000;
+
+/** 追加色パレット tier2（薄色系8色）のジュエルコスト */
+export const JEWEL_COST_PALETTE_SHOP_TIER2 = 20;
+
+/** 追加色パレット tier2（薄色系8色）の px コスト */
+export const PIXEL_COST_PALETTE_SHOP_TIER2 = 2200;
+
 /** バトルマッチングキャンセル時の px コスト */
 export const BATTLE_MATCH_CANCEL_COST = 25;
 
@@ -326,6 +335,20 @@ export function canAffordCardRename(
 
 export function canAffordDeckUnlock(economy: { jewels: number }): boolean {
   return economy.jewels >= JEWEL_COST_DECK_UNLOCK;
+}
+
+export function canAffordPaletteShopPixels(
+  economy: { freePixels: number },
+  cost: number,
+): boolean {
+  return economy.freePixels >= Math.max(0, Math.floor(cost));
+}
+
+export function canAffordPaletteShopJewels(
+  economy: { jewels: number },
+  cost: number,
+): boolean {
+  return economy.jewels >= Math.max(0, Math.floor(cost));
 }
 
 /** キャンバス拡大コスト（増分マス数 = 新² − 旧²） */

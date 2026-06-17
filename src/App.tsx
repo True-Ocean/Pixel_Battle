@@ -12,6 +12,12 @@ import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleHistory, saveSave } from './storage';
 import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireHistoryRematchAd, shouldRequireNormalBattleAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
+import {
+  unlockPaletteWithJewels,
+  unlockPaletteWithPixels,
+  createFullPaletteShopUnlocks,
+} from './user/paletteShop';
+import { normalizePaletteShopUnlocks } from './config/paletteUnlock';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
 import {
   calcDowngradeReviveCost,
@@ -45,7 +51,7 @@ import { HistoryRematchRulesModal } from './components/HistoryRematchRulesModal'
 import { RecordsScreen } from './components/RecordsScreen';
 import { InventoryScreen } from './components/InventoryScreen';
 import { SettingsScreen } from './components/SettingsScreen';
-import { PlaceholderScreen } from './components/PlaceholderScreen';
+import { ShopScreen } from './components/ShopScreen';
 import { SetupScreen } from './components/SetupScreen';
 import { TitleScreen } from './components/TitleScreen';
 import { UserProfileBar } from './components/UserProfileBar';
@@ -85,6 +91,9 @@ function App() {
   );
   const [deckNames, setDeckNames] = useState<string[] | undefined>(
     () => initialSave.deckNames,
+  );
+  const [paletteShopUnlocks, setPaletteShopUnlocks] = useState<number[]>(() =>
+    normalizePaletteShopUnlocks(initialSave.paletteShopUnlocks),
   );
 
   const activeDeck = useMemo(
@@ -169,6 +178,7 @@ function App() {
   const unlockedDeckCountRef = useRef(unlockedDeckCount);
   const battleHistoryRef = useRef(battleHistory);
   const deckNamesRef = useRef(deckNames);
+  const paletteShopUnlocksRef = useRef(paletteShopUnlocks);
   const isHistoryRematchRef = useRef(false);
   const historyRematchEntryRef = useRef<BattleHistoryEntry | null>(null);
   const battleStartSnapshotRef = useRef<{
@@ -188,6 +198,7 @@ function App() {
   unlockedDeckCountRef.current = unlockedDeckCount;
   battleHistoryRef.current = battleHistory;
   deckNamesRef.current = deckNames;
+  paletteShopUnlocksRef.current = paletteShopUnlocks;
 
   const devPreferSavedLevelRef = useRef(initialSave.devPreferSavedLevel === true);
   const devFileOverrideLevelRef = useRef<number | null | undefined>(
@@ -207,6 +218,7 @@ function App() {
       unlockedDeckCount?: number;
       battleHistory?: BattleHistoryEntry[];
       deckNames?: string[];
+      paletteShopUnlocks?: number[];
       devPreferSavedLevel?: boolean;
       devFileOverrideLevel?: number | null;
     }) => {
@@ -230,6 +242,8 @@ function App() {
         unlockedDeckCount: next.unlockedDeckCount ?? unlockedDeckCount,
         battleHistory: next.battleHistory ?? battleHistoryRef.current,
         deckNames: next.deckNames !== undefined ? next.deckNames : deckNamesRef.current,
+        paletteShopUnlocks:
+          next.paletteShopUnlocks ?? paletteShopUnlocksRef.current,
         ...(devPreferSavedLevelRef.current
           ? {
               devPreferSavedLevel: true as const,
@@ -239,7 +253,7 @@ function App() {
           : {}),
       });
     },
-    [activeDeckIndex, adState, decks, economy, inventory, lastBattleDeckIndex, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
+    [activeDeckIndex, adState, decks, economy, inventory, lastBattleDeckIndex, paletteShopUnlocks, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
   );
 
   const updateActiveDeck = useCallback(
@@ -972,7 +986,11 @@ function App() {
         const newLevel = nextUser.level;
         nextDecks = nextDecks.map((deck) => {
           const cards = getDeckCards(deck);
-          const rescaled = rescaleDeckBp(cards, newLevel);
+          const rescaled = rescaleDeckBp(
+            cards,
+            newLevel,
+            paletteShopUnlocksRef.current,
+          );
           const normalized = normalizeDeckLayout(deck);
           let cursor = 0;
           return normalized.map((card) => {
@@ -1171,7 +1189,11 @@ function App() {
       const currentDecks = decksRef.current;
       const nextDecks = currentDecks.map((deck) => {
         const cards = getDeckCards(deck);
-        const rescaled = rescaleDeckBp(cards, clamped);
+        const rescaled = rescaleDeckBp(
+          cards,
+          clamped,
+          paletteShopUnlocksRef.current,
+        );
         const next = normalizeDeckLayout(deck);
         let cursor = 0;
         return next.map((card) => {
@@ -1435,6 +1457,76 @@ function App() {
     [persistSave],
   );
 
+  const unlockPaletteColor = useCallback(
+    (
+      index: number,
+      method: 'pixels' | 'jewels',
+    ): string | null => {
+      const userLevel = userRef.current?.level ?? 1;
+      const currentUnlocks = paletteShopUnlocksRef.current;
+      const unlock =
+        method === 'pixels'
+          ? unlockPaletteWithPixels(
+              index,
+              userLevel,
+              economyRef.current,
+              currentUnlocks,
+            )
+          : unlockPaletteWithJewels(
+              index,
+              userLevel,
+              economyRef.current,
+              currentUnlocks,
+            );
+      if (!unlock) {
+        return method === 'pixels'
+          ? 'px が不足しています。'
+          : 'ジュエルが不足しています。';
+      }
+      setEconomy(unlock.economy);
+      setPaletteShopUnlocks(unlock.shopUnlocks);
+      economyRef.current = unlock.economy;
+      paletteShopUnlocksRef.current = unlock.shopUnlocks;
+      persistSave({
+        economy: unlock.economy,
+        paletteShopUnlocks: unlock.shopUnlocks,
+      });
+      return null;
+    },
+    [persistSave],
+  );
+
+  const unlockPaletteWithPixelsHandler = useCallback(
+    (index: number) => unlockPaletteColor(index, 'pixels'),
+    [unlockPaletteColor],
+  );
+
+  const unlockPaletteWithJewelsHandler = useCallback(
+    (index: number) => unlockPaletteColor(index, 'jewels'),
+    [unlockPaletteColor],
+  );
+
+  const handleDevUnlockAllPaletteColors = useCallback((): string => {
+    if (!import.meta.env.DEV) {
+      return '開発ビルドでのみ利用できます。';
+    }
+    const nextUnlocks = createFullPaletteShopUnlocks();
+    setPaletteShopUnlocks(nextUnlocks);
+    paletteShopUnlocksRef.current = nextUnlocks;
+    persistSave({ paletteShopUnlocks: nextUnlocks });
+    return `ショップ追加分の色をすべて解放しました（${nextUnlocks.length}色）。`;
+  }, [persistSave]);
+
+  const handleDevClearPaletteShopUnlocks = useCallback((): string => {
+    if (!import.meta.env.DEV) {
+      return '開発ビルドでのみ利用できます。';
+    }
+    setPaletteShopUnlocks([]);
+    paletteShopUnlocksRef.current = [];
+    persistSave({ paletteShopUnlocks: [] });
+    return 'ショップ追加分の色を未解放に戻しました。';
+  }, [persistSave]);
+
   const handleRenameDeck = useCallback(
     (deckIndex: number, name: string) => {
       if (
@@ -1632,7 +1724,14 @@ function App() {
           />
         )}
         {screen === 'shop' && (
-          <PlaceholderScreen title="ショップ" />
+          <ShopScreen
+            userLevel={user?.level ?? 1}
+            freePixels={economy.freePixels}
+            jewels={economy.jewels}
+            shopUnlocks={paletteShopUnlocks}
+            onUnlockWithPixels={unlockPaletteWithPixelsHandler}
+            onUnlockWithJewels={unlockPaletteWithJewelsHandler}
+          />
         )}
         {screen === 'inventory' && (
           <InventoryScreen
@@ -1662,6 +1761,9 @@ function App() {
             onDevSetTalisman={handleDevSetTalisman}
             onDevMarkCardLost={handleDevMarkCardLost}
             onDevFillDeckSlots={handleDevFillDeckSlots}
+            paletteShopUnlockCount={paletteShopUnlocks.length}
+            onDevUnlockAllPaletteColors={handleDevUnlockAllPaletteColors}
+            onDevClearPaletteShopUnlocks={handleDevClearPaletteShopUnlocks}
           />
         )}
         {screen === 'editor' && (
@@ -1672,6 +1774,7 @@ function App() {
             editTarget={editingCard}
             freePixels={economy.freePixels}
             jewels={economy.jewels}
+            paletteShopUnlocks={paletteShopUnlocks}
             backLabel={editorReturnToDetail ? '戻る' : 'マイデッキに戻る'}
             onBack={() => {
               const returnToDetail = editorReturnToDetail;
@@ -1685,6 +1788,8 @@ function App() {
             onCreated={addCard}
             onUpdated={updateCard}
             onRenameCard={renameDeckCard}
+            onUnlockPaletteWithPixels={unlockPaletteWithPixelsHandler}
+            onUnlockPaletteWithJewels={unlockPaletteWithJewelsHandler}
           />
         )}
         {screen === 'battleSetup' && !isHistoryRematchDeckSelect && (

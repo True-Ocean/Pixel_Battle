@@ -1,6 +1,7 @@
 import {
   PALETTE_16,
   PALETTE_EDITOR_COLOR_COUNT,
+  PALETTE_EDITOR_LEVEL_UNLOCK_COUNT,
   PALETTE_GRID_COLS,
   PALETTE_GRID_ROWS,
   PALETTE_PLAYABLE_COUNT,
@@ -10,6 +11,7 @@ import {
 export {
   PALETTE_16,
   PALETTE_EDITOR_COLOR_COUNT,
+  PALETTE_EDITOR_LEVEL_UNLOCK_COUNT,
   PALETTE_GRID_COLS,
   PALETTE_GRID_ROWS,
   PALETTE_PLAYABLE_COUNT,
@@ -26,13 +28,17 @@ export const PALETTE_COLOR_LABELS = [
   '橙',
   '桃',
   '紫',
-  '茶',
-  '水',
-  '空',
-  'ピンク',
+  '濃い緑',
   '灰',
-  '暗灰',
+  '茶',
+  '薄赤',
+  '薄青',
+  '薄黄',
+  '薄緑',
+  '薄橙',
   '薄桃',
+  '薄紫',
+  '赤茶',
 ] as const;
 
 export function isPaletteIndexUnlocked(
@@ -56,7 +62,7 @@ export function unlockedPaletteColors(
   return PALETTE_16.slice(0, unlockedCount);
 }
 
-/** 2×8 グリッド上の配置（1始まり） */
+/** 2×10 グリッド上の配置（1始まり） */
 export function paletteGridPlacement(index: number): { row: number; col: number } {
   return {
     row: Math.floor(index / PALETTE_GRID_COLS) + 1,
