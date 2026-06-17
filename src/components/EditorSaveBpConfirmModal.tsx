@@ -1,0 +1,87 @@
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+
+interface EditorSaveBpConfirmModalProps {
+  cardName: string;
+  previousBp: number;
+  nextBp: number;
+  onClose: () => void;
+}
+
+function formatBpChangeMessage(delta: number): string {
+  if (delta > 0) return 'BPが増加しました。';
+  if (delta < 0) return 'BPが減少しました。';
+  return 'BPに変化はありませんでした。';
+}
+
+export function EditorSaveBpConfirmModal({
+  cardName,
+  previousBp,
+  nextBp,
+  onClose,
+}: EditorSaveBpConfirmModalProps) {
+  const bpDelta = nextBp - previousBp;
+
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    const { style } = document.body;
+    const prev = {
+      position: style.position,
+      top: style.top,
+      width: style.width,
+      overflow: style.overflow,
+    };
+
+    style.position = 'fixed';
+    style.top = `-${scrollY}px`;
+    style.width = '100%';
+    style.overflow = 'hidden';
+
+    return () => {
+      style.position = prev.position;
+      style.top = prev.top;
+      style.width = prev.width;
+      style.overflow = prev.overflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
+  return createPortal(
+    <div className="limit-break-success-backdrop" onClick={onClose}>
+      <div
+        className="limit-break-success-panel editor-save-bp-confirm-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="editor-save-bp-confirm-message"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <p className="limit-break-success-card-name">{cardName}</p>
+        <p id="editor-save-bp-confirm-message" className="limit-break-success-message">
+          {formatBpChangeMessage(bpDelta)}
+        </p>
+        <p className="limit-break-success-bp" aria-label={`BP ${previousBp}から${nextBp}へ`}>
+          <span className="limit-break-success-bp-prev">{previousBp}</span>
+          <span className="limit-break-success-bp-arrow" aria-hidden>
+            →
+          </span>
+          <span className="limit-break-success-bp-next">{nextBp}</span>
+          {bpDelta !== 0 && (
+            <span
+              className={
+                bpDelta > 0
+                  ? 'limit-break-success-bp-gain'
+                  : 'editor-save-bp-delta-loss'
+              }
+            >
+              ({bpDelta > 0 ? `+${bpDelta}` : bpDelta})
+            </span>
+          )}
+        </p>
+        <button type="button" className="limit-break-success-close" onClick={onClose}>
+          OK
+        </button>
+      </div>
+    </div>,
+    document.body,
+  );
+}

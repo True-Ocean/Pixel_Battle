@@ -116,6 +116,7 @@ function App() {
     useState<number | null>(null);
   const [graveyardVictoryDoubleCard, setGraveyardVictoryDoubleCard] =
     useState<Card | null>(null);
+  const [cardEditPendingAd, setCardEditPendingAd] = useState<Card | null>(null);
   const [battleHistory, setBattleHistory] = useState<BattleHistoryEntry[]>(
     () => initialSave.battleHistory ?? [],
   );
@@ -1394,11 +1395,13 @@ function App() {
               setScreen('editor');
             }}
             onEditCard={(card, options) => {
-              setEditingCard(card);
-              setEditorReturnToDetail(options?.returnToDetail ?? false);
-              if (!options?.returnToDetail) {
-                setDetailCardId(null);
+              if (options?.returnToDetail) {
+                setCardEditPendingAd(card);
+                return;
               }
+              setEditingCard(card);
+              setEditorReturnToDetail(false);
+              setDetailCardId(null);
               setDeckReorderMode(false);
               setScreen('editor');
             }}
@@ -1576,6 +1579,24 @@ function App() {
             });
           }}
           onCancel={() => setGraveyardVictoryDoubleCard(null)}
+        />
+      )}
+      {cardEditPendingAd != null && (
+        <MockRewardAdModal
+          title="編集のための広告視聴"
+          message="広告視聴後、カード編集画面へ進みます（モック）"
+          onComplete={() => {
+            setCardEditPendingAd((card) => {
+              if (card) {
+                setEditingCard(card);
+                setEditorReturnToDetail(true);
+                setDeckReorderMode(false);
+                setScreen('editor');
+              }
+              return null;
+            });
+          }}
+          onCancel={() => setCardEditPendingAd(null)}
         />
       )}
 

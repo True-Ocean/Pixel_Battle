@@ -337,7 +337,7 @@ export function DeckCardDetailOverlay({
           ) : (
             <>
               <button type="button" className="deck-card-detail-edit" onClick={onEdit}>
-                編集
+                編集　🎬
               </button>
               <button
                 type="button"

@@ -33,6 +33,7 @@ import { CanvasSizePicker } from './CanvasSizePicker';
 import { CardPreview } from './CardPreview';
 import { ColorPalette } from './ColorPalette';
 import { ConfirmDialog } from './ConfirmDialog';
+import { EditorSaveBpConfirmModal } from './EditorSaveBpConfirmModal';
 import {
   isEditorToolImplemented,
   isEditorToolUnlocked,
@@ -112,6 +113,11 @@ export function EditorScreen({
   const [error, setError] = useState<string | null>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [saveBpResult, setSaveBpResult] = useState<{
+    cardName: string;
+    previousBp: number;
+    nextBp: number;
+  } | null>(null);
   const isComposingNameRef = useRef(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [devForceAttribute, setDevForceAttribute] = useState<Attribute | null>(
@@ -285,6 +291,41 @@ export function EditorScreen({
     setConfirmSaveOpen(true);
   };
 
+  const handleSaveConfirm = () => {
+    if (!editTarget) return;
+    setError(null);
+    try {
+      const previousBp = editTarget.bp;
+      const card = updateCardFromDrawing(
+        editTarget,
+        name,
+        pixels,
+        userLevel,
+        getUnlockedPaletteCount(userLevel),
+      );
+      onUpdated?.(card);
+      setConfirmSaveOpen(false);
+      const bpDelta = card.bp - previousBp;
+      if (bpDelta === 0) {
+        onBack();
+        return;
+      }
+      setSaveBpResult({
+        cardName: card.name,
+        previousBp,
+        nextBp: card.bp,
+      });
+    } catch (e) {
+      setConfirmSaveOpen(false);
+      setError(e instanceof CardCreationError ? e.message : '保存に失敗しました');
+    }
+  };
+
+  const handleSaveBpResultClose = () => {
+    setSaveBpResult(null);
+    onBack();
+  };
+
   return (
     <section className="screen editor-screen">
       <header className="editor-header">
@@ -357,7 +398,7 @@ export function EditorScreen({
               type="text"
               value={name}
               placeholder="例：ほのおの剣"
-              readOnly={isEditing || confirmCreateOpen || confirmSaveOpen}
+              readOnly={isEditing || confirmCreateOpen || confirmSaveOpen || saveBpResult != null}
               className={isEditing ? 'editor-name-readonly' : undefined}
               onCompositionStart={() => {
                 isComposingNameRef.current = true;
@@ -437,11 +478,16 @@ export function EditorScreen({
           confirmLabel="保存する"
           cancelLabel="キャンセル"
           confirmVariant="primary"
-          onConfirm={() => {
-            setConfirmSaveOpen(false);
-            persistCard();
-          }}
+          onConfirm={handleSaveConfirm}
           onCancel={() => setConfirmSaveOpen(false)}
+        />
+      )}
+      {saveBpResult != null && (
+        <EditorSaveBpConfirmModal
+          cardName={saveBpResult.cardName}
+          previousBp={saveBpResult.previousBp}
+          nextBp={saveBpResult.nextBp}
+          onClose={handleSaveBpResultClose}
         />
       )}
       {!isEditing && (

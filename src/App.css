@@ -3037,6 +3037,12 @@ button.battle-hub-deck-icon.is-move-target {
   cursor: pointer;
 }
 
+.editor-save-bp-delta-loss {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #dc2626;
+}
+
 .graveyard-pick-backdrop {
   position: fixed;
   inset: 0;
