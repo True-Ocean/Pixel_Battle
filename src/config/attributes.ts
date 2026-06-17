@@ -38,7 +38,7 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
       '・後衛時：盾付与のみ',
       '',
       '　盾：敵の攻撃を1回無効、敵から攻撃を受けると消滅',
-      '　盾付与：自分以外の盾なし味方に付与（1回限り）',
+      '　盾付与：盾なし味方に付与（自分含む・自分が盾所持中は自分不可・1回限り）',
     ].join('\n'),
     bg: '#4488ff',
     border: '#2266cc',

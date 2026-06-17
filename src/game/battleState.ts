@@ -129,12 +129,12 @@ export function getShieldTargets(field: BattleUnit[]): BoardPosition[] {
     .filter((p): p is BoardPosition => p !== 'defeated');
 }
 
-/** 盾付与の対象（自分自身は除く） */
+/** 盾付与の対象（盾なし味方。自分も含むが、自分が盾所持中は対象外） */
 export function getShieldTargetsForActor(
   field: BattleUnit[],
-  actorPosition: BoardPosition,
+  _actorPosition: BoardPosition,
 ): BoardPosition[] {
-  return getShieldTargets(field).filter((position) => position !== actorPosition);
+  return getShieldTargets(field);
 }
 
 export function canUseShieldAction(

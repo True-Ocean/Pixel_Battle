@@ -35,7 +35,6 @@ function applyShieldGrant(
   const actor = getUnitAt(field, action.actorPosition);
   const target = getUnitAt(field, action.targetPosition);
   if (!actor || !target || !isAlive(actor) || !isAlive(target)) return state;
-  if (action.actorPosition === action.targetPosition) return state;
   if (actor.attribute !== 'defense' || actor.defenseShieldUsed) return state;
   if (target.hasShield) return state;
 

@@ -319,7 +319,7 @@ describe('battle', () => {
     expect(state.player[1].hasShield).toBe(false);
   });
 
-  it('防御カードは自分自身に盾を付与できない', () => {
+  it('防御カードは盾なしなら自分自身に盾を付与できる', () => {
     let state = createBattleState(cards('P'), cards('C'));
     state.player[0].attribute = 'defense';
     state.player[0].hasShield = false;
@@ -337,7 +337,30 @@ describe('battle', () => {
       },
     }).state;
 
-    expect(state.player[0].hasShield).toBe(false);
+    expect(state.player[0].hasShield).toBe(true);
+    expect(state.player[0].defenseShieldUsed).toBe(true);
+  });
+
+  it('防御カードは盾所持中は自分自身に盾を付与できない', () => {
+    let state = createBattleState(cards('P'), cards('C'));
+    state.player[0].attribute = 'defense';
+    state.player[0].hasShield = true;
+    state.player[1].hasShield = true;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'grantShield',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontRight',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.player[0].hasShield).toBe(true);
     expect(state.player[0].defenseShieldUsed).toBe(false);
   });
 
