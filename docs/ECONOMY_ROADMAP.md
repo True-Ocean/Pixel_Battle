@@ -15,8 +15,8 @@
 
 | 表示 | 内部名（案） | 入手 | 主な用途 |
 |------|--------------|------|----------|
-| ピクセルコイン | `freePixels` | バトル、レベルアップ、**カード削除返還**、勝利2倍広告 | 復活/降格復活、護符購入（px 枠） |
-| 💎 ジュエル | `jewels` | 課金、**毎レベル少量**、L≡4 (mod 5) ボーナス | 削除・リネーム・デッキ3以降・創作拡張の **その場消費** |
+| ピクセルコイン | `freePixels` | バトル、レベルアップ、**カード削除返還**、勝利2倍広告 | 復活/降格復活、護符購入（px 枠）、**リネーム初回**、編集時キャンバス拡大 |
+| 💎 ジュエル | `jewels` | 課金、**毎レベル少量**、L≡4 (mod 5) ボーナス | 削除・リネーム（2回目以降）・デッキ3以降・限界突破レア昇格・創作拡張の **その場消費** |
 | 属性かけら | `limitBreakShards[attribute]` | **勝利時の戦利品選択** | 同一属性カードの限界突破（**10個で1回**） |
 | 汎用かけら | `limitBreakUniversal` | **Lv20, 30, 40…** | 任意属性のかけらとして消費（属性かけらと同価値） |
 | 護符 | `inventory.talisman` | **Lv5 到達（初回 ×1）**、ショップ（px/💎）、サブスク | ロスト1回免れ（装備消費） |
@@ -97,32 +97,37 @@
 
 ---
 
-## 2. 現状（2026-06-17 時点・削除・復活コスト刷新後）
+## 2. 現状（2026-06-17 時点・リネーム・広告一部反映後）
 
 | 領域 | 状態 |
 |------|------|
 | Lost / 復活 / 降格復活 / 削除返還 | ✅ プロトタイプ実装済み（`economy.ts`, `status.ts`, デッキ UI） |
 | **復活 px（塗り式）** | ✅ `calcFullReviveCost(card)` / `calcDowngradeReviveCost(card)` |
 | **削除（💎＋返還）** | ✅ `JEWEL_COST_DELETE=1`、`calcLostCardDeleteRewards`、二段階確認 UI |
+| **リネーム** | ✅ 初回 **100px**（`PIXEL_COST_RENAME_FIRST`）、2回目以降 **💎1**（`CardRenameDialog`・エディタ） |
+| **編集時キャンバス拡大** | ✅ 拡大のみ・px 消費（`calcCanvasUpgradeCost` = 新²−旧²） |
 | 勝利 px・墓地選択 UI・属性かけら付与 | ✅ `GraveyardPickModal`, `calcGraveyardShardReward`（N=1/R=2/SR=3） |
+| **勝利2倍広告（px）** | ✅ `GraveyardPickModal` → `MockRewardAdModal`（かけらは非対象） |
 | バトル中・戦利品のレア表示 | ✅ `BattleUnit.rarity` 連携、`BattleCard` 枠色 |
 | `UserEconomy` | ✅ `freePixels` + `jewels`（フェーズ2） |
 | インベントリ（護符・かけら） | ✅ `InventoryScreen`、schema v2 |
 | デッキ2 Lv10 解放 | ✅ レベルアップ時自動解放（フェーズ2） |
 | ヘッダー 💎 表示 | ✅ フェーズ2 |
 | 限界突破 gameplay | ✅ マイデッキ詳細 UI・かけら消費・★/レア昇格・均等BP加算（フェーズ6） |
+| **限界突破レア昇格 💎** | ✅ 4回目（レア up）時に追加 💎（N=10/R=20/SR=40） |
 | Lv20+ 汎用かけら配布 | ✅ `calcLevelUpUniversalLimitBreak`（**×10**/回。フェーズ6） |
 | バトル履歴・履歴再戦 | ✅ `RecordsScreen`・`BattleHistoryList`・再戦フロー・生存 px のみ報酬 |
 | 履歴再戦モック広告 | ✅ 3回に1回（`MockRewardAdModal`, `adState.historyRematchStarts`） |
+| **通常戦モック広告** | ✅ Lv5+・3回に1回（`normalBattleStarts`。仕様 §11.3 の日次10戦 cap とは **別の暫定実装**） |
+| **編集前モック広告** | ⚠️ 部分 — デッキ詳細→編集（`returnToDetail`）時のみ。§11.2 の保存時ゲート・`hasEverCompletedBattleDeck` は未接続 |
 | レベルアップ UI | ✅ px 数値→アイコン、L≡4 💎 は「3・更に10」分離表示 |
 | デッキ選択 UI | ✅ 常時2行ヒント、通常戦の黄色注意削除 |
 | ヘッダーメニュー | ✅ 三本線を `user-profile-bar` 内に配置 |
 | 開発メニュー | ✅ 設定画面 — 「すべてのかけらを100個にする」 |
-| 広告（創作・cap・2倍） | ❌ 未実装（仕様 §11.1〜11.3） |
+| 広告（創作保存・日次 cap） | ❌ `hasEverCompletedBattleDeck` 未使用、`battlesToday` cap 未接続 |
 | ショップ画面 | ❌ プレースホルダ |
-| デッキ3〜 💎 解放 | ❌ フェーズ3 未着手 |
-| 削除 💎 | ✅ 実装済み（`JEWEL_COST_DELETE=1`、返還付き） |
-| リネーム 💎 | ❌ フェーズ4 未着手（削除のみ完了） |
+| デッキ3〜 💎 解放 | ❌ フェーズ3 未着手（モーダルにコスト表示のみ・DEV 順次解放可） |
+| 💎 不足→ショップ誘導 | ❌ 文言のみ（フェーズ8 と連動予定） |
 
 ---
 
@@ -166,6 +171,7 @@
      battlesToday: number;
      battlesDayKey: string; // "YYYY-MM-DD"（JST）
      creativeAdCounter?: number; // ライト用
+     normalBattleStarts?: number; // 通常戦 3回に1回広告
      historyRematchStarts?: number;
      historyRematchRulesDismissedDayKey?: string;
    }
@@ -240,10 +246,10 @@
 **作業**
 
 1. ~~**カード削除**（active / lost 共通）— 💎1 消費、px・かけら返還、二段階確認~~ — **✅ 2026-06-17 完了**
-2. **カード名変更** — 名前保存時に 💎 消費（新規作成時の初回命名は TBD: 無💎 or 初回のみ無料）
-3. 不足時: 「💎 が足りません」→ ショップへ（フェーズ 7 まで準備中リンク）
+2. ~~**カード名変更**~~ — **✅ 2026-06-17 完了** — 新規作成の命名は無料。リネーム初回 **100px**、2回目以降 **💎1**（`renameCount`）
+3. 不足時: 「💎 / px が足りません」→ ショップへ（フェーズ 8 まで準備中リンク）
 
-**完了条件**: 削除・リネームが 💎 で動作。テスト追加。（**削除は完了**）
+**完了条件**: 削除・リネームが動作。テスト追加。（**ショップ誘導のみ未完了**）
 
 ---
 
@@ -258,7 +264,7 @@
 3. `finalizeBattleOutcome` — 選択カードの属性に `limitBreakShards[attr] += n`
 4. **所持品タブ**（`InventoryScreen`）— 汎用＋全属性かけらの所持数一覧
 
-**完了条件**: 勝利→墓地選択→かけらが増える。所持品で確認できる。2倍広告はまだ px のみ。
+**完了条件**: 勝利→墓地選択→かけらが増える。所持品で確認できる。（**2倍広告は 2026-06-17 に px のみ実装済み**）
 
 ---
 
@@ -273,8 +279,9 @@
 3. Lv20 到達時の汎用かけら配布（`profile.ts` / `inventory` 加算）
 4. `progressionUnlocks` Lv20+ の `limit_break`（`pending` なし）
 5. 設定 **開発メニュー** — 「すべてのかけらを100個にする」（`fillAllLimitBreakShards`）
+6. ~~**レア昇格時の追加 💎**~~ — **✅ プロトタイプ追加** — `LIMIT_BREAK_RARITY_JEWEL_COST`（N=10/R=20/SR=40）
 
-**完了条件**: かけら10（専用+汎用の組み合わせ・内訳選択可）で★+1が動く。各段階でBPが均等加算される。
+**完了条件**: かけら10（専用+汎用の組み合わせ・内訳選択可）で★+1が動く。各段階でBPが均等加算される。レア昇格時はかけら10＋💎。
 
 ---
 
@@ -287,11 +294,13 @@
 1. `src/ad/` — `showRewardedAd(): Promise<'completed'|'skipped'|'failed'>` モック（2秒待ち等）
 2. **創作**: `hasEverCompletedBattleDeck` 判定、保存前にモック広告
 3. **バトル cap**: 開始前チェック、11戦目以降は広告後に `battlesToday++`
-4. **2倍**: 勝利モーダルに「広告で px 2倍」、かけらは対象外
-5. 日次リセット `battlesDayKey`
+4. ~~**2倍**: 勝利モーダルに「広告で px 2倍」、かけらは対象外~~ — **✅ 2026-06-17 完了**（`GraveyardPickModal`）
+5. 日次リセット `battlesDayKey`（`battlesToday` は型・正規化のみ。**cap 判定は未接続**）
 6. ~~**履歴再戦**: 3回に1回、ルールモーダル後にモック広告~~ — **2026-06-16 完了**（`MockRewardAdModal`, `historyRematch.ts`）
+7. ~~**通常戦**: Lv5+ で3回に1回、バトル開始前モック広告~~ — **✅ プロトタイプ暫定**（本仕様 §11.3 の **1日10戦 cap とは別**。`shouldRequireNormalBattleAd`）
+8. **編集前広告（暫定）**: デッキ詳細→編集（`returnToDetail`）のみ `MockRewardAdModal`。§11.2 の保存時・`hasEverCompletedBattleDeck` は **未着手**
 
-**完了条件**: モックで3種の広告フローが end-to-end で通る。（履歴再戦のみ ✅。創作・cap・2倍は未着手）
+**完了条件**: モックで本仕様の広告フローが end-to-end で通る。（**2倍・履歴再戦・通常戦3回に1回は ✅。創作保存ゲート・日次10戦 cap は未着手**）
 
 **サブステップ 7b — 本番 SDK**（環境依存・後回し可）
 
@@ -400,7 +409,9 @@ flowchart TD
 | `JEWELS_PER_LEVEL` | 3 | 毎レベル |
 | `JEWELS_BONUS_MOD4` | +10 | L≡4 (mod 5) 追加 |
 | `JEWEL_COST_DELETE` | 1 | カード削除（active/lost 共通・プロトタイプ） |
-| `JEWEL_COST_RENAME` | 50 | 名前変更1回 |
+| `PIXEL_COST_RENAME_FIRST` | 100 | リネーム初回（`renameCount=0`） |
+| `JEWEL_COST_RENAME` | 1 | リネーム2回目以降（プロトタイプ） |
+| `LIMIT_BREAK_RARITY_JEWEL_COST` | N=10, R=20, SR=40 | 限界突破4回目（レア昇格）の追加 💎 |
 | `JEWEL_COST_DECK_UNLOCK` | 200 | デッキ3〜各1回 |
 | `LIMIT_BREAK_SHARDS_REQUIRED` | 10 | |
 | `LIMIT_BREAK_BP_GAIN_RATE` | 0.03 | 限界突破1回のBP加算（基礎BP×率、最低1） |
@@ -421,7 +432,7 @@ flowchart TD
 |----------|----------|
 | 1 | `src/types/index.ts`, `src/user/economy.ts`, `src/storage/index.ts` |
 | 2 | `src/config/progressionUnlocks.ts`, `src/App.tsx`, `src/components/DeckUnlockModal.tsx` |
-| 4 | `src/components/DeckScreen.tsx`, `DeckCardDetailOverlay.tsx` |
+| 4 | `DeckScreen.tsx`, `DeckCardDetailOverlay.tsx`, `CardRenameDialog.tsx`, `EditorScreen.tsx`, `App.tsx` |
 | 5 | `src/components/GraveyardPickModal.tsx`, `src/battle/graveyardLoot.ts`, `src/components/InventoryScreen.tsx`, `src/config/economy.ts`, `src/App.tsx` |
 | 6 | `src/card/limitBreak.ts`, `DeckCardDetailOverlay.tsx`, `DeckScreen.tsx`, `SettingsScreen.tsx`, `src/user/profile.ts` |
 | 7 | 新規 `src/ad/*`, エディタ保存経路, バトル開始経路, `MockRewardAdModal`, `historyRematch.ts`, `HistoryRematchRulesModal` |
@@ -443,8 +454,8 @@ flowchart TD
 |----|----------------------|
 | E0 データモデル | フェーズ 1 |
 | E1 Lost/勝利/墓地 | ✅ 済（px＋属性かけら。フェーズ5） |
-| E2 ポーション/溶解/ショップ | **分割** → フェーズ 3,4,8（ジュエル直消費モデル）。**削除は ✅ フェーズ4一部完了** |
-| E3 広告 | フェーズ 7 |
+| E2 ポーション/溶解/ショップ | **分割** → フェーズ 3,4,8（ジュエル直消費モデル）。**削除・リネームは ✅ フェーズ4完了** |
+| E3 広告 | フェーズ 7（**一部 ✅** — 2倍・履歴再戦・通常戦3回に1回） |
 | E4 サブスク | フェーズ 9 |
 | E5 レア抽選 | フェーズ 10 |
 | E6 限界突破 | ✅ 済（フェーズ 5 + 6） |
@@ -464,16 +475,17 @@ flowchart TD
 6. ~~フェーズ **6** — 限界突破 UI~~ — **2026-06-14 完了**
 7. ~~履歴再戦・バトル履歴 UI~~ — **2026-06-16 完了**（フェーズ7a の一部）
 8. ~~フェーズ **4**（削除）— 💎1・返還・復活コスト塗り式~~ — **2026-06-17 完了**
+9. ~~フェーズ **4**（リネーム）— 初回100px・2回目以降💎1~~ — **2026-06-17 完了**
+10. ~~フェーズ **7a**（勝利2倍・通常戦3回に1回）~~ — **2026-06-17 完了**（日次 cap は未着手）
 
 **次の推奨**
 
-9. フェーズ **3** — デッキ3以降の 💎 解放
-10. フェーズ **4** 残り — リネーム 💎
-11. フェーズ **7a** 残り — 創作ゲート・バトル cap・勝利2倍の広告モック
+11. フェーズ **3** ＋ **8** MVP — デッキ3〜 💎 解放とショップ（ジュエルパック・護符・不足時 deep link）
+12. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）・日次10戦 cap（`battlesToday`）
 
 **判断待ち（確定済み）**
 
-- [x] 新規カードの **初回命名** は 💎 無料（2回目以降のみ消費）
+- [x] 新規作成の **命名** は無料。リネームは **初回100px・2回目以降💎1**（`renameCount`）
 - [x] レアカード戦利品のかけら: **N=1, R=2, SR=3**
 - [x] 護符価格: **px と 💎 の両方**（300px / 25💎）
 - [x] 日次リセットのタイムゾーン（**JST 固定**）
