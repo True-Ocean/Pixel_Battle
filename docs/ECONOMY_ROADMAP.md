@@ -88,7 +88,7 @@
 
 - 💎 チャージ（現金・モック）
 - 護符（px または 💎）
-- 追加描画ツール・色パレット（💎 永久解放）
+- 追加色パレット（**Lv50+**・永久解放。tier1=px / tier2=pxまたは💎。[PROTOTYPE §5.6](./PROTOTYPE_DEVELOPMENT_SPEC.md#56-パレットとレベル解放)）
 - 会員プラン（月額 / 年額）
 
 **ショップに並べない（操作地点で 💎 直消費）**
@@ -97,7 +97,7 @@
 
 ---
 
-## 2. 現状（2026-06-17 時点・デッキ3💎解放反映後）
+## 2. 現状（2026-06-17 時点・追加色パレット反映後）
 
 | 領域 | 状態 |
 |------|------|
@@ -123,9 +123,10 @@
 | レベルアップ UI | ✅ px 数値→アイコン、L≡4 💎 は「3・更に10」分離表示 |
 | デッキ選択 UI | ✅ 常時2行ヒント、通常戦の黄色注意削除 |
 | ヘッダーメニュー | ✅ 三本線を `user-profile-bar` 内に配置 |
-| 開発メニュー | ✅ 設定画面 — 「すべてのかけらを100個にする」 |
+| 開発メニュー | ✅ 設定画面 — 「すべてのかけらを100個にする」、**色パレット（ショップ追加分）全解放/未解放** |
 | 広告（創作保存・日次 cap） | ❌ `hasEverCompletedBattleDeck` 未使用、`battlesToday` cap 未接続 |
-| ショップ画面 | ✅ 追加色パレット購入（フェーズ8 一部） |
+| **追加色パレット（ショップ）** | ✅ `ShopScreen`・`PaletteUnlockModal`・`paletteShopUnlocks`（schema v5）。tier1=2000px×4、tier2=💎20/2200px×8。Lv50+ |
+| ショップ画面 | ✅ 追加色パレット購入（フェーズ8 **一部**）。💎 パック・護符・会員は **未実装** |
 | デッキ3〜 💎 解放 | ✅ `unlockDeckWithJewels()`・`canUnlockDeckSlotWithJewels`・`DeckUnlockModal`（フェーズ3） |
 | 💎 不足→ショップ誘導 | ❌ 文言のみ（フェーズ8 と連動予定） |
 
@@ -322,13 +323,13 @@
 
 **作業**
 
-1. `PlaceholderScreen` → `ShopScreen`
-2. カテゴリ: 💎 パック（モック購入）、護符、ツール/パレット解放
-3. 護符: px 優先価格（TBD）、装備 UI は §7 参照
-4. 創作拡張: `editorTools.ts` / `paletteUnlock.ts` と連動した **💎 永久解放** フラグ（セーブ）
-5. 💎 不足時の deep link（削除・デッキ解放から遷移）
+1. ~~`PlaceholderScreen` → `ShopScreen`~~ — **✅ 追加色パレットのみ**（2026-06-17）
+2. カテゴリ: 💎 パック（モック購入）、護符、ツール/パレット解放 — **パレット ✅ / 他 ❌**
+3. 護符: px 優先価格（TBD）、装備 UI は §7 参照 — **未実装**
+4. ~~創作拡張: `paletteUnlock.ts` と連動した **永久解放** フラグ（セーブ）~~ — **✅ `paletteShopUnlocks`・schema v5**
+5. 💎 不足時の deep link（削除・デッキ解放から遷移） — **未実装**
 
-**完了条件**: モックで jewels 購入→削除等で消費のループが完結。
+**完了条件**: モックで jewels 購入→削除等で消費のループが完結。（**追加色パレット購入は ✅。ジュエルパック・deep link は未着手**）
 
 ---
 
@@ -431,6 +432,10 @@ flowchart TD
 | `REVIVE_PAINTED_MULTIPLIER` | 3 | 復活 px: 塗り×3 が基礎 |
 | `LOST_WEIGHT_RARITY` / `LOST_WEIGHT_STARS` | 表参照 | 復活コストのレア・★傾斜 |
 | `MOCK_JEWEL_PACK_SMALL` | 100 | 開発用 |
+| `PALETTE_SHOP_MIN_USER_LEVEL` | 50 | 追加色ショップ購入の最低レベル（`paletteShop.ts`） |
+| `PIXEL_COST_PALETTE_SHOP_TIER1` | 2000 | 紫・濃い緑・茶・赤茶（各1回） |
+| `JEWEL_COST_PALETTE_SHOP_TIER2` | 20 | 薄色系8色（💎支払い） |
+| `PIXEL_COST_PALETTE_SHOP_TIER2` | 2200 | 薄色系8色（px支払い） |
 
 ---
 
@@ -445,7 +450,7 @@ flowchart TD
 | 5 | `src/components/GraveyardPickModal.tsx`, `src/battle/graveyardLoot.ts`, `src/components/InventoryScreen.tsx`, `src/config/economy.ts`, `src/App.tsx` |
 | 6 | `src/card/limitBreak.ts`, `DeckCardDetailOverlay.tsx`, `DeckScreen.tsx`, `SettingsScreen.tsx`, `src/user/profile.ts` |
 | 7 | 新規 `src/ad/*`, エディタ保存経路, バトル開始経路, `MockRewardAdModal`, `historyRematch.ts`, `HistoryRematchRulesModal` |
-| 8 | `src/components/ShopScreen.tsx`（新規）, `App.tsx` routing |
+| 8 | `src/components/ShopScreen.tsx`, `PaletteUnlockModal.tsx`, `src/config/paletteShop.ts`, `src/user/paletteShop.ts`, `src/config/paletteUnlock.ts`, `ColorPalette.tsx`, `App.tsx`, `SettingsScreen.tsx`, `storage/index.ts` |
 
 ---
 
@@ -487,11 +492,12 @@ flowchart TD
 9. ~~フェーズ **4**（リネーム）— 初回100px・2回目以降💎1~~ — **2026-06-17 完了**
 10. ~~フェーズ **7a**（勝利2倍・通常戦3回に1回）~~ — **2026-06-17 完了**（日次 cap は未着手）
 11. ~~フェーズ **3** — デッキ3〜 💎 解放（`unlockDeckWithJewels`）~~ — **2026-06-17 完了**
+12. ~~フェーズ **8**（追加色パレット）~~ — **2026-06-17 完了**（`ShopScreen`・`paletteShopUnlocks`・schema v5）
 
 **次の推奨**
 
-12. フェーズ **8** MVP — ショップ（ジュエルパック・護符・不足時 deep link）
-13. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）・日次10戦 cap（`battlesToday`）
+13. フェーズ **8** 残り — 💎 パック（モック購入）、護符ショップ、不足時 deep link
+14. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）・日次10戦 cap（`battlesToday`）
 
 **判断待ち（確定済み）**
 

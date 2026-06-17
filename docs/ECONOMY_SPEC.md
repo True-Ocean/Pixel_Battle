@@ -512,7 +512,10 @@ SR★3 --(4回目)--> UR★0  （UR 実装後）
 | **💎 パック** | 現金 | メイン収益 |
 | **護符** | px または 💎（TBD） | バトル経済と連動 |
 | **追加描画ツール** | 💎（永久解放） | レベル解放の上乗せ |
-| **追加色パレット** | px または 💎（永久解放） | レベル解放8色の上乗せ。Lv50+。紫〜茶は各2000px、薄色系8色は各💎20または2200px |
+| **追加色パレット** | px または 💎（永久解放） | レベル解放8色の上乗せ。**Lv50+**。[PROTOTYPE §5.6](./PROTOTYPE_DEVELOPMENT_SPEC.md#56-パレットとレベル解放) 参照 |
+| | | **tier1**（各 **2000px**）: 紫 `#8844ff`・濃い緑 `#1a7a3a`・茶 `#886644`・赤茶 `#aa4422` |
+| | | **tier2**（各 **💎20** または **2200px**）: 灰・薄赤・薄青・薄黄・薄緑・薄橙・薄桃・薄紫 |
+| | | 価格帯は **色コード** で判定（`paletteShop.ts`）。`SaveData.paletteShopUnlocks` に購入済み index |
 | **会員プラン** | 現金 | [§12](#12-課金サブスクリプション) |
 
 **ショップに並べない（操作地点で 💎 直消費）**
@@ -765,11 +768,12 @@ interface SaveData {
   lastBattleDeckIndex: number;
   deckNames?: string[];
   battleHistory?: BattleHistoryEntry[];
+  paletteShopUnlocks?: number[];  // ショップ購入済みパレット index（8〜19 のうちショップ色）
   schemaVersion: number;
 }
 ```
 
-- `schemaVersion` でプロトタイプセーブからのマイグレーションを管理。
+- `schemaVersion` でプロトタイプセーブからのマイグレーションを管理。**現行 `SAVE_SCHEMA_VERSION = 5`**（パレット並べ替え・廃止色移行対応）。
 
 ---
 
@@ -795,8 +799,21 @@ interface SaveData {
 
 ### 16.4 ショップ
 
-- 💎 パック・護符・創作拡張・会員プラン。
-- 💎 不足時はショップへ誘導（削除・デッキ解放・リネームから）。
+**実装（フェーズ8 一部）**: `ShopScreen.tsx` — 現状は **追加色パレット** のみ。💎 パック・護符・会員プランは未実装。
+
+| セクション | 内容 |
+|------------|------|
+| 追加色（基本4色） | tier1: 紫・濃い緑・茶・赤茶。各 **2000px** のみ（💎 不可） |
+| 追加色（薄色系8色） | tier2: 灰・薄赤・薄青・薄黄・薄緑・薄橙・薄桃・薄紫。各 **💎20** または **2200px** |
+| 購入条件 | ユーザーレベル **≥ 50**（`PALETTE_SHOP_MIN_USER_LEVEL`）。未購入のみ |
+| 解放済み表示 | 「解放済み」ラベル。エディタのパレットでも通常色として選択可能 |
+
+**エディタからの購入**: 鍵表示のショップ色タップ → `PaletteUnlockModal`（tier2 は px / 💎 の両ボタン）。
+
+**開発用**: 設定画面の開発メニュー「色パレット（ショップ追加分）」— **全解放 / 未解放**（`createFullPaletteShopUnlocks` / 空配列）。
+
+- 💎 パック・護符・会員プラン: **未実装**
+- 💎 不足時はショップへ誘導（削除・デッキ解放・リネームから）— **文言のみ**（deep link 未接続）
 
 ### 16.5 戦利品選択
 
@@ -895,7 +912,8 @@ interface SaveData {
 ### 17.1 マイグレーション
 
 1. `schemaVersion` 0 → 1: `economy` 初期化（各0）、既存 `Card` に `rarity: "N"`, `stars: 0`, `status: "active"`, `talismanEquipped: false` を付与（案）。
-2. レア抽選の遡及は **別途決定**（[§9.2.3](#923-既存セーブへの遡及)）。
+2. `paletteShopUnlocks`: schema v3 以前の並びから色コード経由で現行 index へ移行。v4→v5 では廃止色（水色→薄青、黄緑→濃い緑）の購入済みを後継色へ引き継ぐ（`migratePaletteShopUnlocksForSchema`）。
+3. レア抽選の遡及は **別途決定**（[§9.2.3](#923-既存セーブへの遡及)）。
 
 ### 17.2 プロトタイプ仕様書との整合
 
@@ -915,7 +933,7 @@ interface SaveData {
 | フェーズ 3〜4 | 💎 デッキ3+ / 削除・リネーム | §8, §10.5 | ✅ |
 | フェーズ 5〜6 | 戦利品かけら・限界突破 UI・均等BP | §4.1, §9.3, §16.9 | ✅ |
 | フェーズ 7 | 広告（モック→SDK） | §11 | 一部 ✅（2倍・履歴再戦・通常戦3回に1回。§11.6 参照） |
-| フェーズ 8〜9 | ショップ・サブスク | §10, §12 | — |
+| フェーズ 8〜9 | ショップ・サブスク | §10, §12 | 8 **一部 ✅**（追加色パレットのみ。[§16.4](#164-ショップ)） |
 | フェーズ 10 | レア抽選・創作ボーナス | §9.2 | — |
 | フェーズ 11 | 対人・UR/L 等 | §13, §14 | — |
 
@@ -932,6 +950,7 @@ interface SaveData {
 | 編集時キャンバス拡大 | **実装済み** — 拡大のみ・px（`calcCanvasUpgradeCost`） |
 | 限界突破レア昇格 💎 | **実装済み** — `LIMIT_BREAK_RARITY_JEWEL_COST` |
 | 勝利2倍広告 | **実装済み** — `GraveyardPickModal`（px のみ2倍） |
+| 追加色パレットショップ | **実装済み** — `ShopScreen`・`PaletteUnlockModal`・`paletteShopUnlocks`（schema v5） |
 
 ### 18.1 プロトタイプ簡略実装（現行コード）
 
@@ -981,6 +1000,16 @@ floor( 塗りマス数 × REVIVE_PAINTED_MULTIPLIER × レア倍率 × ★倍率
 | 💎 コスト | **`JEWEL_COST_DECK_UNLOCK` = 200**（スロットごとに1回） |
 | 成功時 | `unlockedDeckCount` +1、新デッキタブへ切替、`spendJewels` でセーブ |
 | UI | `DeckUnlockModal` — [§16.6](#166-デッキ解放) |
+
+#### 追加色パレット（`unlockPaletteWithPixels` / `unlockPaletteWithJewels`）
+
+| 項目 | 内容 |
+|------|------|
+| 最低レベル | **Lv50**（`PALETTE_SHOP_MIN_USER_LEVEL`） |
+| tier1 | 紫・濃い緑・茶・赤茶 — 各 **2000px**（`PIXEL_COST_PALETTE_SHOP_TIER1`） |
+| tier2 | 薄色系8色 — 各 **💎20**（`JEWEL_COST_PALETTE_SHOP_TIER2`）または **2200px**（`PIXEL_COST_PALETTE_SHOP_TIER2`） |
+| 永続化 | `SaveData.paletteShopUnlocks`（購入済み index の配列） |
+| 創作ボーナス | 使用色数は `countUnlockedPaletteColors(level, shopUnlocks)` を参照 |
 
 #### 編集時キャンバス拡大（`calcCanvasUpgradeCost`）
 
@@ -1100,6 +1129,7 @@ floor( 塗りマス数 × REVIVE_PAINTED_MULTIPLIER × レア倍率 × ★倍率
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 1.10 | 2026-06-17 | §5.6・§10.2 追加色パレット実装（20色・tier1/tier2・schema v5）、§15 `paletteShopUnlocks`、§16.4 ショップ UI、§17.1 移行、§18 フェーズ8一部完了 |
 | 1.9 | 2026-06-17 | §10.5 デッキ3〜💎解放実装、`unlockDeckWithJewels`、§16.6 UI 詳細、§18 フェーズ3完了 |
 | 1.8 | 2026-06-17 | §8.2 リネーム実装、§9.3 レア昇格💎、§11.6 広告プロトタイプ差分、§16.13〜14 UI、§18〜19 パラメータ同期 |
 | 1.7 | 2026-06-17 | §6.3・§8・§18.1 復活コスト（塗り×3×レア×★）、削除（💎1＋戦利品同式返還）、UI「復活」表記 |
