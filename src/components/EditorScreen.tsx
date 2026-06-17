@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { cloneGrid, createEmptyGrid, gridSize, resizeGrid } from '../canvas';
+import { cloneGrid, createEmptyGrid, gridSize, resizeGrid, upscaleGridToFit } from '../canvas';
 import {
   applyRedo,
   applyUndo,
@@ -35,7 +35,7 @@ import { ColorPalette } from './ColorPalette';
 import { ConfirmDialog } from './ConfirmDialog';
 import { CardRenameDialog } from './CardRenameDialog';
 import { EditorSaveBpConfirmModal } from './EditorSaveBpConfirmModal';
-import { getCardRenameCount } from '../config/economy';
+import { getCardRenameCount, calcCanvasUpgradeCost, canAffordCanvasUpgrade } from '../config/economy';
 import {
   isEditorToolImplemented,
   isEditorToolUnlocked,
@@ -43,6 +43,7 @@ import {
 } from '../config/editorTools';
 import { PixelCanvas } from './PixelCanvas';
 import { ToolStrip } from './ToolStrip';
+import { PixelCoinIcon } from './PixelCoinIcon';
 
 interface EditorScreenProps {
   deckCount: number;
@@ -53,7 +54,7 @@ interface EditorScreenProps {
   backLabel?: string;
   onBack: () => void;
   onCreated: (card: Card) => void;
-  onUpdated?: (card: Card) => void;
+  onUpdated?: (card: Card, options?: { canvasUpgradePx?: number }) => void;
   onRenameCard?: (cardId: string, newName: string) => string | null;
 }
 
@@ -126,6 +127,9 @@ export function EditorScreen({
     nextBp: number;
   } | null>(null);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [canvasUpgradeOpen, setCanvasUpgradeOpen] = useState(false);
+  const [pendingCanvasUpgradeSize, setPendingCanvasUpgradeSize] =
+    useState<CanvasSize | null>(null);
   const isComposingNameRef = useRef(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [devForceAttribute, setDevForceAttribute] = useState<Attribute | null>(
@@ -219,12 +223,49 @@ export function EditorScreen({
   }, []);
 
   const handleCanvasSizeChange = (nextSize: CanvasSize) => {
-    if (isEditing) return;
     if (!isCanvasSizeUnlocked(nextSize, userLevel)) return;
+
+    const currentSize = editorSnapshotRef.current.canvasSize;
+    if (nextSize === currentSize) return;
+
+    if (isEditing) {
+      if (nextSize <= currentSize) return;
+      setPendingCanvasUpgradeSize(nextSize);
+      setCanvasUpgradeOpen(true);
+      return;
+    }
+
     applyEditorChange({
       pixels: resizeGrid(editorSnapshotRef.current.pixels, nextSize),
       canvasSize: nextSize,
     });
+  };
+
+  const pendingUpgradeTotalCost =
+    pendingCanvasUpgradeSize != null
+      ? calcCanvasUpgradeCost(editCanvasSize, pendingCanvasUpgradeSize)
+      : 0;
+  const canAffordPendingUpgrade = canAffordCanvasUpgrade(
+    { freePixels },
+    pendingUpgradeTotalCost,
+  );
+
+  const handleConfirmCanvasUpgrade = () => {
+    if (pendingCanvasUpgradeSize == null) return;
+    applyEditorChange({
+      pixels: upscaleGridToFit(
+        editorSnapshotRef.current.pixels,
+        pendingCanvasUpgradeSize,
+      ),
+      canvasSize: pendingCanvasUpgradeSize,
+    });
+    setCanvasUpgradeOpen(false);
+    setPendingCanvasUpgradeSize(null);
+  };
+
+  const handleCancelCanvasUpgrade = () => {
+    setCanvasUpgradeOpen(false);
+    setPendingCanvasUpgradeSize(null);
   };
 
   const applyCardNameInput = useCallback((raw: string) => {
@@ -296,6 +337,15 @@ export function EditorScreen({
       setError(validationError);
       return;
     }
+
+    const canvasUpgradePx = calcCanvasUpgradeCost(editCanvasSize, canvasSize);
+    if (canvasUpgradePx > 0) {
+      if (!canAffordCanvasUpgrade({ freePixels }, canvasUpgradePx)) {
+        setError(`px が ${canvasUpgradePx.toLocaleString()} 不足しています。`);
+        return;
+      }
+    }
+
     setError(null);
     try {
       const previousBp = editTarget.bp;
@@ -306,7 +356,10 @@ export function EditorScreen({
         userLevel,
         getUnlockedPaletteCount(userLevel),
       );
-      onUpdated?.(card);
+      onUpdated?.(
+        card,
+        canvasUpgradePx > 0 ? { canvasUpgradePx } : undefined,
+      );
       setSaveBpResult({
         cardName: card.name,
         previousBp,
@@ -350,7 +403,7 @@ export function EditorScreen({
               selectedSize={canvasSize}
               unlockedSizes={unlockedCanvasSizes}
               onSelectSize={handleCanvasSizeChange}
-              disabled={isEditing}
+              minSelectableSize={isEditing ? editCanvasSize : undefined}
             />
             <div
               className="editor-screen-mini-preview"
@@ -513,6 +566,43 @@ export function EditorScreen({
           jewels={jewels}
           onSave={handleRenameSave}
           onClose={() => setRenameDialogOpen(false)}
+        />
+      )}
+      {canvasUpgradeOpen && pendingCanvasUpgradeSize != null && (
+        <ConfirmDialog
+          open={canvasUpgradeOpen}
+          title="キャンバスサイズを拡大しますか？"
+          message={
+            <>
+              {editCanvasSize}×{editCanvasSize} から{' '}
+              {pendingCanvasUpgradeSize}×{pendingCanvasUpgradeSize}{' '}
+              に拡大します。
+              <br />
+              イメージは新しいサイズに合わせて拡大されます。
+              <br />
+              保存時に{' '}
+              <span className="confirm-dialog-px-reward">
+                <PixelCoinIcon className="confirm-dialog-coin-icon" />
+                {pendingUpgradeTotalCost.toLocaleString()}
+              </span>
+              が消費されます。
+              <br />
+              （現在{' '}
+              <span className="confirm-dialog-px-reward">
+                <PixelCoinIcon className="confirm-dialog-coin-icon" />
+                {freePixels.toLocaleString()}
+              </span>
+              所持）
+              <br />
+              編集した画像を保存すると、元のサイズには戻せません。
+            </>
+          }
+          confirmLabel="拡大する"
+          cancelLabel="キャンセル"
+          confirmVariant="primary"
+          confirmDisabled={!canAffordPendingUpgrade}
+          onConfirm={handleConfirmCanvasUpgrade}
+          onCancel={handleCancelCanvasUpgrade}
         />
       )}
       {!isEditing && (

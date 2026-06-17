@@ -73,6 +73,25 @@ export function resizeGrid(pixels: PixelGrid, newSize: number): PixelGrid {
   return next;
 }
 
+/** キャンバス拡大時: 最近傍で引き伸ばし、新サイズ全体にフィット */
+export function upscaleGridToFit(pixels: PixelGrid, newSize: number): PixelGrid {
+  const oldSize = pixels.length;
+  const targetSize = Math.max(1, Math.floor(newSize));
+  if (targetSize <= oldSize) {
+    return resizeGrid(pixels, targetSize);
+  }
+
+  const next = createEmptyGrid(targetSize);
+  for (let r = 0; r < targetSize; r++) {
+    for (let c = 0; c < targetSize; c++) {
+      const srcR = Math.min(oldSize - 1, Math.floor((r * oldSize) / targetSize));
+      const srcC = Math.min(oldSize - 1, Math.floor((c * oldSize) / targetSize));
+      next[r]![c] = pixels[srcR]?.[srcC] ?? null;
+    }
+  }
+  return next;
+}
+
 export type CheckerTone = 'light' | 'dark';
 
 /** グリッド用の市松模様トーン（行+列の奇偶） */

@@ -9,6 +9,8 @@ interface CanvasSizePickerProps {
   unlockedSizes: readonly CanvasSize[];
   onSelectSize: (size: CanvasSize) => void;
   disabled?: boolean;
+  /** 編集時の拡大のみ: これより小さいサイズは選択不可 */
+  minSelectableSize?: number;
 }
 
 export function CanvasSizePicker({
@@ -16,8 +18,13 @@ export function CanvasSizePicker({
   unlockedSizes,
   onSelectSize,
   disabled = false,
+  minSelectableSize,
 }: CanvasSizePickerProps) {
   const unlockedSet = new Set(unlockedSizes);
+  const minSize =
+    minSelectableSize != null
+      ? Math.max(1, Math.floor(minSelectableSize))
+      : null;
 
   return (
     <div
@@ -36,7 +43,10 @@ export function CanvasSizePicker({
           const unlocked = unlockedSet.has(size);
           const active = selectedSize === size;
           const unlockLevel = getCanvasUnlockLevel(size);
-          const showSize = unlocked || (disabled && active);
+          const belowMin = minSize != null && size < minSize;
+          const showSize = unlocked || (disabled && active) || (belowMin && active);
+          const chipDisabled =
+            disabled || !unlocked || belowMin || (active && minSize != null);
 
           return (
             <button
@@ -46,12 +56,17 @@ export function CanvasSizePicker({
                 'canvas-size-chip',
                 active ? 'active' : '',
                 !unlocked ? 'locked' : '',
+                belowMin && !active ? 'canvas-size-chip--below-min' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
-              disabled={disabled || !unlocked}
+              disabled={chipDisabled}
               title={
-                showSize ? `${size}×${size}` : `Lv${unlockLevel}で解放`
+                belowMin && !active
+                  ? '拡大後は元のサイズに戻せません'
+                  : showSize
+                    ? `${size}×${size}`
+                    : `Lv${unlockLevel}で解放`
               }
               onClick={() => onSelectSize(size)}
             >

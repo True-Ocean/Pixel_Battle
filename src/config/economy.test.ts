@@ -28,6 +28,8 @@ import {
   calcVictoryBattlePixels,
   countBattleSurvivors,
   canAffordCardRename,
+  canAffordCanvasUpgrade,
+  calcCanvasUpgradeCost,
   getCardRenameCount,
   isFirstCardRename,
   JEWEL_COST_RENAME,
@@ -270,5 +272,14 @@ describe('lost economy helpers', () => {
     expect(
       canAffordCardRename({ freePixels: 999, jewels: JEWEL_COST_RENAME - 1 }, 2),
     ).toBe(false);
+  });
+
+  it('calculates canvas upgrade cost as area difference', () => {
+    expect(calcCanvasUpgradeCost(16, 20)).toBe(144);
+    expect(calcCanvasUpgradeCost(16, 18)).toBe(68);
+    expect(calcCanvasUpgradeCost(18, 20)).toBe(76);
+    expect(calcCanvasUpgradeCost(20, 16)).toBe(0);
+    expect(canAffordCanvasUpgrade({ freePixels: 144 }, 144)).toBe(true);
+    expect(canAffordCanvasUpgrade({ freePixels: 143 }, 144)).toBe(false);
   });
 });

@@ -323,3 +323,20 @@ export function canAffordCardRename(
   }
   return economy.jewels >= JEWEL_COST_RENAME;
 }
+
+/** キャンバス拡大コスト（増分マス数 = 新² − 旧²） */
+export function calcCanvasUpgradeCost(fromSize: number, toSize: number): number {
+  const from = Math.max(1, Math.floor(fromSize));
+  const to = Math.max(1, Math.floor(toSize));
+  if (to <= from) return 0;
+  return to * to - from * from;
+}
+
+export function canAffordCanvasUpgrade(
+  economy: { freePixels: number },
+  cost: number,
+): boolean {
+  const px = Math.max(0, Math.floor(cost));
+  if (px === 0) return true;
+  return economy.freePixels >= px;
+}

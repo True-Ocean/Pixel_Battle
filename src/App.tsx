@@ -474,13 +474,35 @@ function App() {
   );
 
   const updateCard = useCallback(
-    (updated: Card) => {
-      updateActiveDeck((prev) =>
-        prev.map((c) => (c?.id === updated.id ? updated : c)),
+    (updated: Card, options?: { canvasUpgradePx?: number }) => {
+      const upgradePx = options?.canvasUpgradePx ?? 0;
+      let nextEconomy = economyRef.current;
+      if (upgradePx > 0) {
+        const spent = spendFreePixels(economyRef.current, upgradePx);
+        if (!spent) return;
+        nextEconomy = spent;
+      }
+
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const nextLayout = prevLayout.map((card) =>
+        card?.id === updated.id ? updated : card,
       );
-      setEditingCard((current) => (current?.id === updated.id ? updated : current));
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
+      setDecks(nextDecks);
+      decksRef.current = nextDecks;
+      setEditingCard(updated);
+
+      if (upgradePx > 0) {
+        setEconomy(nextEconomy);
+        economyRef.current = nextEconomy;
+        persistSave({ decks: nextDecks, economy: nextEconomy });
+      } else {
+        persistSave({ decks: nextDecks });
+      }
     },
-    [updateActiveDeck],
+    [persistSave],
   );
 
   const renameDeckCard = useCallback(

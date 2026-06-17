@@ -8,6 +8,7 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   confirmVariant?: 'danger' | 'primary';
+  confirmDisabled?: boolean;
   className?: string;
   onConfirm: () => void;
   onCancel: () => void;
@@ -20,6 +21,7 @@ export function ConfirmDialog({
   confirmLabel = '削除',
   cancelLabel = 'キャンセル',
   confirmVariant = 'danger',
+  confirmDisabled = false,
   className,
   onConfirm,
   onCancel,
@@ -55,6 +57,7 @@ export function ConfirmDialog({
                 ? 'confirm-dialog-confirm confirm-dialog-confirm-primary'
                 : 'confirm-dialog-confirm'
             }
+            disabled={confirmDisabled}
             onClick={onConfirm}
           >
             {confirmLabel}
