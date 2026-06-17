@@ -3424,6 +3424,27 @@ button.battle-hub-deck-icon.is-move-target {
   cursor: not-allowed;
 }
 
+.graveyard-pick-double-ad {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 0.45rem;
+  min-height: 2.35rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+.graveyard-pick-double-ad:hover {
+  filter: brightness(0.98);
+}
+
 .deck-rename-backdrop {
   position: fixed;
   inset: 0;

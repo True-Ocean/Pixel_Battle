@@ -46,7 +46,9 @@ export {
   dismissHistoryRematchRulesForToday,
   getBattlesDayKey,
   normalizeAdState,
+  isNormalBattleAdsEnabledAtUserLevel,
   shouldRequireHistoryRematchAd,
+  shouldRequireNormalBattleAd,
   shouldShowHistoryRematchRulesModal,
 } from './adState';
 export {

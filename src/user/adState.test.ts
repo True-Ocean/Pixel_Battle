@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   createInitialAdState,
   getBattlesDayKey,
+  isNormalBattleAdsEnabledAtUserLevel,
   normalizeAdState,
   shouldRequireHistoryRematchAd,
+  shouldRequireNormalBattleAd,
   shouldShowHistoryRematchRulesModal,
 } from './adState';
 
@@ -15,6 +17,7 @@ describe('ad state', () => {
       battlesToday: 0,
       battlesDayKey: '2026-06-15',
       historyRematchStarts: 0,
+      normalBattleStarts: 0,
     });
     expect(getBattlesDayKey(date)).toBe('2026-06-15');
   });
@@ -35,6 +38,7 @@ describe('ad state', () => {
       battlesToday: 0,
       battlesDayKey: '2026-06-15',
       historyRematchStarts: 0,
+      normalBattleStarts: 0,
     });
   });
 
@@ -54,7 +58,22 @@ describe('ad state', () => {
       battlesToday: 4,
       battlesDayKey: '2026-06-15',
       historyRematchStarts: 0,
+      normalBattleStarts: 0,
     });
+  });
+
+  it('requires normal battle ad every 3 starts', () => {
+    expect(shouldRequireNormalBattleAd(0)).toBe(false);
+    expect(shouldRequireNormalBattleAd(1)).toBe(false);
+    expect(shouldRequireNormalBattleAd(2)).toBe(true);
+    expect(shouldRequireNormalBattleAd(3)).toBe(false);
+    expect(shouldRequireNormalBattleAd(5)).toBe(true);
+  });
+
+  it('enables normal battle ads from user level 5', () => {
+    expect(isNormalBattleAdsEnabledAtUserLevel(4)).toBe(false);
+    expect(isNormalBattleAdsEnabledAtUserLevel(5)).toBe(true);
+    expect(isNormalBattleAdsEnabledAtUserLevel(10)).toBe(true);
   });
 
   it('requires history rematch ad every 3 starts', () => {

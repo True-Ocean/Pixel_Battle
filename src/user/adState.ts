@@ -1,4 +1,4 @@
-import { BATTLE_DAILY_RESET_TIMEZONE } from '../config/economy';
+import { BATTLE_DAILY_RESET_TIMEZONE, LOST_MIN_USER_LEVEL } from '../config/economy';
 import type { AdState } from '../types';
 
 function normalizeNonNegativeInt(value: unknown): number {
@@ -23,6 +23,7 @@ export function createInitialAdState(date: Date = new Date()): AdState {
     hasEverCompletedBattleDeck: false,
     battlesToday: 0,
     battlesDayKey: getBattlesDayKey(date),
+    normalBattleStarts: 0,
     historyRematchStarts: 0,
   };
 }
@@ -42,6 +43,7 @@ export function normalizeAdState(raw: unknown, date: Date = new Date()): AdState
     candidate.creativeAdCounter >= 0
       ? Math.floor(candidate.creativeAdCounter)
       : undefined;
+  const normalBattleStarts = normalizeNonNegativeInt(candidate.normalBattleStarts);
   const historyRematchStarts = normalizeNonNegativeInt(
     candidate.historyRematchStarts,
   );
@@ -62,6 +64,7 @@ export function normalizeAdState(raw: unknown, date: Date = new Date()): AdState
     hasEverCompletedBattleDeck,
     battlesToday: resetBattlesToday,
     battlesDayKey: todayKey,
+    normalBattleStarts,
     historyRematchStarts,
     ...(rulesDismissedToday != null
       ? { historyRematchRulesDismissedDayKey: rulesDismissedToday }
@@ -87,6 +90,16 @@ export function dismissHistoryRematchRulesForToday(
     ...adState,
     historyRematchRulesDismissedDayKey: getBattlesDayKey(date),
   };
+}
+
+/** 通常バトルで広告を表示するユーザーレベルか（Lv.5 以上） */
+export function isNormalBattleAdsEnabledAtUserLevel(userLevel: number): boolean {
+  return Math.max(1, Math.floor(userLevel)) >= LOST_MIN_USER_LEVEL;
+}
+
+/** 次の通常バトル開始でリワード広告が必要か（3回に1回） */
+export function shouldRequireNormalBattleAd(normalBattleStarts: number): boolean {
+  return (normalBattleStarts + 1) % 3 === 0;
 }
 
 /** 次の履歴再戦のバトル開始でリワード広告が必要か（3回に1回） */

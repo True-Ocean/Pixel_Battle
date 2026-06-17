@@ -10,7 +10,7 @@ import { getLimitBreakRarityJewelCost, BATTLE_MATCH_CANCEL_COST } from './config
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleRecords, saveSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, shouldRequireHistoryRematchAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireHistoryRematchAd, shouldRequireNormalBattleAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
 import {
@@ -111,6 +111,10 @@ function App() {
   } | null>(null);
   const [historyRematchPendingAdDeckIndex, setHistoryRematchPendingAdDeckIndex] =
     useState<number | null>(null);
+  const [normalBattlePendingAdDeckIndex, setNormalBattlePendingAdDeckIndex] =
+    useState<number | null>(null);
+  const [graveyardVictoryDoubleCard, setGraveyardVictoryDoubleCard] =
+    useState<Card | null>(null);
   const [battleHistory, setBattleHistory] = useState<BattleHistoryEntry[]>(
     () => initialSave.battleHistory ?? [],
   );
@@ -290,11 +294,35 @@ function App() {
       });
       setCpuDeck(buildBalancedCpuDeck(playerDeck, Math.random, level));
       setCpuOpponent({ name: CPU_OPPONENT_LABEL, level });
+      if (isNormalBattleAdsEnabledAtUserLevel(level)) {
+        const nextAdState = {
+          ...adStateRef.current,
+          normalBattleStarts: (adStateRef.current.normalBattleStarts ?? 0) + 1,
+        };
+        adStateRef.current = nextAdState;
+        setAdState(nextAdState);
+        persistSave({ adState: nextAdState });
+      }
       setBattleSetupKey((k) => k + 1);
       setBattleEndDock(false);
       setScreen('battleSetup');
     },
     [clearHistoryRematch, resetHistoryRematchFlow, persistSave, user?.level],
+  );
+
+  const requestGoToBattleSetup = useCallback(
+    (deckIndex: number) => {
+      const level = userRef.current?.level ?? 1;
+      if (
+        isNormalBattleAdsEnabledAtUserLevel(level) &&
+        shouldRequireNormalBattleAd(adStateRef.current.normalBattleStarts ?? 0)
+      ) {
+        setNormalBattlePendingAdDeckIndex(deckIndex);
+        return;
+      }
+      goToBattleSetup(deckIndex);
+    },
+    [goToBattleSetup],
   );
 
   const handleCancelBattleMatch = useCallback(() => {
@@ -409,12 +437,12 @@ function App() {
       requestHistoryRematch(entry);
       return;
     }
-    goToBattleSetup(lastBattleDeckIndexRef.current);
-  }, [goToBattleSetup, requestHistoryRematch]);
+    requestGoToBattleSetup(lastBattleDeckIndexRef.current);
+  }, [requestGoToBattleSetup, requestHistoryRematch]);
 
   const restartBattleFromEnd = useCallback(() => {
-    goToBattleSetup(lastBattleDeckIndexRef.current);
-  }, [goToBattleSetup]);
+    requestGoToBattleSetup(lastBattleDeckIndexRef.current);
+  }, [requestGoToBattleSetup]);
 
   const addCard = useCallback(
     (card: Card) => {
@@ -683,12 +711,20 @@ function App() {
   const finalizeBattleOutcome = useCallback(
     (
       outcome: BattleOutcome,
-      options: { graveyardCard?: Card | null; lostCard?: Card | null } = {},
+      options: {
+        graveyardCard?: Card | null;
+        lostCard?: Card | null;
+        doubleVictoryPixels?: boolean;
+      } = {},
     ) => {
       if (isHistoryRematchRef.current) {
         return;
       }
-      const { graveyardCard = null, lostCard = null } = options;
+      const {
+        graveyardCard = null,
+        lostCard = null,
+        doubleVictoryPixels = false,
+      } = options;
       const prevUser = userRef.current;
       const prevEconomy = economyRef.current;
       const prevDecks = decksRef.current;
@@ -748,7 +784,8 @@ function App() {
               ),
             );
         if (pixelTotal > 0) {
-          nextEconomy = addFreePixels(nextEconomy, pixelTotal);
+          const pixelsToGrant = doubleVictoryPixels ? pixelTotal * 2 : pixelTotal;
+          nextEconomy = addFreePixels(nextEconomy, pixelsToGrant);
         }
         if (graveyardCard) {
           const shardAmount = calcGraveyardShardReward(graveyardCard);
@@ -887,14 +924,22 @@ function App() {
   );
 
   const handleGraveyardPick = useCallback(
-    (card: Card) => {
+    (card: Card, options?: { doublePixels?: boolean }) => {
       const outcome = pendingGraveyardOutcome;
       if (!outcome) return;
       setPendingGraveyardOutcome(null);
-      finalizeBattleOutcome(outcome, { graveyardCard: card });
+      setGraveyardVictoryDoubleCard(null);
+      finalizeBattleOutcome(outcome, {
+        graveyardCard: card,
+        doubleVictoryPixels: options?.doublePixels === true,
+      });
     },
     [finalizeBattleOutcome, pendingGraveyardOutcome],
   );
+
+  const handleRequestGraveyardVictoryDoubleAd = useCallback((card: Card) => {
+    setGraveyardVictoryDoubleCard(card);
+  }, []);
 
   const handleLostRouletteComplete = useCallback(
     (card: Card) => {
@@ -1225,6 +1270,11 @@ function App() {
     });
   }, [pendingGraveyardOutcome, user]);
 
+  const showGraveyardVictoryDoubleAd = useMemo(
+    () => isProfileComplete(user) && isNormalBattleAdsEnabledAtUserLevel(user.level),
+    [user],
+  );
+
   const battleEndNewBattleDisabled = useMemo(() => {
     if (pendingLostRouletteOutcome != null) return true;
     if (isHistoryRematch) {
@@ -1353,7 +1403,7 @@ function App() {
             deckNames={deckNames}
             unlockedDeckCount={unlockedDeckCount}
             lastBattleDeckIndex={lastBattleDeckIndex}
-            onStartBattle={goToBattleSetup}
+            onStartBattle={requestGoToBattleSetup}
             onGoToMyDeck={goToMyDeckWithCard}
             onReorderDeckAt={reorderDeckAt}
             onMoveCardBetweenDecks={moveCardBetweenDecksInHub}
@@ -1479,6 +1529,36 @@ function App() {
           onCancel={() => setHistoryRematchPendingAdDeckIndex(null)}
         />
       )}
+      {normalBattlePendingAdDeckIndex != null && (
+        <MockRewardAdModal
+          title="バトル開始のための広告視聴"
+          message="3回に1回、バトル開始前にリワード広告の視聴が必要です（モック）"
+          onComplete={() => {
+            setNormalBattlePendingAdDeckIndex((deckIndex) => {
+              if (deckIndex != null) {
+                goToBattleSetup(deckIndex);
+              }
+              return null;
+            });
+          }}
+          onCancel={() => setNormalBattlePendingAdDeckIndex(null)}
+        />
+      )}
+      {graveyardVictoryDoubleCard != null && (
+        <MockRewardAdModal
+          title="報酬2倍のための広告視聴"
+          message="広告視聴後、このバトルの px 報酬が2倍になります（モック）"
+          onComplete={() => {
+            setGraveyardVictoryDoubleCard((card) => {
+              if (card) {
+                handleGraveyardPick(card, { doublePixels: true });
+              }
+              return null;
+            });
+          }}
+          onCancel={() => setGraveyardVictoryDoubleCard(null)}
+        />
+      )}
 
       {screen !== 'setup' && screen !== 'title' && !showDock && (
         <footer className="app-footer">
@@ -1512,7 +1592,9 @@ function App() {
           survivorCards={pendingGraveyardOutcome.survivorPlayerCards}
           graveyardCards={resolveGraveyardLootCards(pendingGraveyardOutcome)}
           expGain={pendingBattleExpGain}
+          showVictoryDoubleAd={showGraveyardVictoryDoubleAd}
           onPick={handleGraveyardPick}
+          onRequestVictoryDoubleAd={handleRequestGraveyardVictoryDoubleAd}
         />
       )}
       {pendingLostRouletteOutcome && (

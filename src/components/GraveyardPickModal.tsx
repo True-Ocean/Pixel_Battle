@@ -18,7 +18,9 @@ interface GraveyardPickModalProps {
   survivorCards: Card[];
   graveyardCards: Card[];
   expGain: number;
-  onPick: (card: Card) => void;
+  showVictoryDoubleAd?: boolean;
+  onPick: (card: Card, options?: { doublePixels?: boolean }) => void;
+  onRequestVictoryDoubleAd?: (card: Card) => void;
 }
 
 function formatShardRewardAria(attribute: Attribute, count: number): string {
@@ -80,7 +82,9 @@ export function GraveyardPickModal({
   survivorCards,
   graveyardCards,
   expGain,
+  showVictoryDoubleAd = false,
   onPick,
+  onRequestVictoryDoubleAd,
 }: GraveyardPickModalProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -222,6 +226,16 @@ export function GraveyardPickModal({
             '戦利品を選んでください'
           )}
         </button>
+
+        {showVictoryDoubleAd && selected && onRequestVictoryDoubleAd && (
+          <button
+            type="button"
+            className="graveyard-pick-double-ad"
+            onClick={() => onRequestVictoryDoubleAd(selected)}
+          >
+            広告視聴で2倍
+          </button>
+        )}
       </div>
     </div>,
     document.body,

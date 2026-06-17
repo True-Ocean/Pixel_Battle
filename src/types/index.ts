@@ -71,6 +71,8 @@ export interface AdState {
   battlesDayKey: string;
   /** ライト会員: 創作広告カウンタ（将来） */
   creativeAdCounter?: number;
+  /** 通常バトル開始回数（3回に1回の広告判定用・バトル開始時） */
+  normalBattleStarts?: number;
   /** 履歴からの再戦開始回数（3回に1回の広告判定用・バトル開始時） */
   historyRematchStarts?: number;
   /** 再戦ルールモーダルを非表示にした日（JST "YYYY-MM-DD"） */
