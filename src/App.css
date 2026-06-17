@@ -5181,6 +5181,74 @@ button.battle-hub-deck-icon.is-move-target {
   gap: 0.45rem;
 }
 
+.editor-name-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.45rem;
+}
+
+.editor-name-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.editor-rename-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #c4b5fd;
+  background: linear-gradient(180deg, #faf5ff 0%, #f3e8ff 100%);
+  color: #5b21b6;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.editor-rename-btn--disabled,
+.editor-rename-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.card-rename-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.card-rename-confirm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.card-rename-confirm-label {
+  line-height: 1.2;
+}
+
+.card-rename-confirm-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+  font-weight: 800;
+}
+
+.card-rename-confirm-icon {
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
+}
+
+.card-rename-confirm-btn .jewel-amount-value {
+  color: #fff;
+}
+
 .editor-field-label {
   display: inline-flex;
   align-items: baseline;

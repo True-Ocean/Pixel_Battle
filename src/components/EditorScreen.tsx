@@ -33,7 +33,9 @@ import { CanvasSizePicker } from './CanvasSizePicker';
 import { CardPreview } from './CardPreview';
 import { ColorPalette } from './ColorPalette';
 import { ConfirmDialog } from './ConfirmDialog';
+import { CardRenameDialog } from './CardRenameDialog';
 import { EditorSaveBpConfirmModal } from './EditorSaveBpConfirmModal';
+import { getCardRenameCount } from '../config/economy';
 import {
   isEditorToolImplemented,
   isEditorToolUnlocked,
@@ -46,10 +48,13 @@ interface EditorScreenProps {
   deckCount: number;
   userLevel?: number;
   editTarget?: Card | null;
+  freePixels?: number;
+  jewels?: number;
   backLabel?: string;
   onBack: () => void;
   onCreated: (card: Card) => void;
   onUpdated?: (card: Card) => void;
+  onRenameCard?: (cardId: string, newName: string) => string | null;
 }
 
 const MINI_PREVIEW_SIZE = 48;
@@ -87,10 +92,13 @@ export function EditorScreen({
   deckCount,
   userLevel = 1,
   editTarget = null,
+  freePixels = 0,
+  jewels = 0,
   backLabel = 'マイデッキに戻る',
   onBack,
   onCreated,
   onUpdated,
+  onRenameCard,
 }: EditorScreenProps) {
   const isEditing = editTarget != null;
   const unlockedCanvasSizes = getUnlockedCanvasSizes(userLevel);
@@ -112,12 +120,12 @@ export function EditorScreen({
   const [tool, setTool] = useState<EditorToolId>('pen');
   const [error, setError] = useState<string | null>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
-  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [saveBpResult, setSaveBpResult] = useState<{
     cardName: string;
     previousBp: number;
     nextBp: number;
   } | null>(null);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const isComposingNameRef = useRef(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [devForceAttribute, setDevForceAttribute] = useState<Attribute | null>(
@@ -282,17 +290,12 @@ export function EditorScreen({
   };
 
   const handleSave = () => {
+    if (!editTarget) return;
     const validationError = validateDrawing(name, pixels, userLevel);
     if (validationError) {
       setError(validationError);
       return;
     }
-    setError(null);
-    setConfirmSaveOpen(true);
-  };
-
-  const handleSaveConfirm = () => {
-    if (!editTarget) return;
     setError(null);
     try {
       const previousBp = editTarget.bp;
@@ -304,19 +307,12 @@ export function EditorScreen({
         getUnlockedPaletteCount(userLevel),
       );
       onUpdated?.(card);
-      setConfirmSaveOpen(false);
-      const bpDelta = card.bp - previousBp;
-      if (bpDelta === 0) {
-        onBack();
-        return;
-      }
       setSaveBpResult({
         cardName: card.name,
         previousBp,
         nextBp: card.bp,
       });
     } catch (e) {
-      setConfirmSaveOpen(false);
       setError(e instanceof CardCreationError ? e.message : '保存に失敗しました');
     }
   };
@@ -324,6 +320,21 @@ export function EditorScreen({
   const handleSaveBpResultClose = () => {
     setSaveBpResult(null);
     onBack();
+  };
+
+  const renameCount = editTarget != null ? getCardRenameCount(editTarget) : 0;
+  const renameDisabled =
+    !onRenameCard ||
+    saveBpResult != null ||
+    renameDialogOpen;
+
+  const handleRenameSave = (newName: string): string | null => {
+    if (!editTarget || !onRenameCard) return 'リネームできません。';
+    const error = onRenameCard(editTarget.id, newName);
+    if (!error) {
+      setName(newName);
+    }
+    return error;
   };
 
   return (
@@ -393,39 +404,55 @@ export function EditorScreen({
                 <span className="editor-name-limit-note">（全角10文字まで）</span>
               )}
             </span>
-            <input
-              ref={nameInputRef}
-              type="text"
-              value={name}
-              placeholder="例：ほのおの剣"
-              readOnly={isEditing || confirmCreateOpen || confirmSaveOpen || saveBpResult != null}
-              className={isEditing ? 'editor-name-readonly' : undefined}
-              onCompositionStart={() => {
-                isComposingNameRef.current = true;
-              }}
-              onCompositionEnd={(event) => {
-                isComposingNameRef.current = false;
-                if (!isEditing) {
-                  applyCardNameInput(event.currentTarget.value);
+            <div className="editor-name-row">
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={name}
+                placeholder="例：ほのおの剣"
+                readOnly={
+                  isEditing ||
+                  confirmCreateOpen ||
+                  saveBpResult != null ||
+                  renameDialogOpen
                 }
-              }}
-              onChange={(e) => {
-                if (isEditing) {
-                  setName(e.target.value);
-                  return;
-                }
-                if (isComposingNameRef.current) {
-                  setName(e.target.value);
-                  return;
-                }
-                applyCardNameInput(e.target.value);
-              }}
-              onBlur={(e) => {
-                if (!isEditing) {
+                className={isEditing ? 'editor-name-readonly' : undefined}
+                onCompositionStart={() => {
+                  isComposingNameRef.current = true;
+                }}
+                onCompositionEnd={(event) => {
+                  isComposingNameRef.current = false;
+                  if (!isEditing) {
+                    applyCardNameInput(event.currentTarget.value);
+                  }
+                }}
+                onChange={(e) => {
+                  if (isEditing) {
+                    return;
+                  }
+                  if (isComposingNameRef.current) {
+                    setName(e.target.value);
+                    return;
+                  }
                   applyCardNameInput(e.target.value);
-                }
-              }}
-            />
+                }}
+                onBlur={(e) => {
+                  if (!isEditing) {
+                    applyCardNameInput(e.target.value);
+                  }
+                }}
+              />
+              {isEditing && onRenameCard && (
+                <button
+                  type="button"
+                  className={`editor-rename-btn${renameDisabled ? ' editor-rename-btn--disabled' : ''}`}
+                  disabled={renameDisabled}
+                  onClick={() => setRenameDialogOpen(true)}
+                >
+                  リネーム
+                </button>
+              )}
+            </div>
           </label>
           {DEV_MODE && !isEditing && (
             <label className="field editor-field editor-dev-attribute">
@@ -470,24 +497,22 @@ export function EditorScreen({
         </button>
       </div>
 
-      {isEditing && (
-        <ConfirmDialog
-          open={confirmSaveOpen}
-          title="編集内容を保存しますか？"
-          message="編集内容によってBPが増減する可能性があります。よろしいですか？"
-          confirmLabel="保存する"
-          cancelLabel="キャンセル"
-          confirmVariant="primary"
-          onConfirm={handleSaveConfirm}
-          onCancel={() => setConfirmSaveOpen(false)}
-        />
-      )}
       {saveBpResult != null && (
         <EditorSaveBpConfirmModal
           cardName={saveBpResult.cardName}
           previousBp={saveBpResult.previousBp}
           nextBp={saveBpResult.nextBp}
           onClose={handleSaveBpResultClose}
+        />
+      )}
+      {renameDialogOpen && editTarget != null && (
+        <CardRenameDialog
+          currentName={name}
+          renameCount={renameCount}
+          freePixels={freePixels}
+          jewels={jewels}
+          onSave={handleRenameSave}
+          onClose={() => setRenameDialogOpen(false)}
         />
       )}
       {!isEditing && (

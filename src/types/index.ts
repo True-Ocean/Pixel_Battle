@@ -40,6 +40,8 @@ export interface Card {
   stars: CardStars;
   /** 未設定セーブは active */
   status?: CardStatus;
+  /** 有償リネームの実行回数（0 = 初回リネームは px） */
+  renameCount?: number;
   createdAt: string;
 }
 

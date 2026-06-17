@@ -28,8 +28,11 @@ export const UNIVERSAL_LIMIT_BREAK_LEVEL_REWARD = 10;
 /** 通常カード削除のジュエルコスト */
 export const JEWEL_COST_DELETE = 1;
 
-/** カード名変更（2回目以降）のジュエルコスト。初回命名は無料 */
-export const JEWEL_COST_RENAME = 50;
+/** カード名変更（2回目以降）のジュエルコスト */
+export const JEWEL_COST_RENAME = 1;
+
+/** カード名変更（初回）の px コスト */
+export const PIXEL_COST_RENAME_FIRST = 100;
 
 /** デッキ3〜5解放のジュエルコスト（各1回） */
 export const JEWEL_COST_DECK_UNLOCK = 200;
@@ -297,4 +300,26 @@ export function calcLostCardDeleteRewards(card: Card): LostCardDeleteRewards {
     pixels: calcCardDeleteRefundPixels(card),
     shards: calcGraveyardShardReward(card),
   };
+}
+
+export function getCardRenameCount(card: Pick<Card, 'renameCount'>): number {
+  const count = card.renameCount;
+  if (typeof count !== 'number' || !Number.isFinite(count) || count < 0) {
+    return 0;
+  }
+  return Math.floor(count);
+}
+
+export function isFirstCardRename(renameCount: number): boolean {
+  return Math.max(0, Math.floor(renameCount)) === 0;
+}
+
+export function canAffordCardRename(
+  economy: { freePixels: number; jewels: number },
+  renameCount: number,
+): boolean {
+  if (isFirstCardRename(renameCount)) {
+    return economy.freePixels >= PIXEL_COST_RENAME_FIRST;
+  }
+  return economy.jewels >= JEWEL_COST_RENAME;
 }

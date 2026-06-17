@@ -27,6 +27,11 @@ import {
   calcSurvivorPixels,
   calcVictoryBattlePixels,
   countBattleSurvivors,
+  canAffordCardRename,
+  getCardRenameCount,
+  isFirstCardRename,
+  JEWEL_COST_RENAME,
+  PIXEL_COST_RENAME_FIRST,
   pickWeightedLostCard,
 } from './economy';
 
@@ -246,5 +251,24 @@ describe('lost economy helpers', () => {
       pixels: calcCardDeleteRefundPixels(card),
       shards: calcGraveyardShardReward(card),
     });
+  });
+
+  it('tracks card rename count and affordability', () => {
+    expect(getCardRenameCount({})).toBe(0);
+    expect(getCardRenameCount({ renameCount: 2 })).toBe(2);
+    expect(isFirstCardRename(0)).toBe(true);
+    expect(isFirstCardRename(1)).toBe(false);
+    expect(
+      canAffordCardRename({ freePixels: PIXEL_COST_RENAME_FIRST, jewels: 0 }, 0),
+    ).toBe(true);
+    expect(
+      canAffordCardRename({ freePixels: PIXEL_COST_RENAME_FIRST - 1, jewels: 99 }, 0),
+    ).toBe(false);
+    expect(canAffordCardRename({ freePixels: 0, jewels: JEWEL_COST_RENAME }, 1)).toBe(
+      true,
+    );
+    expect(
+      canAffordCardRename({ freePixels: 999, jewels: JEWEL_COST_RENAME - 1 }, 2),
+    ).toBe(false);
   });
 });

@@ -5,7 +5,7 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, type LimitBreakShardSpendPlan } from './card';
+import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, isCardLost, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, finalizeCardNameForCreation, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
@@ -22,6 +22,10 @@ import {
   calcVictoryBattlePixels,
   countBattleSurvivors,
   JEWEL_COST_DELETE,
+  JEWEL_COST_RENAME,
+  PIXEL_COST_RENAME_FIRST,
+  getCardRenameCount,
+  isFirstCardRename,
 } from './config/economy';
 import { LevelUpModal } from './components/LevelUpModal';
 import { LimitBreakSuccessModal } from './components/LimitBreakSuccessModal';
@@ -464,8 +468,52 @@ function App() {
       updateActiveDeck((prev) =>
         prev.map((c) => (c?.id === updated.id ? updated : c)),
       );
+      setEditingCard((current) => (current?.id === updated.id ? updated : current));
     },
     [updateActiveDeck],
+  );
+
+  const renameDeckCard = useCallback(
+    (cardId: string, newName: string): string | null => {
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const target = prevLayout.find((card) => card?.id === cardId);
+      if (!target) return 'カードが見つかりません。';
+
+      const trimmed = finalizeCardNameForCreation(newName);
+      if (trimmed === target.name.trim()) {
+        return '現在と異なる名前を入力してください。';
+      }
+
+      const renameCount = getCardRenameCount(target);
+      const nextEconomy = isFirstCardRename(renameCount)
+        ? spendFreePixels(economyRef.current, PIXEL_COST_RENAME_FIRST)
+        : spendJewels(economyRef.current, JEWEL_COST_RENAME);
+      if (!nextEconomy) {
+        return isFirstCardRename(renameCount)
+          ? `px が ${PIXEL_COST_RENAME_FIRST.toLocaleString()} 不足しています。`
+          : `ジュエルが ${JEWEL_COST_RENAME} 不足しています。`;
+      }
+
+      const updated: Card = {
+        ...target,
+        name: trimmed,
+        renameCount: renameCount + 1,
+      };
+      const nextLayout = prevLayout.map((card) =>
+        card?.id === cardId ? updated : card,
+      );
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
+      setDecks(nextDecks);
+      decksRef.current = nextDecks;
+      setEconomy(nextEconomy);
+      economyRef.current = nextEconomy;
+      setEditingCard(updated);
+      persistSave({ decks: nextDecks, economy: nextEconomy });
+      return null;
+    },
+    [persistSave],
   );
 
   const removeCardFromDeck = useCallback((id: string) => {
@@ -1488,6 +1536,8 @@ function App() {
             deckCount={activeDeckCardCount}
             userLevel={user?.level ?? 1}
             editTarget={editingCard}
+            freePixels={economy.freePixels}
+            jewels={economy.jewels}
             backLabel={editorReturnToDetail ? '戻る' : 'マイデッキに戻る'}
             onBack={() => {
               const returnToDetail = editorReturnToDetail;
@@ -1500,6 +1550,7 @@ function App() {
             }}
             onCreated={addCard}
             onUpdated={updateCard}
+            onRenameCard={renameDeckCard}
           />
         )}
         {screen === 'battleSetup' && !isHistoryRematchDeckSelect && (
