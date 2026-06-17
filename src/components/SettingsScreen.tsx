@@ -345,14 +345,14 @@ export function SettingsScreen({
 
         <SettingsSection title="データ">
           <p className="settings-section-note muted">
-            デッキの内容とユーザー名は維持されます。
+            対戦履歴のみ削除します。レベル・デッキ・所持品は変更されません。
           </p>
           <button
             type="button"
             className="settings-action-btn settings-action-btn-danger"
             onClick={() => setResetOpen(true)}
           >
-            戦績をリセット
+            バトル履歴をリセット
           </button>
         </SettingsSection>
 
@@ -688,8 +688,8 @@ export function SettingsScreen({
 
       <ConfirmDialog
         open={resetOpen}
-        title="戦績をリセット"
-        message="ユーザー戦績・カード戦績・対戦履歴をすべて初期化します。デッキの内容とユーザー名は維持されます。"
+        title="バトル履歴をリセット"
+        message="対戦履歴をすべて削除します。ユーザー情報・デッキ・所持品は変更されません。"
         confirmLabel="リセット"
         cancelLabel="キャンセル"
         confirmVariant="danger"

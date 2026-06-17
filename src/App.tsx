@@ -9,7 +9,7 @@ import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive
 import { getLimitBreakRarityJewelCost, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
-import { loadSave, resetBattleRecords, saveSave } from './storage';
+import { loadSave, resetBattleHistory, saveSave } from './storage';
 import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireHistoryRematchAd, shouldRequireNormalBattleAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
@@ -975,7 +975,7 @@ function App() {
   }, []);
 
   const handleResetBattleRecords = useCallback(() => {
-    const next = resetBattleRecords({
+    const next = resetBattleHistory({
       schemaVersion: initialSave.schemaVersion,
       user,
       economy,
@@ -990,20 +990,22 @@ function App() {
       battleHistory,
     });
     persistSave(next);
-    setUser(next.user);
-    setEconomy(next.economy ?? createInitialEconomy());
-    setInventory(next.inventory ?? createInitialInventory());
-    setTalismanStarterGranted(next.talismanStarterGranted === true);
-    setAdState(next.adState ?? createInitialAdState());
-    setDecks(next.decks);
-    setActiveDeckIndex(next.activeDeckIndex);
-    setLastBattleDeckIndex(next.lastBattleDeckIndex);
-    setUnlockedDeckCount(next.unlockedDeckCount);
-    setBattleHistory(next.battleHistory ?? []);
-    setLevelUpModal(null);
-    setPendingGraveyardOutcome(null);
-    setPendingLostRouletteOutcome(null);
-  }, [activeDeckIndex, adState, battleHistory, deckNames, decks, economy, initialSave.schemaVersion, inventory, lastBattleDeckIndex, persistSave, talismanStarterGranted, unlockedDeckCount, user]);
+    setBattleHistory([]);
+  }, [
+    activeDeckIndex,
+    adState,
+    battleHistory,
+    deckNames,
+    decks,
+    economy,
+    initialSave.schemaVersion,
+    inventory,
+    lastBattleDeckIndex,
+    persistSave,
+    talismanStarterGranted,
+    unlockedDeckCount,
+    user,
+  ]);
 
   const handleDevSetLevel = useCallback(
     (level: number): string => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createEmptyDeckSlots } from '../deckSlots';
 import type { Card, SaveData } from '../types';
-import { resetBattleRecords } from './index';
+import { resetBattleHistory, resetBattleRecords } from './index';
 
 function makeCard(id: string): Card {
   return {
@@ -19,6 +19,55 @@ function makeCard(id: string): Card {
     createdAt: '2026-01-01T00:00:00.000Z',
   };
 }
+
+describe('resetBattleHistory', () => {
+  it('clears battle history only', () => {
+    const decks = createEmptyDeckSlots();
+    decks[0] = [makeCard('a'), null, null, null, null];
+
+    const save: SaveData = {
+      schemaVersion: 2,
+      user: {
+        username: 'test',
+        level: 5,
+        exp: 99,
+        battleWins: 10,
+        battleLosses: 3,
+      },
+      economy: { freePixels: 500, jewels: 2 },
+      inventory: {
+        talisman: 1,
+        limitBreakUniversal: 5,
+        limitBreakShards: { attack: 3 },
+      },
+      decks,
+      activeDeckIndex: 0,
+      lastBattleDeckIndex: 0,
+      unlockedDeckCount: 2,
+      battleHistory: [
+        {
+          id: 'h1',
+          playedAt: '2026-01-01T00:00:00.000Z',
+          winner: 'player',
+          opponentName: 'CPU',
+          opponentLevel: 1,
+          opponentDeckPower: 10,
+          playerDeckPower: 12,
+          opponentDeck: [makeCard('cpu')],
+        },
+      ],
+      talismanStarterGranted: true,
+    };
+
+    const next = resetBattleHistory(save);
+    expect(next.battleHistory).toEqual([]);
+    expect(next.user).toEqual(save.user);
+    expect(next.economy).toEqual(save.economy);
+    expect(next.inventory).toEqual(save.inventory);
+    expect(next.decks[0]?.[0]?.wins).toBe(4);
+    expect(next.talismanStarterGranted).toBe(true);
+  });
+});
 
 describe('resetBattleRecords', () => {
   it('resets user level and card records while keeping deck content', () => {

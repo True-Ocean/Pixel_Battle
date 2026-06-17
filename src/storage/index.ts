@@ -433,7 +433,15 @@ export function saveSave(data: SaveData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
 
-/** ユーザー戦績とカード勝敗のみ初期化（デッキ内容・ユーザー名は維持） */
+/** バトル履歴のみ削除（他のセーブデータは維持） */
+export function resetBattleHistory(data: SaveData): SaveData {
+  return {
+    ...data,
+    battleHistory: [],
+  };
+}
+
+/** 開発用: ユーザー戦績とカード勝敗などを初期化（デッキ内容・ユーザー名は維持） */
 export function resetBattleRecords(data: SaveData): SaveData {
   return {
     schemaVersion: data.schemaVersion ?? SAVE_SCHEMA_VERSION,
