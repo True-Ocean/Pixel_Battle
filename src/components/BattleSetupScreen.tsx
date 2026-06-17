@@ -465,6 +465,28 @@ function SetupSlot({
   );
 }
 
+const MATCHING_DOT_INTERVAL_MS = 450;
+
+function FormationMatchingMessage() {
+  const [dotCount, setDotCount] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setDotCount((count) => (count + 1) % 4);
+    }, MATCHING_DOT_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <p className="formation-matching-message">
+      対戦相手を探しています
+      <span className="formation-matching-dots" aria-hidden>
+        {'.'.repeat(dotCount)}
+      </span>
+    </p>
+  );
+}
+
 function FormationDeckReveal({
   playerSlots,
   cpuSlots,
@@ -521,8 +543,13 @@ function FormationDeckReveal({
             ))}
           </div>
           {isSearchingOpponent && (
-            <div className="formation-matching-overlay" role="status" aria-live="polite">
-              <p className="formation-matching-message">対戦相手を探しています…</p>
+            <div
+              className="formation-matching-overlay"
+              role="status"
+              aria-live="polite"
+              aria-label="対戦相手を探しています"
+            >
+              <FormationMatchingMessage />
             </div>
           )}
         </div>

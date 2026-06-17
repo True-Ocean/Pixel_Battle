@@ -8941,18 +8941,12 @@ button.battle-card {
   font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.35;
-  animation: formation-matching-pulse 1.4s ease-in-out infinite;
 }
 
-@keyframes formation-matching-pulse {
-  0%,
-  100% {
-    opacity: 0.72;
-  }
-
-  50% {
-    opacity: 1;
-  }
+.formation-matching-dots {
+  display: inline-block;
+  width: 1.35em;
+  text-align: left;
 }
 
 .formation-actions-row {
