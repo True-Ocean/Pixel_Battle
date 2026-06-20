@@ -28,6 +28,7 @@ import {
   calcSurvivorPixels,
   calcVictoryBattlePixels,
   countBattleSurvivors,
+  type CardDeleteOutcome,
   JEWEL_COST_DELETE,
   JEWEL_COST_ATTRIBUTE_SELECT,
   JEWEL_COST_DECK_UNLOCK,
@@ -692,19 +693,24 @@ function App() {
   }, []);
 
   const deleteDeckCard = useCallback(
-    (id: string) => {
+    (id: string): CardDeleteOutcome | null => {
       const deckIndex = activeDeckIndexRef.current;
       const prevDecks = decksRef.current;
       const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
       const target = prevLayout.find((card) => card?.id === id);
-      if (!target) return;
+      if (!target) return null;
 
-      const nextEconomy = spendJewels(economyRef.current, JEWEL_COST_DELETE);
-      if (!nextEconomy) return;
+      const prevEconomy = economyRef.current;
+      const prevInventory = inventoryRef.current;
+      const previousAttributeShards =
+        prevInventory.limitBreakShards[target.attribute] ?? 0;
+
+      const nextEconomy = spendJewels(prevEconomy, JEWEL_COST_DELETE);
+      if (!nextEconomy) return null;
 
       const { pixels, shards } = calcLostCardDeleteRewards(target);
       const economyAfter = addFreePixels(nextEconomy, pixels);
-      let inventoryAfter = inventoryRef.current;
+      let inventoryAfter = prevInventory;
       if (isTalismanEquipped(target)) {
         inventoryAfter = addInventoryCount(inventoryAfter, 'talisman', 1);
       }
@@ -726,6 +732,18 @@ function App() {
       setInventory(inventoryAfter);
       economyRef.current = economyAfter;
       inventoryRef.current = inventoryAfter;
+
+      return {
+        cardName: target.name,
+        attribute: target.attribute,
+        previousFreePixels: prevEconomy.freePixels,
+        nextFreePixels: economyAfter.freePixels,
+        previousJewels: prevEconomy.jewels,
+        nextJewels: economyAfter.jewels,
+        previousAttributeShards,
+        nextAttributeShards:
+          inventoryAfter.limitBreakShards[target.attribute] ?? previousAttributeShards,
+      };
     },
     [persistSave, removeCardFromDeck],
   );

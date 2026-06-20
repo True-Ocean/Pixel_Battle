@@ -4,6 +4,7 @@ import {
   calcDowngradeReviveCost,
   calcFullReviveCost,
   calcLostCardDeleteRewards,
+  type CardDeleteOutcome,
   JEWEL_COST_DELETE,
 } from '../config/economy';
 import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
@@ -24,6 +25,7 @@ import { CardBattleRecord } from './CardBattleRecord';
 import { LimitBreakStars } from './LimitBreakStars';
 import { RarityBadge } from './RarityBadge';
 import { CardPreview } from './CardPreview';
+import { CardDeleteResultModal } from './CardDeleteResultModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
 import type { AttributeSelectOutcome } from './attributeSelectTypes';
@@ -59,7 +61,7 @@ export interface DeckScreenProps {
   onSelectDeckIndex: (index: number) => void;
   onCreateCard: () => void;
   onEditCard: (card: Card, options?: { returnToDetail?: boolean }) => void;
-  onDeleteCard: (id: string) => void;
+  onDeleteCard: (id: string) => CardDeleteOutcome | null;
   onReviveLostCard: (id: string) => void;
   onDowngradeReviveLostCard: (id: string) => void;
   inventory: UserInventory;
@@ -343,6 +345,7 @@ export function DeckScreen({
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
   const [deleteConfirmFinal, setDeleteConfirmFinal] = useState(false);
+  const [deleteResult, setDeleteResult] = useState<CardDeleteOutcome | null>(null);
   const [pendingRevive, setPendingRevive] = useState<Card | null>(null);
   const [pendingDowngradeRevive, setPendingDowngradeRevive] = useState<Card | null>(null);
   const [pendingEquipTalisman, setPendingEquipTalisman] = useState<Card | null>(null);
@@ -412,9 +415,12 @@ export function DeckScreen({
       setDeleteConfirmFinal(true);
       return;
     }
-    onDeleteCard(pendingDelete.id);
+    const outcome = onDeleteCard(pendingDelete.id);
     setPendingDelete(null);
     setDeleteConfirmFinal(false);
+    if (outcome) {
+      setDeleteResult(outcome);
+    }
     if (deckCardCount <= 1) {
       exitReorderMode();
     }
@@ -1136,6 +1142,13 @@ export function DeckScreen({
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
       />
+
+      {deleteResult != null && (
+        <CardDeleteResultModal
+          outcome={deleteResult}
+          onClose={() => setDeleteResult(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={pendingRevive != null}

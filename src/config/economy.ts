@@ -1,5 +1,5 @@
 import { countPaintedCells, countUniqueColors } from '../card/paintStats';
-import type { Card, CardRarity, CardStars } from '../types';
+import type { Attribute, Card, CardRarity, CardStars } from '../types';
 
 /** ロスト抽選: レア度倍率 */
 export const LOST_WEIGHT_RARITY: Record<Extract<CardRarity, 'N' | 'R' | 'SR'>, number> = {
@@ -320,6 +320,18 @@ export function calcCardDeleteRefundPixels(card: Card): number {
 export interface LostCardDeleteRewards {
   pixels: number;
   shards: number;
+}
+
+/** カード削除完了モーダル用の残高変化 */
+export interface CardDeleteOutcome {
+  cardName: string;
+  attribute: Attribute;
+  previousFreePixels: number;
+  nextFreePixels: number;
+  previousJewels: number;
+  nextJewels: number;
+  previousAttributeShards: number;
+  nextAttributeShards: number;
 }
 
 /** カード削除時に付与する px と属性かけら */

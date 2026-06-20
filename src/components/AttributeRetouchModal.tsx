@@ -11,7 +11,11 @@ import { AttributeBadge } from './AttributeBadge';
 import { EconomyBalanceChange } from './EconomyBalanceChange';
 import { PixelCoinIcon } from './PixelCoinIcon';
 
-type RetouchPhase = 'confirm' | 'spinning' | 'done';
+type RetouchPhase = 'confirm' | 'spinning' | 'confirmed' | 'done';
+
+const SPIN_INTERVAL_MS = 90;
+const SPIN_TICKS = 18;
+const CONFIRMED_DELAY_MS = 1400;
 
 export interface AttributeRetouchResult {
   attribute: Attribute;
@@ -45,6 +49,7 @@ export function AttributeRetouchModal({
   const [result, setResult] = useState<AttributeRetouchResult | null>(null);
   const [retouchAgainError, setRetouchAgainError] = useState<string | null>(null);
   const spinTimerRef = useRef<number | null>(null);
+  const confirmedTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -57,13 +62,36 @@ export function AttributeRetouchModal({
         window.clearInterval(spinTimerRef.current);
         spinTimerRef.current = null;
       }
+      if (confirmedTimerRef.current != null) {
+        window.clearTimeout(confirmedTimerRef.current);
+        confirmedTimerRef.current = null;
+      }
     }
   }, [open]);
+
+  useEffect(() => {
+    if (phase !== 'confirmed') return;
+
+    confirmedTimerRef.current = window.setTimeout(() => {
+      confirmedTimerRef.current = null;
+      setPhase('done');
+    }, CONFIRMED_DELAY_MS);
+
+    return () => {
+      if (confirmedTimerRef.current != null) {
+        window.clearTimeout(confirmedTimerRef.current);
+        confirmedTimerRef.current = null;
+      }
+    };
+  }, [phase]);
 
   useEffect(() => {
     return () => {
       if (spinTimerRef.current != null) {
         window.clearInterval(spinTimerRef.current);
+      }
+      if (confirmedTimerRef.current != null) {
+        window.clearTimeout(confirmedTimerRef.current);
       }
     };
   }, []);
@@ -76,21 +104,20 @@ export function AttributeRetouchModal({
   const startSpin = (target: Attribute) => {
     setPhase('spinning');
     let tick = 0;
-    const maxTicks = 18;
     spinTimerRef.current = window.setInterval(() => {
       tick += 1;
       const index = tick % unlocked.length;
       setDisplayAttribute(unlocked[index] ?? target);
-      if (tick >= maxTicks) {
+      if (tick >= SPIN_TICKS) {
         if (spinTimerRef.current != null) {
           window.clearInterval(spinTimerRef.current);
           spinTimerRef.current = null;
         }
         setDisplayAttribute(target);
         onCommitRetouch();
-        setPhase('done');
+        setPhase('confirmed');
       }
-    }, 90);
+    }, SPIN_INTERVAL_MS);
   };
 
   const runRetouch = (fromConfirm: boolean): boolean => {
@@ -128,16 +155,21 @@ export function AttributeRetouchModal({
   };
 
   const handleClose = () => {
-    if (phase === 'spinning') return;
+    if (phase === 'spinning' || phase === 'confirmed') return;
     onClose();
   };
+
+  const confirmedMeta =
+    result != null ? getAttributeMeta(result.attribute) : null;
 
   const phaseTitle =
     phase === 'confirm'
       ? '属性リタッチ'
       : phase === 'spinning'
         ? '属性リタッチ抽選中！'
-        : '属性ゲット！';
+        : phase === 'confirmed' && confirmedMeta
+          ? `${confirmedMeta.ariaName}に決定！`
+          : '属性ゲット！';
 
   return createPortal(
     <div className="attribute-edit-backdrop" onClick={handleClose}>
@@ -151,6 +183,7 @@ export function AttributeRetouchModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="attribute-retouch-title"
+        aria-live={phase === 'spinning' || phase === 'confirmed' ? 'polite' : undefined}
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="attribute-retouch-title" className="attribute-edit-title">
@@ -192,20 +225,36 @@ export function AttributeRetouchModal({
           </>
         )}
 
-        {(phase === 'spinning' || phase === 'done') && (
+        {(phase === 'spinning' || phase === 'confirmed' || phase === 'done') && (
           <div className="attribute-retouch-result">
             <div
-              className={`attribute-retouch-badge-wrap${
-                phase === 'spinning' ? ' attribute-retouch-badge-wrap--spinning' : ''
-              }`}
+              className={[
+                'attribute-retouch-badge-wrap',
+                'attribute-create-roulette-badge-wrap',
+                phase === 'spinning'
+                  ? 'attribute-retouch-badge-wrap--spinning'
+                  : phase === 'confirmed'
+                    ? 'attribute-create-roulette-badge-wrap--confirmed'
+                    : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               aria-label={
-                phase === 'done' && result
+                phase !== 'spinning' && result
                   ? getAttributeMeta(result.attribute).ariaName
                   : '属性抽選中'
               }
             >
               <AttributeBadge attribute={displayAttribute} size="deck" />
+              {phase === 'confirmed' && (
+                <span className="attribute-create-roulette-glow" aria-hidden />
+              )}
             </div>
+            {phase === 'confirmed' && confirmedMeta && (
+              <p className="attribute-create-roulette-confirmed muted">
+                {confirmedMeta.label}（{confirmedMeta.ariaName}）が適用されました
+              </p>
+            )}
             {phase === 'done' && result && (
               <>
                 <p className="attribute-retouch-bp muted">

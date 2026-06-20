@@ -21,10 +21,12 @@ import {
   computeColorRatios,
   createCardFromDrawing,
   finalizeCardNameForCreation,
+  rollAttribute,
   sanitizeCardNameInput,
   updateCardFromDrawing,
   validateCardNameForCreation,
 } from '../card';
+import { AttributeCreateRouletteModal } from './AttributeCreateRouletteModal';
 import {
   buildUnlockedColorSet,
   isPaletteColorUnlocked,
@@ -143,6 +145,8 @@ export function EditorScreen({
   const [tool, setTool] = useState<EditorToolId>('pen');
   const [error, setError] = useState<string | null>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
+  const [pendingCreateAttribute, setPendingCreateAttribute] =
+    useState<Attribute | null>(null);
   const [saveBpResult, setSaveBpResult] = useState<{
     cardName: string;
     previousBp: number;
@@ -333,7 +337,7 @@ export function EditorScreen({
     setName(sanitizeCardNameInput(raw));
   }, []);
 
-  const persistCard = () => {
+  const persistCard = (forceAttribute?: Attribute) => {
     setError(null);
     if (!isEditing && deckCount >= DECK_MAX) {
       setError(`デッキは最大 ${DECK_MAX} 枚です`);
@@ -359,9 +363,7 @@ export function EditorScreen({
           userLevel,
           paletteShopUnlocks,
           canvasSize,
-          ...(DEV_MODE && devForceAttribute
-            ? { forceAttribute: devForceAttribute }
-            : {}),
+          ...(forceAttribute ? { forceAttribute } : {}),
         });
         onCreated(card);
       }
@@ -369,6 +371,26 @@ export function EditorScreen({
     } catch (e) {
       setError(e instanceof CardCreationError ? e.message : '保存に失敗しました');
     }
+  };
+
+  const startCreateRoulette = () => {
+    const nameError = validateCardNameForCreation(name);
+    if (nameError) {
+      setError(nameError);
+      return;
+    }
+    const attribute =
+      DEV_MODE && devForceAttribute
+        ? devForceAttribute
+        : rollAttribute(userLevel);
+    setPendingCreateAttribute(attribute);
+  };
+
+  const handleCreateRouletteComplete = () => {
+    const attribute = pendingCreateAttribute;
+    setPendingCreateAttribute(null);
+    if (attribute == null) return;
+    persistCard(attribute);
   };
 
   const handleCreateRequest = () => {
@@ -551,7 +573,11 @@ export function EditorScreen({
                 type="text"
                 value={name}
                 placeholder="例：ほのおの剣"
-                readOnly={confirmCreateOpen || saveBpResult != null}
+                readOnly={
+                  confirmCreateOpen ||
+                  pendingCreateAttribute != null ||
+                  saveBpResult != null
+                }
                 onCompositionStart={() => {
                   isComposingNameRef.current = true;
                 }}
@@ -690,14 +716,17 @@ export function EditorScreen({
           confirmVariant="primary"
           onConfirm={() => {
             setConfirmCreateOpen(false);
-            const nameError = validateCardNameForCreation(name);
-            if (nameError) {
-              setError(nameError);
-              return;
-            }
-            persistCard();
+            startCreateRoulette();
           }}
           onCancel={() => setConfirmCreateOpen(false)}
+        />
+      )}
+      {pendingCreateAttribute != null && (
+        <AttributeCreateRouletteModal
+          open
+          userLevel={userLevel}
+          targetAttribute={pendingCreateAttribute}
+          onComplete={handleCreateRouletteComplete}
         />
       )}
       {paletteUnlockIndex != null && (

@@ -3495,6 +3495,25 @@ button.battle-hub-deck-icon.is-move-target {
   color: #b91c1c;
 }
 
+.card-delete-result-panel .limit-break-success-message {
+  margin-bottom: 0.75rem;
+}
+
+.card-delete-result-changes {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+  margin-bottom: 0.85rem;
+}
+
+.shard-balance-change-badge {
+  font-size: 0.72rem;
+  min-width: 1.15rem;
+  min-height: 1.15rem;
+  padding: 0.05rem 0.15rem;
+}
+
 .attribute-select-done {
   display: flex;
   flex-direction: column;
@@ -6332,6 +6351,81 @@ button.battle-hub-deck-icon.is-move-target {
 
 .attribute-retouch-again-btn .attribute-edit-confirm-cost {
   flex-shrink: 0;
+}
+
+.attribute-create-roulette-backdrop {
+  z-index: 1250;
+}
+
+.attribute-create-roulette-panel .attribute-edit-title {
+  transition: color 0.25s ease;
+}
+
+.attribute-create-roulette-badge-wrap {
+  position: relative;
+}
+
+.attribute-create-roulette-badge-wrap--confirmed {
+  animation: attribute-create-roulette-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.attribute-create-roulette-glow {
+  position: absolute;
+  inset: -0.55rem;
+  border-radius: 999px;
+  border: 2px solid rgba(100, 108, 255, 0.55);
+  box-shadow:
+    0 0 0 4px rgba(100, 108, 255, 0.12),
+    0 0 18px rgba(100, 108, 255, 0.35);
+  animation: attribute-create-roulette-glow 0.7s ease-out forwards;
+  pointer-events: none;
+}
+
+.attribute-create-roulette-confirmed {
+  margin: 0;
+  font-size: 0.84rem;
+  text-align: center;
+  line-height: 1.45;
+  animation: attribute-create-roulette-fade-in 0.35s ease-out 0.15s both;
+}
+
+@keyframes attribute-create-roulette-pop {
+  0% {
+    transform: scale(0.82);
+    opacity: 0.65;
+  }
+  55% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes attribute-create-roulette-glow {
+  0% {
+    transform: scale(0.75);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.08);
+    opacity: 0.85;
+  }
+}
+
+@keyframes attribute-create-roulette-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .attribute-select-panel {
