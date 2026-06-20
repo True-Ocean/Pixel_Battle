@@ -156,11 +156,12 @@ export function applyMeleeBattle(
   const bpFrom = attack.target.currentBp;
   const attackerBpAtMelee = attack.attacker.currentBp;
   const targetBpAtMelee = attack.target.currentBp;
-  const attackerShieldConsumed = attack.attacker.hasShield;
+  const attackerHadShield = attack.attacker.hasShield;
   const targetShieldConsumed = attack.target.hasShield;
   const blocked = targetShieldConsumed;
   const selectionTurn = getSelectionTurn(next);
   const targetFrozenAtMelee = isFrozen(attack.target, selectionTurn);
+  const actorShieldBroken = attackerHadShield && !targetFrozenAtMelee;
 
   let damageToTarget = attack.attacker.currentBp;
   let damageToAttacker = shouldApplyNinjaFirstStrike(
@@ -175,7 +176,7 @@ export function applyMeleeBattle(
 
   const deferredStatusEvents: BattleEvent[] = [];
 
-  if (attackerShieldConsumed) {
+  if (actorShieldBroken) {
     damageToAttacker = 0;
     attack.attacker.hasShield = false;
     next = appendLog(next, `${attack.attacker.name} の盾が攻撃で壊れた`);
@@ -202,13 +203,13 @@ export function applyMeleeBattle(
   /** 氷に近接した側（攻撃側）も凍結。攻撃側の盾で防止可。凍結中の氷は反撃凍結しない */
   const freezeOnAttacker =
     attack.target.attribute === 'ice' &&
-    !attackerShieldConsumed &&
+    !attackerHadShield &&
     !targetFrozenAtMelee;
   const poisonOnTarget =
     attack.attacker.attribute === 'poison' && !targetShieldConsumed;
   const poisonOnAttacker =
     attack.target.attribute === 'poison' &&
-    !attackerShieldConsumed &&
+    !attackerHadShield &&
     !targetFrozenAtMelee;
 
   if (freezeOnTarget) {
@@ -314,7 +315,7 @@ export function applyMeleeBattle(
     damageToActor: damageToAttacker,
     damage: damageToTarget,
     targetShieldBroken: targetShieldConsumed,
-    actorShieldBroken: attackerShieldConsumed,
+    actorShieldBroken,
     actorId: attack.attacker.cardId,
     targetId: attack.target.cardId,
   });

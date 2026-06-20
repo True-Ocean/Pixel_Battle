@@ -1297,6 +1297,31 @@ describe('battle', () => {
     expect(state.cpu[0]!.currentBp).toBe(0);
   });
 
+  it('凍結中の相手を攻撃しても攻撃側の盾は壊れない', () => {
+    let state = createBattleState(cards('P'), cards('C'));
+    state.player[0]!.attribute = 'defense';
+    state.player[0]!.hasShield = true;
+    state.cpu[0]!.frozenUntilTurn = 2;
+    expect(isFrozen(state.cpu[0]!, getSelectionTurn(state))).toBe(true);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    expect(state.player[0]!.hasShield).toBe(true);
+    expect(state.player[0]!.currentBp).toBe(80);
+    expect(state.cpu[0]!.currentBp).toBe(0);
+  });
+
   it('凍結中は行動カードを選べない', () => {
     const playerDeck = [
       stubCard('氷', 'ice', 80),
