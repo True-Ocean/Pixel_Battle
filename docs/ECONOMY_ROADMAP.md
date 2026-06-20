@@ -16,7 +16,7 @@
 
 | 表示 | 内部名（案） | 入手 | 主な用途 |
 |------|--------------|------|----------|
-| 無償 | `freePixels` | バトル、レベルアップ、**カード削除返還**、勝利2倍広告、**属性リタッチ** | 復活/降格復活、護符購入（px 枠）、**リネーム初回**、編集時キャンバス拡大 |
+| 無償 | `freePixels` | バトル、レベルアップ、**カード削除返還**、勝利2倍広告、**属性リタッチ** | **復活**、護符購入（px 枠）、**リネーム初回**、編集時キャンバス拡大 |
 | 💎 ジュエル | `jewels` | 課金、**毎レベル少量**、L≡4 (mod 5) ボーナス | 削除・リネーム（2回目以降）・**属性セレクト**・デッキ3以降・限界突破レア昇格・創作拡張の **その場消費** |
 | 属性かけら | `limitBreakShards[attribute]` | **勝利時の戦利品選択** | 同一属性カードの限界突破（**N=10 / R=15 / SR・UR=20**） |
 | 汎用かけら | `limitBreakUniversal` | **Lv20, 30, 40…** | 任意属性のかけらとして消費（属性かけらと同価値） |
@@ -38,8 +38,11 @@
 
 | 操作 | 支払い | 備考 |
 |------|--------|------|
-| **復活** | px（カードごと） | `floor(塗り×3×レア倍率×★倍率)`。塗り0は最低1px |
-| **降格復活** | px（カードごと） | 同上。傾斜は **復活後レア**＋**現★**（R/SR のみ） |
+| **復活** | px（カードごと） | `floor(塗り×3×レア倍率×★倍率)`。塗り0は最低1px。**上限3回**（`REVIVE_CAP`） |
+| ~~**降格復活**~~ | — | **廃止**（2026-06-20） |
+| **思い出アルバムに保存** | **無償** | デッキから除去→閲覧専用アーカイブ。返還なし |
+| **思い出アルバム行解放** | **💎 200 / 行** | +5枠。上限なし |
+| **アルバムから削除** | **💎 1** | px・かけら返還（デッキ削除と同式） |
 | **カード削除** | **💎 1** | active / lost **共通** |
 | **削除返還** | px ＋ 属性かけら | px は `calcGraveyardPixelReward`（勝利戦利品と同式）。かけら N=1/R=2/SR=3 |
 
@@ -99,12 +102,15 @@
 
 ---
 
-## 2. 現状（2026-06-20 時点・属性ガチャ反映後）
+## 2. 現状（2026-06-20 時点・思い出アルバム反映後）
 
 | 領域 | 状態 |
 |------|------|
-| Lost / 復活 / 降格復活 / 削除返還 | ✅ プロトタイプ実装済み（`economy.ts`, `status.ts`, デッキ UI） |
-| **復活 px（塗り式）** | ✅ `calcFullReviveCost(card)` / `calcDowngradeReviveCost(card)` |
+| Lost / 復活 / 削除返還 | ✅ プロトタイプ実装済み（`economy.ts`, `status.ts`, デッキ UI） |
+| **復活 px（塗り式）** | ✅ `calcFullReviveCost(card)` |
+| **復活上限（3回）** | ✅ `REVIVE_CAP`, `canReviveCard`, 表示 `復活 n/3` |
+| **降格復活** | ❌ **廃止**（2026-06-20） |
+| **思い出アルバム** | ✅ 保存・閲覧・行解放・アルバム削除（`MemoryAlbumScreen`, `memoryAlbum.ts`, schema v6） |
 | **削除（💎＋返還）** | ✅ `JEWEL_COST_DELETE=1`、`calcLostCardDeleteRewards`、二段階確認 UI |
 | **リネーム** | ✅ 編集画面で **名前常時編集**・**保存時一括課金**（`calcEditorSaveCharges`） |
 | **属性リタッチ / セレクト** | ✅ 200px / 💎20。モーダル2種・完了時 BP + 通貨残高表示（`EconomyBalanceChange`） |
@@ -386,7 +392,8 @@
 | 対人戦 | 勝利戦利品・かけらルールを §13 に合わせる |
 | ストア課金本番 | App Store / Google Play |
 | UR / Legend | §14.3 |
-| アルバム・補欠枠 | §14 |
+| 勝利時相手カードコレクション | §14.1 脚注（**思い出アルバム**とは別・未実装） |
+| 補欠枠 | §14.2 |
 
 ---
 
@@ -454,6 +461,10 @@ flowchart TD
 | `SHOP_TALISMAN_JEWELS` | 25 | 💎 枠（px と両方で購入可） |
 | `UNIVERSAL_LIMIT_BREAK_LEVEL_REWARD` | 10 | L≡0 (mod 10), L≥20 |
 | `REVIVE_PAINTED_MULTIPLIER` | 3 | 復活 px: 塗り×3 が基礎 |
+| `REVIVE_CAP` | 3 | 1枚あたり px 復活上限 |
+| `MEMORY_ALBUM_SLOTS_PER_ROW` | 5 | 思い出アルバム1行の枠数 |
+| `MEMORY_ALBUM_INITIAL_ROWS` | 1 | 初期行数（5枠） |
+| `JEWEL_COST_MEMORY_ALBUM_ROW` | 200 | 行解放（+5枠） |
 | `LOST_WEIGHT_RARITY` / `LOST_WEIGHT_STARS` | 表参照 | 復活コストのレア・★傾斜 |
 | `PIXEL_COST_ATTRIBUTE_RETOUCH` | 200 | 属性リタッチ1回 |
 | `JEWEL_COST_ATTRIBUTE_SELECT` | 20 | 属性セレクト1回 |
@@ -473,7 +484,7 @@ flowchart TD
 | 1 | `src/types/index.ts`, `src/user/economy.ts`, `src/storage/index.ts` |
 | 2 | `src/config/progressionUnlocks.ts`, `src/App.tsx`, `src/components/DeckUnlockModal.tsx` |
 | 3 | `src/deckSlots.ts`, `src/App.tsx`, `src/components/DeckUnlockModal.tsx`, `src/components/DeckScreen.tsx` |
-| 4 | `DeckScreen.tsx`, `DeckCardDetailOverlay.tsx`, `EditorScreen.tsx`, `App.tsx`, `src/card/rollAttribute.ts`, `attributeChange.ts`, `AttributeRetouchModal.tsx`, `AttributeSelectModal.tsx` |
+| 4 | `DeckScreen.tsx`, `DeckCardDetailOverlay.tsx`, `MemoryAlbumScreen.tsx`, `MemoryAlbumDialogs.tsx`, `src/user/memoryAlbum.ts`, `EditorScreen.tsx`, `App.tsx`, `src/card/rollAttribute.ts`, `attributeChange.ts`, `AttributeRetouchModal.tsx`, `AttributeSelectModal.tsx` |
 | 5 | `src/components/GraveyardPickModal.tsx`, `src/battle/graveyardLoot.ts`, `src/components/InventoryScreen.tsx`, `src/config/economy.ts`, `src/App.tsx` |
 | 6 | `src/card/limitBreak.ts`, `DeckCardDetailOverlay.tsx`, `DeckScreen.tsx`, `SettingsScreen.tsx`, `src/user/profile.ts` |
 | 7 | 新規 `src/ad/*`, エディタ保存経路, バトル開始経路, `MockRewardAdModal`, `historyRematch.ts`, `HistoryRematchRulesModal` |
@@ -521,11 +532,12 @@ flowchart TD
 11. ~~フェーズ **3** — デッキ3〜 💎 解放（`unlockDeckWithJewels`）~~ — **2026-06-17 完了**
 12. ~~フェーズ **8**（追加色パレット）~~ — **2026-06-17 完了**（`ShopScreen`・`paletteShopUnlocks`・schema v5）
 13. ~~フェーズ **4b** — 属性抽選・リタッチ/セレクト~~ — **2026-06-20 完了**
+14. ~~**思い出アルバム** — 保存・閲覧・行解放・復活上限3・降格復活廃止~~ — **2026-06-20 完了**
 
 **次の推奨**
 
-14. フェーズ **8** 残り — 💎 パック（モック購入）、護符ショップ、不足時 deep link
-15. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）・日次10戦 cap（`battlesToday`）
+15. フェーズ **8** 残り — 💎 パック（モック購入）、護符ショップ、不足時 deep link
+16. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）・日次10戦 cap（`battlesToday`）
 
 **判断待ち（確定済み）**
 

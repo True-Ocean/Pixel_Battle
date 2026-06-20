@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { getAttributeMeta } from '../config/attributes';
-import { canDowngradeRevive } from '../card';
-import { calcDowngradeReviveCost, calcFullReviveCost } from '../config/economy';
+import { canReviveLostCard } from '../card';
+import { calcFullReviveCost } from '../config/economy';
 import { getRarityMeta } from '../config/rarity';
 import type { Card } from '../types';
 import { isTalismanEquipped } from '../card';
@@ -153,11 +153,11 @@ export function DeckCardDetailCard({
 
       {isLost && (
         <p className="deck-detail-card-lost-note">
-          バトルに出せません。削除するか、
-          {canDowngradeRevive(card)
-            ? `復活（${calcFullReviveCost(card).toLocaleString()}px）・降格復活（${calcDowngradeReviveCost(card).toLocaleString()}px）`
-            : `復活（${calcFullReviveCost(card).toLocaleString()}px）`}
-          で復活できます。
+          バトルに出せません。
+          {canReviveLostCard(card)
+            ? `復活（${calcFullReviveCost(card).toLocaleString()}px）・思い出アルバムに保存・削除`
+            : '思い出アルバムへの保存か削除'}
+          から選べます。
         </p>
       )}
     </article>

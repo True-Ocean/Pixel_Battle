@@ -1,3 +1,5 @@
+import { REVIVE_CAP } from '../config/economy';
+
 interface CardBattleRecordProps {
   wins: number;
   losses: number;
@@ -18,7 +20,9 @@ export function CardBattleRecord({
     <span className={classes}>
       <span>生存{wins}</span>
       <span>墓地{losses}</span>
-      <span>復活{reviveCount}</span>
+      <span>
+        復活 {reviveCount}/{REVIVE_CAP}
+      </span>
     </span>
   );
 }

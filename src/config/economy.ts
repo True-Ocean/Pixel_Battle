@@ -43,6 +43,18 @@ export const JEWEL_COST_ATTRIBUTE_SELECT = 20;
 /** デッキ3〜5解放のジュエルコスト（各1回） */
 export const JEWEL_COST_DECK_UNLOCK = 200;
 
+/** 1枚あたりの px 復活上限 */
+export const REVIVE_CAP = 3;
+
+/** 思い出アルバム: 1行あたりの枠数 */
+export const MEMORY_ALBUM_SLOTS_PER_ROW = 5;
+
+/** 思い出アルバム: 初期解放行数 */
+export const MEMORY_ALBUM_INITIAL_ROWS = 1;
+
+/** 思い出アルバム: 追加1行（5枠）解放のジュエル */
+export const JEWEL_COST_MEMORY_ALBUM_ROW = 200;
+
 /** 追加色パレット tier1（紫・濃い緑・茶・赤茶）の px コスト */
 export const PIXEL_COST_PALETTE_SHOP_TIER1 = 2000;
 
@@ -212,11 +224,22 @@ export function calcFullReviveCost(card: Card): number {
   return calcReviveCostFromSlope(card, card.rarity, card.stars);
 }
 
-/** 降格復活に必要な px（塗り×3 × 復活後レア × 現★） */
-export function calcDowngradeReviveCost(card: Card): number {
-  const nextRarity: CardRarity =
-    card.rarity === 'SR' ? 'R' : card.rarity === 'R' ? 'N' : card.rarity;
-  return calcReviveCostFromSlope(card, nextRarity, card.stars);
+export function canReviveCard(card: Card): boolean {
+  return card.reviveCount < REVIVE_CAP;
+}
+
+export function isReviveCapReached(card: Card): boolean {
+  return card.reviveCount >= REVIVE_CAP;
+}
+
+export function getMemoryAlbumCapacity(unlockedRows: number): number {
+  return Math.max(0, Math.floor(unlockedRows)) * MEMORY_ALBUM_SLOTS_PER_ROW;
+}
+
+export function canAffordMemoryAlbumRowUnlock(economy: {
+  jewels: number;
+}): boolean {
+  return economy.jewels >= JEWEL_COST_MEMORY_ALBUM_ROW;
 }
 
 export function calcColorDiversityMultiplier(uniqueColors: number): number {

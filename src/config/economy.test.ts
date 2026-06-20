@@ -11,11 +11,13 @@ import {
   PIXELS_PER_SURVIVOR,
   calcCardDeleteRefundPixels,
   calcColorDiversityMultiplier,
-  calcDowngradeReviveCost,
   calcFullReviveCost,
   calcGraveyardPixelReward,
   calcGraveyardShardReward,
   calcLostCardDeleteRewards,
+  canReviveCard,
+  isReviveCapReached,
+  REVIVE_CAP,
   calcLevelUpPixels,
   calcLevelUpJewels,
   calcLevelUpJewelBonus,
@@ -144,20 +146,16 @@ describe('calcFullReviveCost', () => {
   });
 });
 
-describe('calcDowngradeReviveCost', () => {
-  it('uses post-downgrade rarity and current stars', () => {
+describe('revive cap', () => {
+  it('allows revive below cap only', () => {
     const filled = Array.from({ length: 16 }, () =>
       Array.from({ length: 16 }, () => '#ff0000'),
     );
-    const srCard = makeCard(filled, { rarity: 'SR', stars: 3 });
-    expect(calcDowngradeReviveCost(srCard)).toBe(
-      Math.floor(256 * 3 * 1.3 * 1.5),
-    );
-
-    const rCard = makeCard(filled, { rarity: 'R', stars: 2 });
-    expect(calcDowngradeReviveCost(rCard)).toBe(
-      Math.floor(256 * 3 * 1.0 * 1.3),
-    );
+    const below = makeCard(filled, { reviveCount: 2 });
+    const atCap = makeCard(filled, { reviveCount: REVIVE_CAP });
+    expect(canReviveCard(below)).toBe(true);
+    expect(canReviveCard(atCap)).toBe(false);
+    expect(isReviveCapReached(atCap)).toBe(true);
   });
 });
 

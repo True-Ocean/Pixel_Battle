@@ -50,6 +50,13 @@ export interface Card {
 /** 固定5スロットのデッキ配置（null = 空きスロット） */
 export type DeckLayout = (Card | null)[];
 
+/** 思い出アルバム（閲覧専用アーカイブ） */
+export interface MemoryAlbumState {
+  cards: Card[];
+  /** 解放済み行数（1行 = 5枠） */
+  unlockedRows: number;
+}
+
 export interface UserEconomy {
   /** px コイン（内部名: freePixels） */
   freePixels: number;
@@ -164,6 +171,8 @@ export interface SaveData {
   talismanStarterGranted?: boolean;
   /** ショップで解放済みのパレット index（8〜19） */
   paletteShopUnlocks?: number[];
+  /** 思い出アルバム */
+  memoryAlbum?: MemoryAlbumState;
 }
 
 /** アプリ画面（ルーターなし・state で切替） */
@@ -171,6 +180,7 @@ export type ScreenId =
   | 'title'
   | 'setup'
   | 'deck'
+  | 'memoryAlbum'
   | 'battleHub'
   | 'records'
   | 'shop'

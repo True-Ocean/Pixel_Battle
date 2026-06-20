@@ -1,4 +1,4 @@
-import type { BattleHistoryEntry, Card, CardRarity, CardStars, SaveData } from '../types';
+import type { BattleHistoryEntry, Card, CardRarity, CardStars, MemoryAlbumState, SaveData } from '../types';
 import { rescaleDeckBp } from '../card';
 import {
   clampDeckSlotIndex,
@@ -28,10 +28,14 @@ import { normalizeTalismanEquipped } from '../card/talisman';
 import { createInitialEconomy, normalizeUserEconomy } from '../user/economy';
 import { createInitialInventory, applyDevInventoryFill, inventoryMatchesDevFill, normalizeUserInventory } from '../user/inventory';
 import { createInitialAdState, normalizeAdState } from '../user/adState';
+import {
+  createInitialMemoryAlbum,
+  normalizeMemoryAlbum,
+} from '../user/memoryAlbum';
 import { normalizePaletteShopUnlocks, migratePaletteShopUnlocksForSchema } from '../config/paletteUnlock';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
-export const SAVE_SCHEMA_VERSION = 5;
+export const SAVE_SCHEMA_VERSION = 6;
 
 function readPaletteShopUnlocks(
   raw: unknown,
@@ -58,7 +62,23 @@ function emptySave(): SaveData {
     battleHistory: [],
     talismanStarterGranted: false,
     paletteShopUnlocks: [],
+    memoryAlbum: createInitialMemoryAlbum(),
   };
+}
+
+function migrateMemoryAlbumCards(
+  raw: unknown,
+  userLevel: number,
+  paletteShopUnlocks: readonly number[],
+): MemoryAlbumState {
+  const album = normalizeMemoryAlbum(raw);
+  const cards = album.cards
+    .map((entry) =>
+      migrateCard(entry as unknown as Record<string, unknown>),
+    )
+    .filter((card): card is Card => card != null);
+  const rescaled = rescaleDeckBp(cards, userLevel, paletteShopUnlocks);
+  return { ...album, cards: rescaled };
 }
 
 function parseRarity(value: unknown): CardRarity {
@@ -392,6 +412,11 @@ export function loadSave(): SaveData {
       battleHistory,
       talismanStarterGranted: parsed.talismanStarterGranted === true,
       paletteShopUnlocks,
+      memoryAlbum: migrateMemoryAlbumCards(
+        parsed.memoryAlbum,
+        user?.level ?? USER_INITIAL_LEVEL,
+        paletteShopUnlocks,
+      ),
       ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
     });
 
@@ -463,6 +488,7 @@ export function saveSave(data: SaveData): void {
   if (paletteShopUnlocks.length > 0) {
     payload.paletteShopUnlocks = paletteShopUnlocks;
   }
+  payload.memoryAlbum = normalizeMemoryAlbum(data.memoryAlbum);
   if (data.devPreferSavedLevel === true) {
     payload.devPreferSavedLevel = true;
     payload.devFileOverrideLevel =

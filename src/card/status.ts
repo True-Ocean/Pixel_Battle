@@ -1,4 +1,4 @@
-import { recalculateCardBp } from './createCard';
+import { REVIVE_CAP } from '../config/economy';
 import type { Card, CardRarity, CardStatus } from '../types';
 
 export function normalizeCardStatus(status: unknown): CardStatus {
@@ -24,11 +24,20 @@ export function markCardActive(card: Card): Card {
   return { ...rest, status: 'active' as const };
 }
 
-/** 降格復活可能なレア（R / SR のみ） */
-export function canDowngradeRevive(card: Card): boolean {
-  return isCardLost(card) && (card.rarity === 'R' || card.rarity === 'SR');
+export function canReviveLostCard(card: Card): boolean {
+  return isCardLost(card) && card.reviveCount < REVIVE_CAP;
 }
 
+export function isReviveCapReached(card: Card): boolean {
+  return card.reviveCount >= REVIVE_CAP;
+}
+
+/** @deprecated 降格復活は廃止 */
+export function canDowngradeRevive(_card: Card): boolean {
+  return false;
+}
+
+/** @deprecated 降格復活は廃止 */
 export function getDowngradedRarity(rarity: CardRarity): CardRarity | null {
   if (rarity === 'SR') return 'R';
   if (rarity === 'R') return 'N';
@@ -37,25 +46,14 @@ export function getDowngradedRarity(rarity: CardRarity): CardRarity | null {
 
 /** ロストカードを復活（active 化 + reviveCount +1） */
 export function applyCardFullRevive(card: Card): Card {
-  if (!isCardLost(card)) return card;
+  if (!canReviveLostCard(card)) return card;
   return {
     ...markCardActive(card),
     reviveCount: card.reviveCount + 1,
   };
 }
 
-/** ロストカードを降格復活（active 化、レア1段階下降、★維持、reviveCount 維持） */
-export function applyCardDowngradeRevive(card: Card, userLevel: number): Card {
-  if (!canDowngradeRevive(card)) return card;
-  const nextRarity = getDowngradedRarity(card.rarity);
-  if (!nextRarity) return card;
-
-  const downgraded: Card = {
-    ...markCardActive(card),
-    rarity: nextRarity,
-  };
-  return {
-    ...downgraded,
-    bp: recalculateCardBp(downgraded, userLevel),
-  };
+/** @deprecated 降格復活は廃止 */
+export function applyCardDowngradeRevive(card: Card, _userLevel: number): Card {
+  return card;
 }

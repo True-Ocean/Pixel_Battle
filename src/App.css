@@ -2567,10 +2567,207 @@ button.battle-hub-deck-icon.is-move-target {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 0.75rem;
   padding-top: 0.35rem;
   min-height: 2.25rem;
+}
+
+.deck-memory-album-btn {
+  flex-shrink: 0;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid #7a5632;
+  background: #9a7348;
+  color: #fffef8;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deck-card-detail-actions--with-album {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-card-detail-actions--with-album .deck-card-detail-edit {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-card-detail-actions--with-album .deck-card-detail-close {
+  grid-column: 1 / -1;
+}
+
+.deck-card-detail-actions--album {
+  grid-template-columns: 1fr;
+}
+
+.deck-card-detail-actions--album .deck-card-detail-delete {
+  grid-column: 1 / -1;
+}
+
+.deck-card-detail-revive-cap-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.card-deck-disposition-actions,
+.memory-album-full-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.card-deck-disposition-album {
+  border-color: #7a5632;
+  background: #9a7348;
+  color: #fffef8;
+  font-weight: 600;
+}
+
+.memory-album-full-unlock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  border: 1px solid #646cff;
+  background: #646cff;
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.memory-album-full-unlock--pending {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.memory-album-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+
+.memory-album-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.memory-album-back {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.84rem;
+  color: #646cff;
+  cursor: pointer;
+}
+
+.memory-album-header h1 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.memory-album-meta {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.memory-album-grid-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.memory-album-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.memory-album-row--unlock {
+  padding-bottom: 2.6rem;
+}
+
+.memory-album-tile {
+  box-sizing: border-box;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0.15rem;
+}
+
+.memory-album-tile--filled {
+  cursor: pointer;
+  border-width: 2px;
+}
+
+.memory-album-tile--empty {
+  background: #f8fafc;
+}
+
+.memory-album-tile--locked {
+  background: repeating-linear-gradient(
+    -45deg,
+    #eef2f7,
+    #eef2f7 6px,
+    #e2e8f0 6px,
+    #e2e8f0 12px
+  );
+  opacity: 0.75;
+}
+
+.memory-album-tile .card-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.memory-album-row-unlock-btn {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border: 1px dashed #94a3b8;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.45rem 0.5rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+
+.memory-album-row-unlock-btn--pending {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.memory-album-error {
+  margin: 0;
+  color: #c0392b;
+  font-size: 0.84rem;
 }
 
 .deck-slot-tabs {
@@ -4701,6 +4898,7 @@ button.battle-hub-deck-icon.is-move-target {
 .deck-card-detail-revive,
 .deck-card-detail-downgrade-revive,
 .deck-card-detail-edit,
+.deck-card-detail-album,
 .deck-card-detail-delete,
 .deck-card-detail-close {
   min-height: 2.65rem;
@@ -4802,6 +5000,17 @@ button.battle-hub-deck-icon.is-move-target {
   width: 1.05rem;
   height: 1.05rem;
   flex-shrink: 0;
+}
+
+.deck-card-detail-album {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-color: #7a5632;
+  background: #9a7348;
+  color: #fffef8;
+  font-weight: 600;
 }
 
 .deck-card-detail-delete--pending {

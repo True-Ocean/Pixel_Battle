@@ -52,6 +52,15 @@ export {
   shouldShowHistoryRematchRulesModal,
 } from './adState';
 export {
+  addCardToMemoryAlbum,
+  archiveCardForMemoryAlbum,
+  createInitialMemoryAlbum,
+  memoryAlbumHasSpace,
+  normalizeMemoryAlbum,
+  removeCardFromMemoryAlbumById,
+  unlockMemoryAlbumRow,
+} from './memoryAlbum';
+export {
   calcBattleExpGain,
   expToNextLevel,
   getLevelProgress,

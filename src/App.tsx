@@ -1,17 +1,17 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import type { AdState, Attribute, Card, ScreenId, UserProfile, UserEconomy, UserInventory, BattleOutcome, BattleHistoryEntry } from './types';
+import type { AdState, Attribute, Card, MemoryAlbumState, ScreenId, UserProfile, UserEconomy, UserInventory, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { isAttributeUnlockedAtLevel } from './config/attributeUnlock';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, type LimitBreakShardSpendPlan } from './card';
+import { applyCardSurvivalRecords, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleHistory, saveSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireHistoryRematchAd, shouldRequireNormalBattleAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireHistoryRematchAd, shouldRequireNormalBattleAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
   unlockPaletteWithJewels,
@@ -21,7 +21,6 @@ import {
 import { normalizePaletteShopUnlocks } from './config/paletteUnlock';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
 import {
-  calcDowngradeReviveCost,
   calcFullReviveCost,
   calcGraveyardShardReward,
   calcLostCardDeleteRewards,
@@ -30,6 +29,7 @@ import {
   countBattleSurvivors,
   type CardDeleteOutcome,
   JEWEL_COST_DELETE,
+  JEWEL_COST_MEMORY_ALBUM_ROW,
   JEWEL_COST_ATTRIBUTE_SELECT,
   JEWEL_COST_DECK_UNLOCK,
   PIXEL_COST_ATTRIBUTE_RETOUCH,
@@ -37,6 +37,7 @@ import {
   getEditorSaveTotalPixelCost,
   type EditorSaveCharges,
 } from './config/economy';
+import { CardDeleteResultModal } from './components/CardDeleteResultModal';
 import { LevelUpModal } from './components/LevelUpModal';
 import { LimitBreakSuccessModal } from './components/LimitBreakSuccessModal';
 import { GraveyardPickModal } from './components/GraveyardPickModal';
@@ -45,6 +46,7 @@ import { TalismanSaveModal } from './components/TalismanSaveModal';
 import { AppTitle } from './components/AppTitle';
 import { AppDock } from './components/AppDock';
 import { DeckScreen } from './components/DeckScreen';
+import { MemoryAlbumScreen } from './components/MemoryAlbumScreen';
 import { EditorScreen } from './components/EditorScreen';
 import { BattleHubScreen } from './components/BattleHubScreen';
 import { BattleDeckSelectScreen } from './components/BattleDeckSelectScreen';
@@ -97,6 +99,9 @@ function App() {
   );
   const [paletteShopUnlocks, setPaletteShopUnlocks] = useState<number[]>(() =>
     normalizePaletteShopUnlocks(initialSave.paletteShopUnlocks),
+  );
+  const [memoryAlbum, setMemoryAlbum] = useState<MemoryAlbumState>(
+    () => initialSave.memoryAlbum ?? createInitialMemoryAlbum(),
   );
 
   const activeDeck = useMemo(
@@ -169,6 +174,7 @@ function App() {
     title?: string;
     outcomeLine?: string;
   } | null>(null);
+  const [deleteResult, setDeleteResult] = useState<CardDeleteOutcome | null>(null);
 
   const userRef = useRef(user);
   const economyRef = useRef(economy);
@@ -182,6 +188,7 @@ function App() {
   const battleHistoryRef = useRef(battleHistory);
   const deckNamesRef = useRef(deckNames);
   const paletteShopUnlocksRef = useRef(paletteShopUnlocks);
+  const memoryAlbumRef = useRef(memoryAlbum);
   const isHistoryRematchRef = useRef(false);
   const historyRematchEntryRef = useRef<BattleHistoryEntry | null>(null);
   const battleStartSnapshotRef = useRef<{
@@ -202,6 +209,7 @@ function App() {
   battleHistoryRef.current = battleHistory;
   deckNamesRef.current = deckNames;
   paletteShopUnlocksRef.current = paletteShopUnlocks;
+  memoryAlbumRef.current = memoryAlbum;
 
   const devPreferSavedLevelRef = useRef(initialSave.devPreferSavedLevel === true);
   const devFileOverrideLevelRef = useRef<number | null | undefined>(
@@ -222,6 +230,7 @@ function App() {
       battleHistory?: BattleHistoryEntry[];
       deckNames?: string[];
       paletteShopUnlocks?: number[];
+      memoryAlbum?: MemoryAlbumState;
       devPreferSavedLevel?: boolean;
       devFileOverrideLevel?: number | null;
     }) => {
@@ -247,6 +256,7 @@ function App() {
         deckNames: next.deckNames !== undefined ? next.deckNames : deckNamesRef.current,
         paletteShopUnlocks:
           next.paletteShopUnlocks ?? paletteShopUnlocksRef.current,
+        memoryAlbum: next.memoryAlbum ?? memoryAlbumRef.current,
         ...(devPreferSavedLevelRef.current
           ? {
               devPreferSavedLevel: true as const,
@@ -692,19 +702,18 @@ function App() {
     return nextDecks;
   }, []);
 
-  const deleteDeckCard = useCallback(
-    (id: string): CardDeleteOutcome | null => {
-      const deckIndex = activeDeckIndexRef.current;
-      const prevDecks = decksRef.current;
-      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
-      const target = prevLayout.find((card) => card?.id === id);
-      if (!target) return null;
-
-      const prevEconomy = economyRef.current;
-      const prevInventory = inventoryRef.current;
+  const computeCardDeleteOutcome = useCallback(
+    (
+      target: Card,
+      prevEconomy: UserEconomy,
+      prevInventory: UserInventory,
+    ): {
+      economyAfter: UserEconomy;
+      inventoryAfter: UserInventory;
+      outcome: CardDeleteOutcome;
+    } | null => {
       const previousAttributeShards =
         prevInventory.limitBreakShards[target.attribute] ?? 0;
-
       const nextEconomy = spendJewels(prevEconomy, JEWEL_COST_DELETE);
       if (!nextEconomy) return null;
 
@@ -722,30 +731,130 @@ function App() {
         );
       }
 
+      return {
+        economyAfter,
+        inventoryAfter,
+        outcome: {
+          cardName: target.name,
+          attribute: target.attribute,
+          previousFreePixels: prevEconomy.freePixels,
+          nextFreePixels: economyAfter.freePixels,
+          previousJewels: prevEconomy.jewels,
+          nextJewels: economyAfter.jewels,
+          previousAttributeShards,
+          nextAttributeShards:
+            inventoryAfter.limitBreakShards[target.attribute] ??
+            previousAttributeShards,
+        },
+      };
+    },
+    [],
+  );
+
+  const deleteDeckCard = useCallback(
+    (id: string): CardDeleteOutcome | null => {
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const target = prevLayout.find((card) => card?.id === id);
+      if (!target) return null;
+
+      const deleted = computeCardDeleteOutcome(
+        target,
+        economyRef.current,
+        inventoryRef.current,
+      );
+      if (!deleted) return null;
+
       const nextDecks = removeCardFromDeck(id);
       persistSave({
         decks: nextDecks,
-        economy: economyAfter,
-        inventory: inventoryAfter,
+        economy: deleted.economyAfter,
+        inventory: deleted.inventoryAfter,
       });
-      setEconomy(economyAfter);
-      setInventory(inventoryAfter);
-      economyRef.current = economyAfter;
-      inventoryRef.current = inventoryAfter;
+      setEconomy(deleted.economyAfter);
+      setInventory(deleted.inventoryAfter);
+      economyRef.current = deleted.economyAfter;
+      inventoryRef.current = deleted.inventoryAfter;
 
-      return {
-        cardName: target.name,
-        attribute: target.attribute,
-        previousFreePixels: prevEconomy.freePixels,
-        nextFreePixels: economyAfter.freePixels,
-        previousJewels: prevEconomy.jewels,
-        nextJewels: economyAfter.jewels,
-        previousAttributeShards,
-        nextAttributeShards:
-          inventoryAfter.limitBreakShards[target.attribute] ?? previousAttributeShards,
-      };
+      return deleted.outcome;
+    },
+    [computeCardDeleteOutcome, persistSave, removeCardFromDeck],
+  );
+
+  const addCardToMemoryAlbumFromDeck = useCallback(
+    (id: string): 'ok' | 'full' | null => {
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const target = prevLayout.find((card) => card?.id === id);
+      if (!target) return null;
+
+      const prevAlbum = memoryAlbumRef.current;
+      if (!memoryAlbumHasSpace(prevAlbum)) return 'full';
+
+      const nextAlbum = addCardToMemoryAlbum(prevAlbum, target);
+      if (!nextAlbum) return 'full';
+
+      const nextDecks = removeCardFromDeck(id);
+      persistSave({ decks: nextDecks, memoryAlbum: nextAlbum });
+      setMemoryAlbum(nextAlbum);
+      memoryAlbumRef.current = nextAlbum;
+
+      return 'ok';
     },
     [persistSave, removeCardFromDeck],
+  );
+
+  const unlockMemoryAlbumRowWithJewels = useCallback((): string | null => {
+    const nextEconomy = spendJewels(
+      economyRef.current,
+      JEWEL_COST_MEMORY_ALBUM_ROW,
+    );
+    if (!nextEconomy) {
+      return `ジュエルが ${JEWEL_COST_MEMORY_ALBUM_ROW.toLocaleString()} 不足しています。`;
+    }
+
+    const nextAlbum = unlockMemoryAlbumRow(memoryAlbumRef.current);
+    persistSave({ economy: nextEconomy, memoryAlbum: nextAlbum });
+    setEconomy(nextEconomy);
+    setMemoryAlbum(nextAlbum);
+    economyRef.current = nextEconomy;
+    memoryAlbumRef.current = nextAlbum;
+    return null;
+  }, [persistSave]);
+
+  const deleteCardFromMemoryAlbum = useCallback(
+    (id: string): CardDeleteOutcome | null => {
+      const prevAlbum = memoryAlbumRef.current;
+      const { album: nextAlbum, card: target } = removeCardFromMemoryAlbumById(
+        prevAlbum,
+        id,
+      );
+      if (!target) return null;
+
+      const deleted = computeCardDeleteOutcome(
+        target,
+        economyRef.current,
+        inventoryRef.current,
+      );
+      if (!deleted) return null;
+
+      persistSave({
+        memoryAlbum: nextAlbum,
+        economy: deleted.economyAfter,
+        inventory: deleted.inventoryAfter,
+      });
+      setMemoryAlbum(nextAlbum);
+      setEconomy(deleted.economyAfter);
+      setInventory(deleted.inventoryAfter);
+      memoryAlbumRef.current = nextAlbum;
+      economyRef.current = deleted.economyAfter;
+      inventoryRef.current = deleted.inventoryAfter;
+
+      return deleted.outcome;
+    },
+    [computeCardDeleteOutcome, persistSave],
   );
 
   const equipTalismanOnCard = useCallback(
@@ -798,7 +907,7 @@ function App() {
       const prevDecks = decksRef.current;
       const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
       const target = prevLayout.find((card) => card?.id === id);
-      if (!target || !isCardLost(target)) return;
+      if (!target || !isCardLost(target) || !canReviveLostCard(target)) return;
 
       const cost = calcFullReviveCost(target);
       const nextEconomy = spendFreePixels(economyRef.current, cost);
@@ -814,34 +923,6 @@ function App() {
       setEconomy(nextEconomy);
       decksRef.current = nextDecks;
       economyRef.current = nextEconomy;
-    },
-    [persistSave],
-  );
-
-  const downgradeReviveLostCard = useCallback(
-    (id: string) => {
-      const deckIndex = activeDeckIndexRef.current;
-      const prevDecks = decksRef.current;
-      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
-      const target = prevLayout.find((card) => card?.id === id);
-      if (!target || !isCardLost(target)) return;
-
-      const cost = calcDowngradeReviveCost(target);
-      const userLevel = userRef.current?.level ?? 1;
-      const nextEconomy = spendFreePixels(economyRef.current, cost);
-      if (!nextEconomy) return;
-
-      const nextLayout = prevLayout.map((card) =>
-        card?.id === id ? applyCardDowngradeRevive(card, userLevel) : card,
-      );
-      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
-
-      persistSave({ decks: nextDecks, economy: nextEconomy });
-      setDecks(nextDecks);
-      setEconomy(nextEconomy);
-      decksRef.current = nextDecks;
-      economyRef.current = nextEconomy;
-      setDetailCardId((current) => (current === id ? null : current));
     },
     [persistSave],
   );
@@ -1715,7 +1796,7 @@ function App() {
 
   const showProfileBar =
     isProfileComplete(user) &&
-    (isTabId(screen) || isHistoryRematchDeckSelect);
+    (isTabId(screen) || screen === 'memoryAlbum' || isHistoryRematchDeckSelect);
   const showDock =
     isDockVisible(screen) ||
     (screen === 'battleSetup' && battleEndDock) ||
@@ -1811,7 +1892,10 @@ function App() {
             }}
             onDeleteCard={deleteDeckCard}
             onReviveLostCard={reviveLostCard}
-            onDowngradeReviveLostCard={downgradeReviveLostCard}
+            onAddCardToMemoryAlbum={addCardToMemoryAlbumFromDeck}
+            onUnlockMemoryAlbumRow={unlockMemoryAlbumRowWithJewels}
+            onOpenMemoryAlbum={() => setScreen('memoryAlbum')}
+            memoryAlbum={memoryAlbum}
             inventory={inventory}
             onLimitBreakCard={limitBreakCard}
             onRetouchCardAttribute={retouchCardAttributeInDeck}
@@ -1826,6 +1910,18 @@ function App() {
             onRenameDeck={handleRenameDeck}
             onEquipTalisman={equipTalismanOnCard}
             onUnequipTalisman={unequipTalismanOnCard}
+          />
+        )}
+        {screen === 'memoryAlbum' && (
+          <MemoryAlbumScreen
+            album={memoryAlbum}
+            jewels={economy.jewels}
+            onBack={() => setScreen('deck')}
+            onUnlockRow={unlockMemoryAlbumRowWithJewels}
+            onDeleteFromAlbum={(cardId) => {
+              const outcome = deleteCardFromMemoryAlbum(cardId);
+              if (outcome) setDeleteResult(outcome);
+            }}
           />
         )}
         {screen === 'battleHub' && (
@@ -2053,6 +2149,12 @@ function App() {
           title={limitBreakSuccessModal.title}
           outcomeLine={limitBreakSuccessModal.outcomeLine}
           onClose={() => setLimitBreakSuccessModal(null)}
+        />
+      )}
+      {deleteResult != null && (
+        <CardDeleteResultModal
+          outcome={deleteResult}
+          onClose={() => setDeleteResult(null)}
         />
       )}
       {pendingGraveyardOutcome && (

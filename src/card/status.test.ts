@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Card } from '../types';
 import {
-  applyCardDowngradeRevive,
   applyCardFullRevive,
-  canDowngradeRevive,
-  getDowngradedRarity,
-  isCardActive,
+  canReviveLostCard,
   isCardLost,
+  isReviveCapReached,
   markCardActive,
   markCardLost,
   normalizeCardStatus,
@@ -42,7 +40,6 @@ describe('card lost helpers', () => {
     expect(isCardLost(card())).toBe(false);
     expect(isCardLost(card({ status: 'active' }))).toBe(false);
     expect(isCardLost(card({ status: 'lost' }))).toBe(true);
-    expect(isCardActive(card({ status: 'lost' }))).toBe(false);
   });
 
   it('marks and clears lost status', () => {
@@ -56,34 +53,20 @@ describe('card lost helpers', () => {
     expect(markCardActive(active)).toBe(active);
   });
 
-  it('fully revives lost cards', () => {
+  it('fully revives lost cards up to cap', () => {
     const lost = markCardLost(card({ reviveCount: 2 }));
+    expect(canReviveLostCard(lost)).toBe(true);
     const revived = applyCardFullRevive(lost);
     expect(revived.status).toBe('active');
     expect(revived.reviveCount).toBe(3);
+    expect(canReviveLostCard(revived)).toBe(false);
+    expect(isReviveCapReached(revived)).toBe(true);
     expect(applyCardFullRevive(revived)).toBe(revived);
   });
 
-  it('downgrades rarity on downgrade revive', () => {
-    const lost = markCardLost(
-      card({ rarity: 'SR', stars: 2, reviveCount: 1, status: 'lost' }),
-    );
-    expect(canDowngradeRevive(lost)).toBe(true);
-    expect(getDowngradedRarity('SR')).toBe('R');
-    expect(getDowngradedRarity('R')).toBe('N');
-    expect(getDowngradedRarity('N')).toBeNull();
-
-    const revived = applyCardDowngradeRevive(lost, 10);
-    expect(revived.status).toBe('active');
-    expect(revived.rarity).toBe('R');
-    expect(revived.stars).toBe(2);
-    expect(revived.reviveCount).toBe(1);
-    expect(revived.bp).toBeGreaterThan(0);
-  });
-
-  it('rejects downgrade revive for N lost cards', () => {
-    const lost = markCardLost(card({ rarity: 'N', status: 'lost' }));
-    expect(canDowngradeRevive(lost)).toBe(false);
-    expect(applyCardDowngradeRevive(lost, 10)).toBe(lost);
+  it('blocks revive at cap', () => {
+    const lost = markCardLost(card({ reviveCount: 3, status: 'lost' }));
+    expect(canReviveLostCard(lost)).toBe(false);
+    expect(applyCardFullRevive(lost)).toBe(lost);
   });
 });

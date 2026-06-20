@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  canDowngradeRevive,
   canLimitBreakCard,
+  canReviveLostCard,
   defaultLimitBreakAttrSpend,
   getLimitBreakOutcomeKind,
   getLimitBreakAttrSpendRange,
@@ -31,7 +31,6 @@ interface DeckCardDetailOverlayProps {
   userLevel: number;
   freePixels: number;
   reviveCost: number;
-  downgradeReviveCost: number;
   attributeShardCount: number;
   universalShardCount: number;
   jewels: number;
@@ -40,7 +39,7 @@ interface DeckCardDetailOverlayProps {
   onDelete: () => void;
   onDeleteLost: () => void;
   onReviveLost: () => void;
-  onDowngradeReviveLost: () => void;
+  onAddToAlbum: () => void;
   onLimitBreak: (spend: LimitBreakShardSpendPlan) => void;
   onRetouchCardAttribute: (
     cardId: string,
@@ -59,7 +58,6 @@ export function DeckCardDetailOverlay({
   userLevel,
   freePixels,
   reviveCost,
-  downgradeReviveCost,
   attributeShardCount,
   universalShardCount,
   jewels,
@@ -68,7 +66,7 @@ export function DeckCardDetailOverlay({
   onDelete,
   onDeleteLost,
   onReviveLost,
-  onDowngradeReviveLost,
+  onAddToAlbum,
   onLimitBreak,
   onRetouchCardAttribute,
   onCommitRetouchCardAttribute,
@@ -79,9 +77,8 @@ export function DeckCardDetailOverlay({
   onTalismanPress,
 }: DeckCardDetailOverlayProps) {
   const canAffordDelete = jewels >= JEWEL_COST_DELETE;
+  const canRevive = canReviveLostCard(card);
   const canAffordRevive = freePixels >= reviveCost;
-  const showDowngradeRevive = canDowngradeRevive(card);
-  const canAffordDowngradeRevive = freePixels >= downgradeReviveCost;
   const showLimitBreak = !isLost && canLimitBreakCard(card);
   const limitBreakKind = getLimitBreakOutcomeKind(card);
   const rarityJewelCost =
@@ -137,12 +134,11 @@ export function DeckCardDetailOverlay({
   );
   const attributeShardsUnavailable =
     attributeShardCount === 0 && universalShardCount >= shardsRequired;
-  const reviveAriaLabel = canAffordRevive
-    ? `復活 ${reviveCost.toLocaleString()}px`
-    : `復活 ${reviveCost.toLocaleString()}px 必要・不足`;
-  const downgradeReviveAriaLabel = canAffordDowngradeRevive
-    ? `降格復活 ${downgradeReviveCost.toLocaleString()}px`
-    : `降格復活 ${downgradeReviveCost.toLocaleString()}px 必要・不足`;
+  const reviveAriaLabel = !canRevive
+    ? '復活上限に達しています'
+    : canAffordRevive
+      ? `復活 ${reviveCost.toLocaleString()}px`
+      : `復活 ${reviveCost.toLocaleString()}px 必要・不足`;
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -333,49 +329,38 @@ export function DeckCardDetailOverlay({
           </div>
         )}
 
-        <div
-          className={`deck-card-detail-actions${
-            isLost && showDowngradeRevive
-              ? ' deck-card-detail-actions--lost-downgrade'
-              : ''
-          }`}
-        >
+        <div className="deck-card-detail-actions deck-card-detail-actions--with-album">
           {isLost ? (
             <>
-              <button
-                type="button"
-                className={`deck-card-detail-revive${
-                  canAffordRevive ? '' : ' deck-card-detail-revive--pending'
-                }`}
-                disabled={!canAffordRevive}
-                aria-label={reviveAriaLabel}
-                onClick={onReviveLost}
-              >
-                <span className="deck-card-detail-revive-label">復活</span>
-                <PixelCoinIcon className="deck-card-detail-revive-coin" />
-                <span className="deck-card-detail-revive-cost">
-                  {reviveCost.toLocaleString()}
-                </span>
-              </button>
-              {showDowngradeRevive && (
+              {canRevive && (
                 <button
                   type="button"
-                  className={`deck-card-detail-downgrade-revive${
-                    canAffordDowngradeRevive
-                      ? ''
-                      : ' deck-card-detail-downgrade-revive--pending'
+                  className={`deck-card-detail-revive${
+                    canAffordRevive ? '' : ' deck-card-detail-revive--pending'
                   }`}
-                  disabled={!canAffordDowngradeRevive}
-                  aria-label={downgradeReviveAriaLabel}
-                  onClick={onDowngradeReviveLost}
+                  disabled={!canAffordRevive}
+                  aria-label={reviveAriaLabel}
+                  onClick={onReviveLost}
                 >
-                  <span className="deck-card-detail-revive-label">降格復活</span>
+                  <span className="deck-card-detail-revive-label">復活</span>
                   <PixelCoinIcon className="deck-card-detail-revive-coin" />
                   <span className="deck-card-detail-revive-cost">
-                    {downgradeReviveCost.toLocaleString()}
+                    {reviveCost.toLocaleString()}
                   </span>
                 </button>
               )}
+              {!canRevive && (
+                <p className="deck-card-detail-revive-cap-note muted" role="status">
+                  復活上限に達しました
+                </p>
+              )}
+              <button
+                type="button"
+                className="deck-card-detail-album"
+                onClick={onAddToAlbum}
+              >
+                思い出アルバムに保存
+              </button>
               <button
                 type="button"
                 className={`deck-card-detail-delete${
@@ -396,6 +381,9 @@ export function DeckCardDetailOverlay({
             <>
               <button type="button" className="deck-card-detail-edit" onClick={onEdit}>
                 編集　🎬
+              </button>
+              <button type="button" className="deck-card-detail-album" onClick={onAddToAlbum}>
+                思い出アルバムに保存
               </button>
               <button
                 type="button"

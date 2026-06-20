@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
-import { canDowngradeRevive, computeDeckPower, getDowngradedRarity, isCardLost, isTalismanEquipped, type LimitBreakShardSpendPlan } from '../card';
+import { canReviveLostCard, computeDeckPower, isCardLost, isTalismanEquipped, type LimitBreakShardSpendPlan } from '../card';
 import {
-  calcDowngradeReviveCost,
   calcFullReviveCost,
   calcLostCardDeleteRewards,
   type CardDeleteOutcome,
   JEWEL_COST_DELETE,
+  JEWEL_COST_MEMORY_ALBUM_ROW,
 } from '../config/economy';
+import { memoryAlbumHasSpace } from '../user/memoryAlbum';
 import { DECK_MAX, DECK_SLOT_COUNT } from '../config/balance';
 import {
   countDeckCards,
@@ -18,7 +19,7 @@ import {
   moveCardInLayout,
   normalizeDeckLayout,
 } from '../deckSlots';
-import type { Attribute, Card, DeckLayout, UserInventory } from '../types';
+import type { Attribute, Card, DeckLayout, MemoryAlbumState, UserInventory } from '../types';
 import { getRarityMeta, type RarityMeta } from '../config/rarity';
 import { AttributeBadge } from './AttributeBadge';
 import { CardBattleRecord } from './CardBattleRecord';
@@ -26,6 +27,7 @@ import { LimitBreakStars } from './LimitBreakStars';
 import { RarityBadge } from './RarityBadge';
 import { CardPreview } from './CardPreview';
 import { CardDeleteResultModal } from './CardDeleteResultModal';
+import { CardDeckDispositionDialog, MemoryAlbumFullDialog, MEMORY_ALBUM_SAVE_CONFIRM_MESSAGE } from './MemoryAlbumDialogs';
 import { ConfirmDialog } from './ConfirmDialog';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
 import type { AttributeSelectOutcome } from './attributeSelectTypes';
@@ -63,7 +65,10 @@ export interface DeckScreenProps {
   onEditCard: (card: Card, options?: { returnToDetail?: boolean }) => void;
   onDeleteCard: (id: string) => CardDeleteOutcome | null;
   onReviveLostCard: (id: string) => void;
-  onDowngradeReviveLostCard: (id: string) => void;
+  onAddCardToMemoryAlbum: (id: string) => 'ok' | 'full' | null;
+  onUnlockMemoryAlbumRow: () => string | null;
+  onOpenMemoryAlbum: () => void;
+  memoryAlbum: MemoryAlbumState;
   inventory: UserInventory;
   onLimitBreakCard: (id: string, spend: LimitBreakShardSpendPlan) => void;
   onRetouchCardAttribute: (
@@ -250,17 +255,6 @@ function formatReviveConfirmMessage(card: Card): string {
   return `「${card.name}」を復活させます。${reviveCost.toLocaleString()}pxを消費します。`;
 }
 
-function formatDowngradeReviveConfirmMessage(card: Card): string {
-  const downgradeReviveCost = calcDowngradeReviveCost(card);
-  const nextRarity = getDowngradedRarity(card.rarity);
-  const transition =
-    nextRarity != null
-      ? `${card.rarity}★${card.stars}→${nextRarity}★${card.stars}`
-      : '';
-  const transitionNote = transition ? `（${transition}）` : '';
-  return `${downgradeReviveCost.toLocaleString()}px消費して「${card.name}」を降格復活${transitionNote}させます。`;
-}
-
 function DeleteConfirmMessage({ card }: { card: Card }) {
   const { pixels, shards } = calcLostCardDeleteRewards(card);
   const hasRefund = pixels > 0 || shards > 0;
@@ -326,7 +320,10 @@ export function DeckScreen({
   onEditCard,
   onDeleteCard,
   onReviveLostCard,
-  onDowngradeReviveLostCard,
+  onAddCardToMemoryAlbum,
+  onUnlockMemoryAlbumRow,
+  onOpenMemoryAlbum,
+  memoryAlbum,
   inventory,
   onLimitBreakCard,
   onRetouchCardAttribute,
@@ -347,7 +344,9 @@ export function DeckScreen({
   const [deleteConfirmFinal, setDeleteConfirmFinal] = useState(false);
   const [deleteResult, setDeleteResult] = useState<CardDeleteOutcome | null>(null);
   const [pendingRevive, setPendingRevive] = useState<Card | null>(null);
-  const [pendingDowngradeRevive, setPendingDowngradeRevive] = useState<Card | null>(null);
+  const [pendingDisposition, setPendingDisposition] = useState<Card | null>(null);
+  const [pendingAlbumAdd, setPendingAlbumAdd] = useState<Card | null>(null);
+  const [pendingAlbumFull, setPendingAlbumFull] = useState<Card | null>(null);
   const [pendingEquipTalisman, setPendingEquipTalisman] = useState<Card | null>(null);
   const [pendingUnequipTalisman, setPendingUnequipTalisman] = useState<Card | null>(null);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
@@ -450,6 +449,7 @@ export function DeckScreen({
 
   const handleReviveRequest = useCallback(() => {
     if (!selectedCard || !isCardLost(selectedCard)) return;
+    if (!canReviveLostCard(selectedCard)) return;
     if (freePixels < calcFullReviveCost(selectedCard)) return;
     setPendingRevive(selectedCard);
   }, [freePixels, selectedCard]);
@@ -464,21 +464,55 @@ export function DeckScreen({
     setPendingRevive(null);
   }, []);
 
-  const handleDowngradeReviveRequest = useCallback(() => {
-    if (!selectedCard || !canDowngradeRevive(selectedCard)) return;
-    if (freePixels < calcDowngradeReviveCost(selectedCard)) return;
-    setPendingDowngradeRevive(selectedCard);
-  }, [freePixels, selectedCard]);
+  const handleActiveRemoveRequest = useCallback(() => {
+    if (!selectedCard || isCardLost(selectedCard)) return;
+    setPendingDisposition(selectedCard);
+  }, [selectedCard]);
 
-  const handleDowngradeReviveConfirm = useCallback(() => {
-    if (!pendingDowngradeRevive) return;
-    onDowngradeReviveLostCard(pendingDowngradeRevive.id);
-    setPendingDowngradeRevive(null);
-  }, [onDowngradeReviveLostCard, pendingDowngradeRevive]);
+  const handleAlbumAddRequest = useCallback(() => {
+    if (!selectedCard) return;
+    if (memoryAlbumHasSpace(memoryAlbum)) {
+      setPendingAlbumAdd(selectedCard);
+      return;
+    }
+    setPendingAlbumFull(selectedCard);
+  }, [memoryAlbum, selectedCard]);
 
-  const handleDowngradeReviveCancel = useCallback(() => {
-    setPendingDowngradeRevive(null);
-  }, []);
+  const handleAlbumAddConfirm = useCallback(() => {
+    if (!pendingAlbumAdd) return;
+    const result = onAddCardToMemoryAlbum(pendingAlbumAdd.id);
+    setPendingAlbumAdd(null);
+    if (result === 'ok') {
+      onDetailCardIdChange(null);
+    } else if (result === 'full') {
+      setPendingAlbumFull(pendingAlbumAdd);
+    }
+  }, [onAddCardToMemoryAlbum, onDetailCardIdChange, pendingAlbumAdd]);
+
+  const handleAlbumFullUnlock = useCallback(() => {
+    const card = pendingAlbumFull;
+    const error = onUnlockMemoryAlbumRow();
+    if (error || !card) return;
+    if (memoryAlbumHasSpace({ ...memoryAlbum, unlockedRows: memoryAlbum.unlockedRows + 1 })) {
+      const result = onAddCardToMemoryAlbum(card.id);
+      setPendingAlbumFull(null);
+      if (result === 'ok') {
+        onDetailCardIdChange(null);
+      }
+    }
+  }, [
+    memoryAlbum,
+    onAddCardToMemoryAlbum,
+    onDetailCardIdChange,
+    onUnlockMemoryAlbumRow,
+    pendingAlbumFull,
+  ]);
+
+  const handleAlbumFullDelete = useCallback(() => {
+    if (!pendingAlbumFull) return;
+    handleDeleteRequest(pendingAlbumFull);
+    setPendingAlbumFull(null);
+  }, [handleDeleteRequest, pendingAlbumFull]);
 
   const showTalismanUi =
     isLossEnabledAtUserLevel(userLevel) &&
@@ -1003,8 +1037,15 @@ export function DeckScreen({
       </ul>
       )}
 
-      {(reorderMode || deckCardCount > 0) && (
-        <div className="deck-screen-footer">
+      <div className="deck-screen-footer">
+        <button
+          type="button"
+          className="deck-memory-album-btn"
+          onClick={onOpenMemoryAlbum}
+        >
+          思い出アルバム
+        </button>
+        {(reorderMode || deckCardCount > 0) && (
           <button
             type="button"
             className={`deck-reorder-toggle${reorderMode ? ' active' : ''}`}
@@ -1013,8 +1054,8 @@ export function DeckScreen({
           >
             {reorderMode ? '完了' : '並べ替え'}
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {dragState && draggedCard && (
         crossDeckTargetIndex != null ? (
@@ -1073,7 +1114,6 @@ export function DeckScreen({
           userLevel={userLevel}
           freePixels={freePixels}
           reviveCost={calcFullReviveCost(selectedCard)}
-          downgradeReviveCost={calcDowngradeReviveCost(selectedCard)}
           attributeShardCount={
             inventory.limitBreakShards[selectedCard.attribute] ?? 0
           }
@@ -1081,10 +1121,10 @@ export function DeckScreen({
           jewels={jewels}
           onClose={closeDetail}
           onEdit={handleEditFromDetail}
-          onDelete={() => handleDeleteRequest(selectedCard)}
+          onDelete={handleActiveRemoveRequest}
           onDeleteLost={handleLostDeleteRequest}
           onReviveLost={handleReviveRequest}
-          onDowngradeReviveLost={handleDowngradeReviveRequest}
+          onAddToAlbum={handleAlbumAddRequest}
           onLimitBreak={(spend) => onLimitBreakCard(selectedCard.id, spend)}
           onRetouchCardAttribute={onRetouchCardAttribute}
           onCommitRetouchCardAttribute={onCommitRetouchCardAttribute}
@@ -1162,18 +1202,46 @@ export function DeckScreen({
         onCancel={handleReviveCancel}
       />
 
+      <CardDeckDispositionDialog
+        open={pendingDisposition != null}
+        cardName={pendingDisposition?.name ?? ''}
+        onDelete={() => {
+          if (!pendingDisposition) return;
+          handleDeleteRequest(pendingDisposition);
+          setPendingDisposition(null);
+        }}
+        onAddToAlbum={() => {
+          if (!pendingDisposition) return;
+          const card = pendingDisposition;
+          setPendingDisposition(null);
+          if (memoryAlbumHasSpace(memoryAlbum)) {
+            setPendingAlbumAdd(card);
+          } else {
+            setPendingAlbumFull(card);
+          }
+        }}
+        onCancel={() => setPendingDisposition(null)}
+      />
+
       <ConfirmDialog
-        open={pendingDowngradeRevive != null}
-        title="降格復活しますか？"
-        message={
-          pendingDowngradeRevive
-            ? formatDowngradeReviveConfirmMessage(pendingDowngradeRevive)
-            : ''
-        }
-        confirmLabel="降格復活する"
+        open={pendingAlbumAdd != null}
+        title="思い出アルバムに保存"
+        message={MEMORY_ALBUM_SAVE_CONFIRM_MESSAGE}
+        confirmLabel="保存する"
         cancelLabel="キャンセル"
-        onConfirm={handleDowngradeReviveConfirm}
-        onCancel={handleDowngradeReviveCancel}
+        confirmVariant="primary"
+        onConfirm={handleAlbumAddConfirm}
+        onCancel={() => setPendingAlbumAdd(null)}
+      />
+
+      <MemoryAlbumFullDialog
+        open={pendingAlbumFull != null}
+        cardName={pendingAlbumFull?.name ?? ''}
+        jewelCost={JEWEL_COST_MEMORY_ALBUM_ROW}
+        canAffordUnlock={jewels >= JEWEL_COST_MEMORY_ALBUM_ROW}
+        onUnlockRow={handleAlbumFullUnlock}
+        onDelete={handleAlbumFullDelete}
+        onCancel={() => setPendingAlbumFull(null)}
       />
 
       <ConfirmDialog
