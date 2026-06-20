@@ -143,6 +143,27 @@ export interface BattleHistoryEntry {
   playerLevel?: number;
 }
 
+export interface ShopPurchaseState {
+  /** 200円ジュエルパック初回2倍を使用済み */
+  jewelPack200FirstBonusUsed?: boolean;
+  /** 汎用かけら日次購入の JST 日次キー */
+  shopShardPurchasesDayKey?: string;
+  /** 汎用かけらパックの当日購入回数（各0〜1） */
+  shopShardPurchasesToday?: Partial<
+    Record<'shard10' | 'shard25' | 'shard55', number>
+  >;
+}
+
+export type SubscriptionPlan = 'none' | 'light' | 'premium';
+
+export interface UserSubscription {
+  plan: SubscriptionPlan;
+  /** 契約満了（ISO 8601） */
+  expiresAt?: string;
+  /** 次回月次配布（ISO 8601） */
+  nextGrantAt?: string;
+}
+
 export interface SaveData {
   /** セーブ形式（0=legacy, 1=freePixels, 2=jewels+inventory+adState） */
   schemaVersion?: number;
@@ -173,6 +194,10 @@ export interface SaveData {
   editorShopUnlocks?: string[];
   /** 思い出アルバム */
   memoryAlbum?: MemoryAlbumState;
+  /** ショップ購入状態（初回ボーナス・かけら日次上限） */
+  shopPurchase?: ShopPurchaseState;
+  /** サブスクリプション */
+  subscription?: UserSubscription;
 }
 
 /** アプリ画面（ルーターなし・state で切替） */

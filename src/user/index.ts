@@ -61,6 +61,22 @@ export {
   unlockMemoryAlbumRow,
 } from './memoryAlbum';
 export {
+  applyDueSubscriptionGrants,
+  canPurchaseUniversalShardPackToday,
+  createInitialShopPurchaseState,
+  createInitialSubscription,
+  describeActiveSubscription,
+  getUniversalShardPurchasesToday,
+  mockPurchaseJewelPack,
+  mockPurchaseTalisman,
+  mockPurchaseUniversalShardPack,
+  mockSubscribe,
+  normalizeShopPurchaseState,
+  normalizeUserSubscription,
+  resolveJewelPackGrantAmount,
+} from './shop';
+export type { ShopPurchaseResult } from './shop';
+export {
   calcBattleExpGain,
   expToNextLevel,
   getLevelProgress,

@@ -34,9 +34,16 @@ import {
 } from '../user/memoryAlbum';
 import { normalizeEditorShopUnlocks } from '../config/editorShop';
 import { normalizePaletteShopUnlocks, migratePaletteShopUnlocksForSchema } from '../config/paletteUnlock';
+import {
+  applyDueSubscriptionGrants,
+  createInitialShopPurchaseState,
+  createInitialSubscription,
+  normalizeShopPurchaseState,
+  normalizeUserSubscription,
+} from '../user/shop';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
-export const SAVE_SCHEMA_VERSION = 6;
+export const SAVE_SCHEMA_VERSION = 7;
 
 function readPaletteShopUnlocks(
   raw: unknown,
@@ -65,6 +72,8 @@ function emptySave(): SaveData {
     paletteShopUnlocks: [],
     editorShopUnlocks: [],
     memoryAlbum: createInitialMemoryAlbum(),
+    shopPurchase: createInitialShopPurchaseState(),
+    subscription: createInitialSubscription(),
   };
 }
 
@@ -339,6 +348,20 @@ export function applyProgressionMigrations(save: SaveData): SaveData {
     talismanStarterGranted: save.talismanStarterGranted === true,
     paletteShopUnlocks: normalizePaletteShopUnlocks(save.paletteShopUnlocks),
     editorShopUnlocks: normalizeEditorShopUnlocks(save.editorShopUnlocks),
+    shopPurchase: normalizeShopPurchaseState(save.shopPurchase),
+    subscription: normalizeUserSubscription(save.subscription),
+  };
+
+  const subscriptionSync = applyDueSubscriptionGrants(
+    next.economy ?? createInitialEconomy(),
+    next.inventory ?? createInitialInventory(),
+    next.subscription ?? createInitialSubscription(),
+  );
+  next = {
+    ...next,
+    economy: subscriptionSync.economy,
+    inventory: subscriptionSync.inventory,
+    subscription: subscriptionSync.subscription,
   };
 
   if (next.user && next.user.level >= 10 && next.unlockedDeckCount < 2) {
@@ -420,6 +443,8 @@ export function loadSave(): SaveData {
         user?.level ?? USER_INITIAL_LEVEL,
         paletteShopUnlocks,
       ),
+      shopPurchase: normalizeShopPurchaseState(parsed.shopPurchase),
+      subscription: normalizeUserSubscription(parsed.subscription),
       ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
     });
 
@@ -496,6 +521,17 @@ export function saveSave(data: SaveData): void {
     payload.editorShopUnlocks = editorShopUnlocks;
   }
   payload.memoryAlbum = normalizeMemoryAlbum(data.memoryAlbum);
+  const shopPurchase = normalizeShopPurchaseState(data.shopPurchase);
+  if (
+    shopPurchase.jewelPack200FirstBonusUsed === true ||
+    shopPurchase.shopShardPurchasesDayKey != null
+  ) {
+    payload.shopPurchase = shopPurchase;
+  }
+  const subscription = normalizeUserSubscription(data.subscription);
+  if (subscription.plan !== 'none') {
+    payload.subscription = subscription;
+  }
   if (data.devPreferSavedLevel === true) {
     payload.devPreferSavedLevel = true;
     payload.devFileOverrideLevel =

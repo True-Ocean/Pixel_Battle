@@ -3211,6 +3211,246 @@ button.battle-hub-deck-icon.is-move-target {
   font-size: 0.82rem;
 }
 
+.shop-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.shop-tab {
+  flex: 1;
+  min-height: 2.25rem;
+  border: 1px solid #c8ceda;
+  border-radius: 8px;
+  background: #f3f5f9;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shop-tab--active {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  color: #0c4a6e;
+}
+
+.shop-toast {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #86efac;
+  background: #ecfdf5;
+  font-size: 0.82rem;
+}
+
+.shop-toast p {
+  margin: 0;
+}
+
+.shop-toast-dismiss {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+  color: #047857;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.shop-panel-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+.shop-panel-note {
+  margin: 0 0 0.65rem;
+  font-size: 0.78rem;
+}
+
+.shop-subsection-title {
+  margin: 0.85rem 0 0.25rem;
+  font-size: 0.88rem;
+}
+
+.shop-product-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.shop-product-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid #d5d8e0;
+  border-radius: 8px;
+  background: #f8f9fc;
+}
+
+.shop-product-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.shop-product-detail {
+  margin: 0.15rem 0 0;
+  font-size: 0.76rem;
+}
+
+.shop-product-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.shop-product-jewel-amount {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.shop-product-jewel-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.shop-buy-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 4.5rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid #94a3b8;
+  background: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shop-buy-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.shop-buy-btn--px {
+  min-width: 5.25rem;
+}
+
+.shop-buy-btn--plan {
+  width: 100%;
+  margin-top: 0.55rem;
+}
+
+.shop-buy-coin-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.shop-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.shop-item-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.shop-item-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.shop-plan-card {
+  padding: 0.65rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.shop-plan-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.shop-plan-title {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.shop-plan-price {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.shop-plan-description {
+  margin: 0.35rem 0 0.45rem;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.shop-plan-grants {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+}
+
+.shop-plan-grants li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.shop-plan-grant-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+}
+
+.shop-active-plan {
+  margin: 0 0 0.45rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  background: #e0f2fe;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #0c4a6e;
+}
+
+.shop-product-list--plans {
+  gap: 0.65rem;
+}
+
 .shop-section + .shop-section {
   margin-top: 1rem;
 }

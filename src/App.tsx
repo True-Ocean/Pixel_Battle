@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import type { AdState, Attribute, Card, MemoryAlbumState, ScreenId, UserProfile, UserEconomy, UserInventory, BattleOutcome, BattleHistoryEntry } from './types';
+import type { AdState, Attribute, Card, MemoryAlbumState, ScreenId, ShopPurchaseState, UserProfile, UserEconomy, UserInventory, UserSubscription, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { isAttributeUnlockedAtLevel } from './config/attributeUnlock';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
@@ -24,6 +24,17 @@ import {
 import type { EditorShopUnlockId } from './config/editorShop';
 import { normalizePaletteShopUnlocks } from './config/paletteUnlock';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
+import type { JewelPackId, UniversalShardPackId } from './config/shop';
+import {
+  createInitialShopPurchaseState,
+  createInitialSubscription,
+  mockPurchaseJewelPack,
+  mockPurchaseTalisman,
+  mockPurchaseUniversalShardPack,
+  mockSubscribe,
+  normalizeShopPurchaseState,
+  normalizeUserSubscription,
+} from './user/shop';
 import {
   calcFullReviveCost,
   calcGraveyardShardReward,
@@ -109,6 +120,15 @@ function App() {
   >(() => normalizeEditorShopUnlocks(initialSave.editorShopUnlocks));
   const [memoryAlbum, setMemoryAlbum] = useState<MemoryAlbumState>(
     () => initialSave.memoryAlbum ?? createInitialMemoryAlbum(),
+  );
+  const [shopPurchase, setShopPurchase] = useState<ShopPurchaseState>(() =>
+    normalizeShopPurchaseState(initialSave.shopPurchase),
+  );
+  const [subscription, setSubscription] = useState<UserSubscription>(() =>
+    normalizeUserSubscription(initialSave.subscription),
+  );
+  const [shopPurchaseMessage, setShopPurchaseMessage] = useState<string | null>(
+    null,
   );
 
   const activeDeck = useMemo(
@@ -197,6 +217,8 @@ function App() {
   const paletteShopUnlocksRef = useRef(paletteShopUnlocks);
   const editorShopUnlocksRef = useRef(editorShopUnlocks);
   const memoryAlbumRef = useRef(memoryAlbum);
+  const shopPurchaseRef = useRef(shopPurchase);
+  const subscriptionRef = useRef(subscription);
   const isHistoryRematchRef = useRef(false);
   const historyRematchEntryRef = useRef<BattleHistoryEntry | null>(null);
   const battleStartSnapshotRef = useRef<{
@@ -219,6 +241,8 @@ function App() {
   paletteShopUnlocksRef.current = paletteShopUnlocks;
   editorShopUnlocksRef.current = editorShopUnlocks;
   memoryAlbumRef.current = memoryAlbum;
+  shopPurchaseRef.current = shopPurchase;
+  subscriptionRef.current = subscription;
 
   const devPreferSavedLevelRef = useRef(initialSave.devPreferSavedLevel === true);
   const devFileOverrideLevelRef = useRef<number | null | undefined>(
@@ -241,6 +265,8 @@ function App() {
       paletteShopUnlocks?: number[];
       editorShopUnlocks?: EditorShopUnlockId[];
       memoryAlbum?: MemoryAlbumState;
+      shopPurchase?: ShopPurchaseState;
+      subscription?: UserSubscription;
       devPreferSavedLevel?: boolean;
       devFileOverrideLevel?: number | null;
     }) => {
@@ -269,6 +295,8 @@ function App() {
         editorShopUnlocks:
           next.editorShopUnlocks ?? editorShopUnlocksRef.current,
         memoryAlbum: next.memoryAlbum ?? memoryAlbumRef.current,
+        shopPurchase: next.shopPurchase ?? shopPurchaseRef.current,
+        subscription: next.subscription ?? subscriptionRef.current,
         ...(devPreferSavedLevelRef.current
           ? {
               devPreferSavedLevel: true as const,
@@ -278,7 +306,86 @@ function App() {
           : {}),
       });
     },
-    [activeDeckIndex, adState, decks, economy, inventory, lastBattleDeckIndex, paletteShopUnlocks, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
+    [activeDeckIndex, adState, decks, economy, inventory, lastBattleDeckIndex, paletteShopUnlocks, shopPurchase, subscription, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
+  );
+
+  const applyShopPurchaseResult = useCallback(
+    (result: {
+      economy: UserEconomy;
+      inventory: UserInventory;
+      shopPurchase: ShopPurchaseState;
+      subscription: UserSubscription;
+      message: string;
+    }) => {
+      setEconomy(result.economy);
+      setInventory(result.inventory);
+      setShopPurchase(result.shopPurchase);
+      setSubscription(result.subscription);
+      setShopPurchaseMessage(result.message);
+      persistSave({
+        economy: result.economy,
+        inventory: result.inventory,
+        shopPurchase: result.shopPurchase,
+        subscription: result.subscription,
+      });
+    },
+    [persistSave],
+  );
+
+  const handlePurchaseJewelPack = useCallback(
+    (packId: JewelPackId) => {
+      applyShopPurchaseResult(
+        mockPurchaseJewelPack(
+          economyRef.current,
+          inventoryRef.current,
+          shopPurchaseRef.current,
+          subscriptionRef.current,
+          packId,
+        ),
+      );
+    },
+    [applyShopPurchaseResult],
+  );
+
+  const handlePurchaseTalisman = useCallback(() => {
+    const result = mockPurchaseTalisman(
+      economyRef.current,
+      inventoryRef.current,
+      shopPurchaseRef.current,
+      subscriptionRef.current,
+    );
+    if (result) applyShopPurchaseResult(result);
+    else setShopPurchaseMessage('px が足りません。');
+  }, [applyShopPurchaseResult]);
+
+  const handlePurchaseUniversalShard = useCallback(
+    (packId: UniversalShardPackId) => {
+      const result = mockPurchaseUniversalShardPack(
+        economyRef.current,
+        inventoryRef.current,
+        shopPurchaseRef.current,
+        subscriptionRef.current,
+        packId,
+      );
+      if (result) applyShopPurchaseResult(result);
+      else setShopPurchaseMessage('購入できません（px 不足または本日の上限）。');
+    },
+    [applyShopPurchaseResult],
+  );
+
+  const handleSubscribe = useCallback(
+    (plan: 'light' | 'premium') => {
+      applyShopPurchaseResult(
+        mockSubscribe(
+          economyRef.current,
+          inventoryRef.current,
+          shopPurchaseRef.current,
+          subscriptionRef.current,
+          plan,
+        ),
+      );
+    },
+    [applyShopPurchaseResult],
   );
 
   const updateActiveDeck = useCallback(
@@ -1997,7 +2104,18 @@ function App() {
           />
         )}
         {screen === 'shop' && (
-          <ShopScreen userLevel={user?.level ?? 1} />
+          <ShopScreen
+            economy={economy}
+            inventory={inventory}
+            shopPurchase={shopPurchase}
+            subscription={subscription}
+            purchaseMessage={shopPurchaseMessage}
+            onPurchaseJewelPack={handlePurchaseJewelPack}
+            onPurchaseTalisman={handlePurchaseTalisman}
+            onPurchaseUniversalShard={handlePurchaseUniversalShard}
+            onSubscribe={handleSubscribe}
+            onDismissPurchaseMessage={() => setShopPurchaseMessage(null)}
+          />
         )}
         {screen === 'inventory' && (
           <InventoryScreen

@@ -146,10 +146,13 @@ export const BATTLE_DAILY_FREE_LIMIT = 10;
 /** バトル回数日次リセットのタイムゾーン */
 export const BATTLE_DAILY_RESET_TIMEZONE = 'Asia/Tokyo';
 
-/** 護符購入価格（px 枠） */
-export const SHOP_TALISMAN_PX = 300;
+/** 広告・ショップ日次リセットと同じ TZ */
+export const SHOP_DAILY_RESET_TIMEZONE = BATTLE_DAILY_RESET_TIMEZONE;
 
-/** 護符購入価格（💎 枠） */
+/** 護符購入価格（px のみ） */
+export const SHOP_TALISMAN_PX = 1500;
+
+/** @deprecated 護符の 💎 購入は廃止（2026-06-20） */
 export const SHOP_TALISMAN_JEWELS = 125;
 
 /** 開発用モックジュエルパック */

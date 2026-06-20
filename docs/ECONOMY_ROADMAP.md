@@ -1,7 +1,7 @@
 # 経済・課金・広告 — 実装ロードマップ
 
 **作成日**: 2026-06-14  
-**最終更新**: 2026-06-20（ゴーストデッキ将来構想反映）  
+**最終更新**: 2026-06-20（ショップ・サブスク設計確定・10戦cap廃止・2倍報酬仕様同期）  
 **ステータス**: 設計合意（議論ベース）・段階実装の指針  
 **関連**: [ECONOMY_SPEC.md](./ECONOMY_SPEC.md)（旧 §10 ポーション/溶解モデルは本書で置き換え）、[PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) §5.9
 
@@ -16,11 +16,11 @@
 
 | 表示 | 内部名（案） | 入手 | 主な用途 |
 |------|--------------|------|----------|
-| 無償 | `freePixels` | バトル、レベルアップ、**カード削除返還**、勝利2倍広告、**属性リタッチ** | **復活**、護符購入（px 枠）、**リネーム**、編集時キャンバス拡大 |
+| 無償 | `freePixels` | バトル、レベルアップ、**カード削除返還**、勝利2倍広告、**属性リタッチ** | **復活**、**護符購入（px）**、**汎用かけら購入**、**リネーム**、編集時キャンバス拡大 |
 | 💎 ジュエル | `jewels` | 課金、**毎レベル 30**、サブスク | 削除・**属性セレクト**・デッキ3以降・限界突破レア昇格・創作拡張の **その場消費** |
 | 属性かけら | `limitBreakShards[attribute]` | **勝利時の戦利品選択** | 同一属性カードの限界突破（**N=10 / R=15 / SR・UR=20**） |
-| 汎用かけら | `limitBreakUniversal` | **L≡4 (mod 5), L≥5**（9, 14, 19…） | 任意属性のかけらとして消費（属性かけらと同価値） |
-| 護符 | `inventory.talisman` | **Lv5 到達（初回 ×1）**、**Lv20,30,40,50**、ショップ（px/💎）、サブスク | ロスト1回免れ（装備消費） |
+| 汎用かけら | `limitBreakUniversal` | **L≡4 (mod 5), L≥5**（9, 14, 19…）・**ショップ（px）** | 任意属性のかけらとして消費（属性かけらと同価値） |
+| 護符 | `inventory.talisman` | **Lv5 到達（初回 ×1）**、**Lv20,30,40,50**、**ショップ（px）**、サブスク | ロスト1回免れ（装備消費） |
 
 **採用しないもの（旧仕様から廃止）**
 
@@ -92,10 +92,10 @@
 | 種別 | 条件 | 備考 |
 |------|------|------|
 | **創作ゲート** | 初回 **バトル可能デッキ完成後**、作成保存・編集保存のたび | 完成前（`hasEverCompletedBattleDeck` false）は無広告 |
-| **バトル回数** | 非会員: **1日10戦まで** 無料、以降は **1戦ごとにリワード広告** | 日次リセット（TZ TBD） |
-| **勝利2倍** | **任意**リワード広告 | **px のみ2倍**（かけらは2倍にしない） |
+| **CPU 戦開始** | 非会員・**Lv5+**: **3回に1回** リワード広告 | `normalBattleStarts`。~~1日10戦 cap~~ **廃止** |
 | **履歴再戦** | 再戦フロー開始時（ルール後・デッキ選択前） | **3回に1回**モック広告（`historyRematchStarts`） |
-| **会員** | ライト: 軽減 / プレミアム: 広告非表示 | 詳細 TBD |
+| **勝利2倍** | **任意**リワード広告 | **EXP・px・かけら ×2**（`doubleVictoryRewards`） |
+| **会員** | ライト: バトル・創作 CM 解除 / プレ: 全CM解除＋常時2倍 | [ECONOMY §11.5](./ECONOMY_SPEC.md#115-サブスクによる広告制御) |
 
 ### 1.8 対人戦の段階的導入（将来構想）
 
@@ -111,17 +111,24 @@
 
 ### 1.7 ショップ・サブスク（役割）
 
-**ショップの主役**
+**ShopScreen（3タブ — [ECONOMY §12.5](./ECONOMY_SPEC.md#125-ショップ-ui-v1)）**
 
-- 💎 チャージ（現金・モック）
-- 護符（px または 💎）
-- 追加色パレット（**Lv50+**・永久解放。tier1=px / tier2=pxまたは💎。[PROTOTYPE §5.6](./PROTOTYPE_DEVELOPMENT_SPEC.md#56-パレットとレベル解放)）
-- 会員プラン（月額 / 年額）
+| タブ | 内容 |
+|------|------|
+| **💎** | ジュエルパック5段階（200円初回2倍）— [§12.3](./ECONOMY_SPEC.md#123-ジュエルパック現金v1-モック) |
+| **アイテム** | 護符 **1,500px** / 汎用かけら3段階（各1日1回）— [§12.4](./ECONOMY_SPEC.md#124-ショップ-px-商品v1) |
+| **サブスク** | ライト **500円** / プレ **800円**（月額のみ）— [§12](./ECONOMY_SPEC.md#12-課金サブスクリプション) |
+
+**ショップ外（編集画面から購入）**
+
+- 追加色パレット（**Lv50+**・tier1=2000px / tier2=💎100 or 2200px）
+- 描画ツール早期解放（**💎100**）
 
 **ショップに並べない（操作地点で 💎 / px 直消費）**
 
 - 通常カード削除、カード名変更（編集保存時）、**属性セレクト**、デッキ3以降解放
 - **属性リタッチ**は px 直消費（ショップ商品ではない）
+- **属性かけら**はバトル戦利品のみ
 
 ---
 
@@ -141,7 +148,7 @@
 | **作成時属性抽選** | ✅ `rollAttribute`（解放済み・直近解放 +10%）。色/hash 属性決定は **廃止** |
 | **編集時キャンバス拡大** | ✅ 拡大のみ・px 消費（`calcCanvasUpgradeCost` = 新²−旧²） |
 | 勝利 px・墓地選択 UI・属性かけら付与 | ✅ `GraveyardPickModal`, `calcGraveyardShardReward`（N=1/R=2/SR=3） |
-| **勝利2倍広告（px）** | ✅ `GraveyardPickModal` → `MockRewardAdModal`（かけらは非対象） |
+| **勝利2倍広告** | ✅ `GraveyardPickModal` → `MockRewardAdModal`（**EXP・px・かけら2倍**） |
 | バトル中・戦利品のレア表示 | ✅ `BattleUnit.rarity` 連携、`BattleCard` 枠色 |
 | `UserEconomy` | ✅ `freePixels` + `jewels`（フェーズ2） |
 | インベントリ（護符・かけら） | ✅ `InventoryScreen`、schema v2 |
@@ -153,15 +160,15 @@
 | L20+ 護符マイルストーン | ✅ `calcLevelUpTalismanGrant`（Lv20,30,40,50 で **護符×1**） |
 | バトル履歴・履歴再戦 | ✅ `RecordsScreen`・`BattleHistoryList`・再戦フロー・生存 px のみ報酬 |
 | 履歴再戦モック広告 | ✅ 3回に1回（`MockRewardAdModal`, `adState.historyRematchStarts`） |
-| **通常戦モック広告** | ✅ Lv5+・3回に1回（`normalBattleStarts`。仕様 §11.3 の日次10戦 cap とは **別の暫定実装**） |
+| **通常戦モック広告** | ✅ Lv5+・3回に1回（`shouldRequireBattleStartAd`） |
 | **編集前モック広告** | ⚠️ 部分 — デッキ詳細→編集（`returnToDetail`）時のみ。§11.2 の保存時ゲート・`hasEverCompletedBattleDeck` は未接続 |
 | レベルアップ UI | ✅ px 数値→アイコン、💎 **合計30/Lv** 表示、L≡4 かけら・L20+ 護符を追加報酬リストに表示 |
 | デッキ選択 UI | ✅ 常時2行ヒント、通常戦の黄色注意削除 |
 | ヘッダーメニュー | ✅ 三本線を `user-profile-bar` 内に配置 |
 | 開発メニュー | ✅ 設定画面 — 「すべてのかけらを100個にする」、**色パレット（ショップ追加分）全解放/未解放** |
-| 広告（創作保存・日次 cap） | ❌ `hasEverCompletedBattleDeck` 未使用、`battlesToday` cap 未接続 |
-| **追加色パレット（ショップ）** | ✅ `ShopScreen`・`PaletteUnlockModal`・`paletteShopUnlocks`（schema v5）。tier1=2000px×4、tier2=💎100/2200px×8。Lv50+ |
-| ショップ画面 | ✅ 追加色パレット購入（フェーズ8 **一部**）。💎 パック・護符・会員は **未実装** |
+| 広告（創作保存ゲート） | ❌ `hasEverCompletedBattleDeck` 未使用。編集入室前暫定広告のみ |
+| **追加色パレット** | ✅ `PaletteUnlockModal`・`paletteShopUnlocks`（schema v5）。**編集画面**から購入 |
+| ショップ画面 | ⚠️ `ShopScreen` は案内テキストのみ。**3タブ・💎/アイテム/サブスクは未実装**（フェーズ8 残り） |
 | デッキ3〜 💎 解放 | ✅ `unlockDeckWithJewels()`・`canUnlockDeckSlotWithJewels`・`DeckUnlockModal`（フェーズ3） |
 | 💎 不足→ショップ誘導 | ❌ 文言のみ（フェーズ8 と連動予定） |
 
@@ -217,7 +224,8 @@
 4. `src/config/economy.ts` — 新定数（TBD 初期値）
    - `JEWELS_PER_LEVEL`, `LEVEL_UP_UNIVERSAL_SHARD_REWARD`, `TALISMAN_MILESTONE_GRANT_COUNT`, `JEWEL_COST_DELETE`, `PIXEL_COST_RENAME`, `JEWEL_COST_DECK_UNLOCK`
    - `getLimitBreakShardsRequired`（N=10/R=15/SR・UR=20）、`LIMIT_BREAK_BP_GAIN_RATE`（= 0.03）
-   - `GRAVEYARD_SHARD_REWARD`（N=1, R=2, SR=3）、`BATTLE_DAILY_FREE_LIMIT`（= 10）
+   - `GRAVEYARD_SHARD_REWARD`（N=1, R=2, SR=3）
+   - ~~`BATTLE_DAILY_FREE_LIMIT`~~ — **廃止**（レガシー。削除予定）
 5. `schemaVersion` マイグレーション（既存セーブ: jewels=0, 空インベントリ）
 6. Lv10 以上 & `unlockedDeckCount < 2` のセーブ補正
 
@@ -328,7 +336,7 @@
 3. `finalizeBattleOutcome` — 選択カードの属性に `limitBreakShards[attr] += n`
 4. **所持品タブ**（`InventoryScreen`）— 汎用＋全属性かけらの所持数一覧
 
-**完了条件**: 勝利→墓地選択→かけらが増える。所持品で確認できる。（**2倍広告は 2026-06-17 に px のみ実装済み**）
+**完了条件**: 勝利→墓地選択→かけらが増える。所持品で確認できる。（**2倍広告: EXP・px・かけら ×2 — ✅**）
 
 ---
 
@@ -351,20 +359,18 @@
 
 ### フェーズ 7 — 広告（モック → SDK）
 
-**目的**: 創作ゲート・バトル cap・2倍報酬。
+**目的**: 創作ゲート・バトル開始広告・2倍報酬。
 
 **サブステップ 7a — モック**
 
 1. `src/ad/` — `showRewardedAd(): Promise<'completed'|'skipped'|'failed'>` モック（2秒待ち等）
-2. **創作**: `hasEverCompletedBattleDeck` 判定、保存前にモック広告
-3. **バトル cap**: 開始前チェック、11戦目以降は広告後に `battlesToday++`
-4. ~~**2倍**: 勝利モーダルに「広告で px 2倍」、かけらは対象外~~ — **✅ 2026-06-17 完了**（`GraveyardPickModal`）
-5. 日次リセット `battlesDayKey`（`battlesToday` は型・正規化のみ。**cap 判定は未接続**）
-6. ~~**履歴再戦**: 3回に1回、ルールモーダル後にモック広告~~ — **2026-06-16 完了**（`MockRewardAdModal`, `historyRematch.ts`）
-7. ~~**通常戦**: Lv5+ で3回に1回、バトル開始前モック広告~~ — **✅ プロトタイプ暫定**（本仕様 §11.3 の **1日10戦 cap とは別**。`shouldRequireNormalBattleAd`）
-8. **編集前広告（暫定）**: デッキ詳細→編集（`returnToDetail`）のみ `MockRewardAdModal`。§11.2 の保存時・`hasEverCompletedBattleDeck` は **未着手**
+2. **創作ゲート**: `hasEverCompletedBattleDeck` 判定、**保存前**にモック広告 — **未着手**（編集入室前暫定のみ）
+3. ~~**2倍**: EXP・px・かけら ×2~~ — **✅ 完了**（`doubleVictoryRewards`）
+4. ~~**履歴再戦**: 3回に1回~~ — **✅ 完了**
+5. ~~**通常 CPU 戦**: Lv5+・3回に1回~~ — **✅ 完了**（`shouldRequireBattleStartAd`）
+6. ~~**1日10戦 cap**~~ — **2026-06-20 設計廃止**（実装しない）
 
-**完了条件**: モックで本仕様の広告フローが end-to-end で通る。（**2倍・履歴再戦・通常戦3回に1回は ✅。創作保存ゲート・日次10戦 cap は未着手**）
+**完了条件**: 2倍・履歴再戦・通常戦3回に1回がモックで通る。（**創作保存ゲートは未着手**）
 
 **サブステップ 7b — 本番 SDK**（環境依存・後回し可）
 
@@ -374,31 +380,35 @@
 
 ### フェーズ 8 — ショップ（ローカル / モック課金）
 
-**目的**: 💎 チャージと拡張コンテンツの棚。
+**目的**: 💎 チャージ・px アイテム・サブスク UI（モック購入）。
+
+**参照**: [ECONOMY §10.2](./ECONOMY_SPEC.md#102-ショップの役割)、[§12](./ECONOMY_SPEC.md#12-課金サブスクリプション)
 
 **作業**
 
-1. ~~`PlaceholderScreen` → `ShopScreen`~~ — **✅ 追加色パレットのみ**（2026-06-17）
-2. カテゴリ: 💎 パック（モック購入）、護符、ツール/パレット解放 — **パレット ✅ / 他 ❌**
-3. 護符: px 優先価格（TBD）、装備 UI は §7 参照 — **未実装**
-4. ~~創作拡張: `paletteUnlock.ts` と連動した **永久解放** フラグ（セーブ）~~ — **✅ `paletteShopUnlocks`・schema v5**
-5. 💎 不足時の deep link（削除・デッキ解放から遷移） — **未実装**
+1. `src/config/shop.ts`（新規）— ジュエルパック5段階・護符1500px・汎用かけら3段階・サブスク価格
+2. `ShopScreen.tsx` — **3タブ**（💎 / アイテム / サブスク）、モック購入フロー
+3. `SaveData.shopPurchase` — 200円初回2倍フラグ・かけら日次購入（JST）
+4. `economy.ts` — `SHOP_TALISMAN_PX = 1500`（125💎 廃止）
+5. 💎 不足時の deep link（削除・デッキ解放・属性セレクトから） — **未実装**
+6. ~~追加色パレット~~ — **✅ 編集画面**（`PaletteUnlockModal`・`paletteShopUnlocks`）
 
-**完了条件**: モックで jewels 購入→削除等で消費のループが完結。（**追加色パレット購入は ✅。ジュエルパック・deep link は未着手**）
+**完了条件**: モックで jewels 購入→削除等で消費のループが完結。**サブスク特典（CM・2倍）はフェーズ9**。
 
 ---
 
-### フェーズ 9 — サブスク（モック）
+### フェーズ 9 — サブスク特典（モック）
 
-**目的**: 会員特典の骨格。
+**目的**: 会員特典の本番連動（フェーズ8の UI に機能を載せる）。
 
 **作業**
 
-1. `SaveData.subscription` — `plan`, `expiresAt`
-2. 特典: 広告軽減/非表示、月次 💎＋護符付与（モック付与ボタン）
-3. 設定画面にプラン表示・開発用切替
+1. `SaveData.subscription` — `plan`, `expiresAt`, `nextGrantAt`
+2. 特典: ライト CM 解除（バトル・創作）、プレ全CM＋常時2倍
+3. 月次付与: 加入即時＋30日周期（px・💎・護符）
+4. 設定画面にプラン表示・開発用切替
 
-**完了条件**: プレミアム ON で創作/バトル/2倍広告がスキップされる。
+**完了条件**: プレミアム ON で創作/バトル/2倍 CM がスキップされ、常時2倍が適用される。
 
 ---
 
@@ -461,7 +471,7 @@ flowchart TD
 
 1. **0 → 1 → 2** — ジュエル表示・Lv10 デッキ2（体感しやすい）
 2. **5 → 6** — バトル→かけら→限界突破（コアループ）
-3. **7a** — 広告モック（創作・cap・2倍）
+3. **7a** — 広告モック（創作ゲート残・2倍・3回に1回）
 4. **4 → 3 → 8** — 💎 消費とショップ
 5. **9 → 7b → 10** — 会員・本番 SDK・レア
 
@@ -469,7 +479,7 @@ flowchart TD
 
 ## 5. バランスパラメータ（確定値・2026-06-20）
 
-実装は `src/config/economy.ts` に集約済み。
+実装は `src/config/economy.ts`（ショップ商品は `src/config/shop.ts` 新規予定）に集約。
 
 | キー | 値 | 備考 |
 |------|-----|------|
@@ -486,24 +496,26 @@ flowchart TD
 | `getLimitBreakShardsRequired` | N=10, R=15, SR/UR=20 | |
 | `LIMIT_BREAK_BP_GAIN_RATE` | 0.03 | 限界突破1回のBP加算 |
 | `GRAVEYARD_SHARD_REWARD` | N=1, R=2, SR=3 | 戦利品かけら |
-| `BATTLE_DAILY_FREE_LIMIT` | 10 | 非会員 |
-| `SHOP_TALISMAN_PX` | 300 | |
-| `SHOP_TALISMAN_JEWELS` | **125** | |
+| `SHOP_TALISMAN_PX` | **1,500** | 護符（px のみ。[ECONOMY §12.4](./ECONOMY_SPEC.md#124-ショップ-px-商品v1)） |
+| `SHOP_UNIVERSAL_SHARD_*` | 10/1000, 25/2000, 55/4000 px | 各1日1回（JST） |
+| `JEWEL_PACK_*` | 200〜4000円 | §12.3。200円初回2倍 |
+| `SUB_LIGHT_MONTHLY` | **500円** | 1000px / 250💎 / 護符1 |
+| `SUB_PREMIUM_MONTHLY` | **800円** | 2000px / 500💎 / 護符2 |
 | `REVIVE_PAINTED_MULTIPLIER` | 3 | 復活 px |
 | `REVIVE_CAP` | 3 | 1枚あたり px 復活上限 |
 | `LEVEL_UP_PIXEL_REWARD` | **300** | 毎レベル |
 | `PIXEL_COST_ATTRIBUTE_RETOUCH` | 300 | 属性リタッチ1回 |
-| `MOCK_JEWEL_PACK_SMALL` | **500** | 開発用 |
 | `JEWEL_COST_PALETTE_SHOP_TIER2` | **100** | 薄色系8色（💎支払い） |
 | `PIXEL_COST_PALETTE_SHOP_TIER2` | 2200 | 薄色系8色（px支払い） |
-| `PALETTE_SHOP_MIN_USER_LEVEL` | 50 | 追加色ショップ購入の最低レベル |
+| `PALETTE_SHOP_MIN_USER_LEVEL` | 50 | 追加色購入の最低レベル |
 
-**TBD（未確定）**
+**廃止・レガシー**
 
-| キー | 案 | 備考 |
-|------|-----|------|
-| サブスク月次 💎 | ライト **200** / プレミアム **500** | §12.2 案 |
-| ライト「3回に1回」対象 | 創作 / バトル cap / 2倍 | §11.5 |
+| キー | 備考 |
+|------|------|
+| ~~`BATTLE_DAILY_FREE_LIMIT`~~ | 10戦cap案。**未実装・削除予定** |
+| ~~`SHOP_TALISMAN_JEWELS`~~ | 125💎。**廃止**（px 一本化） |
+| `MOCK_JEWEL_PACK_SMALL` | 500。**フェーズ8で shop.ts へ移行予定** |
 
 ---
 
@@ -518,7 +530,7 @@ flowchart TD
 | 5 | `src/components/GraveyardPickModal.tsx`, `src/battle/graveyardLoot.ts`, `src/components/InventoryScreen.tsx`, `src/config/economy.ts`, `src/App.tsx` |
 | 6 | `src/card/limitBreak.ts`, `DeckCardDetailOverlay.tsx`, `DeckScreen.tsx`, `SettingsScreen.tsx`, `src/user/profile.ts` |
 | 7 | 新規 `src/ad/*`, エディタ保存経路, バトル開始経路, `MockRewardAdModal`, `historyRematch.ts`, `HistoryRematchRulesModal` |
-| 8 | `src/components/ShopScreen.tsx`, `PaletteUnlockModal.tsx`, `src/config/paletteShop.ts`, `src/user/paletteShop.ts`, `src/config/paletteUnlock.ts`, `ColorPalette.tsx`, `App.tsx`, `SettingsScreen.tsx`, `storage/index.ts` |
+| 8 | `src/components/ShopScreen.tsx`, `src/config/shop.ts`（新規）, `src/user/shop.ts`（新規）, `storage/index.ts` |
 
 ---
 
@@ -537,7 +549,7 @@ flowchart TD
 | E0 データモデル | フェーズ 1 |
 | E1 Lost/勝利/墓地 | ✅ 済（px＋属性かけら。フェーズ5） |
 | E2 ポーション/溶解/ショップ | **分割** → フェーズ 3,4,8（ジュエル直消費モデル）。**デッキ3〜解放・削除・リネームは ✅ フェーズ3〜4完了** |
-| E3 広告 | フェーズ 7（**一部 ✅** — 2倍・履歴再戦・通常戦3回に1回） |
+| E3 広告 | フェーズ 7（**一部 ✅** — 2倍・履歴再戦・CPU3回に1回。創作保存ゲート残） |
 | E4 サブスク | フェーズ 9 |
 | E5 レア抽選 | フェーズ 10 |
 | E6 限界突破 | ✅ 済（フェーズ 5 + 6） |
@@ -558,9 +570,9 @@ flowchart TD
 7. ~~履歴再戦・バトル履歴 UI~~ — **2026-06-16 完了**（フェーズ7a の一部）
 8. ~~フェーズ **4**（削除）— 💎5・返還・復活コスト塗り式~~ — **2026-06-17 完了**（💎5 は 2026-06-20 改定）
 9. ~~フェーズ **4**（リネーム）— 編集画面・保存時一括課金~~ — **2026-06-17 完了**（2026-06-20 に UI 刷新）
-10. ~~フェーズ **7a**（勝利2倍・通常戦3回に1回）~~ — **2026-06-17 完了**（日次 cap は未着手）
+10. ~~フェーズ **7a**（勝利2倍・通常戦3回に1回）~~ — **2026-06-17 完了**（~~10戦 cap~~ **2026-06-20 廃止**）
 11. ~~フェーズ **3** — デッキ3〜 💎 解放（`unlockDeckWithJewels`）~~ — **2026-06-17 完了**
-12. ~~フェーズ **8**（追加色パレット）~~ — **2026-06-17 完了**（`ShopScreen`・`paletteShopUnlocks`・schema v5）
+12. ~~フェーズ **8**（追加色パレット）~~ — **2026-06-17 完了**（**編集画面**。ShopScreen 本体はフェーズ8 残り）
 13. ~~フェーズ **4b** — 属性抽選・リタッチ/セレクト~~ — **2026-06-20 完了**
 14. ~~**思い出アルバム** — 保存・閲覧・行解放・復活上限3・降格復活廃止~~ — **2026-06-20 完了**
 15. ~~**経済バランス改定** — 💎30/Lv・コスト5倍・L≡4かけら×20・L20+護符~~ — **2026-06-20 完了**
@@ -568,16 +580,23 @@ flowchart TD
 
 **次の推奨**
 
-17. フェーズ **8** 残り — 💎 パック（モック購入）、護符ショップ、不足時 deep link
-18. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）・日次10戦 cap（`battlesToday`）
+17. フェーズ **8** — 3タブ ShopScreen・💎 パック（モック）・護符1500px・汎用かけら・サブスク UI
+18. フェーズ **9** — サブスク特典（CM 解除・常時2倍・月次付与）
+19. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）
 
-**判断待ち（確定済み）**
+**判断待ち（確定済み — 2026-06-20 ショップ設計）**
 
 - [x] 新規作成の **命名** は無料。リネームは **編集画面で常時編集**、**保存時一括課金**（**200px/回**）
 - [x] **属性リタッチ 300px / 属性セレクト 💎100**（作成時は `rollAttribute`・直近解放 +10%）
 - [x] **属性選択チケット** — **不採用**（セレクトと重複）
 - [x] レアカード戦利品のかけら: **N=1, R=2, SR=3**
-- [x] 護符価格: **px と 💎 の両方**（300px / 125💎）
+- [x] **護符価格**: **1,500px のみ**（💎 購入廃止）
+- [x] **汎用かけらショップ**: 1000/2000/4000px（10/25/55個）。各 **1日1回**（JST）
+- [x] **ジュエルパック**: 5段階（200〜4000円）。**200円初回2倍**
+- [x] **サブスク**: ライト **500円**（1000px/250💎/護符1・CM:バトル+創作解除）、プレ **800円**（2000px/500💎/護符2・全CM+常時2倍）。**年額 v1 なし**。付与: **加入即時+30日周期**
+- [x] **ShopScreen**: **3タブ**（💎 / アイテム / サブスク）。パレット・ツールは編集画面
+- [x] **勝利2倍**: **EXP・px・かけら** すべて2倍
+- [x] **CPU 戦広告**: **3回に1回**（~~1日10戦 cap~~ 廃止）
 - [x] **px 創作コスト**: レベルアップ **300px** / 属性リタッチ **300px** / リネーム **200px**（px 統一）
 - [x] レベル報酬: **💎30/Lv**、L≡4 **汎用かけら×20**、L20,30,40,50 **護符×1**
 - [x] 日次リセットのタイムゾーン（**JST 固定**）
