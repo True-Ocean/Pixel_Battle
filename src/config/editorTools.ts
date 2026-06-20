@@ -10,6 +10,7 @@ export const IDEAL_TOOL_ORDER = [
   'line',
   'rectangle',
   'circle',
+  'move',
   'selection',
 ] as const;
 
@@ -36,9 +37,10 @@ export const IMPLEMENTED_EDITOR_TOOLS: readonly EditorToolId[] = [
   'undo',
   'redo',
   'line',
-  'selection',
   'rectangle',
   'circle',
+  'move',
+  'selection',
 ];
 
 const TOOL_UNLOCK_LEVEL: Record<EditorToolId, number> = {
@@ -50,6 +52,7 @@ const TOOL_UNLOCK_LEVEL: Record<EditorToolId, number> = {
   redo: 12,
   line: 17,
   selection: 22,
+  move: 23,
   rectangle: 27,
   circle: 32,
   eyedropper: 37,

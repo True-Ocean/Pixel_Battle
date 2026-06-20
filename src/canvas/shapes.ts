@@ -1,4 +1,5 @@
 import { cloneGrid } from './index';
+import { stampBrush } from './brush';
 import type { PixelGrid } from '../types';
 
 export interface CellCoord {
@@ -36,10 +37,9 @@ function setCell(
   row: number,
   col: number,
   color: string,
+  strokeSize = 1,
 ): void {
-  if (inBounds(grid, row, col)) {
-    grid[row]![col] = color;
-  }
+  stampBrush(grid, row, col, color, strokeSize);
 }
 
 /** Bresenham 直線 */
@@ -50,6 +50,7 @@ export function drawLine(
   r1: number,
   c1: number,
   color: string,
+  strokeSize = 1,
 ): PixelGrid {
   const next = cloneGrid(pixels);
   let row = r0;
@@ -61,7 +62,7 @@ export function drawLine(
   let err = dCol - dRow;
 
   while (true) {
-    setCell(next, row, col, color);
+    setCell(next, row, col, color, strokeSize);
     if (row === r1 && col === c1) break;
     const e2 = err * 2;
     if (e2 > -dRow) {
@@ -85,12 +86,13 @@ export function drawRectOutline(
   r1: number,
   c1: number,
   color: string,
+  strokeSize = 1,
 ): PixelGrid {
   const { minRow, maxRow, minCol, maxCol } = normalizeRect(r0, c0, r1, c1);
-  let next = drawLine(pixels, minRow, minCol, minRow, maxCol, color);
-  next = drawLine(next, maxRow, minCol, maxRow, maxCol, color);
-  next = drawLine(next, minRow, minCol, maxRow, minCol, color);
-  next = drawLine(next, minRow, maxCol, maxRow, maxCol, color);
+  let next = drawLine(pixels, minRow, minCol, minRow, maxCol, color, strokeSize);
+  next = drawLine(next, maxRow, minCol, maxRow, maxCol, color, strokeSize);
+  next = drawLine(next, minRow, minCol, maxRow, minCol, color, strokeSize);
+  next = drawLine(next, minRow, maxCol, maxRow, maxCol, color, strokeSize);
   return next;
 }
 
@@ -102,6 +104,7 @@ export function drawEllipseOutline(
   r1: number,
   c1: number,
   color: string,
+  strokeSize = 1,
 ): PixelGrid {
   const { minRow, maxRow, minCol, maxCol } = normalizeRect(r0, c0, r1, c1);
   const next = cloneGrid(pixels);
@@ -111,7 +114,7 @@ export function drawEllipseOutline(
   const radiusCol = (maxCol - minCol) / 2;
 
   if (radiusRow === 0 && radiusCol === 0) {
-    setCell(next, minRow, minCol, color);
+    setCell(next, minRow, minCol, color, strokeSize);
     return next;
   }
 
@@ -132,7 +135,7 @@ export function drawEllipseOutline(
     if (row === lastRow && col === lastCol) continue;
     lastRow = row;
     lastCol = col;
-    setCell(next, row, col, color);
+    setCell(next, row, col, color, strokeSize);
   }
 
   return next;

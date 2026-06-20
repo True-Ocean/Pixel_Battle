@@ -45,6 +45,7 @@ import {
   getCardRenameCount,
   getEditorSaveTotalPixelCost,
 } from '../config/economy';
+import type { BrushSizeId } from '../config/brushSize';
 import {
   isEditorToolImplemented,
   isEditorToolUnlocked,
@@ -142,6 +143,7 @@ export function EditorScreen({
   const [editorHistory, setEditorHistory] = useState<EditorSnapshot[]>([]);
   const [editorFuture, setEditorFuture] = useState<EditorSnapshot[]>([]);
   const [brushColor, setBrushColor] = useState<string>(PALETTE_16[0]);
+  const [brushSize, setBrushSize] = useState<BrushSizeId>('small');
   const [tool, setTool] = useState<EditorToolId>('pen');
   const [error, setError] = useState<string | null>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
@@ -539,6 +541,8 @@ export function EditorScreen({
               }
               onUndo={handleUndo}
               onRedo={handleRedo}
+              brushSize={brushSize}
+              onBrushSizeChange={setBrushSize}
             />
             <div className="editor-canvas-column">
               <div className="editor-canvas-wrap">
@@ -546,8 +550,10 @@ export function EditorScreen({
                   pixels={pixels}
                   onChange={(next) => applyEditorChange({ pixels: next })}
                   onPickColor={handlePickColor}
+                  onFillComplete={() => setTool('pen')}
                   tool={tool}
                   brushColor={brushColor}
+                  brushSize={brushSize}
                 />
               </div>
               <ColorPalette

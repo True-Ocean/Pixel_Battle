@@ -123,6 +123,8 @@ export function floodFill(
   return next;
 }
 
+export { eraseBrush, paintBrush, stampBrush } from './brush';
+
 export {
   cutRect,
   drawEllipseOutline,

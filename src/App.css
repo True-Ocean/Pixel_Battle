@@ -5620,7 +5620,8 @@ button.battle-hub-deck-icon.is-move-target {
 .palette-swatch-line,
 .palette-swatch-rectangle,
 .palette-swatch-circle,
-.palette-swatch-selection {
+.palette-swatch-selection,
+.palette-swatch-move {
   background: #eef1f6;
 }
 
@@ -5656,17 +5657,54 @@ button.battle-hub-deck-icon.is-move-target {
 .palette-selection-icon {
   position: relative;
   display: block;
-  width: 1rem;
-  height: 1rem;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.palette-selection-icon::before,
+.palette-selection-icon::after,
+.palette-move-icon::before,
+.palette-move-icon::after {
+  content: '';
+  position: absolute;
+  width: 70%;
+  height: 70%;
+  border: 1.5px solid #2f2f2f;
+  border-radius: 1px;
+  box-sizing: border-box;
 }
 
 .palette-selection-icon::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border: 1.5px dashed #2563c7;
-  border-radius: 1px;
-  background: rgba(37, 99, 235, 0.12);
+  top: 22%;
+  left: 22%;
+  background: #94a3b8;
+}
+
+.palette-selection-icon::after {
+  top: 0;
+  left: 0;
+  background: #eef1f6;
+}
+
+.palette-move-icon {
+  position: relative;
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.palette-move-icon::before {
+  top: 22%;
+  left: 22%;
+  background: transparent;
+  border-style: dashed;
+  border-color: rgba(47, 47, 47, 0.65);
+}
+
+.palette-move-icon::after {
+  top: 0;
+  left: 0;
+  background: #eef1f6;
 }
 
 .pixel-cell-marquee {
@@ -5898,6 +5936,82 @@ button.battle-hub-deck-icon.is-move-target {
   padding: 0;
   box-sizing: border-box;
   align-self: flex-start;
+  overflow: visible;
+}
+
+.editor-brush-size-anchor {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.brush-size-tool-btn {
+  padding: 0;
+  line-height: 1;
+}
+
+.brush-size-tool-btn--open {
+  border-color: #646cff;
+  box-shadow: 0 0 0 2px #646cff;
+}
+
+.brush-size-tool-dot {
+  display: block;
+  border-radius: 50%;
+  background: #2f2f2f;
+  flex-shrink: 0;
+}
+
+.brush-size-tool-dot--small {
+  width: 0.18rem;
+  height: 0.18rem;
+}
+
+.brush-size-tool-dot--medium {
+  width: 0.32rem;
+  height: 0.32rem;
+}
+
+.brush-size-tool-dot--large {
+  width: 0.46rem;
+  height: 0.46rem;
+}
+
+.brush-size-menu {
+  position: absolute;
+  left: calc(100% + 0.2rem);
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  padding: 0.12rem;
+  border: 1.5px solid #666;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.brush-size-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  border: 1.5px solid transparent;
+  border-radius: 3px;
+  background: #eef1f6;
+  cursor: pointer;
+}
+
+.brush-size-menu-item:hover {
+  background: #e2e7ef;
+}
+
+.brush-size-menu-item--active {
+  border-color: #646cff;
+  background: #eef0ff;
 }
 
 .editor-tool-strip .palette-swatch {
@@ -5925,6 +6039,45 @@ button.battle-hub-deck-icon.is-move-target {
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: not-allowed;
+  border-color: #8a8a96;
+}
+
+.editor-color-palette .palette-swatch-locked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.58) 0%,
+    rgba(220, 224, 232, 0.78) 100%
+  );
+  pointer-events: none;
+}
+
+.editor-color-palette .palette-swatch-locked:not(:disabled) {
+  cursor: pointer;
+}
+
+.editor-color-palette .palette-swatch-lock {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.05rem;
+  min-height: 1.05rem;
+  padding: 0.06rem;
+  border-radius: 999px;
+  background: rgba(38, 44, 58, 0.9);
+  color: #f8fafc;
+  font-size: 0.68rem;
+  line-height: 1;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.72);
+  filter: none;
 }
 
 .editor-screen-mini-preview .card-preview {
@@ -6131,9 +6284,10 @@ button.battle-hub-deck-icon.is-move-target {
   height: 0.74rem;
 }
 
-.editor-tool-strip .palette-selection-icon {
-  width: 0.74rem;
-  height: 0.74rem;
+.editor-tool-strip .palette-selection-icon,
+.editor-tool-strip .palette-move-icon {
+  width: 0.88rem;
+  height: 0.88rem;
 }
 
 .editor-tool-strip .palette-eyedropper-icon {
@@ -6267,20 +6421,21 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .palette-swatch-locked {
-  background: #e8e8ee !important;
   cursor: not-allowed;
-  opacity: 0.72;
 }
 
 .editor-tool-strip .palette-swatch-locked {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #e8e8ee !important;
+  opacity: 0.72;
 }
 
 .palette-swatch-lock {
   font-size: 0.72rem;
   line-height: 1;
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px rgba(0, 0, 0, 0.85));
 }
 
 .editor-canvas-wrap {

@@ -52,6 +52,7 @@ const TOOL_LABELS: Record<EditorToolId, string> = {
   rectangle: '矩形',
   circle: '円',
   selection: '選択',
+  move: '移動',
 };
 
 function paletteRewardForLevel(level: number): LevelUpRewardEntry {

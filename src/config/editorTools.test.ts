@@ -69,8 +69,10 @@ describe('editorTools', () => {
     ]);
   });
 
-  it('Lv22〜32 で選択・矩形・円が順に追加される', () => {
+  it('Lv22〜32 で選択・移動・矩形・円が順に追加される', () => {
     expect(getVisibleEditorTools(22)).toContain('selection');
+    expect(getVisibleEditorTools(22)).not.toContain('move');
+    expect(getVisibleEditorTools(23)).toContain('move');
     expect(getVisibleEditorTools(27)).toContain('rectangle');
     expect(getVisibleEditorTools(32)).toEqual([
       'pen',
@@ -82,6 +84,7 @@ describe('editorTools', () => {
       'line',
       'rectangle',
       'circle',
+      'move',
       'selection',
     ]);
   });
@@ -96,7 +99,7 @@ describe('editorTools', () => {
 
   it('未実装ツールは解放レベルに達しても表示しない', () => {
     expect(IDEAL_TOOL_ORDER).toContain('eyedropper');
-    expect(getVisibleEditorTools(50).length).toBe(10);
+    expect(getVisibleEditorTools(50).length).toBe(11);
   });
 
   it('ブラシ色を使うツールを判定できる', () => {
@@ -117,6 +120,7 @@ describe('editorTools', () => {
       'line',
       'rectangle',
       'circle',
+      'move',
       'selection',
     ]);
     expect(getDisplayEditorTools().length).toBeGreaterThan(getVisibleEditorTools(1).length);
@@ -127,8 +131,11 @@ describe('editorTools', () => {
     expect(IDEAL_TOOL_ORDER.indexOf('rectangle')).toBeGreaterThan(
       IDEAL_TOOL_ORDER.indexOf('line'),
     );
+    expect(IDEAL_TOOL_ORDER.indexOf('move')).toBeGreaterThan(
+      IDEAL_TOOL_ORDER.indexOf('circle'),
+    );
     expect(IDEAL_TOOL_ORDER.indexOf('selection')).toBeGreaterThan(
-      IDEAL_TOOL_ORDER.indexOf('redo'),
+      IDEAL_TOOL_ORDER.indexOf('move'),
     );
   });
 });

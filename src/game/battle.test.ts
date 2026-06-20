@@ -1882,6 +1882,69 @@ describe('battle', () => {
     expect(ninjaAfter.stealthActive).toBe(false);
   });
 
+  it('忍の初回近接で毒・氷から反撃デバフを受けない', () => {
+    const playerDeck = [
+      stubCard('忍', 'ninja', 100),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuPoisonDeck = [
+      stubCard('毒', 'poison', 80),
+      ...cards('C').slice(1),
+    ];
+    let poisonState = createBattleState(playerDeck, cpuPoisonDeck);
+    const ninjaVsPoison = poisonState.player.find((u) => u.attribute === 'ninja')!;
+    ninjaVsPoison.stealthActive = false;
+
+    poisonState = resolveTurn(poisonState, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    const ninjaAfterPoison = poisonState.player.find((u) => u.attribute === 'ninja')!;
+    expect(ninjaAfterPoison.currentBp).toBe(100);
+    expect(ninjaAfterPoison.poisonStacks).toHaveLength(0);
+    expect(ninjaAfterPoison.frozenUntilTurn).toBeNull();
+    expect(poisonState.cpu[0]!.currentBp).toBe(0);
+
+    const cpuIceDeck = [
+      stubCard('氷', 'ice', 80),
+      ...cards('C').slice(1),
+    ];
+    let iceState = createBattleState(playerDeck, cpuIceDeck);
+    const ninjaVsIce = iceState.player.find((u) => u.attribute === 'ninja')!;
+    ninjaVsIce.stealthActive = false;
+
+    iceState = resolveTurn(iceState, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    }).state;
+
+    const ninjaAfterIce = iceState.player.find((u) => u.attribute === 'ninja')!;
+    expect(ninjaAfterIce.currentBp).toBe(100);
+    expect(ninjaAfterIce.poisonStacks).toHaveLength(0);
+    expect(ninjaAfterIce.frozenUntilTurn).toBeNull();
+    expect(iceState.cpu[0]!.currentBp).toBe(0);
+  });
+
   it('嵐はステルス中の忍に当たりステルスを解除する', () => {
     const playerDeck = [
       stubCard('嵐', 'storm', 100),

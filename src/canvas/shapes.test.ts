@@ -33,6 +33,22 @@ describe('shapes', () => {
     ]);
   });
 
+  it('drawLine で太さを指定できる', () => {
+    const grid = createEmptyGrid(8);
+    const next = drawLine(grid, 0, 0, 0, 3, '#ff0000', 2);
+    expect(next[0]!.slice(0, 4).every((cell) => cell === '#ff0000')).toBe(true);
+    expect(next[1]![0]).toBe('#ff0000');
+  });
+
+  it('drawRectOutline で太い外枠を描ける', () => {
+    const grid = createEmptyGrid(8);
+    const thin = drawRectOutline(grid, 2, 2, 5, 5, '#00ff00');
+    const thick = drawRectOutline(grid, 2, 2, 5, 5, '#00ff00', 2);
+    const count = (g: typeof grid) =>
+      g.flat().filter((cell) => cell === '#00ff00').length;
+    expect(count(thick)).toBeGreaterThan(count(thin));
+  });
+
   it('drawRectOutline で矩形の外枠のみを描ける', () => {
     const grid = createEmptyGrid(6);
     const next = drawRectOutline(grid, 1, 1, 3, 3, '#00ff00');

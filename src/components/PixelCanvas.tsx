@@ -4,20 +4,22 @@ import {
   drawEllipseOutline,
   drawLine,
   drawRectOutline,
-  eraseCell,
+  eraseBrush,
   extractRect,
   floodFill,
   fragmentHasPixels,
   gridSize,
   isCellInRect,
   isStrokeTool,
+  moveFragment,
   normalizeRect,
-  paintCell,
+  paintBrush,
   samplePixelColor,
   stampFragment,
   type NormalizedRect,
   type PixelFragment,
 } from '../canvas';
+import { brushSideLength, type BrushSizeId } from '../config/brushSize';
 import type { EditorToolId } from '../config/editorTools';
 import type { PixelGrid } from '../types';
 
@@ -25,8 +27,16 @@ interface PixelCanvasProps {
   pixels: PixelGrid;
   onChange: (pixels: PixelGrid) => void;
   onPickColor?: (color: string | null) => void;
+  onFillComplete?: () => void;
   tool: EditorToolId;
   brushColor: string;
+  brushSize?: BrushSizeId;
+}
+
+function isRegionTool(
+  tool: EditorToolId,
+): tool is 'selection' | 'move' {
+  return tool === 'selection' || tool === 'move';
 }
 
 function isShapeDragTool(
@@ -43,10 +53,15 @@ function applyShapePreview(
   r1: number,
   c1: number,
   color: string,
+  strokeSize: number,
 ): PixelGrid {
-  if (tool === 'line') return drawLine(base, r0, c0, r1, c1, color);
-  if (tool === 'rectangle') return drawRectOutline(base, r0, c0, r1, c1, color);
-  return drawEllipseOutline(base, r0, c0, r1, c1, color);
+  if (tool === 'line') {
+    return drawLine(base, r0, c0, r1, c1, color, strokeSize);
+  }
+  if (tool === 'rectangle') {
+    return drawRectOutline(base, r0, c0, r1, c1, color, strokeSize);
+  }
+  return drawEllipseOutline(base, r0, c0, r1, c1, color, strokeSize);
 }
 
 function isMarqueeEdge(
@@ -69,14 +84,17 @@ interface FloatSelection {
   fragment: PixelFragment;
   originRow: number;
   originCol: number;
+  mode: 'copy' | 'move';
 }
 
 export function PixelCanvas({
   pixels,
   onChange,
   onPickColor,
+  onFillComplete,
   tool,
   brushColor,
+  brushSize = 'small',
 }: PixelCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const isDrawingRef = useRef(false);
@@ -117,17 +135,34 @@ export function PixelCanvas({
   useEffect(() => {
     const prev = prevToolRef.current;
     prevToolRef.current = tool;
-    if (prev === 'selection' && tool !== 'selection') {
+    if (isRegionTool(prev) && !isRegionTool(tool)) {
       const floating = floatSelectionRef.current;
       if (floating) {
-        onChange(
-          stampFragment(
-            pixels,
-            floating.fragment,
-            floating.originRow,
-            floating.originCol,
-          ),
-        );
+        const moved =
+          floating.originRow !== floating.sourceRect.minRow ||
+          floating.originCol !== floating.sourceRect.minCol;
+        if (floating.mode === 'move') {
+          if (moved) {
+            onChange(
+              moveFragment(
+                pixels,
+                floating.sourceRect,
+                floating.fragment,
+                floating.originRow,
+                floating.originCol,
+              ),
+            );
+          }
+        } else {
+          onChange(
+            stampFragment(
+              pixels,
+              floating.fragment,
+              floating.originRow,
+              floating.originCol,
+            ),
+          );
+        }
         setFloatSelection(null);
       }
       setMarqueeRect(null);
@@ -142,9 +177,11 @@ export function PixelCanvas({
     setDraftPixels(null);
   };
 
+  const strokeSize = brushSideLength(brushSize);
+
   const applyStrokeCell = (grid: PixelGrid, row: number, col: number) => {
-    if (tool === 'pen') return paintCell(grid, row, col, brushColor);
-    if (tool === 'eraser') return eraseCell(grid, row, col);
+    if (tool === 'pen') return paintBrush(grid, row, col, brushColor, strokeSize);
+    if (tool === 'eraser') return eraseBrush(grid, row, col, strokeSize);
     return grid;
   };
 
@@ -203,6 +240,15 @@ export function PixelCanvas({
     row: number,
     col: number,
   ): PixelGrid => {
+    if (floating.mode === 'move') {
+      return moveFragment(
+        pixels,
+        floating.sourceRect,
+        floating.fragment,
+        row,
+        col,
+      );
+    }
     return stampFragment(pixels, floating.fragment, row, col);
   };
 
@@ -222,14 +268,26 @@ export function PixelCanvas({
   const commitPlacement = () => {
     const floating = floatSelectionRef.current;
     if (!floating) return;
-    onChange(
-      stampFragment(
-        pixels,
-        floating.fragment,
-        floating.originRow,
-        floating.originCol,
-      ),
-    );
+    if (floating.mode === 'move') {
+      onChange(
+        moveFragment(
+          pixels,
+          floating.sourceRect,
+          floating.fragment,
+          floating.originRow,
+          floating.originCol,
+        ),
+      );
+    } else {
+      onChange(
+        stampFragment(
+          pixels,
+          floating.fragment,
+          floating.originRow,
+          floating.originCol,
+        ),
+      );
+    }
     clearFloatSelection();
   };
 
@@ -242,7 +300,7 @@ export function PixelCanvas({
       commitStroke();
     } else if (isShapeDragTool(tool)) {
       commitShape();
-    } else if (tool === 'selection') {
+    } else if (isRegionTool(tool)) {
       if (isPlacementDragRef.current) {
         commitPlacement();
       } else if (shapeAnchorRef.current && marqueeRect) {
@@ -253,6 +311,7 @@ export function PixelCanvas({
             fragment,
             originRow: marqueeRect.minRow,
             originCol: marqueeRect.minCol,
+            mode: tool === 'move' ? 'move' : 'copy',
           });
         }
         setMarqueeRect(null);
@@ -274,6 +333,7 @@ export function PixelCanvas({
 
     if (tool === 'fill') {
       onChange(floodFill(pixels, cell.row, cell.col, brushColor));
+      onFillComplete?.();
       return;
     }
 
@@ -282,7 +342,7 @@ export function PixelCanvas({
       return;
     }
 
-    if (tool === 'selection') {
+    if (isRegionTool(tool)) {
       if (floatSelection) {
         placementGrabOffsetRef.current = {
           row: cell.row - floatSelection.originRow,
@@ -316,6 +376,7 @@ export function PixelCanvas({
         cell.row,
         cell.col,
         brushColor,
+        strokeSize,
       );
       draftPixelsRef.current = next;
       setDraftPixels(next);
@@ -339,7 +400,7 @@ export function PixelCanvas({
     const cell = cellFromPointer(e.clientX, e.clientY);
     if (!cell) return;
 
-    if (tool === 'selection') {
+    if (isRegionTool(tool)) {
       if (isPlacementDragRef.current) {
         const offset = placementGrabOffsetRef.current;
         updatePlacementPreview(
@@ -367,6 +428,7 @@ export function PixelCanvas({
         cell.row,
         cell.col,
         brushColor,
+        strokeSize,
       );
       draftPixelsRef.current = next;
       setDraftPixels(next);
@@ -378,7 +440,7 @@ export function PixelCanvas({
   };
 
   const showFloatSource =
-    tool === 'selection' &&
+    isRegionTool(tool) &&
     floatSelection != null &&
     draftPixels == null &&
     !isPlacementDragRef.current;
@@ -402,7 +464,7 @@ export function PixelCanvas({
       {displayPixels.map((row, ri) =>
         row.map((cell, ci) => {
           const marquee =
-            tool === 'selection' && marqueeRect != null
+            isRegionTool(tool) && marqueeRect != null
               ? isMarqueeEdge(ri, ci, marqueeRect)
               : false;
           const floatSource =

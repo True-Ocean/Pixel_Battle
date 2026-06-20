@@ -187,6 +187,8 @@ export function applyMeleeBattle(
     next = appendLog(next, `${attack.target.name} の盾が攻撃を防いだ`);
   }
 
+  const counterApplies = damageToAttacker > 0;
+
   if (attack.attacker.attribute === 'ninja') {
     onNinjaMeleeAttack(attack.attacker);
   }
@@ -200,14 +202,16 @@ export function applyMeleeBattle(
 
   const freezeOnTarget =
     attack.attacker.attribute === 'ice' && !targetShieldConsumed;
-  /** 氷に近接した側（攻撃側）も凍結。攻撃側の盾で防止可。凍結中の氷は反撃凍結しない */
+  /** 氷に近接した側（攻撃側）も凍結。反撃ダメージ > 0 のときのみ。攻撃側の盾で防止可 */
   const freezeOnAttacker =
+    counterApplies &&
     attack.target.attribute === 'ice' &&
     !attackerHadShield &&
     !targetFrozenAtMelee;
   const poisonOnTarget =
     attack.attacker.attribute === 'poison' && !targetShieldConsumed;
   const poisonOnAttacker =
+    counterApplies &&
     attack.target.attribute === 'poison' &&
     !attackerHadShield &&
     !targetFrozenAtMelee;

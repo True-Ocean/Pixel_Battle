@@ -88,7 +88,7 @@ export function ColorPalette({
             ]
               .filter(Boolean)
               .join(' ')}
-            style={{ background: unlocked ? color : undefined }}
+            style={{ background: color }}
             disabled={!unlocked && !canOpenShop}
             title={title}
             onClick={() => {

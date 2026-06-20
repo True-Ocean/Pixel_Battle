@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
+import type { BrushSizeId } from '../config/brushSize';
 import {
   getDisplayEditorTools,
   getToolUnlockLevel,
   isEditorToolUnlocked,
   type EditorToolId,
 } from '../config/editorTools';
+import { BrushSizeTool } from './BrushSizeTool';
 
 interface ToolStripProps {
   tool: EditorToolId;
@@ -15,6 +17,8 @@ interface ToolStripProps {
   onClear: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  brushSize: BrushSizeId;
+  onBrushSizeChange: (size: BrushSizeId) => void;
 }
 
 function EditorToolButton({
@@ -76,6 +80,8 @@ export function ToolStrip({
   onClear,
   onUndo,
   onRedo,
+  brushSize,
+  onBrushSizeChange,
 }: ToolStripProps) {
   const displayTools = getDisplayEditorTools();
 
@@ -182,6 +188,22 @@ export function ToolStrip({
           );
         }
 
+        if (toolId === 'move') {
+          return (
+            <EditorToolButton
+              key={toolId}
+              toolId={toolId}
+              userLevel={userLevel}
+              active={tool === 'move'}
+              baseClassName="palette-swatch palette-swatch-tool palette-swatch-move"
+              label="移動"
+              onClick={() => onSelectTool('move')}
+            >
+              <span className="palette-move-icon" aria-hidden />
+            </EditorToolButton>
+          );
+        }
+
         if (toolId === 'pen') {
           return (
             <EditorToolButton
@@ -256,6 +278,7 @@ export function ToolStrip({
 
         return null;
       })}
+      <BrushSizeTool size={brushSize} onChange={onBrushSizeChange} />
     </div>
   );
 }
