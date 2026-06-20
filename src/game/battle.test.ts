@@ -814,7 +814,7 @@ describe('battle', () => {
     expect(state.player[0].currentBp).toBe(0);
   });
 
-  it('氷が毒に近接すると毒は凍結され氷には毒が付かない', () => {
+  it('氷が毒に近接すると毒は凍結され氷には反撃毒が付く', () => {
     const playerDeck = [
       stubCard('氷', 'ice', 80),
       stubCard('P2', 'attack', 50),
@@ -846,11 +846,12 @@ describe('battle', () => {
     expect(poison.frozenUntilTurn).toBe(2);
     expect(poison.currentBp).toBe(20);
     expect(isFrozen(poison, getSelectionTurn(state))).toBe(true);
-    expect(ice.poisonStacks).toHaveLength(0);
+    expect(ice.poisonStacks).toHaveLength(1);
+    expect(ice.poisonStacks[0]!.damagePerTurn).toBe(30);
     expect(poison.poisonStacks).toHaveLength(0);
   });
 
-  it('毒が氷に近接すると毒は凍結され氷には毒が付かない', () => {
+  it('毒が氷に近接すると毒は凍結され氷には毒が付く', () => {
     const playerDeck = [
       stubCard('毒', 'poison', 80),
       stubCard('P2', 'attack', 50),
@@ -881,8 +882,46 @@ describe('battle', () => {
     const ice = state.cpu[0]!;
     expect(poison.frozenUntilTurn).toBe(2);
     expect(isFrozen(poison, getSelectionTurn(state))).toBe(true);
-    expect(ice.poisonStacks).toHaveLength(0);
+    expect(ice.poisonStacks).toHaveLength(1);
+    expect(ice.poisonStacks[0]!.damagePerTurn).toBe(24);
     expect(poison.poisonStacks).toHaveLength(0);
+  });
+
+  it('氷と毒の相打ち近接では毒は凍結し氷には毒が付く', () => {
+    const playerDeck = [
+      stubCard('氷', 'ice', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('毒', 'poison', 80),
+      ...cards('C').slice(1),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+    }).state;
+
+    const ice = state.player[0]!;
+    const poison = state.cpu[0]!;
+    expect(poison.frozenUntilTurn).toBe(2);
+    expect(ice.poisonStacks).toHaveLength(1);
+    expect(ice.poisonStacks[0]!.damagePerTurn).toBe(24);
+    expect(poison.poisonStacks).toHaveLength(0);
+    expect(ice.currentBp).toBe(0);
+    expect(poison.currentBp).toBe(0);
   });
 
   it('毒DoTは次ターン開始時に適用される', () => {

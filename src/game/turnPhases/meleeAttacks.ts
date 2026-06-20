@@ -142,14 +142,6 @@ function counterDamage(target: BattleUnit, bidirectional: boolean): number {
   return Math.round(raw * MELEE_COUNTER_RATIO_ONE_SIDED);
 }
 
-/** 氷×毒の近接では毒側のみ凍結し、氷側には毒を付与しない */
-function isIcePoisonMelee(attacker: BattleUnit, target: BattleUnit): boolean {
-  return (
-    (attacker.attribute === 'ice' && target.attribute === 'poison') ||
-    (attacker.attribute === 'poison' && target.attribute === 'ice')
-  );
-}
-
 export function applyMeleeBattle(
   state: BattleState,
   player: BattleUnit[],
@@ -205,7 +197,6 @@ export function applyMeleeBattle(
   );
   attack.target.currentBp = Math.max(0, attack.target.currentBp - damageToTarget);
 
-  const icePoisonMelee = isIcePoisonMelee(attack.attacker, attack.target);
   const freezeOnTarget =
     attack.attacker.attribute === 'ice' && !targetShieldConsumed;
   /** 氷に近接した側（攻撃側）も凍結。攻撃側の盾で防止可。凍結中の氷は反撃凍結しない */
@@ -214,13 +205,10 @@ export function applyMeleeBattle(
     !attackerShieldConsumed &&
     !targetFrozenAtMelee;
   const poisonOnTarget =
-    attack.attacker.attribute === 'poison' &&
-    !targetShieldConsumed &&
-    !(icePoisonMelee && attack.target.attribute === 'ice');
+    attack.attacker.attribute === 'poison' && !targetShieldConsumed;
   const poisonOnAttacker =
     attack.target.attribute === 'poison' &&
     !attackerShieldConsumed &&
-    !(icePoisonMelee && attack.attacker.attribute === 'ice') &&
     !targetFrozenAtMelee;
 
   if (freezeOnTarget) {
