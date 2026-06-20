@@ -23,6 +23,7 @@ import {
   calcLimitBreakBpGain,
   calcTotalLevelUpJewels,
   getLimitBreakRarityJewelCost,
+  getLimitBreakShardsRequired,
   calcLostSelectionWeight,
   calcSurvivorPixels,
   calcVictoryBattlePixels,
@@ -86,6 +87,16 @@ describe('getLimitBreakRarityJewelCost', () => {
     expect(getLimitBreakRarityJewelCost('R')).toBe(20);
     expect(getLimitBreakRarityJewelCost('SR')).toBe(40);
     expect(getLimitBreakRarityJewelCost('UR')).toBeNull();
+  });
+});
+
+describe('getLimitBreakShardsRequired', () => {
+  it('現在レア度ごとのかけら必要数', () => {
+    expect(getLimitBreakShardsRequired('N')).toBe(10);
+    expect(getLimitBreakShardsRequired('R')).toBe(15);
+    expect(getLimitBreakShardsRequired('SR')).toBe(20);
+    expect(getLimitBreakShardsRequired('UR')).toBe(20);
+    expect(getLimitBreakShardsRequired('L')).toBe(20);
   });
 });
 

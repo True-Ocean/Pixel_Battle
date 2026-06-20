@@ -17,7 +17,7 @@
 |------|--------------|------|----------|
 | ピクセルコイン | `freePixels` | バトル、レベルアップ、**カード削除返還**、勝利2倍広告 | 復活/降格復活、護符購入（px 枠）、**リネーム初回**、編集時キャンバス拡大 |
 | 💎 ジュエル | `jewels` | 課金、**毎レベル少量**、L≡4 (mod 5) ボーナス | 削除・リネーム（2回目以降）・デッキ3以降・限界突破レア昇格・創作拡張の **その場消費** |
-| 属性かけら | `limitBreakShards[attribute]` | **勝利時の戦利品選択** | 同一属性カードの限界突破（**10個で1回**） |
+| 属性かけら | `limitBreakShards[attribute]` | **勝利時の戦利品選択** | 同一属性カードの限界突破（**N=10 / R=15 / SR・UR=20**） |
 | 汎用かけら | `limitBreakUniversal` | **Lv20, 30, 40…** | 任意属性のかけらとして消費（属性かけらと同価値） |
 | 護符 | `inventory.talisman` | **Lv5 到達（初回 ×1）**、ショップ（px/💎）、サブスク | ロスト1回免れ（装備消費） |
 
@@ -66,7 +66,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 実行コスト | **かけら合計10個**（専用＋汎用、**1:1**・内訳選択可）（px・💎不可） |
+| 実行コスト | **かけら合計**（専用＋汎用、**1:1**・内訳選択可）（px・💎不可）。**N=10 / R=15 / SR・UR=20** |
 | 戦利品 | 相手墓地1枚選択時: **px（現行式）＋ 選択カード属性のかけら**（N=1, R=2, SR=3） |
 | BP | **基礎BP × 3%/回** を均等加算（★アップ・レア昇格で同量。`LIMIT_BREAK_BP_GAIN_RATE`） |
 | 対象 | 所持カードと **同一属性** の専用かけら ＋ 任意属性の汎用かけら |
@@ -181,7 +181,7 @@
 3. `src/user/economy.ts` — `addJewels`, `spendJewels`, 正規化
 4. `src/config/economy.ts` — 新定数（TBD 初期値）
    - `JEWELS_PER_LEVEL`, `JEWELS_BONUS_MOD4`, `JEWEL_COST_DELETE`, `JEWEL_COST_RENAME`, `JEWEL_COST_DECK_UNLOCK`
-   - `LIMIT_BREAK_SHARDS_REQUIRED`（= 10）、`LIMIT_BREAK_BP_GAIN_RATE`（= 0.03）
+   - `getLimitBreakShardsRequired`（N=10/R=15/SR・UR=20）、`LIMIT_BREAK_BP_GAIN_RATE`（= 0.03）
    - `GRAVEYARD_SHARD_REWARD`（N=1, R=2, SR=3）、`BATTLE_DAILY_FREE_LIMIT`（= 10）
 5. `schemaVersion` マイグレーション（既存セーブ: jewels=0, 空インベントリ）
 6. Lv10 以上 & `unlockedDeckCount < 2` のセーブ補正
@@ -290,7 +290,7 @@
 5. 設定 **開発メニュー** — 「すべてのかけらを100個にする」（`fillAllLimitBreakShards`）
 6. ~~**レア昇格時の追加 💎**~~ — **✅ プロトタイプ追加** — `LIMIT_BREAK_RARITY_JEWEL_COST`（N=10/R=20/SR=40）
 
-**完了条件**: かけら10（専用+汎用の組み合わせ・内訳選択可）で★+1が動く。各段階でBPが均等加算される。レア昇格時はかけら10＋💎。
+**完了条件**: レア度に応じたかけら（専用+汎用の組み合わせ・内訳選択可）で★+1が動く。各段階でBPが均等加算される。レア昇格時はかけら＋💎。
 
 ---
 
@@ -422,7 +422,7 @@ flowchart TD
 | `JEWEL_COST_RENAME` | 1 | リネーム2回目以降（プロトタイプ） |
 | `LIMIT_BREAK_RARITY_JEWEL_COST` | N=10, R=20, SR=40 | 限界突破4回目（レア昇格）の追加 💎 |
 | `JEWEL_COST_DECK_UNLOCK` | 200 | デッキ3〜各1回 |
-| `LIMIT_BREAK_SHARDS_REQUIRED` | 10 | |
+| `getLimitBreakShardsRequired` | N=10, R=15, SR/UR=20 | |
 | `LIMIT_BREAK_BP_GAIN_RATE` | 0.03 | 限界突破1回のBP加算（基礎BP×率、最低1） |
 | `GRAVEYARD_SHARD_REWARD` | N=1, R=2, SR=3 | 戦利品かけら（確定） |
 | `BATTLE_DAILY_FREE_LIMIT` | 10 | 非会員 |
@@ -507,7 +507,7 @@ flowchart TD
 - [x] 日次リセットのタイムゾーン（**JST 固定**）
 - [x] 限界突破 UI: かけら不足時は非表示、専用・汎用をステッパーで内訳選択
 - [x] 限界突破 BP: **基礎BP×3%/回** の均等加算（レア昇格でも減少しない）
-- [x] 汎用かけらは専用かけらと **1:1 同価値**（10個で1回、組み合わせ可）
+- [x] 汎用かけらは専用かけらと **1:1 同価値**（必要数はレア度別、組み合わせ可）
 
 ---
 

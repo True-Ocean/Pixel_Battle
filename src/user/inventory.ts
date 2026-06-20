@@ -171,8 +171,15 @@ export function spendLimitBreakShards(
 export function canAffordLimitBreak(
   attributeShardCount: number,
   universalShardCount: number,
+  shardsRequired: number,
 ): boolean {
-  return planLimitBreakShardSpend(attributeShardCount, universalShardCount) != null;
+  return (
+    planLimitBreakShardSpend(
+      attributeShardCount,
+      universalShardCount,
+      shardsRequired,
+    ) != null
+  );
 }
 
 /** 指定した内訳でかけらを消費する（専用・汎用は1:1）。 */
@@ -180,10 +187,13 @@ export function spendLimitBreakResources(
   inventory: UserInventory,
   attribute: Attribute,
   spend: LimitBreakShardSpendPlan,
+  shardsRequired: number,
 ): UserInventory | null {
   const attrCount = inventory.limitBreakShards[attribute] ?? 0;
   const universalCount = inventory.limitBreakUniversal;
-  if (!isValidLimitBreakShardSpend(spend, attrCount, universalCount)) return null;
+  if (!isValidLimitBreakShardSpend(spend, attrCount, universalCount, shardsRequired)) {
+    return null;
+  }
 
   let next = inventory;
   if (spend.attrSpend > 0) {

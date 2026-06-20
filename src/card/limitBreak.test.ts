@@ -52,30 +52,66 @@ describe('getLimitBreakStarColor', () => {
 });
 
 describe('planLimitBreakShardSpend', () => {
-  it('専用+汎用の合計10で消費内訳を決める', () => {
-    expect(planLimitBreakShardSpend(10, 0)).toEqual({ attrSpend: 10, universalSpend: 0 });
-    expect(planLimitBreakShardSpend(5, 5)).toEqual({ attrSpend: 5, universalSpend: 5 });
-    expect(planLimitBreakShardSpend(0, 10)).toEqual({ attrSpend: 0, universalSpend: 10 });
-    expect(planLimitBreakShardSpend(7, 5)).toEqual({ attrSpend: 7, universalSpend: 3 });
-    expect(planLimitBreakShardSpend(5, 4)).toBeNull();
+  it('専用+汎用の合計が必要数以上なら消費内訳を決める', () => {
+    expect(planLimitBreakShardSpend(10, 0, 10)).toEqual({
+      attrSpend: 10,
+      universalSpend: 0,
+    });
+    expect(planLimitBreakShardSpend(5, 5, 10)).toEqual({
+      attrSpend: 5,
+      universalSpend: 5,
+    });
+    expect(planLimitBreakShardSpend(0, 10, 10)).toEqual({
+      attrSpend: 0,
+      universalSpend: 10,
+    });
+    expect(planLimitBreakShardSpend(7, 5, 10)).toEqual({
+      attrSpend: 7,
+      universalSpend: 3,
+    });
+    expect(planLimitBreakShardSpend(5, 4, 10)).toBeNull();
+  });
+
+  it('レア度に応じた必要数で判定する', () => {
+    expect(planLimitBreakShardSpend(15, 0, 15)).toEqual({
+      attrSpend: 15,
+      universalSpend: 0,
+    });
+    expect(planLimitBreakShardSpend(10, 4, 15)).toBeNull();
+    expect(planLimitBreakShardSpend(12, 8, 20)).toEqual({
+      attrSpend: 12,
+      universalSpend: 8,
+    });
   });
 });
 
 describe('getLimitBreakAttrSpendRange', () => {
   it('専用かけらの選択可能範囲', () => {
-    expect(getLimitBreakAttrSpendRange(10, 0)).toEqual({ min: 10, max: 10 });
-    expect(getLimitBreakAttrSpendRange(5, 5)).toEqual({ min: 5, max: 5 });
-    expect(getLimitBreakAttrSpendRange(7, 5)).toEqual({ min: 5, max: 7 });
-    expect(getLimitBreakAttrSpendRange(5, 4)).toBeNull();
+    expect(getLimitBreakAttrSpendRange(10, 0, 10)).toEqual({ min: 10, max: 10 });
+    expect(getLimitBreakAttrSpendRange(5, 5, 10)).toEqual({ min: 5, max: 5 });
+    expect(getLimitBreakAttrSpendRange(7, 5, 10)).toEqual({ min: 5, max: 7 });
+    expect(getLimitBreakAttrSpendRange(5, 4, 10)).toBeNull();
+    expect(getLimitBreakAttrSpendRange(20, 0, 20)).toEqual({ min: 20, max: 20 });
   });
 });
 
 describe('isValidLimitBreakShardSpend', () => {
-  it('合計10かつ所持以内のみ有効', () => {
-    expect(isValidLimitBreakShardSpend({ attrSpend: 5, universalSpend: 5 }, 5, 5)).toBe(true);
-    expect(isValidLimitBreakShardSpend({ attrSpend: 3, universalSpend: 7 }, 5, 7)).toBe(true);
-    expect(isValidLimitBreakShardSpend({ attrSpend: 6, universalSpend: 4 }, 5, 5)).toBe(false);
-    expect(isValidLimitBreakShardSpend({ attrSpend: 5, universalSpend: 4 }, 5, 5)).toBe(false);
+  it('必要数合計かつ所持以内のみ有効', () => {
+    expect(
+      isValidLimitBreakShardSpend({ attrSpend: 5, universalSpend: 5 }, 5, 5, 10),
+    ).toBe(true);
+    expect(
+      isValidLimitBreakShardSpend({ attrSpend: 3, universalSpend: 7 }, 5, 7, 10),
+    ).toBe(true);
+    expect(
+      isValidLimitBreakShardSpend({ attrSpend: 6, universalSpend: 4 }, 5, 5, 10),
+    ).toBe(false);
+    expect(
+      isValidLimitBreakShardSpend({ attrSpend: 5, universalSpend: 4 }, 5, 5, 10),
+    ).toBe(false);
+    expect(
+      isValidLimitBreakShardSpend({ attrSpend: 10, universalSpend: 5 }, 15, 5, 15),
+    ).toBe(true);
   });
 });
 
@@ -89,9 +125,10 @@ describe('describeLimitBreakSpendPlan', () => {
 
 describe('describeLimitBreakCost', () => {
   it('消費内容の表示', () => {
-    expect(describeLimitBreakCost('剣', 10, 0)).toBe('剣のかけら 10');
-    expect(describeLimitBreakCost('剣', 5, 5)).toBe('剣のかけら 5 + 汎用 5');
-    expect(describeLimitBreakCost('剣', 0, 10)).toBe('汎用 10');
+    expect(describeLimitBreakCost('剣', 10, 0, 10)).toBe('剣のかけら 10');
+    expect(describeLimitBreakCost('剣', 5, 5, 10)).toBe('剣のかけら 5 + 汎用 5');
+    expect(describeLimitBreakCost('剣', 0, 10, 10)).toBe('汎用 10');
+    expect(describeLimitBreakCost('剣', 0, 20, 20)).toBe('汎用 20');
   });
 });
 

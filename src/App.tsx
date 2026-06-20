@@ -6,7 +6,7 @@ import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, finalizeCardNameForCreation, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, type LimitBreakShardSpendPlan } from './card';
-import { getLimitBreakRarityJewelCost, BATTLE_MATCH_CANCEL_COST } from './config/economy';
+import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleHistory, saveSave } from './storage';
@@ -731,6 +731,7 @@ function App() {
         inventoryRef.current,
         target.attribute,
         spend,
+        getLimitBreakShardsRequired(target.rarity),
       );
       if (!spent) return;
 

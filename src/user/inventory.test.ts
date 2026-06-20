@@ -64,13 +64,15 @@ describe('user inventory', () => {
     });
   });
 
-  it('canAffordLimitBreak: 専用+汎用の合計10以上', () => {
-    expect(canAffordLimitBreak(10, 0)).toBe(true);
-    expect(canAffordLimitBreak(5, 5)).toBe(true);
-    expect(canAffordLimitBreak(0, 10)).toBe(true);
-    expect(canAffordLimitBreak(5, 4)).toBe(false);
-    expect(canAffordLimitBreak(5, 0)).toBe(false);
-    expect(canAffordLimitBreak(0, 0)).toBe(false);
+  it('canAffordLimitBreak: 専用+汎用の合計が必要数以上', () => {
+    expect(canAffordLimitBreak(10, 0, 10)).toBe(true);
+    expect(canAffordLimitBreak(5, 5, 10)).toBe(true);
+    expect(canAffordLimitBreak(0, 10, 10)).toBe(true);
+    expect(canAffordLimitBreak(5, 4, 10)).toBe(false);
+    expect(canAffordLimitBreak(5, 0, 10)).toBe(false);
+    expect(canAffordLimitBreak(0, 0, 10)).toBe(false);
+    expect(canAffordLimitBreak(15, 0, 15)).toBe(true);
+    expect(canAffordLimitBreak(14, 0, 15)).toBe(false);
   });
 
   it('spendLimitBreakResources: 指定内訳で消費する', () => {
@@ -80,14 +82,24 @@ describe('user inventory', () => {
       limitBreakShards: { attack: 5, ice: 12 },
     };
     expect(
-      spendLimitBreakResources(combinedBase, 'attack', { attrSpend: 5, universalSpend: 5 }),
+      spendLimitBreakResources(
+        combinedBase,
+        'attack',
+        { attrSpend: 5, universalSpend: 5 },
+        10,
+      ),
     ).toEqual({
       talisman: 0,
       limitBreakUniversal: 2,
       limitBreakShards: { ice: 12 },
     });
     expect(
-      spendLimitBreakResources(combinedBase, 'attack', { attrSpend: 3, universalSpend: 7 }),
+      spendLimitBreakResources(
+        combinedBase,
+        'attack',
+        { attrSpend: 3, universalSpend: 7 },
+        10,
+      ),
     ).toEqual({
       talisman: 0,
       limitBreakUniversal: 0,
@@ -100,7 +112,12 @@ describe('user inventory', () => {
       limitBreakShards: { ice: 12 },
     };
     expect(
-      spendLimitBreakResources(attrOnlyBase, 'ice', { attrSpend: 10, universalSpend: 0 }),
+      spendLimitBreakResources(
+        attrOnlyBase,
+        'ice',
+        { attrSpend: 10, universalSpend: 0 },
+        10,
+      ),
     ).toEqual({
       talisman: 0,
       limitBreakUniversal: 2,
@@ -113,7 +130,12 @@ describe('user inventory', () => {
       limitBreakShards: { attack: 5, ice: 12 },
     };
     expect(
-      spendLimitBreakResources(universalOnlyBase, 'attack', { attrSpend: 0, universalSpend: 10 }),
+      spendLimitBreakResources(
+        universalOnlyBase,
+        'attack',
+        { attrSpend: 0, universalSpend: 10 },
+        10,
+      ),
     ).toEqual({
       talisman: 0,
       limitBreakUniversal: 2,
@@ -121,7 +143,12 @@ describe('user inventory', () => {
     });
 
     expect(
-      spendLimitBreakResources(combinedBase, 'attack', { attrSpend: 5, universalSpend: 4 }),
+      spendLimitBreakResources(
+        combinedBase,
+        'attack',
+        { attrSpend: 5, universalSpend: 4 },
+        10,
+      ),
     ).toBeNull();
   });
 

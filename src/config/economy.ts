@@ -49,8 +49,21 @@ export const PIXEL_COST_PALETTE_SHOP_TIER2 = 2200;
 /** バトルマッチングキャンセル時の px コスト */
 export const BATTLE_MATCH_CANCEL_COST = 25;
 
-/** 限界突破に必要な属性かけら数 */
-export const LIMIT_BREAK_SHARDS_REQUIRED = 10;
+/** 限界突破1回に必要なかけら数（現在レア度別。専用＋汎用の合計） */
+export const LIMIT_BREAK_SHARDS_REQUIRED_BY_RARITY: Record<
+  Extract<CardRarity, 'N' | 'R' | 'SR' | 'UR' | 'L'>,
+  number
+> = {
+  N: 10,
+  R: 15,
+  SR: 20,
+  UR: 20,
+  L: 20,
+};
+
+export function getLimitBreakShardsRequired(rarity: CardRarity): number {
+  return LIMIT_BREAK_SHARDS_REQUIRED_BY_RARITY[rarity] ?? 20;
+}
 
 /** レア昇格時のジュエルコスト（現在レア→次レア） */
 export const LIMIT_BREAK_RARITY_JEWEL_COST: Partial<

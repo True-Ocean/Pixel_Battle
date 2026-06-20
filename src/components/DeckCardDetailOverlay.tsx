@@ -11,7 +11,7 @@ import {
   isValidLimitBreakShardSpend,
   type LimitBreakShardSpendPlan,
 } from '../card';
-import { getLimitBreakRarityJewelCost, JEWEL_COST_DELETE, LIMIT_BREAK_SHARDS_REQUIRED } from '../config/economy';
+import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, JEWEL_COST_DELETE } from '../config/economy';
 import { getAttributeMeta } from '../config/attributes';
 import { canAffordLimitBreak } from '../user/inventory';
 import type { Card } from '../types';
@@ -73,9 +73,11 @@ export function DeckCardDetailOverlay({
     limitBreakKind === 'rarity' ? getLimitBreakRarityJewelCost(card.rarity) : null;
   const nextRarity =
     limitBreakKind === 'rarity' ? getUpgradedRarity(card.rarity) : null;
+  const shardsRequired = getLimitBreakShardsRequired(card.rarity);
   const hasLimitBreakShards = canAffordLimitBreak(
     attributeShardCount,
     universalShardCount,
+    shardsRequired,
   );
   const canAffordJewels = rarityJewelCost == null || jewels >= rarityJewelCost;
   const limitBreakCap = isLimitBreakCapReached(card);
@@ -83,25 +85,36 @@ export function DeckCardDetailOverlay({
   const attrSpendRange = getLimitBreakAttrSpendRange(
     attributeShardCount,
     universalShardCount,
+    shardsRequired,
   );
   const [attrSpend, setAttrSpend] = useState(() =>
-    defaultLimitBreakAttrSpend(attributeShardCount, universalShardCount),
+    defaultLimitBreakAttrSpend(
+      attributeShardCount,
+      universalShardCount,
+      shardsRequired,
+    ),
   );
 
   useEffect(() => {
-    setAttrSpend(defaultLimitBreakAttrSpend(attributeShardCount, universalShardCount));
-  }, [card.id, attributeShardCount, universalShardCount]);
+    setAttrSpend(
+      defaultLimitBreakAttrSpend(
+        attributeShardCount,
+        universalShardCount,
+        shardsRequired,
+      ),
+    );
+  }, [card.id, card.rarity, attributeShardCount, universalShardCount, shardsRequired]);
 
-  const universalSpend = LIMIT_BREAK_SHARDS_REQUIRED - attrSpend;
+  const universalSpend = shardsRequired - attrSpend;
   const spendPlan: LimitBreakShardSpendPlan = { attrSpend, universalSpend };
   const spendIsValid = isValidLimitBreakShardSpend(
     spendPlan,
     attributeShardCount,
     universalShardCount,
+    shardsRequired,
   );
   const attributeShardsUnavailable =
-    attributeShardCount === 0 &&
-    universalShardCount >= LIMIT_BREAK_SHARDS_REQUIRED;
+    attributeShardCount === 0 && universalShardCount >= shardsRequired;
   const reviveAriaLabel = canAffordRevive
     ? `復活 ${reviveCost.toLocaleString()}px`
     : `復活 ${reviveCost.toLocaleString()}px 必要・不足`;
@@ -233,7 +246,7 @@ export function DeckCardDetailOverlay({
                     type="button"
                     className="deck-card-detail-limit-break-step"
                     aria-label="汎用のかけらを減らす"
-                    disabled={universalSpend <= LIMIT_BREAK_SHARDS_REQUIRED - attrSpendRange.max}
+                    disabled={universalSpend <= shardsRequired - attrSpendRange.max}
                     onClick={() => adjustAttrSpend(1)}
                   >
                     −
@@ -248,7 +261,7 @@ export function DeckCardDetailOverlay({
                     type="button"
                     className="deck-card-detail-limit-break-step"
                     aria-label="汎用のかけらを増やす"
-                    disabled={universalSpend >= LIMIT_BREAK_SHARDS_REQUIRED - attrSpendRange.min}
+                    disabled={universalSpend >= shardsRequired - attrSpendRange.min}
                     onClick={() => adjustAttrSpend(-1)}
                   >
                     ＋
