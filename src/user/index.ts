@@ -74,8 +74,22 @@ export {
   normalizeShopPurchaseState,
   normalizeUserSubscription,
   resolveJewelPackGrantAmount,
+  resolveSubscriptionPlanButtonState,
 } from './shop';
-export type { ShopPurchaseResult } from './shop';
+export type {
+  MockSubscribeResult,
+  ShopPurchaseResult,
+  SubscriptionPlanButtonState,
+} from './shop';
+export {
+  devSetSubscriptionPlan,
+  formatSubscriptionPlanLabel,
+  getActiveSubscriptionPlan,
+  hasPremiumAlwaysDouble,
+  isSubscriptionActive,
+  skipsBattleStartAd,
+  skipsCreativeAd,
+} from './subscription';
 export {
   calcBattleExpGain,
   expToNextLevel,

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import type { AdState, Attribute, Card, MemoryAlbumState, ScreenId, ShopPurchaseState, UserProfile, UserEconomy, UserInventory, UserSubscription, BattleOutcome, BattleHistoryEntry } from './types';
+import type { AdState, Attribute, Card, MemoryAlbumState, ScreenId, ShopPurchaseState, SubscriptionPlan, UserProfile, UserEconomy, UserInventory, UserSubscription, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { isAttributeUnlockedAtLevel } from './config/attributeUnlock';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
@@ -11,7 +11,7 @@ import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleHistory, saveSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
   unlockPaletteWithJewels,
@@ -375,15 +375,18 @@ function App() {
 
   const handleSubscribe = useCallback(
     (plan: 'light' | 'premium') => {
-      applyShopPurchaseResult(
-        mockSubscribe(
-          economyRef.current,
-          inventoryRef.current,
-          shopPurchaseRef.current,
-          subscriptionRef.current,
-          plan,
-        ),
+      const outcome = mockSubscribe(
+        economyRef.current,
+        inventoryRef.current,
+        shopPurchaseRef.current,
+        subscriptionRef.current,
+        plan,
       );
+      if (outcome.ok) {
+        applyShopPurchaseResult(outcome.result);
+      } else {
+        setShopPurchaseMessage(outcome.message);
+      }
     },
     [applyShopPurchaseResult],
   );
@@ -480,6 +483,7 @@ function App() {
       const level = userRef.current?.level ?? 1;
       if (
         isNormalBattleAdsEnabledAtUserLevel(level) &&
+        !skipsBattleStartAd(subscriptionRef.current) &&
         shouldRequireBattleStartAd(adStateRef.current.battleStarts ?? 0)
       ) {
         setBattleStartPendingAd({ kind: 'normal', deckIndex });
@@ -587,7 +591,10 @@ function App() {
   const startHistoryRematchBattle = useCallback(
     (deckIndex: number) => {
       const starts = adStateRef.current.battleStarts ?? 0;
-      if (shouldRequireBattleStartAd(starts)) {
+      if (
+        !skipsBattleStartAd(subscriptionRef.current) &&
+        shouldRequireBattleStartAd(starts)
+      ) {
         setBattleStartPendingAd({ kind: 'historyRematch', deckIndex });
         return;
       }
@@ -1464,9 +1471,12 @@ function App() {
       if (!outcome) return;
       setPendingGraveyardOutcome(null);
       setGraveyardVictoryDoubleCard(null);
+      const doubleVictoryRewards =
+        options?.doubleRewards === true ||
+        hasPremiumAlwaysDouble(subscriptionRef.current);
       finalizeBattleOutcome(outcome, {
         graveyardCard: card,
-        doubleVictoryRewards: options?.doubleRewards === true,
+        doubleVictoryRewards,
       });
     },
     [finalizeBattleOutcome, pendingGraveyardOutcome],
@@ -1626,6 +1636,20 @@ function App() {
       persistSave({ economy: nextEconomy });
       setEconomy(nextEconomy);
       economyRef.current = nextEconomy;
+    },
+    [persistSave],
+  );
+
+  const handleDevSetSubscription = useCallback(
+    (plan: SubscriptionPlan): string => {
+      if (!import.meta.env.DEV) {
+        return '開発ビルドでのみ利用できます。';
+      }
+      const nextSubscription = devSetSubscriptionPlan(plan);
+      setSubscription(nextSubscription);
+      subscriptionRef.current = nextSubscription;
+      persistSave({ subscription: nextSubscription });
+      return `サブスクを ${formatSubscriptionPlanLabel(nextSubscription)} に変更しました。`;
     },
     [persistSave],
   );
@@ -1922,8 +1946,16 @@ function App() {
   }, [pendingGraveyardOutcome, user]);
 
   const showGraveyardVictoryDoubleAd = useMemo(
-    () => isProfileComplete(user) && isNormalBattleAdsEnabledAtUserLevel(user.level),
-    [user],
+    () =>
+      isProfileComplete(user) &&
+      isNormalBattleAdsEnabledAtUserLevel(user.level) &&
+      !hasPremiumAlwaysDouble(subscription),
+    [subscription, user],
+  );
+
+  const subscriptionPlanLabel = useMemo(
+    () => formatSubscriptionPlanLabel(subscription),
+    [subscription],
   );
 
   const battleEndNewBattleDisabled = useMemo(() => {
@@ -2026,6 +2058,13 @@ function App() {
             }}
             onEditCard={(card, options) => {
               if (options?.returnToDetail) {
+                if (skipsCreativeAd(subscriptionRef.current)) {
+                  setEditingCard(card);
+                  setEditorReturnToDetail(true);
+                  setDeckReorderMode(false);
+                  setScreen('editor');
+                  return;
+                }
                 setCardEditPendingAd(card);
                 return;
               }
@@ -2132,6 +2171,7 @@ function App() {
             attributeShardsCount={getUniformAttributeShardsCount(inventory)}
             universalShardCount={inventory.limitBreakUniversal}
             talismanCount={inventory.talisman}
+            subscriptionLabel={subscriptionPlanLabel}
             onBack={closeSettings}
             devCardOptions={devCardOptions}
             devDeckFillOptions={devDeckFillOptions}
@@ -2140,6 +2180,7 @@ function App() {
             onDevSetUnlockedDeckCount={handleDevSetUnlockedDeckCount}
             onDevSetFreePixels={handleDevSetFreePixels}
             onDevSetJewels={handleDevSetJewels}
+            onDevSetSubscription={handleDevSetSubscription}
             onDevSetAttributeShards={handleDevSetAttributeShards}
             onDevSetUniversalShards={handleDevSetUniversalShards}
             onDevSetTalisman={handleDevSetTalisman}

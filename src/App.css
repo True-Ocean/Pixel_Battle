@@ -3379,6 +3379,15 @@ button.battle-hub-deck-icon.is-move-target {
 .shop-buy-btn--plan {
   width: 100%;
   margin-top: 0.55rem;
+  flex-direction: column;
+  min-height: 2.5rem;
+  padding: 0.35rem 0.55rem;
+  line-height: 1.25;
+}
+
+.shop-plan-btn-price {
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .shop-buy-coin-icon {

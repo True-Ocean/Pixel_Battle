@@ -6,7 +6,7 @@ import {
 } from '../config/balance';
 import { clampUnlockedDeckCount } from '../deckSlots';
 import { getLevelProgress } from '../user';
-import type { UserProfile } from '../types';
+import type { SubscriptionPlan, UserProfile } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
 import { getAllJewelPaletteIndices } from '../config/paletteShop';
 
@@ -31,6 +31,7 @@ export interface SettingsScreenProps {
   attributeShardsCount: number;
   universalShardCount: number;
   talismanCount: number;
+  subscriptionLabel: string;
   onBack?: () => void;
   devCardOptions: DevCardOption[];
   devDeckFillOptions: DevDeckFillOption[];
@@ -39,6 +40,7 @@ export interface SettingsScreenProps {
   onDevSetUnlockedDeckCount: (count: number) => void;
   onDevSetFreePixels: (amount: number) => void;
   onDevSetJewels: (amount: number) => void;
+  onDevSetSubscription: (plan: SubscriptionPlan) => string;
   onDevSetAttributeShards: (count: number) => string;
   onDevSetUniversalShards: (count: number) => string;
   onDevSetTalisman: (count: number) => string;
@@ -103,6 +105,7 @@ export function SettingsScreen({
   attributeShardsCount,
   universalShardCount,
   talismanCount,
+  subscriptionLabel,
   onBack,
   devCardOptions,
   devDeckFillOptions,
@@ -111,6 +114,7 @@ export function SettingsScreen({
   onDevSetUnlockedDeckCount,
   onDevSetFreePixels,
   onDevSetJewels,
+  onDevSetSubscription,
   onDevSetAttributeShards,
   onDevSetUniversalShards,
   onDevSetTalisman,
@@ -144,6 +148,9 @@ export function SettingsScreen({
   const [devDeckNotice, setDevDeckNotice] = useState<string | null>(null);
   const [devPixelsNotice, setDevPixelsNotice] = useState<string | null>(null);
   const [devJewelsNotice, setDevJewelsNotice] = useState<string | null>(null);
+  const [devSubscriptionNotice, setDevSubscriptionNotice] = useState<
+    string | null
+  >(null);
   const [devLostNotice, setDevLostNotice] = useState<string | null>(null);
   const [devFillNotice, setDevFillNotice] = useState<string | null>(null);
   const [devPaletteNotice, setDevPaletteNotice] = useState<string | null>(null);
@@ -270,6 +277,10 @@ export function SettingsScreen({
     setDevJewelsNotice(`ジュエルを ${parsed.toLocaleString()} に変更しました。`);
   };
 
+  const handleDevSubscriptionSet = (plan: SubscriptionPlan) => {
+    setDevSubscriptionNotice(onDevSetSubscription(plan));
+  };
+
   const handleDevAttributeShardsApply = () => {
     const parsed = Number.parseInt(devAttributeShardsInput, 10);
     if (!Number.isFinite(parsed) || parsed < 0) {
@@ -342,6 +353,7 @@ export function SettingsScreen({
             label="戦績"
             value={`${user.battleWins}勝 ${user.battleLosses}敗`}
           />
+          <SettingsRow label="サブスク" value={subscriptionLabel} />
           <div className="settings-progress-wrap">
             <div className="settings-progress-label">
               {isMaxLevel ? 'レベル上限' : `次のレベルまで ${percent}%`}
@@ -486,6 +498,32 @@ export function SettingsScreen({
                     適用
                   </button>
                 </div>
+              </div>
+            </div>
+            <div className="settings-dev-level">
+              <span className="settings-dev-level-label">サブスク（モック）</span>
+              <div className="settings-dev-level-row settings-dev-palette-row">
+                <button
+                  type="button"
+                  className="settings-dev-level-apply settings-dev-level-apply--wide"
+                  onClick={() => handleDevSubscriptionSet('none')}
+                >
+                  未加入
+                </button>
+                <button
+                  type="button"
+                  className="settings-dev-level-apply settings-dev-level-apply--wide"
+                  onClick={() => handleDevSubscriptionSet('light')}
+                >
+                  ライト
+                </button>
+                <button
+                  type="button"
+                  className="settings-dev-level-apply settings-dev-level-apply--wide"
+                  onClick={() => handleDevSubscriptionSet('premium')}
+                >
+                  プレミアム
+                </button>
               </div>
             </div>
             <div className="settings-dev-shards-row">
@@ -699,6 +737,11 @@ export function SettingsScreen({
             {devJewelsNotice && (
               <p className="settings-dev-notice" role="status">
                 {devJewelsNotice}
+              </p>
+            )}
+            {devSubscriptionNotice && (
+              <p className="settings-dev-notice" role="status">
+                {devSubscriptionNotice}
               </p>
             )}
             {devShardsNotice && (

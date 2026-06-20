@@ -5,7 +5,6 @@ import {
   UNIVERSAL_SHARD_PACKS,
   formatJewelPackLabel,
   formatShardPackLabel,
-  totalShardsInPack,
   type JewelPackId,
   type ShopTabId,
   type UniversalShardPackId,
@@ -22,6 +21,7 @@ import {
   describeActiveSubscription,
   getUniversalShardPurchasesToday,
   resolveJewelPackGrantAmount,
+  resolveSubscriptionPlanButtonState,
 } from '../user/shop';
 import { JewelAmount, JewelIcon } from './JewelIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
@@ -234,11 +234,26 @@ export function ShopScreen({
             <p className="shop-active-plan">{activeSubscriptionLabel}</p>
           )}
           <p className="shop-panel-note muted">
-            月額（モック）。加入即時付与＋30日ごとに再付与。CM
-            特典はフェーズ9で連動予定。
+            月額（モック）。加入即時付与＋30日ごとに再付与。プランは同時に1つのみ。
+            ライト→プレへのアップグレードは残り期間に応じた日割り差額（次回更新以降800円/月）。
           </p>
           <ul className="shop-product-list shop-product-list--plans">
-            {SUBSCRIPTION_PLANS.map((plan) => (
+            {SUBSCRIPTION_PLANS.map((plan) => {
+              const buttonState = resolveSubscriptionPlanButtonState(
+                subscription,
+                plan.id,
+              );
+              const isDisabled =
+                buttonState.kind === 'active' ||
+                buttonState.kind === 'unavailable';
+              const buttonPriceLabel =
+                buttonState.kind === 'join'
+                  ? `${buttonState.priceYen.toLocaleString()}円`
+                  : buttonState.kind === 'upgrade'
+                    ? `差額${buttonState.priceYen.toLocaleString()}円（残り${buttonState.remainingDays}日分）`
+                    : null;
+
+              return (
               <li key={plan.id} className="shop-plan-card">
                 <div className="shop-plan-header">
                   <h3 className="shop-plan-title">{plan.label}</h3>
@@ -264,12 +279,17 @@ export function ShopScreen({
                 <button
                   type="button"
                   className="shop-buy-btn shop-buy-btn--plan"
+                  disabled={isDisabled}
                   onClick={() => onSubscribe(plan.id)}
                 >
-                  加入する（モック）
+                  {buttonState.buttonLabel}
+                  {buttonPriceLabel != null && (
+                    <span className="shop-plan-btn-price">{buttonPriceLabel}</span>
+                  )}
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </div>
       )}

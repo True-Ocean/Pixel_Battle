@@ -3,6 +3,10 @@ import {
   getSubscriptionPlanById,
   getUniversalShardPackById,
   SUBSCRIPTION_PERIOD_MS,
+  calcProratedMonthlyGrantDelta,
+  calcProratedUpgradePriceYen,
+  calcSubscriptionRemainingDays,
+  calcSubscriptionRemainingRatio,
   totalJewelsInPack,
   totalShardsInPack,
   type JewelPackId,
@@ -10,6 +14,11 @@ import {
   type UniversalShardPackId,
 } from '../config/shop';
 import { SHOP_TALISMAN_PX } from '../config/economy';
+import {
+  formatSubscriptionPlanLabel,
+  getActiveSubscriptionPlan,
+  isSubscriptionActive,
+} from './subscription';
 import type { ShopPurchaseState, UserEconomy, UserInventory, UserSubscription } from '../types';
 import { getBattlesDayKey } from './adState';
 import { addFreePixels, addJewels, spendFreePixels } from './economy';
@@ -137,6 +146,58 @@ export interface ShopPurchaseResult {
   message: string;
 }
 
+export type SubscriptionPlanButtonState =
+  | { kind: 'join'; priceYen: number; buttonLabel: string }
+  | {
+      kind: 'upgrade';
+      priceYen: number;
+      remainingDays: number;
+      buttonLabel: string;
+    }
+  | { kind: 'active'; buttonLabel: string }
+  | { kind: 'unavailable'; buttonLabel: string };
+
+export type MockSubscribeResult =
+  | { ok: true; result: ShopPurchaseResult }
+  | { ok: false; message: string };
+
+export function resolveSubscriptionPlanButtonState(
+  subscription: UserSubscription,
+  planId: Exclude<SubscriptionPlanId, 'none'>,
+  now = Date.now(),
+): SubscriptionPlanButtonState {
+  const active = getActiveSubscriptionPlan(subscription, now);
+  const plan = getSubscriptionPlanById(planId);
+
+  if (active === planId) {
+    return { kind: 'active', buttonLabel: '加入中' };
+  }
+
+  if (active === 'premium' && planId === 'light') {
+    return { kind: 'unavailable', buttonLabel: 'プレミアム加入中' };
+  }
+
+  if (active === 'light' && planId === 'premium') {
+    const ratio = calcSubscriptionRemainingRatio(subscription, now);
+    const remainingDays = calcSubscriptionRemainingDays(subscription, now);
+    if (ratio <= 0 || remainingDays == null) {
+      return { kind: 'unavailable', buttonLabel: 'アップグレード不可' };
+    }
+    return {
+      kind: 'upgrade',
+      priceYen: calcProratedUpgradePriceYen(ratio),
+      remainingDays,
+      buttonLabel: 'プレミアムにアップグレード',
+    };
+  }
+
+  return {
+    kind: 'join',
+    priceYen: plan.priceYen,
+    buttonLabel: '加入する（モック）',
+  };
+}
+
 export function mockPurchaseJewelPack(
   economy: UserEconomy,
   inventory: UserInventory,
@@ -232,28 +293,102 @@ function applySubscriptionMonthlyGrant(
   return { economy: nextEconomy, inventory: nextInventory };
 }
 
+function applyProratedSubscriptionGrantDelta(
+  economy: UserEconomy,
+  inventory: UserInventory,
+  from: Exclude<SubscriptionPlanId, 'none'>,
+  to: Exclude<SubscriptionPlanId, 'none'>,
+  ratio: number,
+): { economy: UserEconomy; inventory: UserInventory } {
+  const delta = calcProratedMonthlyGrantDelta(from, to, ratio);
+  let nextEconomy = economy;
+  if (delta.pixels > 0) {
+    nextEconomy = addFreePixels(nextEconomy, delta.pixels);
+  }
+  if (delta.jewels > 0) {
+    nextEconomy = addJewels(nextEconomy, delta.jewels);
+  }
+  let nextInventory = inventory;
+  if (delta.talismans > 0) {
+    nextInventory = addInventoryCount(nextInventory, 'talisman', delta.talismans);
+  }
+  return { economy: nextEconomy, inventory: nextInventory };
+}
+
 export function mockSubscribe(
   economy: UserEconomy,
   inventory: UserInventory,
   shopPurchase: ShopPurchaseState,
-  _subscription: UserSubscription,
+  subscription: UserSubscription,
   planId: Exclude<SubscriptionPlanId, 'none'>,
   now = Date.now(),
-): ShopPurchaseResult {
+): MockSubscribeResult {
+  const active = getActiveSubscriptionPlan(subscription, now);
   const plan = getSubscriptionPlanById(planId);
+
+  if (active === planId) {
+    return { ok: false, message: 'すでにこのプランに加入しています。' };
+  }
+
+  if (active === 'premium' && planId === 'light') {
+    return {
+      ok: false,
+      message: 'プレミアム加入中はライトプランへ変更できません。',
+    };
+  }
+
+  if (active === 'light' && planId === 'premium') {
+    const ratio = calcSubscriptionRemainingRatio(subscription, now);
+    const remainingDays = calcSubscriptionRemainingDays(subscription, now);
+    if (ratio <= 0 || remainingDays == null) {
+      return {
+        ok: false,
+        message: '契約期間の残りがないためアップグレードできません。',
+      };
+    }
+
+    const premium = getSubscriptionPlanById('premium');
+    const upgradePriceYen = calcProratedUpgradePriceYen(ratio);
+    const granted = applyProratedSubscriptionGrantDelta(
+      economy,
+      inventory,
+      'light',
+      'premium',
+      ratio,
+    );
+    return {
+      ok: true,
+      result: {
+        ...granted,
+        shopPurchase,
+        subscription: {
+          plan: 'premium',
+          expiresAt: subscription.expiresAt,
+          nextGrantAt: subscription.nextGrantAt,
+        },
+        message:
+          `${premium.label}にアップグレードしました（差額${upgradePriceYen.toLocaleString()}円・残り${remainingDays}日分・モック）。` +
+          `次回更新以降は${premium.priceYen.toLocaleString()}円/月です。`,
+      },
+    };
+  }
+
   const expiresAt = new Date(now + SUBSCRIPTION_PERIOD_MS).toISOString();
   const nextGrantAt = new Date(now + SUBSCRIPTION_PERIOD_MS).toISOString();
   const granted = applySubscriptionMonthlyGrant(economy, inventory, planId);
 
   return {
-    ...granted,
-    shopPurchase,
-    subscription: {
-      plan: planId,
-      expiresAt,
-      nextGrantAt,
+    ok: true,
+    result: {
+      ...granted,
+      shopPurchase,
+      subscription: {
+        plan: planId,
+        expiresAt,
+        nextGrantAt,
+      },
+      message: `${plan.label}に加入しました（${plan.priceYen.toLocaleString()}円・モック）。月次特典を付与しました。`,
     },
-    message: `${plan.label}に加入しました（${plan.priceYen}円・モック）。月次特典を付与しました。`,
   };
 }
 
@@ -322,14 +457,6 @@ export function describeActiveSubscription(
   subscription: UserSubscription,
   now = Date.now(),
 ): string | null {
-  if (subscription.plan === 'none') return null;
-  const plan = getSubscriptionPlanById(subscription.plan);
-  const expiresLabel =
-    subscription.expiresAt != null
-      ? new Date(subscription.expiresAt).toLocaleDateString('ja-JP')
-      : '—';
-  if (subscription.expiresAt != null && Date.parse(subscription.expiresAt) <= now) {
-    return null;
-  }
-  return `${plan.label}（有効期限: ${expiresLabel}）`;
+  if (!isSubscriptionActive(subscription, now)) return null;
+  return formatSubscriptionPlanLabel(subscription, now);
 }
