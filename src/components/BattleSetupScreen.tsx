@@ -1117,6 +1117,9 @@ function BattleBoard({
   const result = battle.result;
   const showOutcome =
     battle.effectivePhase === 'ended' && result != null;
+  const isPromotePhase =
+    battle.effectivePhase === 'promoteUnit' ||
+    battle.effectivePhase === 'promoteSlot';
 
   const activeAttack =
     battle.playback?.phase === 'attack' &&
@@ -1363,7 +1366,7 @@ function BattleBoard({
           <div
             className={`formation-guide formation-guide-battle${
               showOutcome && endActions ? ' formation-guide-battle--ended' : ''
-            }`}
+            }${isPromotePhase ? ' formation-guide-battle--promote' : ''}`}
           >
             {showOutcome && endActions ? (
               <>
@@ -1398,7 +1401,11 @@ function BattleBoard({
                 </button>
               </>
             ) : (
-              <div className="formation-hint formation-guide-line">
+              <div
+                className={`formation-hint formation-guide-line${
+                  isPromotePhase ? ' formation-guide-line--promote' : ''
+                }`}
+              >
                 {formatBattleGuideLine(
                   battle.turnLabel,
                   battle.hint,

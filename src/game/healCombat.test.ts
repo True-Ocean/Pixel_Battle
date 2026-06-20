@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   calcHealAmount,
   canReceiveHeal,
+  getHealSelectionHint,
   getHealTargets,
+  healTargetsIncludeDebuff,
 } from './healCombat';
 import type { BattleUnit } from '../types/battle';
 
@@ -103,5 +105,58 @@ describe('healCombat', () => {
     expect(getHealTargets(selfHealField, 'backCenter', SELECTION_TURN)).toEqual([
       'backCenter',
     ]);
+  });
+
+  it('回復対象にデバフ持ちがいるか判定する', () => {
+    const debuffField = [
+      unit({ position: 'backCenter' }),
+      unit({
+        position: 'frontLeft',
+        currentBp: 100,
+        frozenUntilTurn: 2,
+      }),
+    ];
+    const bpOnlyField = [
+      unit({ position: 'backCenter' }),
+      unit({ position: 'frontLeft', currentBp: 40 }),
+    ];
+    expect(
+      healTargetsIncludeDebuff(debuffField, 'backCenter', SELECTION_TURN),
+    ).toBe(true);
+    expect(
+      healTargetsIncludeDebuff(bpOnlyField, 'backCenter', SELECTION_TURN),
+    ).toBe(false);
+  });
+
+  it('癒の中央ガイド文言をデバフ有無と前衛で切り替える', () => {
+    const debuffField = [
+      unit({ position: 'backCenter' }),
+      unit({
+        position: 'frontLeft',
+        currentBp: 100,
+        poisonStacks: [{ sourceCardId: 'p1', damagePerTurn: 10 }],
+        poisonDotDamageReceived: true,
+      }),
+    ];
+    const bpOnlyField = [
+      unit({ position: 'backCenter' }),
+      unit({ position: 'frontLeft', currentBp: 40 }),
+    ];
+    expect(
+      getHealSelectionHint(debuffField, 'backCenter', SELECTION_TURN, false),
+    ).toBe('治癒・回復先を選択');
+    expect(
+      getHealSelectionHint(bpOnlyField, 'backCenter', SELECTION_TURN, false),
+    ).toBe('回復先を選択');
+    expect(
+      getHealSelectionHint(debuffField, 'backCenter', SELECTION_TURN, true),
+    ).toBe('攻撃先か治癒・回復先を選択');
+    const frontHealerField = [
+      unit({ position: 'frontLeft', healUsesRemaining: 2 }),
+      unit({ position: 'frontRight', currentBp: 40 }),
+    ];
+    expect(
+      getHealSelectionHint(frontHealerField, 'frontLeft', SELECTION_TURN, true),
+    ).toBe('攻撃先か回復先を選択');
   });
 });

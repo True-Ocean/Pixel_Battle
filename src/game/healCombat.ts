@@ -55,3 +55,35 @@ export function calcHealAmount(healer: BattleUnit, target: BattleUnit): number {
   if (!isAlive(target) || target.currentBp >= target.maxBp) return 0;
   return Math.min(healer.currentBp, target.maxBp - target.currentBp);
 }
+
+/** 癒の選択対象のうち、治癒可能なデバフを持つ味方がいるか */
+export function healTargetsIncludeDebuff(
+  field: BattleUnit[],
+  actorPosition: BoardPosition,
+  selectionTurn: number,
+): boolean {
+  return getHealTargets(field, actorPosition, selectionTurn).some((position) => {
+    const target = getUnitAt(field, position);
+    return target != null && hasHealableDebuff(target, selectionTurn);
+  });
+}
+
+/** 癒行動選択時の中央ガイド文言 */
+export function getHealSelectionHint(
+  field: BattleUnit[],
+  actorPosition: BoardPosition,
+  selectionTurn: number,
+  includeAttackOption: boolean,
+): string {
+  const hasDebuffTarget = healTargetsIncludeDebuff(
+    field,
+    actorPosition,
+    selectionTurn,
+  );
+  if (includeAttackOption) {
+    return hasDebuffTarget
+      ? '攻撃先か治癒・回復先を選択'
+      : '攻撃先か回復先を選択';
+  }
+  return hasDebuffTarget ? '治癒・回復先を選択' : '回復先を選択';
+}

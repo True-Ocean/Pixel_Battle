@@ -11,6 +11,7 @@ import {
   getMeleeTargets,
   getPendingPromotionFronts,
   getPromotableBackPositions,
+  getHealSelectionHint,
   getHealTargets,
   getSelectionTurn,
   getShieldTargetsForActor,
@@ -845,7 +846,14 @@ export function useBattle(
       const actor = pendingActor
         ? getUnitAt(state.player, pendingActor)
         : null;
-      if (actor?.attribute === 'heal') return '攻撃先か回復先をタップ';
+      if (actor?.attribute === 'heal' && pendingActor) {
+        return getHealSelectionHint(
+          state.player,
+          pendingActor,
+          selectionTurn,
+          true,
+        );
+      }
       if (pendingActor) {
         const actorActions = availableActionsFor(pendingActor);
         if (
@@ -868,7 +876,14 @@ export function useBattle(
     }
     if (effectivePhase === 'pickTarget') return '攻撃先をタップ';
     if (effectivePhase === 'pickShield') return '味方タップで盾付与';
-    if (effectivePhase === 'pickHeal') return '回復対象を選択';
+    if (effectivePhase === 'pickHeal' && pendingActor) {
+      return getHealSelectionHint(
+        state.player,
+        pendingActor,
+        selectionTurn,
+        false,
+      );
+    }
     if (effectivePhase === 'promoteUnit') {
       return '前衛に移動する後衛カードを選択';
     }
@@ -880,6 +895,7 @@ export function useBattle(
     pendingAction,
     pendingActor,
     state,
+    selectionTurn,
     availableActionsFor,
   ]);
 

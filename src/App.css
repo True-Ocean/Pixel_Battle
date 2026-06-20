@@ -9817,6 +9817,29 @@ button.battle-card {
   text-align: center;
 }
 
+@keyframes formation-guide-promote-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.formation-guide-battle--promote .formation-guide-line--promote {
+  color: #dc2626;
+  text-shadow: 0 0 6px rgba(220, 38, 38, 0.35);
+  animation: formation-guide-promote-blink 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .formation-guide-battle--promote .formation-guide-line--promote {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 .formation-screen.is-battle-active .formation-zone .formation-field {
   gap: 0.1rem;
 }

@@ -35,7 +35,9 @@ export {
   canReceiveHeal,
   canUseHealAction,
   calcHealAmount,
+  getHealSelectionHint,
   getHealTargets,
+  healTargetsIncludeDebuff,
 } from './healCombat';
 export {
   applyFreeze,
