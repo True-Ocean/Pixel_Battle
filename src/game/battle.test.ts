@@ -630,6 +630,36 @@ describe('battle', () => {
     expect(state.player[0].currentBp).toBe(55);
   });
 
+  it('相打ちで両カードが撃破されても副攻撃は発動する', () => {
+    const playerDeck = [
+      stubCard('両', 'dual', 80),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    state.cpu[0].currentBp = 100;
+    state.cpu[1].currentBp = 50;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'dualAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+    }).state;
+
+    expect(state.player[0].currentBp).toBe(0);
+    expect(state.cpu[0].currentBp).toBe(20);
+    expect(state.cpu[1].currentBp).toBe(6);
+  });
+
   it('両の副攻撃は盾で防げる', () => {
     const playerDeck = [
       stubCard('両', 'dual', 80),

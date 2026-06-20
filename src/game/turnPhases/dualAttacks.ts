@@ -155,10 +155,7 @@ export function applyDualAttack(
     };
   }
 
-  if (!isAlive(attack.attacker)) {
-    return { state: next, playback };
-  }
-
+  // 副攻撃は主近接と同時（§4.5）。主近接の反撃で撃破されても副攻撃は確定する。
   const enemyField = attack.targetSide === 'cpu' ? cpu : player;
   const secondary = getDualSecondaryTarget(
     attack.action.targetPosition,
@@ -221,10 +218,7 @@ export function applyDualAttack(
     turn,
     side: attack.side,
     actionKind: 'dual_secondary',
-    actor: unitSnapshot(
-      attack.attacker,
-      attack.attacker.currentBp,
-    ),
+    actor: unitSnapshot(attack.attacker, attackerBpAtAction),
     target: unitSnapshot(
       secondary.unit,
       secondaryBpFrom,
