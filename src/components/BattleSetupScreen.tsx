@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { CPU_OPPONENT_LEVEL, DECK_MAX, SETUP_TIME_LIMIT_SEC } from '../config/balance';
+import { CPU_OPPONENT_LEVEL, DECK_MAX, MATCH_REVEAL_COUNTDOWN_SEC, SETUP_TIME_LIMIT_SEC } from '../config/balance';
 import { calcSurvivorPixels, countBattleSurvivors } from '../config/economy';
 import { computeDeckPower } from '../card';
 import type { Card, BattleOutcome, BattleOutcomeCore } from '../types';
@@ -501,12 +501,14 @@ function FormationDeckReveal({
   opponentIdentity,
   playerIdentity,
   isSearchingOpponent = false,
+  revealCountdown,
 }: {
   playerSlots: Record<BoardPosition, Card | null>;
   cpuSlots: Record<BoardPosition, Card | null>;
   opponentIdentity: BattleZoneIdentity;
   playerIdentity?: BattleZoneIdentity;
   isSearchingOpponent?: boolean;
+  revealCountdown?: number;
 }) {
   const searchingIdentity: BattleZoneIdentity = {
     name: '？？？',
@@ -563,10 +565,34 @@ function FormationDeckReveal({
         </div>
       </div>
 
-      <div className="formation-guide formation-guide-vs" aria-label="対戦">
-        <span className="formation-vs-label" aria-hidden>
-          VS
-        </span>
+      <div
+        className="formation-guide formation-guide-vs"
+        aria-label={
+          isSearchingOpponent
+            ? 'マッチング中'
+            : revealCountdown != null && revealCountdown > 0
+              ? `マッチング完了、バトル準備まで残り${revealCountdown}秒`
+              : '対戦'
+        }
+      >
+        {isSearchingOpponent ? (
+          <span className="formation-match-complete-label">マッチング中</span>
+        ) : revealCountdown != null && revealCountdown > 0 ? (
+          <div className="formation-match-complete-row">
+            <span className="formation-match-complete-label">マッチング完了</span>
+            <div
+              className="formation-reveal-countdown"
+              aria-live="polite"
+              aria-hidden
+            >
+              {revealCountdown}
+            </div>
+          </div>
+        ) : (
+          <span className="formation-vs-label" aria-hidden>
+            VS
+          </span>
+        )}
       </div>
 
       <div className="formation-zone formation-zone-player">
@@ -1541,6 +1567,7 @@ export function BattleSetupScreen({
   const [phase, setPhase] = useState<'matching' | 'reveal' | 'setup' | 'battle'>(
     () => (enableOpponentMatching ? 'matching' : 'reveal'),
   );
+  const [revealCountdown, setRevealCountdown] = useState(MATCH_REVEAL_COUNTDOWN_SEC);
   const [timeLeft, setTimeLeft] = useState(SETUP_TIME_LIMIT_SEC);
   const [playerHand, setPlayerHand] = useState<Card[]>(() => []);
   const [playerSlots, setPlayerSlots] = useState<
@@ -1579,6 +1606,7 @@ export function BattleSetupScreen({
     const durationMs = rollMatchingDurationMs();
     const timer = window.setTimeout(() => {
       setCpuSlots({ ...cpuFormation });
+      setRevealCountdown(MATCH_REVEAL_COUNTDOWN_SEC);
       setPhase('reveal');
     }, durationMs);
 
@@ -1770,6 +1798,16 @@ export function BattleSetupScreen({
     setPhase('setup');
   }, []);
 
+  useEffect(() => {
+    if (phase !== 'reveal' || !enableOpponentMatching) return;
+    if (revealCountdown <= 0) {
+      handleRevealContinue();
+      return;
+    }
+    const t = window.setTimeout(() => setRevealCountdown((n) => n - 1), 1000);
+    return () => window.clearTimeout(t);
+  }, [phase, enableOpponentMatching, revealCountdown, handleRevealContinue]);
+
   const handleMainButton = () => {
     if (!ready) {
       randomFill();
@@ -1889,6 +1927,11 @@ export function BattleSetupScreen({
                 opponentIdentity={resolvedOpponentIdentity}
                 playerIdentity={resolvedPlayerIdentity}
                 isSearchingOpponent={phase === 'matching'}
+                revealCountdown={
+                  phase === 'reveal' && enableOpponentMatching
+                    ? revealCountdown
+                    : undefined
+                }
               />
               <div className="formation-reveal-spacer" aria-hidden />
             </>
@@ -1907,7 +1950,7 @@ export function BattleSetupScreen({
 
         {showMatchActionRow && (
           <div
-            className={`actions setup-actions formation-actions formation-actions-row${
+            className={`actions setup-actions formation-actions formation-actions-row formation-actions-row--single${
               phase === 'matching' ? ' formation-actions-row--reserved' : ''
             }`}
           >
@@ -1927,16 +1970,6 @@ export function BattleSetupScreen({
                   {cancelMatchCostPx}
                 </span>
               </span>
-            </button>
-            <button
-              type="button"
-              className="primary"
-              onClick={handleRevealContinue}
-              disabled={phase === 'matching'}
-              aria-hidden={phase === 'matching'}
-              tabIndex={phase === 'matching' ? -1 : undefined}
-            >
-              バトル準備
             </button>
           </div>
         )}

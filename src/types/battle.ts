@@ -93,7 +93,8 @@ export interface BattleEvent {
     | 'shield_broken'
     | 'storm_cast'
     | 'storm_engulf'
-    | 'attack_preempted';
+    | 'attack_preempted'
+    | 'stealth_mutual_break';
   turn: number;
   side?: BattleSide;
   actor?: BattleLogUnitSnapshot;

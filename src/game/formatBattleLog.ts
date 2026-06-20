@@ -181,6 +181,9 @@ function formatEventLine(
         return `${event.actor.name}は攻撃しようとしたが、その前に撃破された`;
       }
       return `${event.actor.name}は${cardRef(event.target, ctx)}を攻撃しようとしたが、その前に撃破された`;
+    case 'stealth_mutual_break':
+      if (!event.actor || !event.target) return null;
+      return `${cardRef(event.actor, ctx)}と${cardRef(event.target, ctx)}は互いにステルスを解除した`;
     default:
       return null;
   }

@@ -61,6 +61,13 @@ export {
   shouldApplyNinjaFirstStrike,
   shouldStartInStealth,
 } from './ninjaCombat';
+export {
+  formatStealthMutualBreakLogLine,
+  getFrontStealthedNinjas,
+  isNinjaStealthStalemate,
+  resolveNinjaStealthStalemate,
+} from './ninjaStalemate';
+export type { ResolveNinjaStealthStalemateResult } from './ninjaStalemate';
 export { resolveTurn, promoteUnit } from './resolveTurn';
 export { startNextTurn } from './startNextTurn';
 export type { StartTurnResult } from './startNextTurn';

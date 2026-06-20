@@ -17,9 +17,11 @@ import {
   getShieldTargetsForActor,
   getUnitAt,
   hasBattleActionChoices,
+  isNinjaStealthStalemate,
   promoteUnit,
   pickCpuAction,
   pickPassAction,
+  resolveNinjaStealthStalemate,
   resolveTurn,
   startNextTurn,
 } from '../game';
@@ -42,6 +44,7 @@ export type BattleUiPhase =
   | 'pickShield'
   | 'pickHeal'
   | 'clash'
+  | 'stalemateStealthBreak'
   | 'promoteUnit'
   | 'promoteSlot'
   | 'ended';
@@ -50,6 +53,11 @@ export interface TurnStartPlayback {
   poisonDots: PoisonDoTPlayback[];
   stateAfter: BattleState;
   poisonSubPhase: 'damage' | 'bp';
+}
+
+export interface StealthStalematePlayback {
+  stateAfter: BattleState;
+  logLine: string;
 }
 
 export interface BattlePlayback {
@@ -84,6 +92,8 @@ export function useBattle(
   const [playback, setPlayback] = useState<BattlePlayback | null>(null);
   const [turnStartPlayback, setTurnStartPlayback] =
     useState<TurnStartPlayback | null>(null);
+  const [stealthStalematePlayback, setStealthStalematePlayback] =
+    useState<StealthStalematePlayback | null>(null);
   /** 補充完了後: 戦闘後は新ターン開始、毒DoT後はカード選択へ */
   const [postPromotion, setPostPromotion] = useState<'beginTurn' | 'pickMain'>(
     'beginTurn',
@@ -91,7 +101,9 @@ export function useBattle(
   const outcomeSavedRef = useRef(false);
   const result = getBattleResult(state);
   const effectivePhase: BattleUiPhase =
-    result && !playback && !turnStartPlayback ? 'ended' : uiPhase;
+    result && !playback && !turnStartPlayback && !stealthStalematePlayback
+      ? 'ended'
+      : uiPhase;
   const playerAlive = state.player
     .map((u, i) => (u.currentBp > 0 && u.position !== 'defeated' ? i : -1))
     .filter((i) => i >= 0);
@@ -217,6 +229,18 @@ export function useBattle(
     }, CLASH_MS.bp);
     return () => window.clearTimeout(t);
   }, [turnStartPlayback, uiPhase, enterPostTurnStart]);
+
+  useEffect(() => {
+    if (!stealthStalematePlayback || uiPhase !== 'stalemateStealthBreak') {
+      return;
+    }
+    const { stateAfter } = stealthStalematePlayback;
+    const t = window.setTimeout(() => {
+      setStealthStalematePlayback(null);
+      finishPlayback(stateAfter);
+    }, CLASH_MS.damage + CLASH_MS.bp);
+    return () => window.clearTimeout(t);
+  }, [stealthStalematePlayback, uiPhase, finishPlayback]);
 
   useEffect(() => {
     if (!playback || uiPhase !== 'clash') return;
@@ -392,17 +416,27 @@ export function useBattle(
       effectivePhase !== 'pickMain' ||
       playback ||
       turnStartPlayback ||
+      stealthStalematePlayback ||
       result
     ) {
       return;
     }
     if (!hasBattleActionChoices(state, 'player')) {
+      if (isNinjaStealthStalemate(state)) {
+        const { state: nextState, logLine } =
+          resolveNinjaStealthStalemate(state);
+        setState(nextState);
+        setStealthStalematePlayback({ stateAfter: nextState, logLine });
+        setUiPhase('stalemateStealthBreak');
+        return;
+      }
       commitTurn(pickPassAction(state, 'player'));
     }
   }, [
     effectivePhase,
     playback,
     turnStartPlayback,
+    stealthStalematePlayback,
     result,
     state,
     commitTurn,
@@ -413,7 +447,8 @@ export function useBattle(
       if (typeof position === 'number') return;
       if (
         effectivePhase === 'clash' ||
-        effectivePhase === 'turnStartPoison'
+        effectivePhase === 'turnStartPoison' ||
+        effectivePhase === 'stalemateStealthBreak'
       ) {
         return;
       }
@@ -821,6 +856,9 @@ export function useBattle(
   const hint = useMemo(() => {
     if (effectivePhase === 'ended') return null;
     if (effectivePhase === 'turnStartPoison') return '毒ダメージ';
+    if (effectivePhase === 'stalemateStealthBreak' && stealthStalematePlayback) {
+      return stealthStalematePlayback.logLine;
+    }
     if (effectivePhase === 'clash' && playback) {
       if (playback.phase === 'heal') return '回復';
       if (playback.phase === 'shield') return '盾付与';
@@ -897,6 +935,7 @@ export function useBattle(
     state,
     selectionTurn,
     availableActionsFor,
+    stealthStalematePlayback,
   ]);
 
   const turnLabel = `TURN ${state.turn + 1}`;

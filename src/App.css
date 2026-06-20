@@ -9533,6 +9533,32 @@ button.battle-card {
   margin: 0.12rem 0;
 }
 
+.formation-match-complete-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.formation-match-complete-label {
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  color: #4338ca;
+}
+
+.formation-reveal-countdown {
+  font-family: 'Oswald', 'Arial Black', Impact, sans-serif;
+  font-size: clamp(1.65rem, 7vw, 2.15rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #4338ca;
+  pointer-events: none;
+}
+
 .formation-screen.is-reveal-phase .setup-actions.formation-actions {
   flex-shrink: 0;
   padding-bottom: 0.15rem;
@@ -9577,6 +9603,10 @@ button.battle-card {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.45rem;
   width: 100%;
+}
+
+.formation-actions-row--single {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .formation-actions-row .formation-cancel-match-btn,
