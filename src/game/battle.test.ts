@@ -948,7 +948,7 @@ describe('battle', () => {
     expect(state.cpu[0].currentBp).toBe(0);
   });
 
-  it('癒は回復と同時に対象の毒を解消する', () => {
+  it('癒はデバフありの対象の毒を解消しBPは回復しない', () => {
     const playerDeck = [
       stubCard('PFront', 'attack', 100),
       stubCard('PWounded', 'attack', 80),
@@ -978,7 +978,7 @@ describe('battle', () => {
     expect(result.heals[0]?.poisonStacksCleared).toBe(1);
     const healed = result.state.player.find((u) => u.position === 'frontRight')!;
     expect(healed.poisonStacks).toHaveLength(0);
-    expect(healed.currentBp).toBe(80);
+    expect(healed.currentBp).toBe(30);
   });
 
   it('癒はBP満タンでも毒だけ解消できる', () => {
@@ -1014,6 +1014,91 @@ describe('battle', () => {
     ).toHaveLength(0);
   });
 
+  it('癒は凍結中の味方の凍結を解消しBPは回復しない', () => {
+    const playerDeck = [
+      stubCard('PFront', 'attack', 100),
+      stubCard('Frozen', 'attack', 80),
+      stubCard('PBackL', 'attack', 60),
+      stubCard('Healer', 'heal', 50),
+      stubCard('PBackR', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    const frozen = state.player.find((u) => u.position === 'frontRight')!;
+    frozen.currentBp = 30;
+    frozen.frozenUntilTurn = getSelectionTurn(state) + 1;
+
+    const result = resolveTurn(state, {
+      player: {
+        type: 'heal',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontLeft',
+      },
+    });
+
+    expect(result.heals[0]).toMatchObject({
+      amount: 0,
+      freezeCleared: true,
+    });
+    const healed = result.state.player.find((u) => u.position === 'frontRight')!;
+    expect(healed.frozenUntilTurn).toBeNull();
+    expect(healed.currentBp).toBe(30);
+  });
+
+  it('癒はデバフ解消後に別の回復でBPを回復できる', () => {
+    const playerDeck = [
+      stubCard('PFront', 'attack', 100),
+      stubCard('Wounded', 'attack', 80),
+      stubCard('PBackL', 'attack', 60),
+      stubCard('Healer', 'heal', 50),
+      stubCard('PBackR', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cards('C'));
+    const wounded = state.player.find((u) => u.position === 'frontRight')!;
+    wounded.currentBp = 30;
+    wounded.poisonStacks = [{ sourceCardId: 'poison-1', damagePerTurn: 12 }];
+    wounded.poisonDotDamageReceived = true;
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'heal',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontLeft',
+      },
+    }).state;
+
+    const afterDebuff = state.player.find((u) => u.position === 'frontRight')!;
+    expect(afterDebuff.poisonStacks).toHaveLength(0);
+    expect(afterDebuff.currentBp).toBe(30);
+
+    const result = resolveTurn(state, {
+      player: {
+        type: 'heal',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontLeft',
+      },
+    });
+
+    expect(result.heals[0]?.amount).toBe(50);
+    expect(
+      result.state.player.find((u) => u.position === 'frontRight')!.currentBp,
+    ).toBe(80);
+  });
+
   it('毒付与直後は回復できず、毒DoT後に回復できる', () => {
     const playerDeck = [
       stubCard('PFront', 'attack', 100),
@@ -1026,10 +1111,10 @@ describe('battle', () => {
     const poisoned = state.player.find((u) => u.position === 'frontRight')!;
     poisoned.poisonStacks = [{ sourceCardId: 'poison-1', damagePerTurn: 12 }];
 
-    expect(getHealTargets(state.player, 'backCenter')).not.toContain('frontRight');
+    expect(getHealTargets(state.player, 'backCenter', getSelectionTurn(state))).not.toContain('frontRight');
 
     state = startNextTurn(state).stateAfterDot;
-    expect(getHealTargets(state.player, 'backCenter')).toContain('frontRight');
+    expect(getHealTargets(state.player, 'backCenter', getSelectionTurn(state))).toContain('frontRight');
     expect(
       state.player.find((u) => u.position === 'frontRight')!.poisonDotDamageReceived,
     ).toBe(true);

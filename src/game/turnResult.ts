@@ -60,6 +60,7 @@ export interface HealPlayback {
   bpFrom: number;
   bpTo: number;
   poisonStacksCleared: number;
+  freezeCleared: boolean;
 }
 
 export interface ResolveTurnResult {

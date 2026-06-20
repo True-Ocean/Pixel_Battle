@@ -107,6 +107,7 @@ export interface BattleEvent {
   actorShieldBroken?: boolean;
   healAmount?: number;
   poisonStacksCleared?: number;
+  freezeCleared?: boolean;
   blockContext?: 'melee' | 'bow' | 'storm' | 'dual_secondary';
   stormDamage?: number;
   stormHits?: StormEngulfHit[];

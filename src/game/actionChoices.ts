@@ -71,7 +71,7 @@ export function enumerateBattleActionChoices(
       }
     }
     if (actions.includes('heal')) {
-      for (const target of getHealTargets(ownField, position)) {
+      for (const target of getHealTargets(ownField, position, selectionTurn)) {
         candidates.push({
           type: 'heal',
           actorPosition: position,

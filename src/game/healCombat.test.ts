@@ -6,6 +6,8 @@ import {
 } from './healCombat';
 import type { BattleUnit } from '../types/battle';
 
+const SELECTION_TURN = 2;
+
 function unit(partial: Partial<BattleUnit> & Pick<BattleUnit, 'position'>): BattleUnit {
   return {
     cardId: 'id',
@@ -31,10 +33,10 @@ function unit(partial: Partial<BattleUnit> & Pick<BattleUnit, 'position'>): Batt
 }
 
 describe('healCombat', () => {
-  it('満タンは回復対象外（毒なし）', () => {
-    expect(canReceiveHeal(unit({ position: 'frontLeft', currentBp: 100 }))).toBe(
-      false,
-    );
+  it('満タンは回復対象外（デバフなし）', () => {
+    expect(
+      canReceiveHeal(unit({ position: 'frontLeft', currentBp: 100 }), SELECTION_TURN),
+    ).toBe(false);
   });
 
   it('毒付与直後は回復対象外', () => {
@@ -46,6 +48,7 @@ describe('healCombat', () => {
           poisonStacks: [{ sourceCardId: 'p1', damagePerTurn: 10 }],
           poisonDotDamageReceived: false,
         }),
+        SELECTION_TURN,
       ),
     ).toBe(false);
   });
@@ -59,6 +62,20 @@ describe('healCombat', () => {
           poisonStacks: [{ sourceCardId: 'p1', damagePerTurn: 10 }],
           poisonDotDamageReceived: true,
         }),
+        SELECTION_TURN,
+      ),
+    ).toBe(true);
+  });
+
+  it('凍結中は満タンでも回復対象（凍結解消可）', () => {
+    expect(
+      canReceiveHeal(
+        unit({
+          position: 'frontLeft',
+          currentBp: 100,
+          frozenUntilTurn: 2,
+        }),
+        SELECTION_TURN,
       ),
     ).toBe(true);
   });
@@ -78,11 +95,13 @@ describe('healCombat', () => {
       unit({ position: 'frontLeft', currentBp: 40 }),
       unit({ position: 'frontRight', currentBp: 100 }),
     ];
-    expect(getHealTargets(field, 'backCenter')).toEqual(['frontLeft']);
+    expect(getHealTargets(field, 'backCenter', SELECTION_TURN)).toEqual(['frontLeft']);
     const selfHealField = [
       unit({ position: 'backCenter', healUsesRemaining: 1, currentBp: 70 }),
       unit({ position: 'frontLeft', currentBp: 100 }),
     ];
-    expect(getHealTargets(selfHealField, 'backCenter')).toEqual(['backCenter']);
+    expect(getHealTargets(selfHealField, 'backCenter', SELECTION_TURN)).toEqual([
+      'backCenter',
+    ]);
   });
 });

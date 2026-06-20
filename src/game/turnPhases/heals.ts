@@ -5,7 +5,8 @@ import type {
   BattleUnit,
 } from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
-import { calcHealAmount } from '../healCombat';
+import { calcHealAmount, hasHealableDebuff } from '../healCombat';
+import { getSelectionTurn, isFrozen } from '../iceCombat';
 import { onExternalEffectToUnit } from '../ninjaCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
 import {
@@ -36,15 +37,33 @@ function applyHeal(
   if (!actor || !target || !isAlive(actor) || !isAlive(target)) return state;
   if (actor.attribute !== 'heal' || actor.healUsesRemaining <= 0) return state;
 
-  const amount = calcHealAmount(actor, target);
-  const poisonStacksCleared = target.poisonStacks.length;
-  if (amount <= 0 && poisonStacksCleared === 0) return state;
+  const selectionTurn = getSelectionTurn(state);
+  const hasDebuff = hasHealableDebuff(target, selectionTurn);
+  const poisonStacksCleared =
+    hasDebuff && target.poisonStacks.length > 0
+      ? target.poisonStacks.length
+      : 0;
+  const freezeCleared = hasDebuff && isFrozen(target, selectionTurn);
+
+  let amount = 0;
+  if (!hasDebuff) {
+    amount = calcHealAmount(actor, target);
+    if (amount <= 0) return state;
+  }
 
   const bpFrom = target.currentBp;
   onExternalEffectToUnit(target);
-  target.currentBp = Math.min(target.maxBp, target.currentBp + amount);
-  target.poisonStacks = [];
-  target.poisonDotDamageReceived = false;
+
+  if (hasDebuff) {
+    target.poisonStacks = [];
+    target.poisonDotDamageReceived = false;
+    if (freezeCleared) {
+      target.frozenUntilTurn = null;
+    }
+  } else {
+    target.currentBp = Math.min(target.maxBp, target.currentBp + amount);
+  }
+
   actor.healUsesRemaining -= 1;
 
   heals.push({
@@ -55,6 +74,7 @@ function applyHeal(
     bpFrom,
     bpTo: target.currentBp,
     poisonStacksCleared,
+    freezeCleared,
   });
 
   const logParts = [
@@ -62,6 +82,7 @@ function applyHeal(
       ? `回復（+${amount}、${bpFrom}→${target.currentBp}）`
       : null,
     poisonStacksCleared > 0 ? '毒解消' : null,
+    freezeCleared ? '凍結解消' : null,
   ].filter((part): part is string => part != null);
   let next = appendLog(
     state,
@@ -76,6 +97,7 @@ function applyHeal(
     target: unitSnapshot(target, bpFrom, target.currentBp),
     healAmount: amount,
     poisonStacksCleared,
+    freezeCleared,
     damage: amount,
     actorId: actor.cardId,
     targetId: target.cardId,

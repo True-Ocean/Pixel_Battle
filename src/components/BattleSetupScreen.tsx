@@ -234,6 +234,14 @@ function resolveFrozenDisplay(
       }
     }
   }
+  if (playback?.phase === 'heal') {
+    const heal = playback.heals.find(
+      (h) => h.side === side && h.toPosition === position,
+    );
+    if (heal?.freezeCleared && playback.healSubPhase === 'bp') {
+      return { frozen: false, justApplied: false };
+    }
+  }
   return {
     frozen: isFrozen(unit, getSelectionTurn(battle.state)),
     justApplied: false,
@@ -715,7 +723,11 @@ function BattleUnitSlot({
     battle.effectivePhase === 'pickHeal' ||
     (battle.effectivePhase === 'pickTarget' &&
       battle.pendingActor != null &&
-      getHealTargets(battle.state.player, battle.pendingActor).includes(
+      getHealTargets(
+        battle.state.player,
+        battle.pendingActor,
+        getSelectionTurn(battle.state),
+      ).includes(
         position,
       ));
   const isStormPick =
@@ -1192,13 +1204,29 @@ function BattleBoard({
     battle.playback.healSubPhase === 'damage'
   ) {
     for (const heal of healLines) {
-      damageMarkers.push({
-        key: `heal-${heal.side}-${heal.toPosition}`,
-        side: heal.side,
-        position: heal.toPosition,
-        label: `+${heal.amount}`,
-        kind: 'heal',
-      });
+      const debuffLabel = [
+        heal.poisonStacksCleared > 0 ? '毒解消' : null,
+        heal.freezeCleared ? '凍結解消' : null,
+      ]
+        .filter((part): part is string => part != null)
+        .join('・');
+      if (heal.amount > 0) {
+        damageMarkers.push({
+          key: `heal-${heal.side}-${heal.toPosition}`,
+          side: heal.side,
+          position: heal.toPosition,
+          label: `+${heal.amount}`,
+          kind: 'heal',
+        });
+      } else if (debuffLabel) {
+        damageMarkers.push({
+          key: `heal-${heal.side}-${heal.toPosition}`,
+          side: heal.side,
+          position: heal.toPosition,
+          label: debuffLabel,
+          kind: 'heal',
+        });
+      }
     }
   }
   if (

@@ -83,7 +83,7 @@ export function getActionTypesForUnit(
   if (unit.attribute === 'defense' && canUseShieldAction(ownField, position)) {
     actions.push('grantShield');
   }
-  if (unit.attribute === 'heal' && canUseHealAction(ownField, position)) {
+  if (unit.attribute === 'heal' && canUseHealAction(ownField, position, selectionTurn)) {
     actions.push('heal');
   }
 

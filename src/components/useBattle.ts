@@ -454,7 +454,7 @@ export function useBattle(
       }
 
       if (effectivePhase === 'pickHeal' && pendingActor && pendingAction) {
-        if (getHealTargets(state.player, pendingActor).includes(position)) {
+        if (getHealTargets(state.player, pendingActor, selectionTurn).includes(position)) {
           commitTurn({
             type: 'heal',
             actorPosition: pendingActor,
@@ -481,7 +481,7 @@ export function useBattle(
         effectivePhase === 'pickTarget' &&
         pendingActor &&
         pendingAction == null &&
-        getHealTargets(state.player, pendingActor).includes(position)
+        getHealTargets(state.player, pendingActor, selectionTurn).includes(position)
       ) {
         commitTurn({
           type: 'heal',
@@ -737,7 +737,7 @@ export function useBattle(
               getShieldTargetsForActor(state.player, pendingActor).includes(
                 position,
               )) ||
-              getHealTargets(state.player, pendingActor).includes(position))
+              getHealTargets(state.player, pendingActor, selectionTurn).includes(position))
           );
         }
         return false;
@@ -753,7 +753,7 @@ export function useBattle(
         return (
           side === 'player' &&
           !!pendingActor &&
-          getHealTargets(state.player, pendingActor).includes(position)
+          getHealTargets(state.player, pendingActor, selectionTurn).includes(position)
         );
       }
       if (effectivePhase === 'promoteUnit') {

@@ -82,6 +82,9 @@ function formatDamageSuffix(event: BattleEvent): string {
     if (event.poisonStacksCleared && event.poisonStacksCleared > 0) {
       parts.push('毒解消');
     }
+    if (event.freezeCleared) {
+      parts.push('凍結解消');
+    }
     return parts.length > 0 ? parts.join('・') : '効果なし';
   }
   if (event.actionKind === 'poison_dot') {
