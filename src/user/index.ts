@@ -3,6 +3,7 @@ export {
   applyDevUserLevelOverride,
   applyDevUserProfile,
   applyLevelUpEconomyRewards,
+  applyLevelUpInventoryRewards,
   createInitialProfile,
   effectiveDevPreferSavedLevel,
   calcBattleExpGainForUser,
@@ -47,8 +48,7 @@ export {
   getBattlesDayKey,
   normalizeAdState,
   isNormalBattleAdsEnabledAtUserLevel,
-  shouldRequireHistoryRematchAd,
-  shouldRequireNormalBattleAd,
+  shouldRequireBattleStartAd,
   shouldShowHistoryRematchRulesModal,
 } from './adState';
 export {

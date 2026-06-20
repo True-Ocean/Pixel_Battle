@@ -19,7 +19,7 @@ interface GraveyardPickModalProps {
   graveyardCards: Card[];
   expGain: number;
   showVictoryDoubleAd?: boolean;
-  onPick: (card: Card, options?: { doublePixels?: boolean }) => void;
+  onPick: (card: Card, options?: { doubleRewards?: boolean }) => void;
   onRequestVictoryDoubleAd?: (card: Card) => void;
 }
 
@@ -233,7 +233,7 @@ export function GraveyardPickModal({
             className="graveyard-pick-double-ad"
             onClick={() => onRequestVictoryDoubleAd(selected)}
           >
-            広告視聴で2倍
+            報酬2倍　🎬
           </button>
         )}
       </div>

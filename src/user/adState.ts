@@ -23,8 +23,7 @@ export function createInitialAdState(date: Date = new Date()): AdState {
     hasEverCompletedBattleDeck: false,
     battlesToday: 0,
     battlesDayKey: getBattlesDayKey(date),
-    normalBattleStarts: 0,
-    historyRematchStarts: 0,
+    battleStarts: 0,
   };
 }
 
@@ -43,10 +42,11 @@ export function normalizeAdState(raw: unknown, date: Date = new Date()): AdState
     candidate.creativeAdCounter >= 0
       ? Math.floor(candidate.creativeAdCounter)
       : undefined;
-  const normalBattleStarts = normalizeNonNegativeInt(candidate.normalBattleStarts);
-  const historyRematchStarts = normalizeNonNegativeInt(
-    candidate.historyRematchStarts,
-  );
+  const battleStarts =
+    candidate.battleStarts !== undefined
+      ? normalizeNonNegativeInt(candidate.battleStarts)
+      : normalizeNonNegativeInt(candidate.normalBattleStarts) +
+        normalizeNonNegativeInt(candidate.historyRematchStarts);
   const historyRematchRulesDismissedDayKey =
     typeof candidate.historyRematchRulesDismissedDayKey === 'string' &&
     candidate.historyRematchRulesDismissedDayKey.length > 0
@@ -64,8 +64,7 @@ export function normalizeAdState(raw: unknown, date: Date = new Date()): AdState
     hasEverCompletedBattleDeck,
     battlesToday: resetBattlesToday,
     battlesDayKey: todayKey,
-    normalBattleStarts,
-    historyRematchStarts,
+    battleStarts,
     ...(rulesDismissedToday != null
       ? { historyRematchRulesDismissedDayKey: rulesDismissedToday }
       : {}),
@@ -97,14 +96,7 @@ export function isNormalBattleAdsEnabledAtUserLevel(userLevel: number): boolean 
   return Math.max(1, Math.floor(userLevel)) >= LOST_MIN_USER_LEVEL;
 }
 
-/** 次の通常バトル開始でリワード広告が必要か（3回に1回） */
-export function shouldRequireNormalBattleAd(normalBattleStarts: number): boolean {
-  return (normalBattleStarts + 1) % 3 === 0;
-}
-
-/** 次の履歴再戦のバトル開始でリワード広告が必要か（3回に1回） */
-export function shouldRequireHistoryRematchAd(
-  historyRematchStarts: number,
-): boolean {
-  return (historyRematchStarts + 1) % 3 === 0;
+/** 次のバトル開始でリワード広告が必要か（通常・履歴再戦共通・3回に1回） */
+export function shouldRequireBattleStartAd(battleStarts: number): boolean {
+  return (battleStarts + 1) % 3 === 0;
 }

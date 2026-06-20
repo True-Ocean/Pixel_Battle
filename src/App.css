@@ -2590,7 +2590,8 @@ button.battle-hub-deck-icon.is-move-target {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.deck-card-detail-actions--with-album .deck-card-detail-edit {
+.deck-card-detail-actions--with-album .deck-card-detail-edit,
+.deck-card-detail-actions--with-album .deck-card-detail-revive {
   grid-column: 1 / -1;
   display: inline-flex;
   align-items: center;

@@ -11,7 +11,7 @@ import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { loadSave, resetBattleHistory, saveSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireHistoryRematchAd, shouldRequireNormalBattleAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
   unlockPaletteWithJewels,
@@ -138,10 +138,10 @@ function App() {
     entry: BattleHistoryEntry;
     phase: 'rules' | 'deckSelect';
   } | null>(null);
-  const [historyRematchPendingAdDeckIndex, setHistoryRematchPendingAdDeckIndex] =
-    useState<number | null>(null);
-  const [normalBattlePendingAdDeckIndex, setNormalBattlePendingAdDeckIndex] =
-    useState<number | null>(null);
+  const [battleStartPendingAd, setBattleStartPendingAd] = useState<{
+    kind: 'normal' | 'historyRematch';
+    deckIndex: number;
+  } | null>(null);
   const [graveyardVictoryDoubleCard, setGraveyardVictoryDoubleCard] =
     useState<Card | null>(null);
   const [cardEditPendingAd, setCardEditPendingAd] = useState<Card | null>(null);
@@ -305,7 +305,9 @@ function App() {
 
   const resetHistoryRematchFlow = useCallback(() => {
     setHistoryRematchFlow(null);
-    setHistoryRematchPendingAdDeckIndex(null);
+    setBattleStartPendingAd((pending) =>
+      pending?.kind === 'historyRematch' ? null : pending,
+    );
   }, []);
 
   const goToBattleSetup = useCallback(
@@ -341,7 +343,7 @@ function App() {
       if (isNormalBattleAdsEnabledAtUserLevel(level)) {
         const nextAdState = {
           ...adStateRef.current,
-          normalBattleStarts: (adStateRef.current.normalBattleStarts ?? 0) + 1,
+          battleStarts: (adStateRef.current.battleStarts ?? 0) + 1,
         };
         adStateRef.current = nextAdState;
         setAdState(nextAdState);
@@ -359,9 +361,9 @@ function App() {
       const level = userRef.current?.level ?? 1;
       if (
         isNormalBattleAdsEnabledAtUserLevel(level) &&
-        shouldRequireNormalBattleAd(adStateRef.current.normalBattleStarts ?? 0)
+        shouldRequireBattleStartAd(adStateRef.current.battleStarts ?? 0)
       ) {
-        setNormalBattlePendingAdDeckIndex(deckIndex);
+        setBattleStartPendingAd({ kind: 'normal', deckIndex });
         return;
       }
       goToBattleSetup(deckIndex);
@@ -448,13 +450,13 @@ function App() {
 
       const nextAdState = {
         ...adStateRef.current,
-        historyRematchStarts: (adStateRef.current.historyRematchStarts ?? 0) + 1,
+        battleStarts: (adStateRef.current.battleStarts ?? 0) + 1,
       };
       adStateRef.current = nextAdState;
       setAdState(nextAdState);
       persistSave({ adState: nextAdState });
 
-      setHistoryRematchPendingAdDeckIndex(null);
+      setBattleStartPendingAd(null);
       resetHistoryRematchFlow();
       setBattleSetupKey((k) => k + 1);
       setBattleEndDock(false);
@@ -465,9 +467,9 @@ function App() {
 
   const startHistoryRematchBattle = useCallback(
     (deckIndex: number) => {
-      const starts = adStateRef.current.historyRematchStarts ?? 0;
-      if (shouldRequireHistoryRematchAd(starts)) {
-        setHistoryRematchPendingAdDeckIndex(deckIndex);
+      const starts = adStateRef.current.battleStarts ?? 0;
+      if (shouldRequireBattleStartAd(starts)) {
+        setBattleStartPendingAd({ kind: 'historyRematch', deckIndex });
         return;
       }
       executeHistoryRematchBattle(deckIndex);
@@ -1093,7 +1095,7 @@ function App() {
         graveyardCard?: Card | null;
         lostCard?: Card | null;
         talismanSavedCard?: Card | null;
-        doubleVictoryPixels?: boolean;
+        doubleVictoryRewards?: boolean;
       } = {},
     ) => {
       if (isHistoryRematchRef.current) {
@@ -1103,7 +1105,7 @@ function App() {
         graveyardCard = null,
         lostCard = null,
         talismanSavedCard = null,
-        doubleVictoryPixels = false,
+        doubleVictoryRewards = false,
       } = options;
       const prevUser = userRef.current;
       const prevEconomy = economyRef.current;
@@ -1129,7 +1131,35 @@ function App() {
         nextUser = battleRecord.user;
         nextEconomy = battleRecord.economy;
         nextInventory = battleRecord.inventory;
-        if (crossedTalismanStarterLevel(prevUser.level, battleRecord.user.level)) {
+        let levelUpPixelsGranted = battleRecord.pixelsGranted;
+        let levelUpJewelsGranted = battleRecord.jewelsGranted;
+        let allLevelsGained = battleRecord.levelsGained;
+
+        if (doubleVictoryRewards && outcome.winner === 'player') {
+          const levelBeforeDouble = nextUser.level;
+          nextUser = grantBattleExp(nextUser, expInput);
+          const doubleLevelsGained: number[] = [];
+          for (let level = levelBeforeDouble + 1; level <= nextUser.level; level++) {
+            doubleLevelsGained.push(level);
+          }
+          if (doubleLevelsGained.length > 0) {
+            const extraEconomy = applyLevelUpEconomyRewards(
+              nextEconomy,
+              doubleLevelsGained,
+            );
+            nextEconomy = extraEconomy.economy;
+            levelUpPixelsGranted += extraEconomy.pixelsGranted;
+            levelUpJewelsGranted += extraEconomy.jewelsGranted;
+            const extraInventory = applyLevelUpInventoryRewards(
+              nextInventory,
+              doubleLevelsGained,
+            );
+            nextInventory = extraInventory.inventory;
+            allLevelsGained = [...allLevelsGained, ...doubleLevelsGained];
+          }
+        }
+
+        if (crossedTalismanStarterLevel(prevUser.level, nextUser.level)) {
           const grant = tryGrantTalismanStarter(
             nextInventory,
             nextTalismanStarterGranted,
@@ -1137,16 +1167,16 @@ function App() {
           nextInventory = grant.inventory;
           nextTalismanStarterGranted = grant.talismanStarterGranted;
         }
-        if (battleRecord.levelsGained.length > 0) {
+        if (allLevelsGained.length > 0) {
           nextUnlockedDeckCount = resolveDeckUnlockOnLevelUp(
             nextUnlockedDeckCount,
-            battleRecord.levelsGained,
+            allLevelsGained,
           );
           setLevelUpModal({
             fromLevel: prevUser.level,
-            toLevel: battleRecord.user.level,
-            pixelsGranted: battleRecord.pixelsGranted,
-            jewelsGranted: battleRecord.jewelsGranted,
+            toLevel: nextUser.level,
+            pixelsGranted: levelUpPixelsGranted,
+            jewelsGranted: levelUpJewelsGranted,
           });
         }
       }
@@ -1164,16 +1194,17 @@ function App() {
               ),
             );
         if (pixelTotal > 0) {
-          const pixelsToGrant = doubleVictoryPixels ? pixelTotal * 2 : pixelTotal;
+          const pixelsToGrant = doubleVictoryRewards ? pixelTotal * 2 : pixelTotal;
           nextEconomy = addFreePixels(nextEconomy, pixelsToGrant);
         }
         if (graveyardCard) {
           const shardAmount = calcGraveyardShardReward(graveyardCard);
-          if (shardAmount > 0) {
+          const shardsToGrant = doubleVictoryRewards ? shardAmount * 2 : shardAmount;
+          if (shardsToGrant > 0) {
             nextInventory = addLimitBreakShards(
               nextInventory,
               graveyardCard.attribute,
-              shardAmount,
+              shardsToGrant,
             );
           }
         }
@@ -1315,14 +1346,14 @@ function App() {
   );
 
   const handleGraveyardPick = useCallback(
-    (card: Card, options?: { doublePixels?: boolean }) => {
+    (card: Card, options?: { doubleRewards?: boolean }) => {
       const outcome = pendingGraveyardOutcome;
       if (!outcome) return;
       setPendingGraveyardOutcome(null);
       setGraveyardVictoryDoubleCard(null);
       finalizeBattleOutcome(outcome, {
         graveyardCard: card,
-        doubleVictoryPixels: options?.doublePixels === true,
+        doubleVictoryRewards: options?.doubleRewards === true,
       });
     },
     [finalizeBattleOutcome, pendingGraveyardOutcome],
@@ -2060,44 +2091,31 @@ function App() {
           onCancel={resetHistoryRematchFlow}
         />
       )}
-      {historyRematchPendingAdDeckIndex != null && (
-        <MockRewardAdModal
-          title="再戦のための広告視聴"
-          message="3回に1回、バトル開始前にリワード広告の視聴が必要です（モック）"
-          onComplete={() => {
-            setHistoryRematchPendingAdDeckIndex((deckIndex) => {
-              if (deckIndex != null) {
-                executeHistoryRematchBattle(deckIndex);
-              }
-              return null;
-            });
-          }}
-          onCancel={() => setHistoryRematchPendingAdDeckIndex(null)}
-        />
-      )}
-      {normalBattlePendingAdDeckIndex != null && (
+      {battleStartPendingAd != null && (
         <MockRewardAdModal
           title="バトル開始のための広告視聴"
           message="3回に1回、バトル開始前にリワード広告の視聴が必要です（モック）"
           onComplete={() => {
-            setNormalBattlePendingAdDeckIndex((deckIndex) => {
-              if (deckIndex != null) {
-                goToBattleSetup(deckIndex);
+            setBattleStartPendingAd((pending) => {
+              if (pending?.kind === 'normal') {
+                goToBattleSetup(pending.deckIndex);
+              } else if (pending?.kind === 'historyRematch') {
+                executeHistoryRematchBattle(pending.deckIndex);
               }
               return null;
             });
           }}
-          onCancel={() => setNormalBattlePendingAdDeckIndex(null)}
+          onCancel={() => setBattleStartPendingAd(null)}
         />
       )}
       {graveyardVictoryDoubleCard != null && (
         <MockRewardAdModal
           title="報酬2倍のための広告視聴"
-          message="広告視聴後、このバトルの px 報酬が2倍になります（モック）"
+          message="広告視聴後、このバトルの EXP・コイン・かけら報酬が2倍になります（モック）"
           onComplete={() => {
             setGraveyardVictoryDoubleCard((card) => {
               if (card) {
-                handleGraveyardPick(card, { doublePixels: true });
+                handleGraveyardPick(card, { doubleRewards: true });
               }
               return null;
             });

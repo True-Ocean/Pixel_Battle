@@ -4,8 +4,7 @@ import {
   getBattlesDayKey,
   isNormalBattleAdsEnabledAtUserLevel,
   normalizeAdState,
-  shouldRequireHistoryRematchAd,
-  shouldRequireNormalBattleAd,
+  shouldRequireBattleStartAd,
   shouldShowHistoryRematchRulesModal,
 } from './adState';
 
@@ -16,8 +15,7 @@ describe('ad state', () => {
       hasEverCompletedBattleDeck: false,
       battlesToday: 0,
       battlesDayKey: '2026-06-15',
-      historyRematchStarts: 0,
-      normalBattleStarts: 0,
+      battleStarts: 0,
     });
     expect(getBattlesDayKey(date)).toBe('2026-06-15');
   });
@@ -37,8 +35,7 @@ describe('ad state', () => {
       hasEverCompletedBattleDeck: true,
       battlesToday: 0,
       battlesDayKey: '2026-06-15',
-      historyRematchStarts: 0,
-      normalBattleStarts: 0,
+      battleStarts: 0,
     });
   });
 
@@ -57,31 +54,43 @@ describe('ad state', () => {
       hasEverCompletedBattleDeck: false,
       battlesToday: 4,
       battlesDayKey: '2026-06-15',
-      historyRematchStarts: 0,
-      normalBattleStarts: 0,
+      battleStarts: 0,
     });
   });
 
-  it('requires normal battle ad every 3 starts', () => {
-    expect(shouldRequireNormalBattleAd(0)).toBe(false);
-    expect(shouldRequireNormalBattleAd(1)).toBe(false);
-    expect(shouldRequireNormalBattleAd(2)).toBe(true);
-    expect(shouldRequireNormalBattleAd(3)).toBe(false);
-    expect(shouldRequireNormalBattleAd(5)).toBe(true);
+  it('migrates legacy separate counters into battleStarts', () => {
+    const today = new Date('2026-06-14T15:00:00.000Z');
+    expect(
+      normalizeAdState(
+        {
+          hasEverCompletedBattleDeck: false,
+          battlesToday: 0,
+          battlesDayKey: '2026-06-15',
+          normalBattleStarts: 2,
+          historyRematchStarts: 1,
+        },
+        today,
+      ),
+    ).toEqual({
+      hasEverCompletedBattleDeck: false,
+      battlesToday: 0,
+      battlesDayKey: '2026-06-15',
+      battleStarts: 3,
+    });
+  });
+
+  it('requires battle start ad every 3 starts', () => {
+    expect(shouldRequireBattleStartAd(0)).toBe(false);
+    expect(shouldRequireBattleStartAd(1)).toBe(false);
+    expect(shouldRequireBattleStartAd(2)).toBe(true);
+    expect(shouldRequireBattleStartAd(3)).toBe(false);
+    expect(shouldRequireBattleStartAd(5)).toBe(true);
   });
 
   it('enables normal battle ads from user level 5', () => {
     expect(isNormalBattleAdsEnabledAtUserLevel(4)).toBe(false);
     expect(isNormalBattleAdsEnabledAtUserLevel(5)).toBe(true);
     expect(isNormalBattleAdsEnabledAtUserLevel(10)).toBe(true);
-  });
-
-  it('requires history rematch ad every 3 starts', () => {
-    expect(shouldRequireHistoryRematchAd(0)).toBe(false);
-    expect(shouldRequireHistoryRematchAd(1)).toBe(false);
-    expect(shouldRequireHistoryRematchAd(2)).toBe(true);
-    expect(shouldRequireHistoryRematchAd(3)).toBe(false);
-    expect(shouldRequireHistoryRematchAd(5)).toBe(true);
   });
 
   it('shows history rematch rules until dismissed for today', () => {
