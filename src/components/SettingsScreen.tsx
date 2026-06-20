@@ -8,10 +8,7 @@ import { clampUnlockedDeckCount } from '../deckSlots';
 import { getLevelProgress } from '../user';
 import type { UserProfile } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
-import {
-  PALETTE_SHOP_TIER1_COUNT,
-  PALETTE_SHOP_TIER2_COUNT,
-} from '../config/paletteShop';
+import { getAllJewelPaletteIndices } from '../config/paletteShop';
 
 interface DevCardOption {
   id: string;
@@ -316,7 +313,7 @@ export function SettingsScreen({
     setDevPaletteNotice(onDevClearPaletteShopUnlocks());
   };
 
-  const shopPaletteTotal = PALETTE_SHOP_TIER1_COUNT + PALETTE_SHOP_TIER2_COUNT;
+  const shopPaletteTotal = getAllJewelPaletteIndices().length;
 
   const selectedDevCard = devCardOptions.find((option) => option.id === devLostCardId);
   const selectedDevFillDeck = devDeckFillOptions.find(
@@ -597,7 +594,7 @@ export function SettingsScreen({
                 </button>
               </div>
               <p className="settings-dev-level-hint muted">
-                解放済み {paletteShopUnlockCount}/{shopPaletteTotal} 色（Lv50以上で利用可能）
+                解放済み {paletteShopUnlockCount}/{shopPaletteTotal} 色（💎購入分）
               </p>
             </div>
             <div className="settings-dev-level">

@@ -8,8 +8,10 @@ import {
   PALETTE_UNLOCKED_COUNT_LV0,
 } from './balance';
 import {
-  canOfferPaletteShopPurchase,
-  isShopPaletteIndex,
+  canOfferPaletteJewelPurchase,
+  isJewelPaletteIndex,
+  isRightColumnJewelPaletteIndex,
+  PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL,
 } from './paletteShop';
 
 /** 追加色の解放レベル（L≡5 mod 10: 5, 15, 25, 35, 45） */
@@ -166,8 +168,21 @@ export function isPaletteUnlocked(
   if (paletteIndex < PALETTE_EDITOR_LEVEL_UNLOCK_COUNT) {
     return isPaletteUnlockedAtLevel(paletteIndex, userLevel);
   }
-  if (!canOfferPaletteShopPurchase(paletteIndex, userLevel)) return false;
-  return isPaletteShopUnlocked(paletteIndex, shopUnlocks);
+  if (!isJewelPaletteIndex(paletteIndex)) return false;
+  if (!isPaletteShopUnlocked(paletteIndex, shopUnlocks)) return false;
+  return canOfferPaletteJewelPurchase(paletteIndex, userLevel);
+}
+
+export function canOfferPaletteShopPurchase(
+  index: number,
+  userLevel: number,
+): boolean {
+  return canOfferPaletteJewelPurchase(index, userLevel);
+}
+
+/** @deprecated isJewelPaletteIndex を使用 */
+export function isShopPaletteIndex(index: number): boolean {
+  return isJewelPaletteIndex(index);
 }
 
 export function isPaletteColorUnlocked(

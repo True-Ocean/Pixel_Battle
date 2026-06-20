@@ -15,9 +15,13 @@ import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, c
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
   unlockPaletteWithJewels,
-  unlockPaletteWithPixels,
   createFullPaletteShopUnlocks,
 } from './user/paletteShop';
+import {
+  normalizeEditorShopUnlocks,
+  unlockEditorFeatureWithJewels,
+} from './user/editorShop';
+import type { EditorShopUnlockId } from './config/editorShop';
 import { normalizePaletteShopUnlocks } from './config/paletteUnlock';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
 import {
@@ -100,6 +104,9 @@ function App() {
   const [paletteShopUnlocks, setPaletteShopUnlocks] = useState<number[]>(() =>
     normalizePaletteShopUnlocks(initialSave.paletteShopUnlocks),
   );
+  const [editorShopUnlocks, setEditorShopUnlocks] = useState<
+    EditorShopUnlockId[]
+  >(() => normalizeEditorShopUnlocks(initialSave.editorShopUnlocks));
   const [memoryAlbum, setMemoryAlbum] = useState<MemoryAlbumState>(
     () => initialSave.memoryAlbum ?? createInitialMemoryAlbum(),
   );
@@ -188,6 +195,7 @@ function App() {
   const battleHistoryRef = useRef(battleHistory);
   const deckNamesRef = useRef(deckNames);
   const paletteShopUnlocksRef = useRef(paletteShopUnlocks);
+  const editorShopUnlocksRef = useRef(editorShopUnlocks);
   const memoryAlbumRef = useRef(memoryAlbum);
   const isHistoryRematchRef = useRef(false);
   const historyRematchEntryRef = useRef<BattleHistoryEntry | null>(null);
@@ -209,6 +217,7 @@ function App() {
   battleHistoryRef.current = battleHistory;
   deckNamesRef.current = deckNames;
   paletteShopUnlocksRef.current = paletteShopUnlocks;
+  editorShopUnlocksRef.current = editorShopUnlocks;
   memoryAlbumRef.current = memoryAlbum;
 
   const devPreferSavedLevelRef = useRef(initialSave.devPreferSavedLevel === true);
@@ -230,6 +239,7 @@ function App() {
       battleHistory?: BattleHistoryEntry[];
       deckNames?: string[];
       paletteShopUnlocks?: number[];
+      editorShopUnlocks?: EditorShopUnlockId[];
       memoryAlbum?: MemoryAlbumState;
       devPreferSavedLevel?: boolean;
       devFileOverrideLevel?: number | null;
@@ -256,6 +266,8 @@ function App() {
         deckNames: next.deckNames !== undefined ? next.deckNames : deckNamesRef.current,
         paletteShopUnlocks:
           next.paletteShopUnlocks ?? paletteShopUnlocksRef.current,
+        editorShopUnlocks:
+          next.editorShopUnlocks ?? editorShopUnlocksRef.current,
         memoryAlbum: next.memoryAlbum ?? memoryAlbumRef.current,
         ...(devPreferSavedLevelRef.current
           ? {
@@ -1704,31 +1716,17 @@ function App() {
     [persistSave],
   );
 
-  const unlockPaletteColor = useCallback(
-    (
-      index: number,
-      method: 'pixels' | 'jewels',
-    ): string | null => {
+  const unlockPaletteWithJewelsHandler = useCallback(
+    (index: number): string | null => {
       const userLevel = userRef.current?.level ?? 1;
-      const currentUnlocks = paletteShopUnlocksRef.current;
-      const unlock =
-        method === 'pixels'
-          ? unlockPaletteWithPixels(
-              index,
-              userLevel,
-              economyRef.current,
-              currentUnlocks,
-            )
-          : unlockPaletteWithJewels(
-              index,
-              userLevel,
-              economyRef.current,
-              currentUnlocks,
-            );
+      const unlock = unlockPaletteWithJewels(
+        index,
+        userLevel,
+        economyRef.current,
+        paletteShopUnlocksRef.current,
+      );
       if (!unlock) {
-        return method === 'pixels'
-          ? 'px が不足しています。'
-          : 'ジュエルが不足しています。';
+        return 'ジュエルが不足しています。';
       }
       setEconomy(unlock.economy);
       setPaletteShopUnlocks(unlock.shopUnlocks);
@@ -1743,14 +1741,29 @@ function App() {
     [persistSave],
   );
 
-  const unlockPaletteWithPixelsHandler = useCallback(
-    (index: number) => unlockPaletteColor(index, 'pixels'),
-    [unlockPaletteColor],
-  );
-
-  const unlockPaletteWithJewelsHandler = useCallback(
-    (index: number) => unlockPaletteColor(index, 'jewels'),
-    [unlockPaletteColor],
+  const unlockEditorFeatureWithJewelsHandler = useCallback(
+    (feature: EditorShopUnlockId): string | null => {
+      const userLevel = userRef.current?.level ?? 1;
+      const unlock = unlockEditorFeatureWithJewels(
+        feature,
+        userLevel,
+        economyRef.current,
+        editorShopUnlocksRef.current,
+      );
+      if (!unlock) {
+        return 'ジュエルが不足しています。';
+      }
+      setEconomy(unlock.economy);
+      setEditorShopUnlocks(unlock.shopUnlocks);
+      economyRef.current = unlock.economy;
+      editorShopUnlocksRef.current = unlock.shopUnlocks;
+      persistSave({
+        economy: unlock.economy,
+        editorShopUnlocks: unlock.shopUnlocks,
+      });
+      return null;
+    },
+    [persistSave],
   );
 
   const handleDevUnlockAllPaletteColors = useCallback((): string => {
@@ -1990,14 +2003,7 @@ function App() {
           />
         )}
         {screen === 'shop' && (
-          <ShopScreen
-            userLevel={user?.level ?? 1}
-            freePixels={economy.freePixels}
-            jewels={economy.jewels}
-            shopUnlocks={paletteShopUnlocks}
-            onUnlockWithPixels={unlockPaletteWithPixelsHandler}
-            onUnlockWithJewels={unlockPaletteWithJewelsHandler}
-          />
+          <ShopScreen userLevel={user?.level ?? 1} />
         )}
         {screen === 'inventory' && (
           <InventoryScreen
@@ -2041,6 +2047,7 @@ function App() {
             freePixels={economy.freePixels}
             jewels={economy.jewels}
             paletteShopUnlocks={paletteShopUnlocks}
+            editorShopUnlocks={editorShopUnlocks}
             backLabel={editorReturnToDetail ? '戻る' : 'マイデッキに戻る'}
             onBack={() => {
               const returnToDetail = editorReturnToDetail;
@@ -2053,8 +2060,8 @@ function App() {
             }}
             onCreated={addCard}
             onUpdated={updateCard}
-            onUnlockPaletteWithPixels={unlockPaletteWithPixelsHandler}
             onUnlockPaletteWithJewels={unlockPaletteWithJewelsHandler}
+            onUnlockEditorFeatureWithJewels={unlockEditorFeatureWithJewelsHandler}
           />
         )}
         {screen === 'battleSetup' && !isHistoryRematchDeckSelect && (

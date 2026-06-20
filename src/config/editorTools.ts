@@ -51,23 +51,31 @@ const TOOL_UNLOCK_LEVEL: Record<EditorToolId, number> = {
   undo: 7,
   redo: 12,
   line: 17,
-  selection: 22,
-  move: 23,
-  rectangle: 27,
-  circle: 32,
-  eyedropper: 37,
+  rectangle: 22,
+  circle: 27,
+  move: 32,
+  selection: 37,
+  eyedropper: 52,
 };
 
 export function getToolUnlockLevel(tool: EditorToolId): number {
   return TOOL_UNLOCK_LEVEL[tool];
 }
 
-export function isEditorToolUnlocked(
+export function isEditorToolUnlockedAtLevel(
   tool: EditorToolId,
   userLevel: number,
 ): boolean {
   const level = Math.max(1, Math.floor(userLevel));
   return level >= getToolUnlockLevel(tool);
+}
+
+/** @deprecated isEditorToolAvailable を使用 */
+export function isEditorToolUnlocked(
+  tool: EditorToolId,
+  userLevel: number,
+): boolean {
+  return isEditorToolUnlockedAtLevel(tool, userLevel);
 }
 
 export function isEditorToolImplemented(tool: EditorToolId): boolean {
@@ -82,7 +90,7 @@ export function usesBrushColor(tool: EditorToolId): boolean {
 export function getVisibleEditorTools(userLevel: number): EditorToolId[] {
   return IDEAL_TOOL_ORDER.filter(
     (tool) =>
-      isEditorToolImplemented(tool) && isEditorToolUnlocked(tool, userLevel),
+      isEditorToolImplemented(tool) && isEditorToolUnlockedAtLevel(tool, userLevel),
   );
 }
 

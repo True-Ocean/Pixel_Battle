@@ -1,21 +1,23 @@
 import type { UserEconomy } from '../types';
 import {
-  getAllShopPaletteIndices,
+  canOfferPaletteJewelPurchase,
   getJewelCostForPaletteIndex,
-  getPixelCostForPaletteIndex,
-  canOfferPaletteShopPurchase,
-  isShopPaletteIndex,
+  isJewelPaletteIndex,
 } from '../config/paletteShop';
 import {
   isPaletteShopUnlocked,
   normalizePaletteShopUnlocks,
 } from '../config/paletteUnlock';
-import { spendFreePixels, spendJewels } from './economy';
+import { spendJewels } from './economy';
 
 export { normalizePaletteShopUnlocks };
 
 export function createFullPaletteShopUnlocks(): number[] {
-  return [...getAllShopPaletteIndices()];
+  const indices: number[] = [];
+  for (let index = 0; index < 20; index++) {
+    if (isJewelPaletteIndex(index)) indices.push(index);
+  }
+  return indices;
 }
 
 export function canPurchasePaletteIndex(
@@ -24,27 +26,10 @@ export function canPurchasePaletteIndex(
   shopUnlocks: readonly number[],
 ): boolean {
   return (
-    isShopPaletteIndex(index) &&
-    canOfferPaletteShopPurchase(index, userLevel) &&
+    isJewelPaletteIndex(index) &&
+    canOfferPaletteJewelPurchase(index, userLevel) &&
     !isPaletteShopUnlocked(index, shopUnlocks)
   );
-}
-
-export function unlockPaletteWithPixels(
-  index: number,
-  userLevel: number,
-  economy: UserEconomy,
-  shopUnlocks: readonly number[],
-): { economy: UserEconomy; shopUnlocks: number[] } | null {
-  if (!canPurchasePaletteIndex(index, userLevel, shopUnlocks)) return null;
-  const cost = getPixelCostForPaletteIndex(index);
-  if (cost == null) return null;
-  const nextEconomy = spendFreePixels(economy, cost);
-  if (!nextEconomy) return null;
-  return {
-    economy: nextEconomy,
-    shopUnlocks: normalizePaletteShopUnlocks([...shopUnlocks, index]),
-  };
 }
 
 export function unlockPaletteWithJewels(
@@ -62,4 +47,18 @@ export function unlockPaletteWithJewels(
     economy: nextEconomy,
     shopUnlocks: normalizePaletteShopUnlocks([...shopUnlocks, index]),
   };
+}
+
+/** @deprecated unlockPaletteWithJewels を使用 */
+export function unlockPaletteWithPixels(
+  index: number,
+  userLevel: number,
+  economy: UserEconomy,
+  shopUnlocks: readonly number[],
+): { economy: UserEconomy; shopUnlocks: number[] } | null {
+  void index;
+  void userLevel;
+  void economy;
+  void shopUnlocks;
+  return null;
 }

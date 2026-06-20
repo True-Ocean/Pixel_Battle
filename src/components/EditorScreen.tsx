@@ -36,6 +36,8 @@ import { CanvasSizePicker } from './CanvasSizePicker';
 import { CardPreview } from './CardPreview';
 import { ColorPalette } from './ColorPalette';
 import { ConfirmDialog } from './ConfirmDialog';
+import { EditorFeatureUnlockModal } from './EditorFeatureUnlockModal';
+import { EditorCanvasViewport } from './EditorCanvasViewport';
 import { EditorSaveBpConfirmModal } from './EditorSaveBpConfirmModal';
 import { PaletteUnlockModal } from './PaletteUnlockModal';
 import { JewelAmount } from './JewelIcon';
@@ -47,11 +49,15 @@ import {
 } from '../config/economy';
 import type { BrushSizeId } from '../config/brushSize';
 import {
+  isEditorFeatureUnlocked,
+  isEditorToolAvailable,
+  type EditorShopUnlockId,
+} from '../config/editorShop';
+import {
   isEditorToolImplemented,
-  isEditorToolUnlocked,
   type EditorToolId,
 } from '../config/editorTools';
-import { PixelCanvas } from './PixelCanvas';
+import { PixelCanvas, type PixelCanvasHandle } from './PixelCanvas';
 import { ToolStrip } from './ToolStrip';
 import { PixelCoinIcon } from './PixelCoinIcon';
 
@@ -62,6 +68,7 @@ interface EditorScreenProps {
   freePixels?: number;
   jewels?: number;
   paletteShopUnlocks?: readonly number[];
+  editorShopUnlocks?: readonly EditorShopUnlockId[];
   backLabel?: string;
   onBack: () => void;
   onCreated: (card: Card) => void;
@@ -72,8 +79,8 @@ interface EditorScreenProps {
       nameChanged: boolean;
     },
   ) => void;
-  onUnlockPaletteWithPixels?: (index: number) => string | null;
   onUnlockPaletteWithJewels?: (index: number) => string | null;
+  onUnlockEditorFeatureWithJewels?: (feature: EditorShopUnlockId) => string | null;
 }
 
 const MINI_PREVIEW_SIZE = 48;
@@ -115,12 +122,13 @@ export function EditorScreen({
   freePixels = 0,
   jewels = 0,
   paletteShopUnlocks = [],
+  editorShopUnlocks = [],
   backLabel = 'マイデッキに戻る',
   onBack,
   onCreated,
   onUpdated,
-  onUnlockPaletteWithPixels,
   onUnlockPaletteWithJewels,
+  onUnlockEditorFeatureWithJewels,
 }: EditorScreenProps) {
   const isEditing = editTarget != null;
   const editCanvasSize = editTarget?.canvasSize ?? gridSize(editTarget?.pixels ?? []);
@@ -145,6 +153,8 @@ export function EditorScreen({
   const [brushColor, setBrushColor] = useState<string>(PALETTE_16[0]);
   const [brushSize, setBrushSize] = useState<BrushSizeId>('small');
   const [tool, setTool] = useState<EditorToolId>('pen');
+  const blockDrawingRef = useRef(false);
+  const pixelCanvasRef = useRef<PixelCanvasHandle>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
   const [pendingCreateAttribute, setPendingCreateAttribute] =
@@ -162,6 +172,8 @@ export function EditorScreen({
   const [paletteUnlockIndex, setPaletteUnlockIndex] = useState<number | null>(
     null,
   );
+  const [featureUnlockId, setFeatureUnlockId] =
+    useState<EditorShopUnlockId | null>(null);
   const [pendingCanvasUpgradeSize, setPendingCanvasUpgradeSize] =
     useState<number | null>(null);
   const isComposingNameRef = useRef(false);
@@ -192,10 +204,25 @@ export function EditorScreen({
   }, [userLevel, brushColor, paletteShopUnlocks]);
 
   useEffect(() => {
-    if (!isEditorToolImplemented(tool) || !isEditorToolUnlocked(tool, userLevel)) {
+    if (
+      !isEditorToolImplemented(tool) ||
+      !isEditorToolAvailable(tool, userLevel, editorShopUnlocks)
+    ) {
       setTool('pen');
     }
-  }, [userLevel, tool]);
+  }, [userLevel, tool, editorShopUnlocks]);
+
+  const brushSizeUnlocked = isEditorFeatureUnlocked(
+    'brushSize',
+    userLevel,
+    editorShopUnlocks,
+  );
+  const effectiveBrushSize = brushSizeUnlocked ? brushSize : 'small';
+  const zoomFeatureUnlocked = isEditorFeatureUnlocked(
+    'zoom',
+    userLevel,
+    editorShopUnlocks,
+  );
 
   const applyEditorChange = useCallback(
     (next: Partial<EditorSnapshot> & { pixels: PixelGrid }) => {
@@ -533,6 +560,7 @@ export function EditorScreen({
             <ToolStrip
               tool={tool}
               userLevel={userLevel}
+              editorShopUnlocks={editorShopUnlocks}
               canUndo={editorHistory.length > 0}
               canRedo={editorFuture.length > 0}
               onSelectTool={setTool}
@@ -543,18 +571,27 @@ export function EditorScreen({
               onRedo={handleRedo}
               brushSize={brushSize}
               onBrushSizeChange={setBrushSize}
+              onRequestFeatureUnlock={setFeatureUnlockId}
             />
             <div className="editor-canvas-column">
               <div className="editor-canvas-wrap">
-                <PixelCanvas
-                  pixels={pixels}
-                  onChange={(next) => applyEditorChange({ pixels: next })}
-                  onPickColor={handlePickColor}
-                  onFillComplete={() => setTool('pen')}
-                  tool={tool}
-                  brushColor={brushColor}
-                  brushSize={brushSize}
-                />
+                <EditorCanvasViewport
+                  zoomEnabled={zoomFeatureUnlocked}
+                  blockDrawingRef={blockDrawingRef}
+                  onPinchStart={() => pixelCanvasRef.current?.cancelInteraction()}
+                >
+                  <PixelCanvas
+                    ref={pixelCanvasRef}
+                    pixels={pixels}
+                    onChange={(next) => applyEditorChange({ pixels: next })}
+                    onPickColor={handlePickColor}
+                    onFillComplete={() => setTool('pen')}
+                    tool={tool}
+                    brushColor={brushColor}
+                    brushSize={effectiveBrushSize}
+                    blockDrawingRef={blockDrawingRef}
+                  />
+                </EditorCanvasViewport>
               </div>
               <ColorPalette
                 brushColor={brushColor}
@@ -739,20 +776,26 @@ export function EditorScreen({
         <PaletteUnlockModal
           paletteIndex={paletteUnlockIndex}
           userLevel={userLevel}
-          freePixels={freePixels}
           jewels={jewels}
           shopUnlocks={paletteShopUnlocks}
           onClose={() => setPaletteUnlockIndex(null)}
-          onUnlockWithPixels={(index) => {
-            const error = onUnlockPaletteWithPixels?.(index) ?? null;
-            if (!error) setPaletteUnlockIndex(null);
-            return error;
-          }}
           onUnlockWithJewels={(index) => {
             const error = onUnlockPaletteWithJewels?.(index) ?? null;
             if (!error) setPaletteUnlockIndex(null);
             return error;
           }}
+        />
+      )}
+      {featureUnlockId != null && (
+        <EditorFeatureUnlockModal
+          feature={featureUnlockId}
+          userLevel={userLevel}
+          jewels={jewels}
+          shopUnlocks={editorShopUnlocks}
+          onClose={() => setFeatureUnlockId(null)}
+          onUnlockWithJewels={(feature) =>
+            onUnlockEditorFeatureWithJewels?.(feature) ?? null
+          }
         />
       )}
     </section>

@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from 'react';
 import {
   checkerTone,
   drawEllipseOutline,
@@ -31,6 +39,17 @@ interface PixelCanvasProps {
   tool: EditorToolId;
   brushColor: string;
   brushSize?: BrushSizeId;
+  blockDrawingRef?: MutableRefObject<boolean>;
+}
+
+export interface PixelCanvasHandle {
+  cancelInteraction: () => void;
+}
+
+function isDrawingBlocked(
+  blockDrawingRef: MutableRefObject<boolean> | undefined,
+): boolean {
+  return blockDrawingRef?.current ?? false;
 }
 
 function isRegionTool(
@@ -87,16 +106,22 @@ interface FloatSelection {
   mode: 'copy' | 'move';
 }
 
-export function PixelCanvas({
-  pixels,
-  onChange,
-  onPickColor,
-  onFillComplete,
-  tool,
-  brushColor,
-  brushSize = 'small',
-}: PixelCanvasProps) {
+export const PixelCanvas = forwardRef<PixelCanvasHandle, PixelCanvasProps>(
+  function PixelCanvas(
+    {
+      pixels,
+      onChange,
+      onPickColor,
+      onFillComplete,
+      tool,
+      brushColor,
+      brushSize = 'small',
+      blockDrawingRef,
+    },
+    ref,
+  ) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const capturedPointerIdsRef = useRef(new Set<number>());
   const isDrawingRef = useRef(false);
   const lastCellRef = useRef<{ row: number; col: number } | null>(null);
   const basePixelsRef = useRef<PixelGrid>(pixels);
@@ -175,6 +200,37 @@ export function PixelCanvas({
     isPlacementDragRef.current = false;
     draftPixelsRef.current = null;
     setDraftPixels(null);
+  };
+
+  const releaseCapturedPointers = useCallback(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    for (const pointerId of capturedPointerIdsRef.current) {
+      try {
+        el.releasePointerCapture(pointerId);
+      } catch {
+        // ignore
+      }
+    }
+    capturedPointerIdsRef.current.clear();
+  }, []);
+
+  const cancelInteraction = useCallback(() => {
+    releaseCapturedPointers();
+    isDrawingRef.current = false;
+    isPlacementDragRef.current = false;
+    lastCellRef.current = null;
+    shapeAnchorRef.current = null;
+    draftPixelsRef.current = null;
+    setDraftPixels(null);
+    setMarqueeRect(null);
+  }, [releaseCapturedPointers]);
+
+  useImperativeHandle(ref, () => ({ cancelInteraction }), [cancelInteraction]);
+
+  const capturePointer = (element: HTMLDivElement, pointerId: number) => {
+    element.setPointerCapture(pointerId);
+    capturedPointerIdsRef.current.add(pointerId);
   };
 
   const strokeSize = brushSideLength(brushSize);
@@ -321,10 +377,12 @@ export function PixelCanvas({
 
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
+      capturedPointerIdsRef.current.delete(e.pointerId);
     }
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDrawingBlocked(blockDrawingRef)) return;
     if (e.button !== 0) return;
     e.preventDefault();
 
@@ -350,7 +408,7 @@ export function PixelCanvas({
         };
         isPlacementDragRef.current = true;
         isDrawingRef.current = true;
-        e.currentTarget.setPointerCapture(e.pointerId);
+        capturePointer(e.currentTarget, e.pointerId);
         return;
       }
 
@@ -360,7 +418,7 @@ export function PixelCanvas({
       setMarqueeRect(
         normalizeRect(cell.row, cell.col, cell.row, cell.col),
       );
-      e.currentTarget.setPointerCapture(e.pointerId);
+      capturePointer(e.currentTarget, e.pointerId);
       return;
     }
 
@@ -380,7 +438,7 @@ export function PixelCanvas({
       );
       draftPixelsRef.current = next;
       setDraftPixels(next);
-      e.currentTarget.setPointerCapture(e.pointerId);
+      capturePointer(e.currentTarget, e.pointerId);
       return;
     }
 
@@ -388,13 +446,17 @@ export function PixelCanvas({
 
     isDrawingRef.current = true;
     lastCellRef.current = null;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    capturePointer(e.currentTarget, e.pointerId);
     const next = applyStrokeCell(pixels, cell.row, cell.col);
     draftPixelsRef.current = next;
     setDraftPixels(next);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDrawingBlocked(blockDrawingRef)) {
+      if (isDrawingRef.current) cancelInteraction();
+      return;
+    }
     if (!isDrawingRef.current) return;
 
     const cell = cellFromPointer(e.clientX, e.clientY);
@@ -496,4 +558,4 @@ export function PixelCanvas({
       )}
     </div>
   );
-}
+});

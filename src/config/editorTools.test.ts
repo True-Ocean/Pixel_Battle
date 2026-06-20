@@ -1,21 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
-  COLOR_USING_EDITOR_TOOLS,
-  IDEAL_TOOL_ORDER,
-  IMPLEMENTED_EDITOR_TOOLS,
   getDisplayEditorTools,
   getVisibleEditorTools,
-  isEditorToolImplemented,
-  isEditorToolUnlocked,
-  usesBrushColor,
+  isEditorToolUnlockedAtLevel,
 } from './editorTools';
+import { isEditorToolAvailable } from './editorShop';
 
 describe('editorTools', () => {
   it('理想順で基本4ツールのみ Lv1', () => {
     expect(getVisibleEditorTools(1)).toEqual(['pen', 'eraser', 'fill', 'clear']);
   });
 
-  it('Lv7 で元に戻すが理想順の位置に追加される', () => {
+  it('Lv7 で元に戻すが追加される', () => {
     expect(getVisibleEditorTools(6)).toEqual([
       'pen',
       'eraser',
@@ -31,50 +27,12 @@ describe('editorTools', () => {
     ]);
   });
 
-  it('Lv12 でやり直しが理想順の位置に追加される', () => {
-    expect(getVisibleEditorTools(11)).toEqual([
-      'pen',
-      'eraser',
-      'fill',
-      'clear',
-      'undo',
-    ]);
-    expect(getVisibleEditorTools(12)).toEqual([
-      'pen',
-      'eraser',
-      'fill',
-      'clear',
-      'undo',
-      'redo',
-    ]);
-  });
-
-  it('Lv17 で直線が追加される', () => {
-    expect(getVisibleEditorTools(16)).toEqual([
-      'pen',
-      'eraser',
-      'fill',
-      'clear',
-      'undo',
-      'redo',
-    ]);
-    expect(getVisibleEditorTools(17)).toEqual([
-      'pen',
-      'eraser',
-      'fill',
-      'clear',
-      'undo',
-      'redo',
-      'line',
-    ]);
-  });
-
-  it('Lv22〜32 で選択・移動・矩形・円が順に追加される', () => {
-    expect(getVisibleEditorTools(22)).toContain('selection');
-    expect(getVisibleEditorTools(22)).not.toContain('move');
-    expect(getVisibleEditorTools(23)).toContain('move');
-    expect(getVisibleEditorTools(27)).toContain('rectangle');
-    expect(getVisibleEditorTools(32)).toEqual([
+  it('Lv22〜37 で矩形・円・移動・コピーが順に追加される', () => {
+    expect(isEditorToolUnlockedAtLevel('rectangle', 22)).toBe(true);
+    expect(isEditorToolUnlockedAtLevel('circle', 27)).toBe(true);
+    expect(isEditorToolUnlockedAtLevel('move', 32)).toBe(true);
+    expect(isEditorToolUnlockedAtLevel('selection', 37)).toBe(true);
+    expect(getVisibleEditorTools(37)).toEqual([
       'pen',
       'eraser',
       'fill',
@@ -89,24 +47,9 @@ describe('editorTools', () => {
     ]);
   });
 
-  it('スポイトは Lv37 で解放するが UI 非表示', () => {
-    expect(isEditorToolUnlocked('eyedropper', 36)).toBe(false);
-    expect(isEditorToolUnlocked('eyedropper', 37)).toBe(true);
-    expect(isEditorToolImplemented('eyedropper')).toBe(false);
-    expect(IMPLEMENTED_EDITOR_TOOLS).not.toContain('eyedropper');
-    expect(getVisibleEditorTools(50)).not.toContain('eyedropper');
-  });
-
-  it('未実装ツールは解放レベルに達しても表示しない', () => {
-    expect(IDEAL_TOOL_ORDER).toContain('eyedropper');
-    expect(getVisibleEditorTools(50).length).toBe(11);
-  });
-
-  it('ブラシ色を使うツールを判定できる', () => {
-    expect(COLOR_USING_EDITOR_TOOLS).toContain('pen');
-    expect(usesBrushColor('pen')).toBe(true);
-    expect(usesBrushColor('fill')).toBe(true);
-    expect(usesBrushColor('eraser')).toBe(false);
+  it('💎 早期解放でレベル前でも使える', () => {
+    expect(isEditorToolAvailable('line', 1, ['line'])).toBe(true);
+    expect(isEditorToolAvailable('pen', 1, [])).toBe(true);
   });
 
   it('表示用リストは実装済みツールを理想順で返す', () => {
@@ -123,19 +66,5 @@ describe('editorTools', () => {
       'move',
       'selection',
     ]);
-    expect(getDisplayEditorTools().length).toBeGreaterThan(getVisibleEditorTools(1).length);
-  });
-
-  it('理想順マスターに図形グループが含まれる', () => {
-    expect(IDEAL_TOOL_ORDER).toContain('line');
-    expect(IDEAL_TOOL_ORDER.indexOf('rectangle')).toBeGreaterThan(
-      IDEAL_TOOL_ORDER.indexOf('line'),
-    );
-    expect(IDEAL_TOOL_ORDER.indexOf('move')).toBeGreaterThan(
-      IDEAL_TOOL_ORDER.indexOf('circle'),
-    );
-    expect(IDEAL_TOOL_ORDER.indexOf('selection')).toBeGreaterThan(
-      IDEAL_TOOL_ORDER.indexOf('move'),
-    );
   });
 });

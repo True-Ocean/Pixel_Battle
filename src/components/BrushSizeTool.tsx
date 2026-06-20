@@ -1,18 +1,36 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   BRUSH_SIZE_IDS,
-  BRUSH_SIZE_LABELS,
   type BrushSizeId,
 } from '../config/brushSize';
+import {
+  canPurchaseEditorFeature,
+  EDITOR_FEATURE_LABELS,
+  EDITOR_FEATURE_UNLOCK_LEVEL,
+  isEditorFeatureUnlocked,
+  type EditorShopUnlockId,
+} from '../config/editorShop';
 
 interface BrushSizeToolProps {
   size: BrushSizeId;
+  userLevel: number;
+  shopUnlocks: readonly EditorShopUnlockId[];
   onChange: (size: BrushSizeId) => void;
+  onRequestUnlock: () => void;
 }
 
-export function BrushSizeTool({ size, onChange }: BrushSizeToolProps) {
+export function BrushSizeTool({
+  size,
+  userLevel,
+  shopUnlocks,
+  onChange,
+  onRequestUnlock,
+}: BrushSizeToolProps) {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
+  const unlocked = isEditorFeatureUnlocked('brushSize', userLevel, shopUnlocks);
+  const canPurchase = canPurchaseEditorFeature('brushSize', userLevel, shopUnlocks);
+  const unlockLevel = EDITOR_FEATURE_UNLOCK_LEVEL.brushSize;
 
   useEffect(() => {
     if (!open) return;
@@ -24,25 +42,47 @@ export function BrushSizeTool({ size, onChange }: BrushSizeToolProps) {
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [open]);
 
+  const handleMainClick = () => {
+    if (!unlocked) {
+      if (canPurchase) onRequestUnlock();
+      return;
+    }
+    setOpen((current) => !current);
+  };
+
   return (
     <div ref={anchorRef} className="editor-brush-size-anchor">
       <button
         type="button"
         className={`palette-swatch palette-swatch-tool brush-size-tool-btn${
-          open ? ' brush-size-tool-btn--open' : ''
-        }`}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        title={`太さ: ${BRUSH_SIZE_LABELS[size]}`}
-        onClick={() => setOpen((current) => !current)}
+          open && unlocked ? ' brush-size-tool-btn--open' : ''
+        }${!unlocked ? ' palette-swatch-locked' : ''}`}
+        aria-expanded={unlocked ? open : false}
+        aria-haspopup={unlocked ? 'menu' : undefined}
+        title={
+          unlocked
+            ? `太さ`
+            : canPurchase
+              ? `${EDITOR_FEATURE_LABELS.brushSize}（💎で早期解放）`
+              : `Lv${unlockLevel}で解放`
+        }
+        onClick={handleMainClick}
       >
-        <span
-          className={`brush-size-tool-dot brush-size-tool-dot--${size}`}
-          aria-hidden
-        />
-        <span className="sr-only">太さ {BRUSH_SIZE_LABELS[size]}</span>
+        {unlocked ? (
+          <>
+            <span
+              className={`brush-size-tool-dot brush-size-tool-dot--${size}`}
+              aria-hidden
+            />
+            <span className="sr-only">太さ</span>
+          </>
+        ) : (
+          <span className="palette-swatch-lock" aria-hidden>
+            🔒
+          </span>
+        )}
       </button>
-      {open && (
+      {unlocked && open && (
         <div className="brush-size-menu" role="menu" aria-label="太さ">
           {BRUSH_SIZE_IDS.map((option) => (
             <button
@@ -50,7 +90,6 @@ export function BrushSizeTool({ size, onChange }: BrushSizeToolProps) {
               type="button"
               role="menuitemradio"
               aria-checked={size === option}
-              title={`太さ: ${BRUSH_SIZE_LABELS[option]}`}
               className={`brush-size-menu-item${
                 size === option ? ' brush-size-menu-item--active' : ''
               }`}
@@ -63,7 +102,6 @@ export function BrushSizeTool({ size, onChange }: BrushSizeToolProps) {
                 className={`brush-size-tool-dot brush-size-tool-dot--${option}`}
                 aria-hidden
               />
-              <span className="sr-only">{BRUSH_SIZE_LABELS[option]}</span>
             </button>
           ))}
         </div>

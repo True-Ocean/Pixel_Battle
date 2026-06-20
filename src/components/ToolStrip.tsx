@@ -1,16 +1,25 @@
 import type { ReactNode } from 'react';
 import type { BrushSizeId } from '../config/brushSize';
 import {
+  canPurchaseEditorFeature,
+  editorShopIdForTool,
+  getEditorToolDisplayLabel,
+  isEditorInitialTool,
+  isEditorToolAvailable,
+  type EditorShopUnlockId,
+} from '../config/editorShop';
+import {
   getDisplayEditorTools,
   getToolUnlockLevel,
-  isEditorToolUnlocked,
   type EditorToolId,
 } from '../config/editorTools';
 import { BrushSizeTool } from './BrushSizeTool';
+import { ZoomTool } from './ZoomTool';
 
 interface ToolStripProps {
   tool: EditorToolId;
   userLevel?: number;
+  editorShopUnlocks?: readonly EditorShopUnlockId[];
   canUndo?: boolean;
   canRedo?: boolean;
   onSelectTool: (tool: EditorToolId) => void;
@@ -19,29 +28,57 @@ interface ToolStripProps {
   onRedo: () => void;
   brushSize: BrushSizeId;
   onBrushSizeChange: (size: BrushSizeId) => void;
+  onRequestFeatureUnlock: (feature: EditorShopUnlockId) => void;
 }
 
 function EditorToolButton({
   toolId,
   userLevel,
+  editorShopUnlocks,
   active = false,
   disabled = false,
   baseClassName,
-  label,
   onClick,
+  onRequestUnlock,
   children,
 }: {
   toolId: EditorToolId;
   userLevel: number;
+  editorShopUnlocks: readonly EditorShopUnlockId[];
   active?: boolean;
   disabled?: boolean;
   baseClassName: string;
-  label: string;
   onClick?: () => void;
+  onRequestUnlock?: () => void;
   children: ReactNode;
 }) {
-  const unlocked = isEditorToolUnlocked(toolId, userLevel);
+  const label = getEditorToolDisplayLabel(toolId);
+  const unlocked = isEditorToolAvailable(toolId, userLevel, editorShopUnlocks);
   const unlockLevel = getToolUnlockLevel(toolId);
+  const shopId = editorShopIdForTool(toolId);
+  const canPurchase =
+    !unlocked &&
+    !isEditorInitialTool(toolId) &&
+    shopId != null &&
+    canPurchaseEditorFeature(shopId, userLevel, editorShopUnlocks);
+  const levelOnlyLocked =
+    !unlocked && !canPurchase && !isEditorInitialTool(toolId);
+
+  const title = unlocked
+    ? label
+    : canPurchase
+      ? `${label}（💎で早期解放）`
+      : `Lv${unlockLevel}で解放`;
+
+  const handleClick = () => {
+    if (unlocked) {
+      onClick?.();
+      return;
+    }
+    if (canPurchase) {
+      onRequestUnlock?.();
+    }
+  };
 
   return (
     <button
@@ -53,9 +90,9 @@ function EditorToolButton({
       ]
         .filter(Boolean)
         .join(' ')}
-      disabled={!unlocked || disabled}
-      title={unlocked ? label : `Lv${unlockLevel}で解放`}
-      onClick={unlocked ? onClick : undefined}
+      disabled={(levelOnlyLocked && !canPurchase) || (unlocked && disabled)}
+      title={title}
+      onClick={unlocked || canPurchase ? handleClick : undefined}
     >
       {unlocked ? (
         children
@@ -64,9 +101,7 @@ function EditorToolButton({
           🔒
         </span>
       )}
-      <span className="sr-only">
-        {unlocked ? label : `Lv${unlockLevel}で解放`}
-      </span>
+      <span className="sr-only">{title}</span>
     </button>
   );
 }
@@ -74,6 +109,7 @@ function EditorToolButton({
 export function ToolStrip({
   tool,
   userLevel = 1,
+  editorShopUnlocks = [],
   canUndo = false,
   canRedo = false,
   onSelectTool,
@@ -82,21 +118,32 @@ export function ToolStrip({
   onRedo,
   brushSize,
   onBrushSizeChange,
+  onRequestFeatureUnlock,
 }: ToolStripProps) {
   const displayTools = getDisplayEditorTools();
+
+  const requestUnlockForTool = (toolId: EditorToolId) => {
+    const shopId = editorShopIdForTool(toolId);
+    if (shopId) onRequestFeatureUnlock(shopId);
+  };
 
   return (
     <div className="editor-tool-strip" role="toolbar" aria-label="描画ツール">
       {displayTools.map((toolId) => {
+        const commonProps = {
+          toolId,
+          userLevel,
+          editorShopUnlocks,
+          onRequestUnlock: () => requestUnlockForTool(toolId),
+        };
+
         if (toolId === 'undo') {
           return (
             <EditorToolButton
               key={toolId}
-              toolId={toolId}
-              userLevel={userLevel}
+              {...commonProps}
               disabled={!canUndo}
               baseClassName="palette-swatch palette-swatch-tool palette-swatch-undo"
-              label="元に戻す"
               onClick={onUndo}
             >
               <span className="palette-undo-icon" aria-hidden>
@@ -110,11 +157,9 @@ export function ToolStrip({
           return (
             <EditorToolButton
               key={toolId}
-              toolId={toolId}
-              userLevel={userLevel}
+              {...commonProps}
               disabled={!canRedo}
               baseClassName="palette-swatch palette-swatch-tool palette-swatch-redo"
-              label="やり直す"
               onClick={onRedo}
             >
               <span className="palette-redo-icon" aria-hidden>
@@ -128,11 +173,9 @@ export function ToolStrip({
           return (
             <EditorToolButton
               key={toolId}
-              toolId={toolId}
-              userLevel={userLevel}
+              {...commonProps}
               active={tool === 'line'}
               baseClassName="palette-swatch palette-swatch-tool palette-swatch-line"
-              label="直線"
               onClick={() => onSelectTool('line')}
             >
               <span className="palette-line-icon" aria-hidden />
@@ -144,11 +187,9 @@ export function ToolStrip({
           return (
             <EditorToolButton
               key={toolId}
-              toolId={toolId}
-              userLevel={userLevel}
+              {...commonProps}
               active={tool === 'rectangle'}
               baseClassName="palette-swatch palette-swatch-tool palette-swatch-rectangle"
-              label="矩形"
               onClick={() => onSelectTool('rectangle')}
             >
               <span className="palette-rectangle-icon" aria-hidden />
@@ -160,11 +201,9 @@ export function ToolStrip({
           return (
             <EditorToolButton
               key={toolId}
-              toolId={toolId}
-              userLevel={userLevel}
+              {...commonProps}
               active={tool === 'circle'}
               baseClassName="palette-swatch palette-swatch-tool palette-swatch-circle"
-              label="円"
               onClick={() => onSelectTool('circle')}
             >
               <span className="palette-circle-icon" aria-hidden />
@@ -176,11 +215,9 @@ export function ToolStrip({
           return (
             <EditorToolButton
               key={toolId}
-              toolId={toolId}
-              userLevel={userLevel}
+              {...commonProps}
               active={tool === 'selection'}
               baseClassName="palette-swatch palette-swatch-tool palette-swatch-selection"
-              label="選択"
               onClick={() => onSelectTool('selection')}
             >
               <span className="palette-selection-icon" aria-hidden />
@@ -192,11 +229,9 @@ export function ToolStrip({
           return (
             <EditorToolButton
               key={toolId}
-              toolId={toolId}
-              userLevel={userLevel}
+              {...commonProps}
               active={tool === 'move'}
               baseClassName="palette-swatch palette-swatch-tool palette-swatch-move"
-              label="移動"
               onClick={() => onSelectTool('move')}
             >
               <span className="palette-move-icon" aria-hidden />
@@ -208,11 +243,9 @@ export function ToolStrip({
           return (
             <EditorToolButton
               key={toolId}
-              toolId={toolId}
-              userLevel={userLevel}
+              {...commonProps}
               active={tool === 'pen'}
               baseClassName="palette-swatch palette-swatch-tool palette-swatch-pen"
-              label="ペン"
               onClick={() => onSelectTool('pen')}
             >
               <span className="palette-emoji-icon" aria-hidden>
@@ -226,11 +259,9 @@ export function ToolStrip({
           return (
             <EditorToolButton
               key={toolId}
-              toolId={toolId}
-              userLevel={userLevel}
+              {...commonProps}
               active={tool === 'eraser'}
               baseClassName="palette-swatch palette-swatch-tool palette-swatch-eraser"
-              label="消しゴム"
               onClick={() => onSelectTool('eraser')}
             >
               <span className="palette-eraser-icon" aria-hidden>
@@ -245,11 +276,9 @@ export function ToolStrip({
           return (
             <EditorToolButton
               key={toolId}
-              toolId={toolId}
-              userLevel={userLevel}
+              {...commonProps}
               active={tool === 'fill'}
               baseClassName="palette-swatch palette-swatch-tool palette-swatch-fill"
-              label="塗りつぶし"
               onClick={() => onSelectTool('fill')}
             >
               <span className="palette-emoji-icon" aria-hidden>
@@ -263,10 +292,8 @@ export function ToolStrip({
           return (
             <EditorToolButton
               key={toolId}
-              toolId={toolId}
-              userLevel={userLevel}
+              {...commonProps}
               baseClassName="palette-swatch palette-swatch-tool palette-swatch-clear pixel-checkerboard pixel-checkerboard-bg"
-              label="クリア"
               onClick={onClear}
             >
               <span className="palette-clear-label" aria-hidden>
@@ -278,7 +305,18 @@ export function ToolStrip({
 
         return null;
       })}
-      <BrushSizeTool size={brushSize} onChange={onBrushSizeChange} />
+      <BrushSizeTool
+        size={brushSize}
+        userLevel={userLevel}
+        shopUnlocks={editorShopUnlocks}
+        onChange={onBrushSizeChange}
+        onRequestUnlock={() => onRequestFeatureUnlock('brushSize')}
+      />
+      <ZoomTool
+        userLevel={userLevel}
+        shopUnlocks={editorShopUnlocks}
+        onRequestUnlock={() => onRequestFeatureUnlock('zoom')}
+      />
     </div>
   );
 }

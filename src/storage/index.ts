@@ -32,6 +32,7 @@ import {
   createInitialMemoryAlbum,
   normalizeMemoryAlbum,
 } from '../user/memoryAlbum';
+import { normalizeEditorShopUnlocks } from '../config/editorShop';
 import { normalizePaletteShopUnlocks, migratePaletteShopUnlocksForSchema } from '../config/paletteUnlock';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
@@ -62,6 +63,7 @@ function emptySave(): SaveData {
     battleHistory: [],
     talismanStarterGranted: false,
     paletteShopUnlocks: [],
+    editorShopUnlocks: [],
     memoryAlbum: createInitialMemoryAlbum(),
   };
 }
@@ -336,6 +338,7 @@ export function applyProgressionMigrations(save: SaveData): SaveData {
     adState: normalizeAdState(save.adState),
     talismanStarterGranted: save.talismanStarterGranted === true,
     paletteShopUnlocks: normalizePaletteShopUnlocks(save.paletteShopUnlocks),
+    editorShopUnlocks: normalizeEditorShopUnlocks(save.editorShopUnlocks),
   };
 
   if (next.user && next.user.level >= 10 && next.unlockedDeckCount < 2) {
@@ -487,6 +490,10 @@ export function saveSave(data: SaveData): void {
   const paletteShopUnlocks = normalizePaletteShopUnlocks(data.paletteShopUnlocks);
   if (paletteShopUnlocks.length > 0) {
     payload.paletteShopUnlocks = paletteShopUnlocks;
+  }
+  const editorShopUnlocks = normalizeEditorShopUnlocks(data.editorShopUnlocks);
+  if (editorShopUnlocks.length > 0) {
+    payload.editorShopUnlocks = editorShopUnlocks;
   }
   payload.memoryAlbum = normalizeMemoryAlbum(data.memoryAlbum);
   if (data.devPreferSavedLevel === true) {

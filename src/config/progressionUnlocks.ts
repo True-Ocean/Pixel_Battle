@@ -6,13 +6,13 @@ import {
   calcLevelUpUniversalLimitBreak,
   TALISMAN_STARTER_GRANT_LEVEL,
 } from './economy';
+import {
+  EDITOR_FEATURE_LABELS,
+  EDITOR_FEATURE_UNLOCK_LEVEL,
+  EDITOR_SHOP_UNLOCK_IDS,
+} from './editorShop';
 import { getCanvasUnlockLevel, getMaxCanvasSize } from './canvasUnlock';
 import { ATTRIBUTE_UNLOCK_SCHEDULE } from './attributeUnlock';
-import {
-  getToolUnlockLevel,
-  type EditorToolId,
-  IDEAL_TOOL_ORDER,
-} from './editorTools';
 import { PALETTE_UNLOCK_LEVELS } from './paletteUnlock';
 import { PALETTE_COLOR_LABELS } from './palette';
 
@@ -40,21 +40,6 @@ export interface LevelUpRewardEntry {
   pending?: boolean;
 }
 
-const TOOL_LABELS: Record<EditorToolId, string> = {
-  pen: 'ペン',
-  eraser: '消しゴム',
-  fill: '塗りつぶし',
-  clear: 'クリア',
-  undo: '元に戻す',
-  redo: 'やり直し',
-  eyedropper: 'スポイト',
-  line: '直線',
-  rectangle: '矩形',
-  circle: '円',
-  selection: '選択',
-  move: '移動',
-};
-
 function paletteRewardForLevel(level: number): LevelUpRewardEntry {
   const index = PALETTE_UNLOCK_LEVELS.indexOf(
     level as (typeof PALETTE_UNLOCK_LEVELS)[number],
@@ -80,9 +65,9 @@ function attributeRewardForLevel(level: number): LevelUpRewardEntry {
 }
 
 function toolLabelForLevel(level: number): string {
-  for (const tool of IDEAL_TOOL_ORDER) {
-    if (getToolUnlockLevel(tool) === level) {
-      return `お絵描きツール「${TOOL_LABELS[tool]}」が使えるようになりました！`;
+  for (const feature of EDITOR_SHOP_UNLOCK_IDS) {
+    if (EDITOR_FEATURE_UNLOCK_LEVEL[feature] === level) {
+      return `お絵描きツール「${EDITOR_FEATURE_LABELS[feature]}」が使えるようになりました！`;
     }
   }
   return '新しいお絵描きツールが使えるようになりました！';

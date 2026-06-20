@@ -4,12 +4,16 @@ import {
   PALETTE_EDITOR_COLOR_COUNT,
 } from '../config/palette';
 import {
-  canOfferPaletteShopPurchase,
-  isShopPaletteIndex,
+  canOfferPaletteJewelPurchase,
+  isBottomRowJewelPaletteIndex,
+  isJewelPaletteIndex,
+  isRightColumnJewelPaletteIndex,
+  PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL,
 } from '../config/paletteShop';
 import {
-  PALETTE_UNLOCK_LEVELS,
   isPaletteUnlocked,
+  isPaletteUnlockedAtLevel,
+  PALETTE_UNLOCK_LEVELS,
 } from '../config/paletteUnlock';
 
 function paletteUnlockLevelForIndex(index: number): number | null {
@@ -54,27 +58,40 @@ export function ColorPalette({
       {Array.from({ length: PALETTE_EDITOR_COLOR_COUNT }, (_, index) => {
         const color = PALETTE_16[index]!;
         const unlocked = isPaletteUnlocked(index, userLevel, shopUnlocks);
-        const isShopColor = isShopPaletteIndex(index);
-        const unlockLevel = !isShopColor
+        const isJewelColor = isJewelPaletteIndex(index);
+        const unlockLevel = !isJewelColor
           ? paletteUnlockLevelForIndex(index)
           : null;
         const label = PALETTE_COLOR_LABELS[index];
         const active = brushColor === color;
         const isLight = LIGHT_SWATCH_COLORS.has(color.toLowerCase());
-        const canOpenShop =
-          isShopColor &&
-          canOfferPaletteShopPurchase(index, userLevel) &&
+        const canPurchaseJewel =
+          isJewelColor &&
+          canOfferPaletteJewelPurchase(index, userLevel) &&
           !unlocked;
 
-        const title = unlocked
-          ? label
-          : isShopColor
-            ? userLevel >= 50
-              ? `${label}（ショップで解放）`
-              : `Lv50で${label}を購入可能`
-            : unlockLevel != null
-              ? `Lv${unlockLevel}で解放`
-              : label;
+        let title = label;
+        if (!unlocked) {
+          if (isBottomRowJewelPaletteIndex(index)) {
+            const topIndex = index - 10;
+            if (!isPaletteUnlockedAtLevel(topIndex, userLevel)) {
+              const topLevel = paletteUnlockLevelForIndex(topIndex);
+              title =
+                topLevel != null
+                  ? `上の色（Lv${topLevel}）解放後に💎購入可能`
+                  : label;
+            } else {
+              title = `${label}（💎で解放）`;
+            }
+          } else if (isRightColumnJewelPaletteIndex(index)) {
+            title =
+              userLevel >= PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL
+                ? `${label}（💎で解放）`
+                : `Lv${PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL}で${label}を購入可能`;
+          } else if (unlockLevel != null) {
+            title = `Lv${unlockLevel}で解放`;
+          }
+        }
 
         return (
           <button
@@ -89,14 +106,14 @@ export function ColorPalette({
               .filter(Boolean)
               .join(' ')}
             style={{ background: color }}
-            disabled={!unlocked && !canOpenShop}
+            disabled={!unlocked && !canPurchaseJewel}
             title={title}
             onClick={() => {
               if (unlocked) {
                 onSelectColor(color);
                 return;
               }
-              if (canOpenShop) onRequestShopUnlock?.(index);
+              if (canPurchaseJewel) onRequestShopUnlock?.(index);
             }}
           >
             {!unlocked && (
@@ -104,13 +121,7 @@ export function ColorPalette({
                 🔒
               </span>
             )}
-            <span className="sr-only">
-              {label}
-              {!unlocked && unlockLevel != null
-                ? `（Lv${unlockLevel}で解放）`
-                : ''}
-              {!unlocked && isShopColor ? '（ショップで解放）' : ''}
-            </span>
+            <span className="sr-only">{title}</span>
           </button>
         );
       })}

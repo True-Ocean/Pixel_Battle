@@ -1,35 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canOfferPaletteJewelPurchase,
+  getAllJewelPaletteIndices,
   getJewelCostForPaletteIndex,
-  getPixelCostForPaletteIndex,
-  getPaletteShopTier,
-  getShopPaletteIndicesByTier,
-  PIXEL_COST_PALETTE_SHOP_TIER1,
-  PIXEL_COST_PALETTE_SHOP_TIER2,
+  isBottomRowJewelPaletteIndex,
+  isRightColumnJewelPaletteIndex,
 } from './paletteShop';
 
-describe('paletteShop', () => {
-  it('tier1 は紫・濃い緑・茶・赤茶で px2000', () => {
-    const tier1 = getShopPaletteIndicesByTier('tier1');
-    expect(tier1).toEqual([8, 9, 11, 19]);
-    for (const index of tier1) {
-      expect(getPaletteShopTier(index)).toBe('tier1');
-      expect(getPixelCostForPaletteIndex(index)).toBe(
-        PIXEL_COST_PALETTE_SHOP_TIER1,
-      );
-      expect(getJewelCostForPaletteIndex(index)).toBeNull();
-    }
+describe('paletteShop A案', () => {
+  it('追加色は12色（下段8 + 右列4）', () => {
+    expect(getAllJewelPaletteIndices()).toEqual([
+      8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    ]);
+    expect(getJewelCostForPaletteIndex(10)).toBe(20);
+    expect(getJewelCostForPaletteIndex(8)).toBe(20);
   });
 
-  it('tier2 は薄色系8色で 💎20 または px2200', () => {
-    const tier2 = getShopPaletteIndicesByTier('tier2');
-    expect(tier2).toEqual([10, 12, 13, 14, 15, 16, 17, 18]);
-    for (const index of tier2) {
-      expect(getPaletteShopTier(index)).toBe('tier2');
-      expect(getPixelCostForPaletteIndex(index)).toBe(
-        PIXEL_COST_PALETTE_SHOP_TIER2,
-      );
-      expect(getJewelCostForPaletteIndex(index)).toBe(20);
-    }
+  it('下段は上段レベル解放後に購入可能', () => {
+    expect(canOfferPaletteJewelPurchase(10, 1)).toBe(true);
+    expect(canOfferPaletteJewelPurchase(13, 4)).toBe(false);
+    expect(canOfferPaletteJewelPurchase(13, 5)).toBe(true);
+  });
+
+  it('右列4色は Lv50 以降', () => {
+    expect(isRightColumnJewelPaletteIndex(8)).toBe(true);
+    expect(isBottomRowJewelPaletteIndex(10)).toBe(true);
+    expect(canOfferPaletteJewelPurchase(8, 49)).toBe(false);
+    expect(canOfferPaletteJewelPurchase(8, 50)).toBe(true);
+    expect(canOfferPaletteJewelPurchase(18, 50)).toBe(true);
   });
 });

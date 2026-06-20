@@ -3132,15 +3132,43 @@ button.battle-hub-deck-icon.is-move-target {
 .palette-unlock-preview {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  justify-content: center;
+  margin: 0 0 0.65rem;
+}
+
+.palette-unlock-panel--compact {
+  width: min(calc(100% - 2.5rem), 12rem);
+  padding: 0.7rem 0.75rem 0.65rem;
+}
+
+.palette-unlock-panel--compact .deck-unlock-title {
   margin: 0 0 0.55rem;
+  text-align: center;
+}
+
+.palette-unlock-panel--compact.deck-unlock-panel--ready .deck-unlock-title {
+  margin-bottom: 0.55rem;
+}
+
+.palette-unlock-panel--compact .palette-unlock-confirm-btn {
+  margin-bottom: 0.3rem;
+}
+
+.palette-unlock-panel--compact .deck-unlock-close {
+  min-height: 2.45rem;
+}
+
+.palette-unlock-insufficient {
+  margin-bottom: 0.45rem;
+  text-align: center;
+  font-size: 0.82rem;
 }
 
 .palette-unlock-swatch {
   flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 4px;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 6px;
   border: 2px solid #666;
 }
 
@@ -5853,6 +5881,10 @@ button.battle-hub-deck-icon.is-move-target {
   background: var(--pixel-checker-dark);
 }
 
+.pixel-canvas--interaction-disabled {
+  pointer-events: none;
+}
+
 .pixel-canvas {
   display: grid;
   gap: 0;
@@ -6290,6 +6322,10 @@ button.battle-hub-deck-icon.is-move-target {
   height: 0.88rem;
 }
 
+.editor-tool-strip .palette-zoom-icon {
+  font-size: 1.15rem;
+}
+
 .editor-tool-strip .palette-eyedropper-icon {
   width: 0.42rem;
   height: 0.88rem;
@@ -6446,6 +6482,117 @@ button.battle-hub-deck-icon.is-move-target {
   align-items: flex-start;
   justify-content: stretch;
   padding: 0;
+  overflow: hidden;
+}
+
+.editor-canvas-viewport {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.editor-canvas-viewport--zoomable {
+  touch-action: none;
+}
+
+.editor-canvas-transform {
+  width: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.palette-zoom-icon {
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.editor-feature-unlock-panel--compact {
+  width: max-content;
+  max-width: min(calc(100% - 2.5rem), 17rem);
+  padding: 0.7rem 0.85rem 0.65rem;
+}
+
+.editor-feature-unlock-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0 0 0.55rem;
+}
+
+.editor-feature-unlock-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 4px;
+  background: #eef1f6;
+  flex-shrink: 0;
+}
+
+.editor-feature-unlock-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.editor-feature-unlock-panel--compact .editor-feature-unlock-message {
+  margin-bottom: 0.45rem;
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+.editor-feature-unlock-panel--compact .palette-unlock-confirm-btn {
+  margin-bottom: 0.3rem;
+}
+
+.editor-feature-unlock-panel--compact .deck-unlock-close {
+  min-height: 2.45rem;
+}
+
+.editor-feature-unlock-panel--compact .brush-size-tool-dot--medium {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.editor-feature-unlock-panel--compact .palette-zoom-icon {
+  font-size: 1.1rem;
+}
+
+.editor-feature-unlock-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+  line-height: 1.45;
+}
+
+.editor-feature-unlock-message-line {
+  white-space: nowrap;
+}
+
+.editor-feature-unlock-jewel-inline {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: -0.15em;
+  margin-right: 0.05rem;
+}
+
+.editor-feature-unlock-jewel-icon,
+.editor-feature-unlock-cost-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.editor-feature-unlock-cost {
+  color: #86198f;
+}
+
+.editor-feature-unlock-cost .jewel-amount-value {
+  color: #86198f;
 }
 
 .editor-screen .pixel-canvas {

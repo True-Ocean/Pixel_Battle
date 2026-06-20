@@ -1,108 +1,95 @@
-import { PALETTE_16 } from './balance';
-import {
-  PALETTE_EDITOR_COLOR_COUNT,
-  PALETTE_EDITOR_LEVEL_UNLOCK_COUNT,
-} from './balance';
+import { PALETTE_EDITOR_COLOR_COUNT } from './balance';
+import { isPaletteUnlockedAtLevel } from './paletteUnlock';
 
-/** ショップ色の購入に必要な最低ユーザーレベル */
-export const PALETTE_SHOP_MIN_USER_LEVEL = 50;
+/** 右2列4色（紫・濃い緑・薄紫・赤茶）の購入に必要なレベル */
+export const PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL = 50;
 
-/** ショップ tier1（各2000px）: 紫・濃い緑・茶・赤茶 */
-export const PALETTE_SHOP_TIER1_HEX = [
-  '#8844ff',
-  '#1a7a3a',
-  '#886644',
-  '#aa4422',
-] as const;
+export const JEWEL_COST_PALETTE_EXTRA = 20;
 
-/** ショップ tier2（各💎20 または 2200px）: 薄色系8色 */
-export const PALETTE_SHOP_TIER2_HEX = [
-  '#aaaaaa',
-  '#ffaaaa',
-  '#aaccff',
-  '#ffffcc',
-  '#ccffcc',
-  '#ffddaa',
-  '#ffccff',
-  '#ddccff',
-] as const;
+/** 下段 index = 上段 index + 10 */
+export const PALETTE_BOTTOM_ROW_OFFSET = 10;
 
-export const PALETTE_SHOP_TIER1_COUNT = PALETTE_SHOP_TIER1_HEX.length;
-export const PALETTE_SHOP_TIER2_COUNT = PALETTE_SHOP_TIER2_HEX.length;
+/** 右2列（上段8・9、下段18・19） */
+export const PALETTE_RIGHT_COLUMN_INDICES = [8, 9, 18, 19] as const;
 
-export const PIXEL_COST_PALETTE_SHOP_TIER1 = 2000;
-export const JEWEL_COST_PALETTE_SHOP_TIER2 = 20;
-export const PIXEL_COST_PALETTE_SHOP_TIER2 = 2200;
-
-export type PaletteShopTier = 'tier1' | 'tier2';
-
-const TIER1_SET = new Set<string>(
-  PALETTE_SHOP_TIER1_HEX.map((color) => color.toLowerCase()),
-);
-const TIER2_SET = new Set<string>(
-  PALETTE_SHOP_TIER2_HEX.map((color) => color.toLowerCase()),
-);
-
-function paletteHexAt(index: number): string | null {
-  const color = PALETTE_16[index];
-  return color ? color.toLowerCase() : null;
+export function isBottomRowJewelPaletteIndex(index: number): boolean {
+  return index >= 10 && index <= 17;
 }
 
-export function isShopPaletteIndex(index: number): boolean {
-  const hex = paletteHexAt(index);
-  if (!hex) return false;
-  return TIER1_SET.has(hex) || TIER2_SET.has(hex);
+export function isRightColumnJewelPaletteIndex(index: number): boolean {
+  return (PALETTE_RIGHT_COLUMN_INDICES as readonly number[]).includes(index);
 }
 
-export function getPaletteShopTier(index: number): PaletteShopTier | null {
-  const hex = paletteHexAt(index);
-  if (!hex) return null;
-  if (TIER1_SET.has(hex)) return 'tier1';
-  if (TIER2_SET.has(hex)) return 'tier2';
-  return null;
+/** 💎 で購入できる追加色 index（8〜19 のうち12色） */
+export function isJewelPaletteIndex(index: number): boolean {
+  if (index < 0 || index >= PALETTE_EDITOR_COLOR_COUNT) return false;
+  return isBottomRowJewelPaletteIndex(index) || isRightColumnJewelPaletteIndex(index);
 }
 
-export function getPixelCostForPaletteIndex(index: number): number | null {
-  const tier = getPaletteShopTier(index);
-  if (tier === 'tier1') return PIXEL_COST_PALETTE_SHOP_TIER1;
-  if (tier === 'tier2') return PIXEL_COST_PALETTE_SHOP_TIER2;
-  return null;
+export function getTopPaletteIndexForBottom(bottomIndex: number): number | null {
+  if (!isBottomRowJewelPaletteIndex(bottomIndex)) return null;
+  return bottomIndex - PALETTE_BOTTOM_ROW_OFFSET;
 }
 
 export function getJewelCostForPaletteIndex(index: number): number | null {
-  if (getPaletteShopTier(index) === 'tier2') {
-    return JEWEL_COST_PALETTE_SHOP_TIER2;
-  }
+  return isJewelPaletteIndex(index) ? JEWEL_COST_PALETTE_EXTRA : null;
+}
+
+/** @deprecated px 購入は廃止 */
+export function getPixelCostForPaletteIndex(_index: number): number | null {
   return null;
 }
 
-export function canOfferPaletteShopPurchase(
+export function canOfferPaletteJewelPurchase(
   index: number,
   userLevel: number,
 ): boolean {
-  return (
-    isShopPaletteIndex(index) &&
-    Math.floor(userLevel) >= PALETTE_SHOP_MIN_USER_LEVEL
-  );
+  if (!isJewelPaletteIndex(index)) return false;
+
+  if (isBottomRowJewelPaletteIndex(index)) {
+    const topIndex = getTopPaletteIndexForBottom(index);
+    return topIndex != null && isPaletteUnlockedAtLevel(topIndex, userLevel);
+  }
+
+  if (isRightColumnJewelPaletteIndex(index)) {
+    return Math.floor(userLevel) >= PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL;
+  }
+
+  return false;
 }
 
-/** ショップ解放対象の全 index（8〜19 のうちショップ色のみ） */
-export function getAllShopPaletteIndices(): readonly number[] {
+/** @deprecated canOfferPaletteJewelPurchase を使用 */
+export const PALETTE_SHOP_MIN_USER_LEVEL = PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL;
+
+/** @deprecated A案では tier なし */
+export type PaletteShopTier = 'tier1' | 'tier2';
+
+/** @deprecated isJewelPaletteIndex を使用 */
+export function isShopPaletteIndex(index: number): boolean {
+  return isJewelPaletteIndex(index);
+}
+
+/** @deprecated */
+export function getPaletteShopTier(_index: number): PaletteShopTier | null {
+  return null;
+}
+
+export function getAllJewelPaletteIndices(): readonly number[] {
   const indices: number[] = [];
-  for (
-    let index = PALETTE_EDITOR_LEVEL_UNLOCK_COUNT;
-    index < PALETTE_EDITOR_COLOR_COUNT;
-    index++
-  ) {
-    if (isShopPaletteIndex(index)) indices.push(index);
+  for (let index = 0; index < PALETTE_EDITOR_COLOR_COUNT; index++) {
+    if (isJewelPaletteIndex(index)) indices.push(index);
   }
   return indices;
 }
 
+/** @deprecated getAllJewelPaletteIndices を使用 */
+export function getAllShopPaletteIndices(): readonly number[] {
+  return getAllJewelPaletteIndices();
+}
+
+/** @deprecated */
 export function getShopPaletteIndicesByTier(
-  tier: PaletteShopTier,
+  _tier: PaletteShopTier,
 ): readonly number[] {
-  return getAllShopPaletteIndices().filter(
-    (index) => getPaletteShopTier(index) === tier,
-  );
+  return [];
 }
