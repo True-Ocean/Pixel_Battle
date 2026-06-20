@@ -41,11 +41,14 @@ interface ShopScreenProps {
   onDismissPurchaseMessage: () => void;
 }
 
-const SHOP_TABS: { id: ShopTabId; label: string }[] = [
-  { id: 'jewels', label: '💎' },
+const SHOP_TABS: { id: ShopTabId; label: string; ariaLabel?: string }[] = [
+  { id: 'jewels', label: '', ariaLabel: 'ジュエル' },
   { id: 'items', label: 'アイテム' },
   { id: 'subscription', label: 'サブスク' },
 ];
+
+const JEWEL_PACK_PURCHASE_TOAST_RE =
+  /^[\d,]+ を獲得しました（\d+円・モック）$/;
 
 export function ShopScreen({
   economy,
@@ -88,15 +91,25 @@ export function ShopScreen({
                 : 'shop-tab'
             }
             onClick={() => setActiveTab(tab.id)}
+            aria-label={tab.ariaLabel ?? tab.label}
           >
-            {tab.label}
+            {tab.id === 'jewels' ? (
+              <JewelIcon className="shop-tab-jewel-icon" />
+            ) : (
+              tab.label
+            )}
           </button>
         ))}
       </div>
 
       {purchaseMessage != null && (
         <div className="shop-toast" role="status">
-          <p>{purchaseMessage}</p>
+          <p className="shop-toast-message">
+            {JEWEL_PACK_PURCHASE_TOAST_RE.test(purchaseMessage) && (
+              <JewelIcon className="shop-toast-jewel-icon" />
+            )}
+            <span>{purchaseMessage}</span>
+          </p>
           <button
             type="button"
             className="shop-toast-dismiss"

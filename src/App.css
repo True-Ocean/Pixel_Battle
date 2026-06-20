@@ -3219,6 +3219,9 @@ button.battle-hub-deck-icon.is-move-target {
 
 .shop-tab {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 2.25rem;
   border: 1px solid #c8ceda;
   border-radius: 8px;
@@ -3227,6 +3230,11 @@ button.battle-hub-deck-icon.is-move-target {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
+}
+
+.shop-tab-jewel-icon {
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .shop-tab--active {
@@ -3250,6 +3258,18 @@ button.battle-hub-deck-icon.is-move-target {
 
 .shop-toast p {
   margin: 0;
+}
+
+.shop-toast-message {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.shop-toast-jewel-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
 }
 
 .shop-toast-dismiss {

@@ -158,7 +158,7 @@ export function mockPurchaseJewelPack(
     inventory,
     shopPurchase: nextShopPurchase,
     subscription,
-    message: `💎${jewels.toLocaleString()} を獲得しました（${pack.priceYen}円・モック）`,
+    message: `${jewels.toLocaleString()} を獲得しました（${pack.priceYen}円・モック）`,
   };
 }
 
