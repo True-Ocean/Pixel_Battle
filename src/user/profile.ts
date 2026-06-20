@@ -1,8 +1,8 @@
 import {
   calcLevelUpPixels,
-  calcLevelUpJewelBonus,
   calcLevelUpJewels,
-  calcLevelUpUniversalLimitBreak,
+  calcLevelUpTalismanGrant,
+  calcLevelUpUniversalShards,
 } from '../config/economy';
 import {
   DEV_FORCE_MAX_USER_LEVEL,
@@ -184,6 +184,7 @@ export interface BattleOutcomeRecord {
   pixelsGranted: number;
   jewelsGranted: number;
   universalGranted: number;
+  talismanGranted: number;
 }
 
 function levelsReached(previousLevel: number, nextLevel: number): number[] {
@@ -203,7 +204,7 @@ export function applyLevelUpEconomyRewards(
   let jewelsGranted = 0;
   for (const level of levelsGained) {
     const pixelAmount = calcLevelUpPixels(level);
-    const jewelAmount = calcLevelUpJewels(level) + calcLevelUpJewelBonus(level);
+    const jewelAmount = calcLevelUpJewels(level);
     nextEconomy = addFreePixels(nextEconomy, pixelAmount);
     nextEconomy = addJewels(nextEconomy, jewelAmount);
     pixelsGranted += pixelAmount;
@@ -215,21 +216,27 @@ export function applyLevelUpEconomyRewards(
 export function applyLevelUpInventoryRewards(
   inventory: UserInventory,
   levelsGained: number[],
-): { inventory: UserInventory; universalGranted: number } {
+): { inventory: UserInventory; universalGranted: number; talismanGranted: number } {
   let nextInventory = inventory;
   let universalGranted = 0;
+  let talismanGranted = 0;
   for (const level of levelsGained) {
-    const amount = calcLevelUpUniversalLimitBreak(level);
-    if (amount > 0) {
+    const universalAmount = calcLevelUpUniversalShards(level);
+    if (universalAmount > 0) {
       nextInventory = addInventoryCount(
         nextInventory,
         'limitBreakUniversal',
-        amount,
+        universalAmount,
       );
-      universalGranted += amount;
+      universalGranted += universalAmount;
+    }
+    const talismanAmount = calcLevelUpTalismanGrant(level);
+    if (talismanAmount > 0) {
+      nextInventory = addInventoryCount(nextInventory, 'talisman', talismanAmount);
+      talismanGranted += talismanAmount;
     }
   }
-  return { inventory: nextInventory, universalGranted };
+  return { inventory: nextInventory, universalGranted, talismanGranted };
 }
 
 export function recordUserBattleOutcome(
@@ -243,7 +250,7 @@ export function recordUserBattleOutcome(
   const levelsGained = levelsReached(previousLevel, withExp.level);
   const { economy: nextEconomy, pixelsGranted, jewelsGranted } =
     applyLevelUpEconomyRewards(economy, levelsGained);
-  const { inventory: nextInventory, universalGranted } =
+  const { inventory: nextInventory, universalGranted, talismanGranted } =
     applyLevelUpInventoryRewards(inventory, levelsGained);
   return {
     user: {
@@ -257,5 +264,6 @@ export function recordUserBattleOutcome(
     pixelsGranted,
     jewelsGranted,
     universalGranted,
+    talismanGranted,
   };
 }

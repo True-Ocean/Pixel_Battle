@@ -23,7 +23,7 @@ export const EDITOR_SHOP_UNLOCK_IDS = [
 
 export type EditorShopUnlockId = (typeof EDITOR_SHOP_UNLOCK_IDS)[number];
 
-export const JEWEL_COST_EDITOR_EARLY_UNLOCK = 20;
+export const JEWEL_COST_EDITOR_EARLY_UNLOCK = 100;
 
 /** レベル解放（L≡2: 7, 12, …, 47） */
 export const EDITOR_FEATURE_UNLOCK_LEVEL: Record<EditorShopUnlockId, number> = {

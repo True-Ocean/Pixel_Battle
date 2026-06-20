@@ -12,8 +12,8 @@ describe('paletteShop A案', () => {
     expect(getAllJewelPaletteIndices()).toEqual([
       8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
     ]);
-    expect(getJewelCostForPaletteIndex(10)).toBe(20);
-    expect(getJewelCostForPaletteIndex(8)).toBe(20);
+    expect(getJewelCostForPaletteIndex(10)).toBe(100);
+    expect(getJewelCostForPaletteIndex(8)).toBe(100);
   });
 
   it('下段は上段レベル解放後に購入可能', () => {

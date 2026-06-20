@@ -4,7 +4,7 @@ import { isPaletteUnlockedAtLevel } from './paletteUnlock';
 /** 右2列4色（紫・濃い緑・薄紫・赤茶）の購入に必要なレベル */
 export const PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL = 50;
 
-export const JEWEL_COST_PALETTE_EXTRA = 20;
+export const JEWEL_COST_PALETTE_EXTRA = 100;
 
 /** 下段 index = 上段 index + 10 */
 export const PALETTE_BOTTOM_ROW_OFFSET = 10;

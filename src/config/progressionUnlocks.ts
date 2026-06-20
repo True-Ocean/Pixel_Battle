@@ -1,9 +1,9 @@
 import type { Attribute } from '../types';
 import {
-  calcLevelUpJewelBonus,
   calcLevelUpJewels,
   calcLevelUpPixels,
-  calcLevelUpUniversalLimitBreak,
+  calcLevelUpTalismanGrant,
+  calcLevelUpUniversalShards,
   TALISMAN_STARTER_GRANT_LEVEL,
 } from './economy';
 import {
@@ -92,11 +92,11 @@ function getMainRewardAtLevel(level: number): LevelUpRewardEntry | null {
   if (level === 10) {
     return { kind: 'deck_unlock', label: 'デッキ2が使えるようになりました！' };
   }
-  if (mod10 === 0 && level >= 20) {
-    const amount = calcLevelUpUniversalLimitBreak(level);
+  const talismanAmount = calcLevelUpTalismanGrant(level);
+  if (talismanAmount > 0) {
     return {
-      kind: 'limit_break',
-      label: `汎用かけら ×${amount.toLocaleString()}`,
+      kind: 'talisman',
+      label: `護符を${talismanAmount.toLocaleString()}個プレゼントしました`,
     };
   }
   if (mod10 === 5) {
@@ -112,10 +112,10 @@ function getMainRewardAtLevel(level: number): LevelUpRewardEntry | null {
     return { kind: 'canvas', label: canvasLabelForLevel(level) };
   }
   if (mod5 === 4) {
-    const bonus = calcLevelUpJewelBonus(level);
+    const amount = calcLevelUpUniversalShards(level);
     return {
-      kind: 'jewels',
-      label: `💎 ボーナス +${bonus.toLocaleString()} 獲得！`,
+      kind: 'limit_break',
+      label: `汎用かけら ×${amount.toLocaleString()}`,
     };
   }
   return null;

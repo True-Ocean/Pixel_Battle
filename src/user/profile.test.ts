@@ -5,7 +5,7 @@ import {
   USER_INITIAL_EXP,
   USER_INITIAL_LEVEL,
 } from '../config/balance';
-import { LEVEL_UP_PIXEL_REWARD, JEWELS_PER_LEVEL, JEWELS_BONUS_MOD4 } from '../config/economy';
+import { LEVEL_UP_PIXEL_REWARD, JEWELS_PER_LEVEL, LEVEL_UP_UNIVERSAL_SHARD_REWARD } from '../config/economy';
 import {
   applyDevMaxUserLevel,
   createInitialProfile,
@@ -206,9 +206,10 @@ describe('recordUserBattleOutcome', () => {
     expect(result.economy.jewels).toBe(result.jewelsGranted);
     expect(result.inventory).toEqual(inventory);
     expect(result.universalGranted).toBe(0);
+    expect(result.talismanGranted).toBe(0);
   });
 
-  it('adds jewel bonus at L≡4 levels', () => {
+  it('adds universal shards at L≡4 levels', () => {
     const highLevelUser = {
       ...base,
       level: 8,
@@ -219,10 +220,13 @@ describe('recordUserBattleOutcome', () => {
       opponentDeckPower: 5000,
     });
     expect(result.levelsGained).toContain(9);
-    expect(result.jewelsGranted).toBeGreaterThanOrEqual(JEWELS_PER_LEVEL + JEWELS_BONUS_MOD4);
+    expect(result.universalGranted).toBeGreaterThanOrEqual(LEVEL_UP_UNIVERSAL_SHARD_REWARD);
+    expect(result.inventory.limitBreakUniversal).toBeGreaterThanOrEqual(
+      LEVEL_UP_UNIVERSAL_SHARD_REWARD,
+    );
   });
 
-  it('grants universal limit break at L20, L30, ...', () => {
+  it('grants talisman at L20, L30, ...', () => {
     const user = {
       ...base,
       level: 19,
@@ -233,8 +237,8 @@ describe('recordUserBattleOutcome', () => {
       opponentDeckPower: 50000,
     });
     if (result.levelsGained.includes(20)) {
-      expect(result.universalGranted).toBeGreaterThanOrEqual(10);
-      expect(result.inventory.limitBreakUniversal).toBeGreaterThanOrEqual(10);
+      expect(result.talismanGranted).toBeGreaterThanOrEqual(1);
+      expect(result.inventory.talisman).toBeGreaterThanOrEqual(1);
     }
   });
 

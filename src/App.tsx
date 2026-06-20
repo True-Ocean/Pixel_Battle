@@ -535,12 +535,6 @@ function App() {
           nextEconomy = spent;
           economyChanged = true;
         }
-        if (charges.renameJewelCost > 0) {
-          const spent = spendJewels(nextEconomy, charges.renameJewelCost);
-          if (!spent) return;
-          nextEconomy = spent;
-          economyChanged = true;
-        }
       }
 
       const deckIndex = activeDeckIndexRef.current;

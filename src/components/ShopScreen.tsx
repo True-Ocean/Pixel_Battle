@@ -1,8 +1,14 @@
+import { JEWEL_COST_EDITOR_EARLY_UNLOCK } from '../config/editorShop';
+import { JEWEL_COST_PALETTE_EXTRA } from '../config/paletteShop';
+
 interface ShopScreenProps {
   userLevel: number;
 }
 
 export function ShopScreen({ userLevel: _userLevel }: ShopScreenProps) {
+  const paletteJewelCost = JEWEL_COST_PALETTE_EXTRA;
+  const toolJewelCost = JEWEL_COST_EDITOR_EARLY_UNLOCK;
+
   return (
     <section className="screen shop-screen">
       <header className="shop-header">
@@ -15,8 +21,10 @@ export function ShopScreen({ userLevel: _userLevel }: ShopScreenProps) {
       <div className="shop-section">
         <h2 className="shop-section-title">追加色パレット</h2>
         <p className="shop-section-note muted">
-          上段の色がレベル解放されると、同じ列の下段を 💎20
-          で購入できます。Lv50 以降は右2列4色も 💎20 で購入可能です。
+          上段の色がレベル解放されると、同じ列の下段を 💎
+          {paletteJewelCost.toLocaleString()}
+          で購入できます。Lv50 以降は右2列4色も 💎
+          {paletteJewelCost.toLocaleString()} で購入可能です。
         </p>
         <p className="shop-section-note muted">
           パレットの鍵マークをタップして、編集画面から解放してください。
@@ -27,7 +35,7 @@ export function ShopScreen({ userLevel: _userLevel }: ShopScreenProps) {
         <h2 className="shop-section-title">お絵描きツール早期解放</h2>
         <p className="shop-section-note muted">
           元に戻す・やり直し・図形・コピー・太さ・ズームなどは、レベルアップでも無料解放されます。それ以前に使いたい場合はツールバーの鍵から
-          💎20 で永久解放できます。
+          💎{toolJewelCost.toLocaleString()} で永久解放できます。
         </p>
       </div>
     </section>

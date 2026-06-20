@@ -31,21 +31,19 @@ describe('progressionUnlocks', () => {
   it('Lv10 はデッキ2解放', () => {
     const rewards = getLevelUpRewardsAtLevel(10);
     expect(rewards.some((reward) => reward.kind === 'deck_unlock')).toBe(true);
-    expect(rewards.some((reward) => reward.kind === 'limit_break')).toBe(false);
+    expect(rewards.some((reward) => reward.kind === 'talisman')).toBe(false);
   });
 
-  it('Lv9 はジュエルボーナス', () => {
+  it('Lv9 は汎用かけら', () => {
     const rewards = getLevelUpRewardsAtLevel(9);
-    expect(rewards.some((reward) => reward.kind === 'shop_sample')).toBe(false);
-    expect(
-      rewards.filter((reward) => reward.kind === 'jewels').length,
-    ).toBeGreaterThanOrEqual(2);
+    expect(rewards.some((reward) => reward.kind === 'limit_break')).toBe(true);
+    expect(rewards.filter((reward) => reward.kind === 'jewels').length).toBe(1);
   });
 
   it('collectLevelUpRewards は到達レベルごとに返す', () => {
     const groups = collectLevelUpRewards(19, 21);
     expect(groups.map((group) => group.level)).toEqual([20, 21]);
-    expect(groups[0]?.rewards.some((reward) => reward.kind === 'limit_break')).toBe(
+    expect(groups[0]?.rewards.some((reward) => reward.kind === 'talisman')).toBe(
       true,
     );
     expect(groups[1]?.rewards.some((reward) => reward.kind === 'attribute')).toBe(

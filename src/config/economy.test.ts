@@ -20,7 +20,8 @@ import {
   REVIVE_CAP,
   calcLevelUpPixels,
   calcLevelUpJewels,
-  calcLevelUpJewelBonus,
+  calcLevelUpTalismanGrant,
+  calcLevelUpUniversalShards,
   calcLevelUpUniversalLimitBreak,
   calcLimitBreakBpGain,
   calcTotalLevelUpJewels,
@@ -40,9 +41,8 @@ import {
   calcCanvasUpgradeCost,
   getCardRenameCount,
   isFirstCardRename,
-  JEWEL_COST_RENAME,
+  PIXEL_COST_RENAME,
   JEWEL_COST_DECK_UNLOCK,
-  PIXEL_COST_RENAME_FIRST,
   pickWeightedLostCard,
 } from './economy';
 
@@ -69,7 +69,7 @@ function makeCard(
 
 describe('economy constants', () => {
   it('uses agreed balance values', () => {
-    expect(LEVEL_UP_PIXEL_REWARD).toBe(500);
+    expect(LEVEL_UP_PIXEL_REWARD).toBe(300);
     expect(LOST_MIN_USER_LEVEL).toBe(5);
     expect(TALISMAN_STARTER_GRANT_LEVEL).toBe(5);
     expect(TALISMAN_STARTER_GRANT_COUNT).toBe(1);
@@ -89,9 +89,9 @@ describe('calcLimitBreakBpGain', () => {
 
 describe('getLimitBreakRarityJewelCost', () => {
   it('レア昇格ごとのジュエルコスト', () => {
-    expect(getLimitBreakRarityJewelCost('N')).toBe(10);
-    expect(getLimitBreakRarityJewelCost('R')).toBe(20);
-    expect(getLimitBreakRarityJewelCost('SR')).toBe(40);
+    expect(getLimitBreakRarityJewelCost('N')).toBe(50);
+    expect(getLimitBreakRarityJewelCost('R')).toBe(100);
+    expect(getLimitBreakRarityJewelCost('SR')).toBe(200);
     expect(getLimitBreakRarityJewelCost('UR')).toBeNull();
   });
 });
@@ -107,22 +107,42 @@ describe('getLimitBreakShardsRequired', () => {
 });
 
 describe('calcLevelUpPixels', () => {
-  it('returns fixed 500 regardless of level', () => {
-    expect(calcLevelUpPixels(5)).toBe(500);
-    expect(calcLevelUpPixels(20)).toBe(500);
+  it('returns fixed 300 regardless of level', () => {
+    expect(calcLevelUpPixels(5)).toBe(300);
+    expect(calcLevelUpPixels(20)).toBe(300);
   });
 });
 
 describe('calcLevelUpJewels', () => {
   it('returns base jewels every level', () => {
-    expect(calcLevelUpJewels(1)).toBe(3);
-    expect(calcLevelUpJewels(12)).toBe(3);
+    expect(calcLevelUpJewels(1)).toBe(30);
+    expect(calcLevelUpJewels(12)).toBe(30);
   });
 
-  it('adds mod4 bonus at L≡4 (mod5), L≥5', () => {
-    expect(calcLevelUpJewelBonus(4)).toBe(0);
-    expect(calcLevelUpJewelBonus(9)).toBe(10);
-    expect(calcTotalLevelUpJewels([9, 10])).toBe(3 + 10 + 3);
+  it('totals jewels without bonus', () => {
+    expect(calcTotalLevelUpJewels([9, 10])).toBe(60);
+  });
+});
+
+describe('calcLevelUpUniversalShards', () => {
+  it('grants shards at L≡4 (mod5), L≥5', () => {
+    expect(calcLevelUpUniversalShards(4)).toBe(0);
+    expect(calcLevelUpUniversalShards(9)).toBe(20);
+    expect(calcLevelUpUniversalShards(10)).toBe(0);
+  });
+
+  it('deprecated alias still works', () => {
+    expect(calcLevelUpUniversalLimitBreak(14)).toBe(20);
+    expect(calcLevelUpUniversalLimitBreak(20)).toBe(0);
+  });
+});
+
+describe('calcLevelUpTalismanGrant', () => {
+  it('grants talisman at Lv20,30,40,50', () => {
+    expect(calcLevelUpTalismanGrant(19)).toBe(0);
+    expect(calcLevelUpTalismanGrant(20)).toBe(1);
+    expect(calcLevelUpTalismanGrant(25)).toBe(0);
+    expect(calcLevelUpTalismanGrant(50)).toBe(1);
   });
 });
 
@@ -192,14 +212,6 @@ describe('calcGraveyardPixelReward', () => {
   });
 });
 
-describe('calcLevelUpUniversalLimitBreak', () => {
-  it('grants at L20, L30 and not elsewhere', () => {
-    expect(calcLevelUpUniversalLimitBreak(19)).toBe(0);
-    expect(calcLevelUpUniversalLimitBreak(20)).toBe(10);
-    expect(calcLevelUpUniversalLimitBreak(25)).toBe(0);
-    expect(calcLevelUpUniversalLimitBreak(30)).toBe(10);
-  });
-});
 
 describe('calcGraveyardShardReward', () => {
   it('returns shard count by rarity', () => {
@@ -275,18 +287,10 @@ describe('lost economy helpers', () => {
     expect(getCardRenameCount({ renameCount: 2 })).toBe(2);
     expect(isFirstCardRename(0)).toBe(true);
     expect(isFirstCardRename(1)).toBe(false);
-    expect(
-      canAffordCardRename({ freePixels: PIXEL_COST_RENAME_FIRST, jewels: 0 }, 0),
-    ).toBe(true);
-    expect(
-      canAffordCardRename({ freePixels: PIXEL_COST_RENAME_FIRST - 1, jewels: 99 }, 0),
-    ).toBe(false);
-    expect(canAffordCardRename({ freePixels: 0, jewels: JEWEL_COST_RENAME }, 1)).toBe(
-      true,
+    expect(canAffordCardRename({ freePixels: PIXEL_COST_RENAME })).toBe(true);
+    expect(canAffordCardRename({ freePixels: PIXEL_COST_RENAME - 1 })).toBe(
+      false,
     );
-    expect(
-      canAffordCardRename({ freePixels: 999, jewels: JEWEL_COST_RENAME - 1 }, 2),
-    ).toBe(false);
   });
 
   it('checks deck unlock affordability', () => {
@@ -306,32 +310,28 @@ describe('lost economy helpers', () => {
   });
 
   it('calculates editor save charges for rename and canvas upgrade', () => {
-    const renameFirst = calcEditorSaveCharges({
-      renameCount: 0,
+    const rename = calcEditorSaveCharges({
       nameChanged: true,
       editCanvasSize: 16,
       pendingCanvasSize: 16,
     });
-    expect(renameFirst).toEqual({
+    expect(rename).toEqual({
       canvasUpgradePx: 0,
-      renamePixelCost: PIXEL_COST_RENAME_FIRST,
-      renameJewelCost: 0,
+      renamePixelCost: PIXEL_COST_RENAME,
     });
 
     const both = calcEditorSaveCharges({
-      renameCount: 1,
       nameChanged: true,
       editCanvasSize: 16,
       pendingCanvasSize: 18,
     });
-    expect(both.renameJewelCost).toBe(JEWEL_COST_RENAME);
+    expect(both.renamePixelCost).toBe(PIXEL_COST_RENAME);
     expect(both.canvasUpgradePx).toBe(68);
-    expect(
-      canAffordEditorSave({ freePixels: 68, jewels: 1 }, both),
-    ).toBe(true);
+    expect(canAffordEditorSave({ freePixels: 68 + PIXEL_COST_RENAME }, both)).toBe(
+      true,
+    );
 
     const unchanged = calcEditorSaveCharges({
-      renameCount: 0,
       nameChanged: false,
       editCanvasSize: 16,
       pendingCanvasSize: 16,
@@ -340,9 +340,9 @@ describe('lost economy helpers', () => {
   });
 
   it('checks attribute retouch and select affordability', () => {
-    expect(canAffordAttributeRetouch({ freePixels: 200 })).toBe(true);
-    expect(canAffordAttributeRetouch({ freePixels: 199 })).toBe(false);
-    expect(canAffordAttributeSelect({ jewels: 20 })).toBe(true);
-    expect(canAffordAttributeSelect({ jewels: 19 })).toBe(false);
+    expect(canAffordAttributeRetouch({ freePixels: 300 })).toBe(true);
+    expect(canAffordAttributeRetouch({ freePixels: 299 })).toBe(false);
+    expect(canAffordAttributeSelect({ jewels: 100 })).toBe(true);
+    expect(canAffordAttributeSelect({ jewels: 99 })).toBe(false);
   });
 });

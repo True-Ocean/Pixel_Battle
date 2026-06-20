@@ -17,31 +17,28 @@ export const LOST_WEIGHT_STARS: Record<CardStars, number> = {
 };
 
 /** レベルアップ1回あたりのジュエル */
-export const JEWELS_PER_LEVEL = 3;
+export const JEWELS_PER_LEVEL = 30;
 
-/** L ≡ 4 (mod 5), L ≥ 5 のジュエル追加ボーナス */
-export const JEWELS_BONUS_MOD4 = 10;
+/** L ≡ 4 (mod 5), L ≥ 5 の汎用かけら付与数 */
+export const LEVEL_UP_UNIVERSAL_SHARD_REWARD = 20;
 
-/** Lv20,30,40… 到達時の汎用かけら付与数 */
-export const UNIVERSAL_LIMIT_BREAK_LEVEL_REWARD = 10;
+/** Lv20,30,40,50 到達時の護符付与数 */
+export const TALISMAN_MILESTONE_GRANT_COUNT = 1;
 
 /** 通常カード削除のジュエルコスト */
-export const JEWEL_COST_DELETE = 1;
+export const JEWEL_COST_DELETE = 5;
 
-/** カード名変更（2回目以降）のジュエルコスト */
-export const JEWEL_COST_RENAME = 1;
-
-/** カード名変更（初回）の px コスト */
-export const PIXEL_COST_RENAME_FIRST = 100;
+/** カード名変更（保存時・名前が変わった場合）の px コスト */
+export const PIXEL_COST_RENAME = 200;
 
 /** 属性リタッチ1回の px コスト */
-export const PIXEL_COST_ATTRIBUTE_RETOUCH = 200;
+export const PIXEL_COST_ATTRIBUTE_RETOUCH = 300;
 
 /** 属性セレクト1回の 💎 コスト */
-export const JEWEL_COST_ATTRIBUTE_SELECT = 20;
+export const JEWEL_COST_ATTRIBUTE_SELECT = 100;
 
 /** デッキ3〜5解放のジュエルコスト（各1回） */
-export const JEWEL_COST_DECK_UNLOCK = 200;
+export const JEWEL_COST_DECK_UNLOCK = 1000;
 
 /** 1枚あたりの px 復活上限 */
 export const REVIVE_CAP = 3;
@@ -53,13 +50,13 @@ export const MEMORY_ALBUM_SLOTS_PER_ROW = 5;
 export const MEMORY_ALBUM_INITIAL_ROWS = 1;
 
 /** 思い出アルバム: 追加1行（5枠）解放のジュエル */
-export const JEWEL_COST_MEMORY_ALBUM_ROW = 200;
+export const JEWEL_COST_MEMORY_ALBUM_ROW = 1000;
 
 /** 追加色パレット tier1（紫・濃い緑・茶・赤茶）の px コスト */
 export const PIXEL_COST_PALETTE_SHOP_TIER1 = 2000;
 
 /** 追加色パレット tier2（薄色系8色）のジュエルコスト */
-export const JEWEL_COST_PALETTE_SHOP_TIER2 = 20;
+export const JEWEL_COST_PALETTE_SHOP_TIER2 = 100;
 
 /** 追加色パレット tier2（薄色系8色）の px コスト */
 export const PIXEL_COST_PALETTE_SHOP_TIER2 = 2200;
@@ -87,9 +84,9 @@ export function getLimitBreakShardsRequired(rarity: CardRarity): number {
 export const LIMIT_BREAK_RARITY_JEWEL_COST: Partial<
   Record<Extract<CardRarity, 'N' | 'R' | 'SR'>, number>
 > = {
-  N: 10,
-  R: 20,
-  SR: 40,
+  N: 50,
+  R: 100,
+  SR: 200,
 };
 
 export function getLimitBreakRarityJewelCost(rarity: CardRarity): number | null {
@@ -115,11 +112,25 @@ export function calcLimitBreakBpGain(foundationBp: number): number {
   return Math.max(1, Math.round(foundationBp * LIMIT_BREAK_BP_GAIN_RATE));
 }
 
-/** Lv20,30,40… 到達時の汎用かけら付与数 */
+/** L ≡ 4 (mod 5), L ≥ 5 の汎用かけら付与数 */
+export function calcLevelUpUniversalShards(level: number): number {
+  const L = Math.max(1, Math.floor(level));
+  if (L < 5 || L % 5 !== 4) return 0;
+  return LEVEL_UP_UNIVERSAL_SHARD_REWARD;
+}
+
+/** @deprecated calcLevelUpUniversalShards を使用 */
 export function calcLevelUpUniversalLimitBreak(level: number): number {
+  return calcLevelUpUniversalShards(level);
+}
+
+const TALISMAN_MILESTONE_LEVELS = [20, 30, 40, 50] as const;
+
+/** Lv20,30,40,50 到達時の護符付与数 */
+export function calcLevelUpTalismanGrant(level: number): number {
   const L = Math.floor(level);
-  if (L < 20 || L % 10 !== 0) return 0;
-  return UNIVERSAL_LIMIT_BREAK_LEVEL_REWARD;
+  if (!(TALISMAN_MILESTONE_LEVELS as readonly number[]).includes(L)) return 0;
+  return TALISMAN_MILESTONE_GRANT_COUNT;
 }
 
 /** 墓地戦利品の属性かけら（レア度別） */
@@ -139,10 +150,10 @@ export const BATTLE_DAILY_RESET_TIMEZONE = 'Asia/Tokyo';
 export const SHOP_TALISMAN_PX = 300;
 
 /** 護符購入価格（💎 枠） */
-export const SHOP_TALISMAN_JEWELS = 25;
+export const SHOP_TALISMAN_JEWELS = 125;
 
 /** 開発用モックジュエルパック */
-export const MOCK_JEWEL_PACK_SMALL = 100;
+export const MOCK_JEWEL_PACK_SMALL = 500;
 
 /** 復活コスト: 塗りマス数に対する倍率 */
 export const REVIVE_PAINTED_MULTIPLIER = 3;
@@ -169,7 +180,7 @@ export const TALISMAN_STARTER_GRANT_LEVEL = 5;
 export const TALISMAN_STARTER_GRANT_COUNT = 1;
 
 /** レベルアップ1回あたりの px（固定） */
-export const LEVEL_UP_PIXEL_REWARD = 500;
+export const LEVEL_UP_PIXEL_REWARD = 300;
 
 export function calcLevelUpPixels(_level?: number): number {
   return LEVEL_UP_PIXEL_REWARD;
@@ -179,17 +190,10 @@ export function calcLevelUpJewels(_level?: number): number {
   return JEWELS_PER_LEVEL;
 }
 
-/** L ≡ 4 (mod 5), L ≥ 5 のジュエル追加ボーナス */
-export function calcLevelUpJewelBonus(level: number): number {
-  const L = Math.max(1, Math.floor(level));
-  if (L < 5) return 0;
-  return L % 5 === 4 ? JEWELS_BONUS_MOD4 : 0;
-}
-
 export function calcTotalLevelUpJewels(levelsGained: readonly number[]): number {
   let total = 0;
   for (const level of levelsGained) {
-    total += calcLevelUpJewels(level) + calcLevelUpJewelBonus(level);
+    total += calcLevelUpJewels(level);
   }
   return total;
 }
@@ -377,44 +381,27 @@ export function isFirstCardRename(renameCount: number): boolean {
   return Math.max(0, Math.floor(renameCount)) === 0;
 }
 
-export function canAffordCardRename(
-  economy: { freePixels: number; jewels: number },
-  renameCount: number,
-): boolean {
-  if (isFirstCardRename(renameCount)) {
-    return economy.freePixels >= PIXEL_COST_RENAME_FIRST;
-  }
-  return economy.jewels >= JEWEL_COST_RENAME;
+export function canAffordCardRename(economy: { freePixels: number }): boolean {
+  return economy.freePixels >= PIXEL_COST_RENAME;
 }
 
 export interface EditorSaveCharges {
   canvasUpgradePx: number;
   renamePixelCost: number;
-  renameJewelCost: number;
 }
 
 export function calcEditorSaveCharges(params: {
-  renameCount: number;
   nameChanged: boolean;
   editCanvasSize: number;
   pendingCanvasSize: number;
 }): EditorSaveCharges {
-  let renamePixelCost = 0;
-  let renameJewelCost = 0;
-  if (params.nameChanged) {
-    if (isFirstCardRename(params.renameCount)) {
-      renamePixelCost = PIXEL_COST_RENAME_FIRST;
-    } else {
-      renameJewelCost = JEWEL_COST_RENAME;
-    }
-  }
+  const renamePixelCost = params.nameChanged ? PIXEL_COST_RENAME : 0;
   return {
     canvasUpgradePx: calcCanvasUpgradeCost(
       params.editCanvasSize,
       params.pendingCanvasSize,
     ),
     renamePixelCost,
-    renameJewelCost,
   };
 }
 
@@ -423,12 +410,10 @@ export function getEditorSaveTotalPixelCost(charges: EditorSaveCharges): number 
 }
 
 export function canAffordEditorSave(
-  economy: { freePixels: number; jewels: number },
+  economy: { freePixels: number },
   charges: EditorSaveCharges,
 ): boolean {
-  if (economy.freePixels < getEditorSaveTotalPixelCost(charges)) return false;
-  if (economy.jewels < charges.renameJewelCost) return false;
-  return true;
+  return economy.freePixels >= getEditorSaveTotalPixelCost(charges);
 }
 
 export function canAffordAttributeRetouch(economy: {

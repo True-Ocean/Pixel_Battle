@@ -195,9 +195,9 @@ describe('limit break rules', () => {
 
   it('レア昇格はジュエル所持が必要', () => {
     const card = makeCard({ rarity: 'N', stars: 3 });
-    expect(canAffordLimitBreakUpgrade(card, 10, 0, 9)).toBe(false);
-    expect(canAffordLimitBreakUpgrade(card, 10, 0, 10)).toBe(true);
-    expect(canAffordLimitBreakUpgrade(card, 5, 5, 10)).toBe(true);
+    expect(canAffordLimitBreakUpgrade(card, 10, 0, 49)).toBe(false);
+    expect(canAffordLimitBreakUpgrade(card, 10, 0, 50)).toBe(true);
+    expect(canAffordLimitBreakUpgrade(card, 5, 5, 50)).toBe(true);
   });
 
   it('★アップはジュエル不要', () => {

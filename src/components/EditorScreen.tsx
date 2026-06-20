@@ -40,11 +40,9 @@ import { EditorFeatureUnlockModal } from './EditorFeatureUnlockModal';
 import { EditorCanvasViewport } from './EditorCanvasViewport';
 import { EditorSaveBpConfirmModal } from './EditorSaveBpConfirmModal';
 import { PaletteUnlockModal } from './PaletteUnlockModal';
-import { JewelAmount } from './JewelIcon';
 import {
   calcEditorSaveCharges,
   canAffordEditorSave,
-  getCardRenameCount,
   getEditorSaveTotalPixelCost,
 } from '../config/economy';
 import type { BrushSizeId } from '../config/brushSize';
@@ -459,22 +457,15 @@ export function EditorScreen({
     const pendingName = finalizeCardNameForCreation(name);
     const nameChanged = pendingName !== originalName;
     const saveCharges = calcEditorSaveCharges({
-      renameCount: getCardRenameCount(editTarget),
       nameChanged,
       editCanvasSize,
       pendingCanvasSize: canvasSize,
     });
 
-    if (!canAffordEditorSave({ freePixels, jewels }, saveCharges)) {
+    if (!canAffordEditorSave({ freePixels }, saveCharges)) {
       const totalPx = getEditorSaveTotalPixelCost(saveCharges);
-      if (freePixels < totalPx) {
-        setError(`px が ${totalPx.toLocaleString()} 不足しています。`);
-        return;
-      }
-      if (saveCharges.renameJewelCost > 0) {
-        setError(`ジュエルが ${saveCharges.renameJewelCost} 不足しています。`);
-        return;
-      }
+      setError(`px が ${totalPx.toLocaleString()} 不足しています。`);
+      return;
     }
 
     setError(null);
@@ -496,7 +487,7 @@ export function EditorScreen({
         previousFreePixels: freePixels,
         nextFreePixels: freePixels - spentPx,
         previousJewels: jewels,
-        nextJewels: jewels - saveCharges.renameJewelCost,
+        nextJewels: jewels,
       });
     } catch (e) {
       setError(e instanceof CardCreationError ? e.message : '保存に失敗しました');
@@ -508,14 +499,12 @@ export function EditorScreen({
     onBack();
   };
 
-  const renameCount = editTarget != null ? getCardRenameCount(editTarget) : 0;
   const originalName =
     editTarget != null ? finalizeCardNameForCreation(editTarget.name) : '';
   const pendingName = finalizeCardNameForCreation(name);
   const nameChanged = isEditing && pendingName !== originalName;
   const saveCharges = isEditing
     ? calcEditorSaveCharges({
-        renameCount,
         nameChanged,
         editCanvasSize,
         pendingCanvasSize: canvasSize,
@@ -523,11 +512,10 @@ export function EditorScreen({
     : null;
   const canvasUpgradePx = saveCharges?.canvasUpgradePx ?? 0;
   const renamePixelCost = saveCharges?.renamePixelCost ?? 0;
-  const saveJewelCost = saveCharges?.renameJewelCost ?? 0;
   const canAffordSave =
     !isEditing ||
     !saveCharges ||
-    canAffordEditorSave({ freePixels, jewels }, saveCharges);
+    canAffordEditorSave({ freePixels }, saveCharges);
 
   return (
     <section className="screen editor-screen">
@@ -695,16 +683,6 @@ export function EditorScreen({
               <span className="editor-save-cost-kind">リネーム</span>
               <PixelCoinIcon className="editor-save-cost-icon" />
               <span>{renamePixelCost.toLocaleString()}</span>
-            </span>
-          )}
-          {isEditing && saveJewelCost > 0 && (
-            <span className="editor-save-cost editor-save-cost--group editor-save-cost--jewel">
-              <span className="editor-save-cost-kind">リネーム</span>
-              <JewelAmount
-                amount={saveJewelCost}
-                className="editor-save-cost-jewel"
-                iconClassName="editor-save-cost-icon"
-              />
             </span>
           )}
         </button>
