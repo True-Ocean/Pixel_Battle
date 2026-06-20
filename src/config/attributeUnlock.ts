@@ -39,3 +39,13 @@ export function getAttributeUnlockLevel(attribute: Attribute): number {
   const entry = ATTRIBUTE_UNLOCK_SCHEDULE.find((e) => e.attribute === attribute);
   return entry?.level ?? Number.POSITIVE_INFINITY;
 }
+
+/** 直近解放された属性（スケジュール上・Lv1〜5 は null） */
+export function getLatestUnlockedAttribute(userLevel: number): Attribute | null {
+  const level = Math.max(1, Math.floor(userLevel));
+  let latest: Attribute | null = null;
+  for (const { level: unlockLevel, attribute } of ATTRIBUTE_UNLOCK_SCHEDULE) {
+    if (level >= unlockLevel) latest = attribute;
+  }
+  return latest;
+}

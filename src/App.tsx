@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import type { AdState, Card, ScreenId, UserProfile, UserEconomy, UserInventory, BattleOutcome, BattleHistoryEntry } from './types';
+import type { AdState, Attribute, Card, ScreenId, UserProfile, UserEconomy, UserInventory, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
+import { isAttributeUnlockedAtLevel } from './config/attributeUnlock';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, finalizeCardNameForCreation, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, type LimitBreakShardSpendPlan } from './card';
+import { applyCardSurvivalRecords, applyCardDowngradeRevive, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
@@ -28,11 +29,12 @@ import {
   calcVictoryBattlePixels,
   countBattleSurvivors,
   JEWEL_COST_DELETE,
-  JEWEL_COST_RENAME,
+  JEWEL_COST_ATTRIBUTE_SELECT,
   JEWEL_COST_DECK_UNLOCK,
-  PIXEL_COST_RENAME_FIRST,
+  PIXEL_COST_ATTRIBUTE_RETOUCH,
   getCardRenameCount,
-  isFirstCardRename,
+  getEditorSaveTotalPixelCost,
+  type EditorSaveCharges,
 } from './config/economy';
 import { LevelUpModal } from './components/LevelUpModal';
 import { LimitBreakSuccessModal } from './components/LimitBreakSuccessModal';
@@ -489,27 +491,54 @@ function App() {
   );
 
   const updateCard = useCallback(
-    (updated: Card, options?: { canvasUpgradePx?: number }) => {
-      const upgradePx = options?.canvasUpgradePx ?? 0;
+    (
+      updated: Card,
+      options?: {
+        saveCharges?: EditorSaveCharges;
+        nameChanged?: boolean;
+      },
+    ) => {
+      const charges = options?.saveCharges;
       let nextEconomy = economyRef.current;
-      if (upgradePx > 0) {
-        const spent = spendFreePixels(economyRef.current, upgradePx);
-        if (!spent) return;
-        nextEconomy = spent;
+      let economyChanged = false;
+
+      if (charges) {
+        const totalPx = getEditorSaveTotalPixelCost(charges);
+        if (totalPx > 0) {
+          const spent = spendFreePixels(nextEconomy, totalPx);
+          if (!spent) return;
+          nextEconomy = spent;
+          economyChanged = true;
+        }
+        if (charges.renameJewelCost > 0) {
+          const spent = spendJewels(nextEconomy, charges.renameJewelCost);
+          if (!spent) return;
+          nextEconomy = spent;
+          economyChanged = true;
+        }
       }
 
       const deckIndex = activeDeckIndexRef.current;
       const prevDecks = decksRef.current;
       const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const original = prevLayout.find((card) => card?.id === updated.id);
+      let finalCard = updated;
+      if (options?.nameChanged && original) {
+        finalCard = {
+          ...updated,
+          renameCount: getCardRenameCount(original) + 1,
+        };
+      }
+
       const nextLayout = prevLayout.map((card) =>
-        card?.id === updated.id ? updated : card,
+        card?.id === finalCard.id ? finalCard : card,
       );
       const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
       setDecks(nextDecks);
       decksRef.current = nextDecks;
-      setEditingCard(updated);
+      setEditingCard(finalCard);
 
-      if (upgradePx > 0) {
+      if (economyChanged) {
         setEconomy(nextEconomy);
         economyRef.current = nextEconomy;
         persistSave({ decks: nextDecks, economy: nextEconomy });
@@ -520,45 +549,132 @@ function App() {
     [persistSave],
   );
 
-  const renameDeckCard = useCallback(
-    (cardId: string, newName: string): string | null => {
+  const pendingRetouchCardRef = useRef<Card | null>(null);
+
+  const retouchCardAttributeInDeck = useCallback(
+    (
+      cardId: string,
+    ):
+      | {
+          attribute: Attribute;
+          previousAttribute: Attribute;
+          previousBp: number;
+          newBp: number;
+          previousFreePixels: number;
+          nextFreePixels: number;
+        }
+      | { error: string } => {
       const deckIndex = activeDeckIndexRef.current;
       const prevDecks = decksRef.current;
       const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
       const target = prevLayout.find((card) => card?.id === cardId);
-      if (!target) return 'カードが見つかりません。';
-
-      const trimmed = finalizeCardNameForCreation(newName);
-      if (trimmed === target.name.trim()) {
-        return '現在と異なる名前を入力してください。';
+      if (!target || isCardLost(target)) {
+        return { error: 'カードが見つかりません。' };
       }
 
-      const renameCount = getCardRenameCount(target);
-      const nextEconomy = isFirstCardRename(renameCount)
-        ? spendFreePixels(economyRef.current, PIXEL_COST_RENAME_FIRST)
-        : spendJewels(economyRef.current, JEWEL_COST_RENAME);
-      if (!nextEconomy) {
-        return isFirstCardRename(renameCount)
-          ? `px が ${PIXEL_COST_RENAME_FIRST.toLocaleString()} 不足しています。`
-          : `ジュエルが ${JEWEL_COST_RENAME} 不足しています。`;
+      const previousFreePixels = economyRef.current.freePixels;
+      const spent = spendFreePixels(
+        economyRef.current,
+        PIXEL_COST_ATTRIBUTE_RETOUCH,
+      );
+      if (!spent) {
+        return {
+          error: `px が ${PIXEL_COST_ATTRIBUTE_RETOUCH.toLocaleString()} 不足しています。`,
+        };
       }
 
-      const updated: Card = {
-        ...target,
-        name: trimmed,
-        renameCount: renameCount + 1,
+      const userLevel = userRef.current?.level ?? 1;
+      const previousAttribute = target.attribute;
+      const previousBp = target.bp;
+      const updated = retouchCardAttribute(
+        target,
+        userLevel,
+        paletteShopUnlocksRef.current,
+      );
+      pendingRetouchCardRef.current = updated;
+
+      setEconomy(spent);
+      economyRef.current = spent;
+      persistSave({ economy: spent });
+
+      return {
+        attribute: updated.attribute,
+        previousAttribute,
+        previousBp,
+        newBp: updated.bp,
+        previousFreePixels,
+        nextFreePixels: spent.freePixels,
       };
+    },
+    [persistSave],
+  );
+
+  const commitRetouchCardAttributeInDeck = useCallback(() => {
+    const updated = pendingRetouchCardRef.current;
+    if (!updated) return;
+
+    pendingRetouchCardRef.current = null;
+    const deckIndex = activeDeckIndexRef.current;
+    const prevDecks = decksRef.current;
+    const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+    const nextLayout = prevLayout.map((card) =>
+      card?.id === updated.id ? updated : card,
+    );
+    const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
+    setDecks(nextDecks);
+    decksRef.current = nextDecks;
+    persistSave({ decks: nextDecks });
+  }, [persistSave]);
+
+  const selectCardAttributeInDeck = useCallback(
+    (
+      cardId: string,
+      attribute: Attribute,
+    ):
+      | { previousJewels: number; nextJewels: number; attribute: Attribute; previousBp: number; newBp: number }
+      | string => {
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const target = prevLayout.find((card) => card?.id === cardId);
+      if (!target || isCardLost(target)) {
+        return 'カードが見つかりません。';
+      }
+
+      const userLevel = userRef.current?.level ?? 1;
+      if (!isAttributeUnlockedAtLevel(attribute, userLevel)) {
+        return '未解放の属性です。';
+      }
+
+      const previousJewels = economyRef.current.jewels;
+      const previousBp = target.bp;
+      const spent = spendJewels(economyRef.current, JEWEL_COST_ATTRIBUTE_SELECT);
+      if (!spent) {
+        return `ジュエルが ${JEWEL_COST_ATTRIBUTE_SELECT} 不足しています。`;
+      }
+
+      const updated = selectCardAttribute(
+        target,
+        attribute,
+        userLevel,
+        paletteShopUnlocksRef.current,
+      );
       const nextLayout = prevLayout.map((card) =>
         card?.id === cardId ? updated : card,
       );
       const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
       setDecks(nextDecks);
       decksRef.current = nextDecks;
-      setEconomy(nextEconomy);
-      economyRef.current = nextEconomy;
-      setEditingCard(updated);
-      persistSave({ decks: nextDecks, economy: nextEconomy });
-      return null;
+      setEconomy(spent);
+      economyRef.current = spent;
+      persistSave({ decks: nextDecks, economy: spent });
+      return {
+        attribute,
+        previousBp,
+        newBp: updated.bp,
+        previousJewels,
+        nextJewels: spent.jewels,
+      };
     },
     [persistSave],
   );
@@ -1680,6 +1796,10 @@ function App() {
             onDowngradeReviveLostCard={downgradeReviveLostCard}
             inventory={inventory}
             onLimitBreakCard={limitBreakCard}
+            onRetouchCardAttribute={retouchCardAttributeInDeck}
+            onCommitRetouchCardAttribute={commitRetouchCardAttributeInDeck}
+            onSelectCardAttribute={selectCardAttributeInDeck}
+            paletteShopUnlocks={paletteShopUnlocks}
             freePixels={economy.freePixels}
             jewels={economy.jewels}
             onReorderDeck={reorderDeck}
@@ -1788,7 +1908,6 @@ function App() {
             }}
             onCreated={addCard}
             onUpdated={updateCard}
-            onRenameCard={renameDeckCard}
             onUnlockPaletteWithPixels={unlockPaletteWithPixelsHandler}
             onUnlockPaletteWithJewels={unlockPaletteWithJewelsHandler}
           />

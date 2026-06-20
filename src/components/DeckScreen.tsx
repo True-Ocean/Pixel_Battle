@@ -17,7 +17,7 @@ import {
   moveCardInLayout,
   normalizeDeckLayout,
 } from '../deckSlots';
-import type { Card, DeckLayout, UserInventory } from '../types';
+import type { Attribute, Card, DeckLayout, UserInventory } from '../types';
 import { getRarityMeta, type RarityMeta } from '../config/rarity';
 import { AttributeBadge } from './AttributeBadge';
 import { CardBattleRecord } from './CardBattleRecord';
@@ -26,6 +26,8 @@ import { RarityBadge } from './RarityBadge';
 import { CardPreview } from './CardPreview';
 import { ConfirmDialog } from './ConfirmDialog';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
+import type { AttributeSelectOutcome } from './attributeSelectTypes';
+import type { AttributeRetouchResult } from './AttributeRetouchModal';
 import { DeckRenameDialog } from './DeckRenameDialog';
 import { DeckUnlockModal } from './DeckUnlockModal';
 import { TalismanCardBadge } from './TalismanCardBadge';
@@ -62,6 +64,12 @@ export interface DeckScreenProps {
   onDowngradeReviveLostCard: (id: string) => void;
   inventory: UserInventory;
   onLimitBreakCard: (id: string, spend: LimitBreakShardSpendPlan) => void;
+  onRetouchCardAttribute: (
+    cardId: string,
+  ) => AttributeRetouchResult | { error: string };
+  onCommitRetouchCardAttribute: () => void;
+  onSelectCardAttribute: (cardId: string, attribute: Attribute) => AttributeSelectOutcome;
+  paletteShopUnlocks?: readonly number[];
   freePixels: number;
   jewels: number;
   onReorderDeck: (deck: DeckLayout) => void;
@@ -319,6 +327,10 @@ export function DeckScreen({
   onDowngradeReviveLostCard,
   inventory,
   onLimitBreakCard,
+  onRetouchCardAttribute,
+  onCommitRetouchCardAttribute,
+  onSelectCardAttribute,
+  paletteShopUnlocks = [],
   freePixels,
   jewels,
   onReorderDeck,
@@ -1052,6 +1064,7 @@ export function DeckScreen({
         <DeckCardDetailOverlay
           card={selectedCard}
           isLost={selectedIsLost}
+          userLevel={userLevel}
           freePixels={freePixels}
           reviveCost={calcFullReviveCost(selectedCard)}
           downgradeReviveCost={calcDowngradeReviveCost(selectedCard)}
@@ -1067,6 +1080,10 @@ export function DeckScreen({
           onReviveLost={handleReviveRequest}
           onDowngradeReviveLost={handleDowngradeReviveRequest}
           onLimitBreak={(spend) => onLimitBreakCard(selectedCard.id, spend)}
+          onRetouchCardAttribute={onRetouchCardAttribute}
+          onCommitRetouchCardAttribute={onCommitRetouchCardAttribute}
+          onSelectCardAttribute={onSelectCardAttribute}
+          paletteShopUnlocks={paletteShopUnlocks}
           showTalismanUi={showTalismanUi}
           unusedTalismanCount={inventory.talisman}
           onTalismanPress={showTalismanUi ? handleTalismanPress : undefined}

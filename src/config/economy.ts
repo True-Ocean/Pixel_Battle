@@ -34,6 +34,12 @@ export const JEWEL_COST_RENAME = 1;
 /** カード名変更（初回）の px コスト */
 export const PIXEL_COST_RENAME_FIRST = 100;
 
+/** 属性リタッチ1回の px コスト */
+export const PIXEL_COST_ATTRIBUTE_RETOUCH = 200;
+
+/** 属性セレクト1回の 💎 コスト */
+export const JEWEL_COST_ATTRIBUTE_SELECT = 20;
+
 /** デッキ3〜5解放のジュエルコスト（各1回） */
 export const JEWEL_COST_DECK_UNLOCK = 200;
 
@@ -344,6 +350,60 @@ export function canAffordCardRename(
     return economy.freePixels >= PIXEL_COST_RENAME_FIRST;
   }
   return economy.jewels >= JEWEL_COST_RENAME;
+}
+
+export interface EditorSaveCharges {
+  canvasUpgradePx: number;
+  renamePixelCost: number;
+  renameJewelCost: number;
+}
+
+export function calcEditorSaveCharges(params: {
+  renameCount: number;
+  nameChanged: boolean;
+  editCanvasSize: number;
+  pendingCanvasSize: number;
+}): EditorSaveCharges {
+  let renamePixelCost = 0;
+  let renameJewelCost = 0;
+  if (params.nameChanged) {
+    if (isFirstCardRename(params.renameCount)) {
+      renamePixelCost = PIXEL_COST_RENAME_FIRST;
+    } else {
+      renameJewelCost = JEWEL_COST_RENAME;
+    }
+  }
+  return {
+    canvasUpgradePx: calcCanvasUpgradeCost(
+      params.editCanvasSize,
+      params.pendingCanvasSize,
+    ),
+    renamePixelCost,
+    renameJewelCost,
+  };
+}
+
+export function getEditorSaveTotalPixelCost(charges: EditorSaveCharges): number {
+  return charges.canvasUpgradePx + charges.renamePixelCost;
+}
+
+export function canAffordEditorSave(
+  economy: { freePixels: number; jewels: number },
+  charges: EditorSaveCharges,
+): boolean {
+  if (economy.freePixels < getEditorSaveTotalPixelCost(charges)) return false;
+  if (economy.jewels < charges.renameJewelCost) return false;
+  return true;
+}
+
+export function canAffordAttributeRetouch(economy: {
+  freePixels: number;
+}): boolean {
+  return economy.freePixels >= PIXEL_COST_ATTRIBUTE_RETOUCH;
+}
+
+export function canAffordAttributeSelect(economy: { jewels: number }): boolean {
+  return economy.jewels >= JEWEL_COST_ATTRIBUTE_SELECT;
 }
 
 export function canAffordDeckUnlock(economy: { jewels: number }): boolean {

@@ -38,7 +38,12 @@ export {
   isValidLimitBreakShardSpend,
   type LimitBreakShardSpendPlan,
 } from './limitBreak';
-export { buildCardSeed, hashToUnit } from './hash';
+export {
+  applyAttributeChange,
+  retouchCardAttribute,
+  selectCardAttribute,
+} from './attributeChange';
+export { rollAttribute, getAttributeRollWeights, ATTRIBUTE_ROLL_RECENT_BOOST } from './rollAttribute';
 export { computeCardPower, computeDeckPower, attributePowerConfig } from './power';
 export { applyCardSurvivalRecords, recordCardRevive } from './battleRecord';
 export {

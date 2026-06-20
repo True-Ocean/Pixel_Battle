@@ -30,6 +30,10 @@ import {
   countBattleSurvivors,
   canAffordCardRename,
   canAffordCanvasUpgrade,
+  calcEditorSaveCharges,
+  canAffordAttributeRetouch,
+  canAffordAttributeSelect,
+  canAffordEditorSave,
   canAffordDeckUnlock,
   calcCanvasUpgradeCost,
   getCardRenameCount,
@@ -301,5 +305,46 @@ describe('lost economy helpers', () => {
     expect(calcCanvasUpgradeCost(20, 16)).toBe(0);
     expect(canAffordCanvasUpgrade({ freePixels: 144 }, 144)).toBe(true);
     expect(canAffordCanvasUpgrade({ freePixels: 143 }, 144)).toBe(false);
+  });
+
+  it('calculates editor save charges for rename and canvas upgrade', () => {
+    const renameFirst = calcEditorSaveCharges({
+      renameCount: 0,
+      nameChanged: true,
+      editCanvasSize: 16,
+      pendingCanvasSize: 16,
+    });
+    expect(renameFirst).toEqual({
+      canvasUpgradePx: 0,
+      renamePixelCost: PIXEL_COST_RENAME_FIRST,
+      renameJewelCost: 0,
+    });
+
+    const both = calcEditorSaveCharges({
+      renameCount: 1,
+      nameChanged: true,
+      editCanvasSize: 16,
+      pendingCanvasSize: 18,
+    });
+    expect(both.renameJewelCost).toBe(JEWEL_COST_RENAME);
+    expect(both.canvasUpgradePx).toBe(68);
+    expect(
+      canAffordEditorSave({ freePixels: 68, jewels: 1 }, both),
+    ).toBe(true);
+
+    const unchanged = calcEditorSaveCharges({
+      renameCount: 0,
+      nameChanged: false,
+      editCanvasSize: 16,
+      pendingCanvasSize: 16,
+    });
+    expect(unchanged.renamePixelCost).toBe(0);
+  });
+
+  it('checks attribute retouch and select affordability', () => {
+    expect(canAffordAttributeRetouch({ freePixels: 200 })).toBe(true);
+    expect(canAffordAttributeRetouch({ freePixels: 199 })).toBe(false);
+    expect(canAffordAttributeSelect({ jewels: 20 })).toBe(true);
+    expect(canAffordAttributeSelect({ jewels: 19 })).toBe(false);
   });
 });

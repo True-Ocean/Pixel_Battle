@@ -20,6 +20,7 @@ import {
   CardCreationError,
   computeColorRatios,
   createCardFromDrawing,
+  finalizeCardNameForCreation,
   sanitizeCardNameInput,
   updateCardFromDrawing,
   validateCardNameForCreation,
@@ -33,10 +34,15 @@ import { CanvasSizePicker } from './CanvasSizePicker';
 import { CardPreview } from './CardPreview';
 import { ColorPalette } from './ColorPalette';
 import { ConfirmDialog } from './ConfirmDialog';
-import { CardRenameDialog } from './CardRenameDialog';
 import { EditorSaveBpConfirmModal } from './EditorSaveBpConfirmModal';
 import { PaletteUnlockModal } from './PaletteUnlockModal';
-import { getCardRenameCount, calcCanvasUpgradeCost, canAffordCanvasUpgrade } from '../config/economy';
+import { JewelAmount } from './JewelIcon';
+import {
+  calcEditorSaveCharges,
+  canAffordEditorSave,
+  getCardRenameCount,
+  getEditorSaveTotalPixelCost,
+} from '../config/economy';
 import {
   isEditorToolImplemented,
   isEditorToolUnlocked,
@@ -56,8 +62,13 @@ interface EditorScreenProps {
   backLabel?: string;
   onBack: () => void;
   onCreated: (card: Card) => void;
-  onUpdated?: (card: Card, options?: { canvasUpgradePx?: number }) => void;
-  onRenameCard?: (cardId: string, newName: string) => string | null;
+  onUpdated?: (
+    card: Card,
+    options?: {
+      saveCharges: ReturnType<typeof calcEditorSaveCharges>;
+      nameChanged: boolean;
+    },
+  ) => void;
   onUnlockPaletteWithPixels?: (index: number) => string | null;
   onUnlockPaletteWithJewels?: (index: number) => string | null;
 }
@@ -105,7 +116,6 @@ export function EditorScreen({
   onBack,
   onCreated,
   onUpdated,
-  onRenameCard,
   onUnlockPaletteWithPixels,
   onUnlockPaletteWithJewels,
 }: EditorScreenProps) {
@@ -137,8 +147,11 @@ export function EditorScreen({
     cardName: string;
     previousBp: number;
     nextBp: number;
+    previousFreePixels: number;
+    nextFreePixels: number;
+    previousJewels: number;
+    nextJewels: number;
   } | null>(null);
-  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [canvasUpgradeOpen, setCanvasUpgradeOpen] = useState(false);
   const [paletteUnlockIndex, setPaletteUnlockIndex] = useState<number | null>(
     null,
@@ -153,6 +166,14 @@ export function EditorScreen({
   const editorSnapshotRef = useRef<EditorSnapshot>({ pixels, canvasSize });
   const editorHistoryRef = useRef<EditorSnapshot[]>(editorHistory);
   const editorFutureRef = useRef<EditorSnapshot[]>(editorFuture);
+  const originalEditSnapshotRef = useRef<EditorSnapshot | null>(
+    isEditing && editTarget
+      ? {
+          pixels: cloneGrid(editTarget.pixels),
+          canvasSize: editCanvasSize,
+        }
+      : null,
+  );
 
   editorSnapshotRef.current = { pixels, canvasSize };
   editorHistoryRef.current = editorHistory;
@@ -184,10 +205,15 @@ export function EditorScreen({
       editorFutureRef.current = [];
       setEditorHistory(nextPast);
       setEditorFuture([]);
+      const nextPixels = cloneGrid(target.pixels);
+      editorSnapshotRef.current = {
+        pixels: nextPixels,
+        canvasSize: target.canvasSize,
+      };
       if (target.canvasSize !== current.canvasSize) {
         setCanvasSize(target.canvasSize);
       }
-      setPixels(cloneGrid(target.pixels));
+      setPixels(nextPixels);
     },
     [],
   );
@@ -244,9 +270,38 @@ export function EditorScreen({
     if (nextSize === currentSize) return;
 
     if (isEditing) {
-      if (nextSize <= currentSize) return;
-      setPendingCanvasUpgradeSize(nextSize);
-      setCanvasUpgradeOpen(true);
+      if (nextSize < editCanvasSize) return;
+
+      if (nextSize === editCanvasSize && currentSize > editCanvasSize) {
+        const baseline = originalEditSnapshotRef.current;
+        if (baseline) {
+          applyEditorChange({
+            pixels: cloneGrid(baseline.pixels),
+            canvasSize: baseline.canvasSize,
+          });
+        }
+        return;
+      }
+
+      if (nextSize < currentSize && nextSize > editCanvasSize) {
+        const baseline = originalEditSnapshotRef.current;
+        if (baseline) {
+          applyEditorChange({
+            pixels: cloneGrid(baseline.pixels),
+            canvasSize: baseline.canvasSize,
+          });
+        }
+        setPendingCanvasUpgradeSize(nextSize);
+        setCanvasUpgradeOpen(true);
+        return;
+      }
+
+      if (nextSize > currentSize) {
+        setPendingCanvasUpgradeSize(nextSize);
+        setCanvasUpgradeOpen(true);
+        return;
+      }
+
       return;
     }
 
@@ -255,15 +310,6 @@ export function EditorScreen({
       canvasSize: nextSize,
     });
   };
-
-  const pendingUpgradeTotalCost =
-    pendingCanvasUpgradeSize != null
-      ? calcCanvasUpgradeCost(editCanvasSize, pendingCanvasUpgradeSize)
-      : 0;
-  const canAffordPendingUpgrade = canAffordCanvasUpgrade(
-    { freePixels },
-    pendingUpgradeTotalCost,
-  );
 
   const handleConfirmCanvasUpgrade = () => {
     if (pendingCanvasUpgradeSize == null) return;
@@ -347,16 +393,35 @@ export function EditorScreen({
 
   const handleSave = () => {
     if (!editTarget) return;
+    const nameError = validateCardNameForCreation(name);
+    if (nameError) {
+      setError(nameError);
+      return;
+    }
     const validationError = validateDrawing(name, pixels, userLevel, paletteShopUnlocks);
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    const canvasUpgradePx = calcCanvasUpgradeCost(editCanvasSize, canvasSize);
-    if (canvasUpgradePx > 0) {
-      if (!canAffordCanvasUpgrade({ freePixels }, canvasUpgradePx)) {
-        setError(`px が ${canvasUpgradePx.toLocaleString()} 不足しています。`);
+    const originalName = finalizeCardNameForCreation(editTarget.name);
+    const pendingName = finalizeCardNameForCreation(name);
+    const nameChanged = pendingName !== originalName;
+    const saveCharges = calcEditorSaveCharges({
+      renameCount: getCardRenameCount(editTarget),
+      nameChanged,
+      editCanvasSize,
+      pendingCanvasSize: canvasSize,
+    });
+
+    if (!canAffordEditorSave({ freePixels, jewels }, saveCharges)) {
+      const totalPx = getEditorSaveTotalPixelCost(saveCharges);
+      if (freePixels < totalPx) {
+        setError(`px が ${totalPx.toLocaleString()} 不足しています。`);
+        return;
+      }
+      if (saveCharges.renameJewelCost > 0) {
+        setError(`ジュエルが ${saveCharges.renameJewelCost} 不足しています。`);
         return;
       }
     }
@@ -371,14 +436,16 @@ export function EditorScreen({
         userLevel,
         { paletteShopUnlocks },
       );
-      onUpdated?.(
-        card,
-        canvasUpgradePx > 0 ? { canvasUpgradePx } : undefined,
-      );
+      onUpdated?.(card, { saveCharges, nameChanged });
+      const spentPx = getEditorSaveTotalPixelCost(saveCharges);
       setSaveBpResult({
         cardName: card.name,
         previousBp,
         nextBp: card.bp,
+        previousFreePixels: freePixels,
+        nextFreePixels: freePixels - spentPx,
+        previousJewels: jewels,
+        nextJewels: jewels - saveCharges.renameJewelCost,
       });
     } catch (e) {
       setError(e instanceof CardCreationError ? e.message : '保存に失敗しました');
@@ -391,19 +458,25 @@ export function EditorScreen({
   };
 
   const renameCount = editTarget != null ? getCardRenameCount(editTarget) : 0;
-  const renameDisabled =
-    !onRenameCard ||
-    saveBpResult != null ||
-    renameDialogOpen;
-
-  const handleRenameSave = (newName: string): string | null => {
-    if (!editTarget || !onRenameCard) return 'リネームできません。';
-    const error = onRenameCard(editTarget.id, newName);
-    if (!error) {
-      setName(newName);
-    }
-    return error;
-  };
+  const originalName =
+    editTarget != null ? finalizeCardNameForCreation(editTarget.name) : '';
+  const pendingName = finalizeCardNameForCreation(name);
+  const nameChanged = isEditing && pendingName !== originalName;
+  const saveCharges = isEditing
+    ? calcEditorSaveCharges({
+        renameCount,
+        nameChanged,
+        editCanvasSize,
+        pendingCanvasSize: canvasSize,
+      })
+    : null;
+  const canvasUpgradePx = saveCharges?.canvasUpgradePx ?? 0;
+  const renamePixelCost = saveCharges?.renamePixelCost ?? 0;
+  const saveJewelCost = saveCharges?.renameJewelCost ?? 0;
+  const canAffordSave =
+    !isEditing ||
+    !saveCharges ||
+    canAffordEditorSave({ freePixels, jewels }, saveCharges);
 
   return (
     <section className="screen editor-screen">
@@ -470,9 +543,7 @@ export function EditorScreen({
           <label className="field editor-field">
             <span className="editor-field-label">
               カード名
-              {!isEditing && (
-                <span className="editor-name-limit-note">（全角10文字まで）</span>
-              )}
+              <span className="editor-name-limit-note">（全角10文字まで）</span>
             </span>
             <div className="editor-name-row">
               <input
@@ -480,26 +551,15 @@ export function EditorScreen({
                 type="text"
                 value={name}
                 placeholder="例：ほのおの剣"
-                readOnly={
-                  isEditing ||
-                  confirmCreateOpen ||
-                  saveBpResult != null ||
-                  renameDialogOpen
-                }
-                className={isEditing ? 'editor-name-readonly' : undefined}
+                readOnly={confirmCreateOpen || saveBpResult != null}
                 onCompositionStart={() => {
                   isComposingNameRef.current = true;
                 }}
                 onCompositionEnd={(event) => {
                   isComposingNameRef.current = false;
-                  if (!isEditing) {
-                    applyCardNameInput(event.currentTarget.value);
-                  }
+                  applyCardNameInput(event.currentTarget.value);
                 }}
                 onChange={(e) => {
-                  if (isEditing) {
-                    return;
-                  }
                   if (isComposingNameRef.current) {
                     setName(e.target.value);
                     return;
@@ -507,21 +567,9 @@ export function EditorScreen({
                   applyCardNameInput(e.target.value);
                 }}
                 onBlur={(e) => {
-                  if (!isEditing) {
-                    applyCardNameInput(e.target.value);
-                  }
+                  applyCardNameInput(e.target.value);
                 }}
               />
-              {isEditing && onRenameCard && (
-                <button
-                  type="button"
-                  className={`editor-rename-btn${renameDisabled ? ' editor-rename-btn--disabled' : ''}`}
-                  disabled={renameDisabled}
-                  onClick={() => setRenameDialogOpen(true)}
-                >
-                  リネーム
-                </button>
-              )}
             </div>
           </label>
           {DEV_MODE && !isEditing && (
@@ -547,7 +595,9 @@ export function EditorScreen({
             </label>
           )}
           <p className="muted editor-name-hint">
-            あなたが描いたイメージとカード名から、カードが自動生成されます
+            {isEditing
+              ? 'イメージ・カード名の変更は保存ボタンで確定します'
+              : 'あなたが描いたイメージとカード名から、カードが自動生成されます'}
           </p>
         </div>
 
@@ -557,10 +607,37 @@ export function EditorScreen({
       <div className="editor-footer">
         <button
           type="button"
-          className="primary editor-save"
+          className={`primary editor-save${
+            isEditing && !canAffordSave ? ' editor-save--pending' : ''
+          }`}
+          disabled={isEditing && !canAffordSave}
           onClick={isEditing ? handleSave : handleCreateRequest}
         >
-          {isEditing ? '保存' : 'カード作成'}
+          <span className="editor-save-label">{isEditing ? '保存' : 'カード作成'}</span>
+          {isEditing && canvasUpgradePx > 0 && (
+            <span className="editor-save-cost editor-save-cost--group">
+              <span className="editor-save-cost-kind">拡大</span>
+              <PixelCoinIcon className="editor-save-cost-icon" />
+              <span>{canvasUpgradePx.toLocaleString()}</span>
+            </span>
+          )}
+          {isEditing && renamePixelCost > 0 && (
+            <span className="editor-save-cost editor-save-cost--group">
+              <span className="editor-save-cost-kind">リネーム</span>
+              <PixelCoinIcon className="editor-save-cost-icon" />
+              <span>{renamePixelCost.toLocaleString()}</span>
+            </span>
+          )}
+          {isEditing && saveJewelCost > 0 && (
+            <span className="editor-save-cost editor-save-cost--group editor-save-cost--jewel">
+              <span className="editor-save-cost-kind">リネーム</span>
+              <JewelAmount
+                amount={saveJewelCost}
+                className="editor-save-cost-jewel"
+                iconClassName="editor-save-cost-icon"
+              />
+            </span>
+          )}
         </button>
         <button type="button" className="editor-back-deck" onClick={onBack}>
           {backLabel}
@@ -572,52 +649,33 @@ export function EditorScreen({
           cardName={saveBpResult.cardName}
           previousBp={saveBpResult.previousBp}
           nextBp={saveBpResult.nextBp}
+          previousFreePixels={saveBpResult.previousFreePixels}
+          nextFreePixels={saveBpResult.nextFreePixels}
+          previousJewels={saveBpResult.previousJewels}
+          nextJewels={saveBpResult.nextJewels}
           onClose={handleSaveBpResultClose}
-        />
-      )}
-      {renameDialogOpen && editTarget != null && (
-        <CardRenameDialog
-          currentName={name}
-          renameCount={renameCount}
-          freePixels={freePixels}
-          jewels={jewels}
-          onSave={handleRenameSave}
-          onClose={() => setRenameDialogOpen(false)}
         />
       )}
       {canvasUpgradeOpen && pendingCanvasUpgradeSize != null && (
         <ConfirmDialog
           open={canvasUpgradeOpen}
-          title="キャンバスサイズを拡大しますか？"
+          title="キャンバスサイズ拡大"
           message={
             <>
               {editCanvasSize}×{editCanvasSize} から{' '}
               {pendingCanvasUpgradeSize}×{pendingCanvasUpgradeSize}{' '}
               に拡大します。
               <br />
-              イメージは新しいサイズに合わせて拡大されます。
+              イメージは新しいサイズに合わせて適度にフィットされます。
               <br />
-              保存時に{' '}
-              <span className="confirm-dialog-px-reward">
-                <PixelCoinIcon className="confirm-dialog-coin-icon" />
-                {pendingUpgradeTotalCost.toLocaleString()}
-              </span>
-              が消費されます。
+              保存する前であれば、サイズ選択から元のサイズに戻せます。
               <br />
-              （現在{' '}
-              <span className="confirm-dialog-px-reward">
-                <PixelCoinIcon className="confirm-dialog-coin-icon" />
-                {freePixels.toLocaleString()}
-              </span>
-              所持）
-              <br />
-              編集した画像を保存すると、元のサイズには戻せません。
+              拡大した画像を保存すると、元のサイズには戻せません。
             </>
           }
           confirmLabel="拡大する"
           cancelLabel="キャンセル"
           confirmVariant="primary"
-          confirmDisabled={!canAffordPendingUpgrade}
           onConfirm={handleConfirmCanvasUpgrade}
           onCancel={handleCancelCanvasUpgrade}
         />

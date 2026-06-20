@@ -14,8 +14,11 @@ import {
 import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, JEWEL_COST_DELETE } from '../config/economy';
 import { getAttributeMeta } from '../config/attributes';
 import { canAffordLimitBreak } from '../user/inventory';
-import type { Card } from '../types';
+import type { Attribute, Card } from '../types';
 import { AttributeBadge } from './AttributeBadge';
+import { AttributeRetouchModal, type AttributeRetouchResult } from './AttributeRetouchModal';
+import { AttributeSelectModal } from './AttributeSelectModal';
+import type { AttributeSelectOutcome } from './attributeSelectTypes';
 import { PixelCoinIcon } from './PixelCoinIcon';
 import { JewelAmount } from './JewelIcon';
 import { BattleCommonRules } from './BattleCommonRules';
@@ -25,6 +28,7 @@ import { UniversalShardIcon } from './UniversalShardIcon';
 interface DeckCardDetailOverlayProps {
   card: Card;
   isLost: boolean;
+  userLevel: number;
   freePixels: number;
   reviveCost: number;
   downgradeReviveCost: number;
@@ -38,6 +42,12 @@ interface DeckCardDetailOverlayProps {
   onReviveLost: () => void;
   onDowngradeReviveLost: () => void;
   onLimitBreak: (spend: LimitBreakShardSpendPlan) => void;
+  onRetouchCardAttribute: (
+    cardId: string,
+  ) => AttributeRetouchResult | { error: string };
+  onCommitRetouchCardAttribute: () => void;
+  onSelectCardAttribute: (cardId: string, attribute: Attribute) => AttributeSelectOutcome;
+  paletteShopUnlocks?: readonly number[];
   showTalismanUi?: boolean;
   unusedTalismanCount?: number;
   onTalismanPress?: () => void;
@@ -46,6 +56,7 @@ interface DeckCardDetailOverlayProps {
 export function DeckCardDetailOverlay({
   card,
   isLost,
+  userLevel,
   freePixels,
   reviveCost,
   downgradeReviveCost,
@@ -59,6 +70,10 @@ export function DeckCardDetailOverlay({
   onReviveLost,
   onDowngradeReviveLost,
   onLimitBreak,
+  onRetouchCardAttribute,
+  onCommitRetouchCardAttribute,
+  onSelectCardAttribute,
+  paletteShopUnlocks = [],
   showTalismanUi = false,
   unusedTalismanCount = 0,
   onTalismanPress,
@@ -94,6 +109,13 @@ export function DeckCardDetailOverlay({
       shardsRequired,
     ),
   );
+  const [attributeMenuOpen, setAttributeMenuOpen] = useState(false);
+  const [retouchModalOpen, setRetouchModalOpen] = useState(false);
+  const [selectModalOpen, setSelectModalOpen] = useState(false);
+
+  useEffect(() => {
+    setAttributeMenuOpen(false);
+  }, [card.id, card.attribute]);
 
   useEffect(() => {
     setAttrSpend(
@@ -173,6 +195,17 @@ export function DeckCardDetailOverlay({
             showTalismanUi={showTalismanUi}
             unusedTalismanCount={unusedTalismanCount}
             onTalismanPress={onTalismanPress}
+            showAttributeEdit={!isLost}
+            attributeMenuOpen={attributeMenuOpen}
+            onAttributeMenuToggle={() => setAttributeMenuOpen((open) => !open)}
+            onAttributeRetouch={() => {
+              setAttributeMenuOpen(false);
+              setRetouchModalOpen(true);
+            }}
+            onAttributeSelect={() => {
+              setAttributeMenuOpen(false);
+              setSelectModalOpen(true);
+            }}
           />
           <BattleCommonRules />
         </div>
@@ -386,6 +419,24 @@ export function DeckCardDetailOverlay({
           </button>
         </div>
       </div>
+
+      <AttributeRetouchModal
+        open={retouchModalOpen}
+        userLevel={userLevel}
+        freePixels={freePixels}
+        onClose={() => setRetouchModalOpen(false)}
+        onRetouch={() => onRetouchCardAttribute(card.id)}
+        onCommitRetouch={onCommitRetouchCardAttribute}
+      />
+      <AttributeSelectModal
+        open={selectModalOpen}
+        card={card}
+        userLevel={userLevel}
+        jewels={jewels}
+        paletteShopUnlocks={paletteShopUnlocks}
+        onClose={() => setSelectModalOpen(false)}
+        onSelect={(attribute) => onSelectCardAttribute(card.id, attribute)}
+      />
     </div>,
     document.body,
   );

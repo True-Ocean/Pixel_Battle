@@ -57,24 +57,18 @@ describe('deriveCardStats', () => {
     expect(() => deriveCardStats('a', createEmptyGrid())).toThrow();
   });
 
-  it('赤のみなら攻撃寄り', () => {
+  it('属性は解放済み候補から抽選される', () => {
     const grid = fillGrid('#ff0000');
-    const { attribute } = deriveCardStats('赤っぽい', grid);
-    expect(attribute).toBe('attack');
+    const stats = deriveCardStats('test', grid, 1, { random: () => 0 });
+    expect(['attack', 'defense']).toContain(stats.attribute);
   });
 
-  it('白のみなら防御寄り', () => {
-    const grid = fillGrid('#ffffff');
-    const { attribute } = deriveCardStats('しろ', grid);
-    expect(attribute).toBe('defense');
-  });
-
-  it('同じ名前と絵なら同じ属性・BP', () => {
+  it('同じ名前と絵でも属性はランダム抽選', () => {
     const grid = fillGrid('#ff0000');
-    const a = deriveCardStats('固定', grid, 5);
-    const b = deriveCardStats('固定', grid, 5);
-    expect(a.attribute).toBe(b.attribute);
-    expect(a.bp).toBe(b.bp);
+    const a = deriveCardStats('固定', grid, 5, { random: () => 0 });
+    const b = deriveCardStats('固定', grid, 5, { random: () => 0.99 });
+    expect(a.attribute).toBeDefined();
+    expect(b.attribute).toBeDefined();
   });
 
   it('BPはユーザーレベル基準のレンジ内', () => {
@@ -95,9 +89,11 @@ describe('deriveCardStats', () => {
     expect(getUserBaseBp(1, 'attack')).toBe(10);
   });
 
-  it('防御は攻撃より基本BPが低い', () => {
+  it('防御属性のBPレンジ内', () => {
     const grid = fillGrid('#ffffff');
-    const stats = deriveCardStats('しろ', grid, 1);
+    const stats = deriveCardStats('しろ', grid, 1, {
+      forceAttribute: 'defense',
+    });
     expect(stats.attribute).toBe('defense');
     const { min, max } = getCardBaseBpRange(1, 'defense');
     expect(stats.bp).toBeGreaterThanOrEqual(min);
@@ -108,7 +104,9 @@ describe('deriveCardStats', () => {
   it('Lv5以下では力属性は抽選されない', () => {
     const grid = fillGrid('#ff0000');
     for (let i = 0; i < 200; i++) {
-      const { attribute } = deriveCardStats(`lv5-${i}`, grid, 5);
+      const { attribute } = deriveCardStats(`lv5-${i}`, grid, 5, {
+        random: () => i / 200,
+      });
       expect(attribute).not.toBe('power');
     }
   });
@@ -117,7 +115,9 @@ describe('deriveCardStats', () => {
     const grid = fillGrid('#ff0000');
     let foundPower = false;
     for (let i = 0; i < 500; i++) {
-      const { attribute } = deriveCardStats(`lv6-${i}`, grid, 6);
+      const { attribute } = deriveCardStats(`lv6-${i}`, grid, 6, {
+        random: () => i / 500,
+      });
       if (attribute === 'power') {
         foundPower = true;
         break;
@@ -128,15 +128,12 @@ describe('deriveCardStats', () => {
 
   it('力属性カードのBPは力レンジ内', () => {
     const grid = fillGrid('#ff0000');
-    for (let i = 0; i < 500; i++) {
-      const stats = deriveCardStats(`power-bp-${i}`, grid, 10);
-      if (stats.attribute !== 'power') continue;
-      const { min, max } = getCardBaseBpRange(10, 'power');
-      expect(stats.bp).toBeGreaterThanOrEqual(min);
-      expect(stats.bp).toBeLessThanOrEqual(max);
-      return;
-    }
-    expect.fail('力属性のサンプルが見つからない');
+    const stats = deriveCardStats('power-bp', grid, 10, {
+      forceAttribute: 'power',
+    });
+    const { min, max } = getCardBaseBpRange(10, 'power');
+    expect(stats.bp).toBeGreaterThanOrEqual(min);
+    expect(stats.bp).toBeLessThanOrEqual(max);
   });
 });
 

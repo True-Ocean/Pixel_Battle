@@ -1,13 +1,9 @@
 import {
-  BLACK_ATTACK_WEIGHT,
-  COLOR_WEIGHT,
-  HASH_WEIGHT,
   PALETTE_16,
   USER_INITIAL_LEVEL,
   applyRarityToBp,
   computeCardBaseBp,
 } from '../config/balance';
-import { getUnlockedAttributes } from '../config/attributeUnlock';
 import {
   buildUnlockedColorSet,
   getUnlockedPaletteCount,
@@ -18,6 +14,7 @@ import type { Attribute, Card, PixelGrid } from '../types';
 import { computeColorRatios, normalizePixelColor } from './colors';
 import type { ColorRatios } from './colors';
 import { buildCardSeed, hashToUnit } from './hash';
+import { rollAttribute } from './rollAttribute';
 import { rollRarity } from './rarity';
 import { createId } from '../utils/createId';
 import {
@@ -35,6 +32,7 @@ export interface CardDraft {
 export interface DeriveCardStatsOptions {
   /** 開発・テスト用: 抽選をスキップして属性を固定 */
   forceAttribute?: Attribute;
+  random?: () => number;
 }
 
 export interface CreateCardOptions extends DeriveCardStatsOptions {
@@ -115,49 +113,6 @@ function computeBpBlend(
   return ratios.density * 0.55 + hashBp * 0.45;
 }
 
-function attributeScore(
-  attribute: Attribute,
-  seed: string,
-  ratios: ColorRatios,
-): number {
-  switch (attribute) {
-    case 'attack': {
-      const colorAttack = ratios.r + ratios.b * BLACK_ATTACK_WEIGHT;
-      const hashAttack = hashToUnit(seed, 'attack');
-      return colorAttack * COLOR_WEIGHT + hashAttack * HASH_WEIGHT;
-    }
-    case 'defense': {
-      const colorDefense = ratios.w + ratios.b * (1 - BLACK_ATTACK_WEIGHT);
-      const hashDefense = hashToUnit(seed, 'defense');
-      return colorDefense * COLOR_WEIGHT + hashDefense * HASH_WEIGHT;
-    }
-    default:
-      return hashToUnit(seed, attribute);
-  }
-}
-
-function deriveAttribute(
-  trimmed: string,
-  pixels: PixelGrid,
-  ratios: ColorRatios,
-  userLevel: number,
-): Attribute {
-  const seed = buildCardSeed(trimmed, pixels);
-  const candidates = getUnlockedAttributes(userLevel);
-
-  let best = candidates[0]!;
-  let bestScore = attributeScore(best, seed, ratios);
-  for (let i = 1; i < candidates.length; i++) {
-    const attribute = candidates[i]!;
-    const score = attributeScore(attribute, seed, ratios);
-    if (score > bestScore) {
-      bestScore = score;
-      best = attribute;
-    }
-  }
-  return best;
-}
-
 export function deriveCardStats(
   name: string,
   pixels: PixelGrid,
@@ -170,8 +125,7 @@ export function deriveCardStats(
   const { allowedColors } = resolvePaletteUnlock(userLevel, options);
   const { trimmed, ratios } = validateDrawingInput(name, pixels, allowedColors);
   const attribute =
-    options.forceAttribute ??
-    deriveAttribute(trimmed, pixels, ratios, userLevel);
+    options.forceAttribute ?? rollAttribute(userLevel, options.random);
   const bpBlend = computeBpBlend(trimmed, pixels, ratios);
   const bp = computeCardBaseBp(bpBlend, userLevel, attribute);
 
@@ -206,6 +160,7 @@ export function createCardFromDrawing(
   const normalized = normalizeGrid(pixels, allowedColors);
   const { attribute, bp, ratios } = deriveCardStats(finalName, normalized, userLevel, {
     forceAttribute: options.forceAttribute,
+    random: options.random,
     paletteShopUnlocks: options.paletteShopUnlocks,
     unlockedPaletteCount: options.unlockedPaletteCount,
   });

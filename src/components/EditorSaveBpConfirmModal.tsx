@@ -1,10 +1,16 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
+import { EconomyBalanceChange } from './EconomyBalanceChange';
+
 interface EditorSaveBpConfirmModalProps {
   cardName: string;
   previousBp: number;
   nextBp: number;
+  previousFreePixels?: number;
+  nextFreePixels?: number;
+  previousJewels?: number;
+  nextJewels?: number;
   onClose: () => void;
 }
 
@@ -18,6 +24,10 @@ export function EditorSaveBpConfirmModal({
   cardName,
   previousBp,
   nextBp,
+  previousFreePixels,
+  nextFreePixels,
+  previousJewels,
+  nextJewels,
   onClose,
 }: EditorSaveBpConfirmModalProps) {
   const bpDelta = nextBp - previousBp;
@@ -77,6 +87,22 @@ export function EditorSaveBpConfirmModal({
             </span>
           )}
         </p>
+        {previousFreePixels != null && nextFreePixels != null && (
+          <EconomyBalanceChange
+            label="保有コイン"
+            kind="px"
+            previous={previousFreePixels}
+            next={nextFreePixels}
+          />
+        )}
+        {previousJewels != null && nextJewels != null && (
+          <EconomyBalanceChange
+            label="保有ジュエル"
+            kind="jewel"
+            previous={previousJewels}
+            next={nextJewels}
+          />
+        )}
         <button type="button" className="limit-break-success-close" onClick={onClose}>
           OK
         </button>

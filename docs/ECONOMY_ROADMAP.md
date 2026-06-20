@@ -1,6 +1,7 @@
 # 経済・課金・広告 — 実装ロードマップ
 
 **作成日**: 2026-06-14  
+**最終更新**: 2026-06-20  
 **ステータス**: 設計合意（議論ベース）・段階実装の指針  
 **関連**: [ECONOMY_SPEC.md](./ECONOMY_SPEC.md)（旧 §10 ポーション/溶解モデルは本書で置き換え）、[PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) §5.9
 
@@ -15,8 +16,8 @@
 
 | 表示 | 内部名（案） | 入手 | 主な用途 |
 |------|--------------|------|----------|
-| ピクセルコイン | `freePixels` | バトル、レベルアップ、**カード削除返還**、勝利2倍広告 | 復活/降格復活、護符購入（px 枠）、**リネーム初回**、編集時キャンバス拡大 |
-| 💎 ジュエル | `jewels` | 課金、**毎レベル少量**、L≡4 (mod 5) ボーナス | 削除・リネーム（2回目以降）・デッキ3以降・限界突破レア昇格・創作拡張の **その場消費** |
+| 無償 | `freePixels` | バトル、レベルアップ、**カード削除返還**、勝利2倍広告、**属性リタッチ** | 復活/降格復活、護符購入（px 枠）、**リネーム初回**、編集時キャンバス拡大 |
+| 💎 ジュエル | `jewels` | 課金、**毎レベル少量**、L≡4 (mod 5) ボーナス | 削除・リネーム（2回目以降）・**属性セレクト**・デッキ3以降・限界突破レア昇格・創作拡張の **その場消費** |
 | 属性かけら | `limitBreakShards[attribute]` | **勝利時の戦利品選択** | 同一属性カードの限界突破（**N=10 / R=15 / SR・UR=20**） |
 | 汎用かけら | `limitBreakUniversal` | **Lv20, 30, 40…** | 任意属性のかけらとして消費（属性かけらと同価値） |
 | 護符 | `inventory.talisman` | **Lv5 到達（初回 ×1）**、ショップ（px/💎）、サブスク | ロスト1回免れ（装備消費） |
@@ -91,20 +92,23 @@
 - 追加色パレット（**Lv50+**・永久解放。tier1=px / tier2=pxまたは💎。[PROTOTYPE §5.6](./PROTOTYPE_DEVELOPMENT_SPEC.md#56-パレットとレベル解放)）
 - 会員プラン（月額 / 年額）
 
-**ショップに並べない（操作地点で 💎 直消費）**
+**ショップに並べない（操作地点で 💎 / px 直消費）**
 
-- カード削除、カード名変更、デッキ3以降解放
+- 通常カード削除、カード名変更（編集保存時）、**属性セレクト**、デッキ3以降解放
+- **属性リタッチ**は px 直消費（ショップ商品ではない）
 
 ---
 
-## 2. 現状（2026-06-17 時点・追加色パレット反映後）
+## 2. 現状（2026-06-20 時点・属性ガチャ反映後）
 
 | 領域 | 状態 |
 |------|------|
 | Lost / 復活 / 降格復活 / 削除返還 | ✅ プロトタイプ実装済み（`economy.ts`, `status.ts`, デッキ UI） |
 | **復活 px（塗り式）** | ✅ `calcFullReviveCost(card)` / `calcDowngradeReviveCost(card)` |
 | **削除（💎＋返還）** | ✅ `JEWEL_COST_DELETE=1`、`calcLostCardDeleteRewards`、二段階確認 UI |
-| **リネーム** | ✅ 初回 **100px**（`PIXEL_COST_RENAME_FIRST`）、2回目以降 **💎1**（`CardRenameDialog`・エディタ） |
+| **リネーム** | ✅ 編集画面で **名前常時編集**・**保存時一括課金**（`calcEditorSaveCharges`） |
+| **属性リタッチ / セレクト** | ✅ 200px / 💎20。モーダル2種・完了時 BP + 通貨残高表示（`EconomyBalanceChange`） |
+| **作成時属性抽選** | ✅ `rollAttribute`（解放済み・直近解放 +10%）。色/hash 属性決定は **廃止** |
 | **編集時キャンバス拡大** | ✅ 拡大のみ・px 消費（`calcCanvasUpgradeCost` = 新²−旧²） |
 | 勝利 px・墓地選択 UI・属性かけら付与 | ✅ `GraveyardPickModal`, `calcGraveyardShardReward`（N=1/R=2/SR=3） |
 | **勝利2倍広告（px）** | ✅ `GraveyardPickModal` → `MockRewardAdModal`（かけらは非対象） |
@@ -258,7 +262,27 @@
 2. ~~**カード名変更**~~ — **✅ 2026-06-17 完了** — 新規作成の命名は無料。リネーム初回 **100px**、2回目以降 **💎1**（`renameCount`）
 3. 不足時: 「💎 / px が足りません」→ ショップへ（フェーズ 8 まで準備中リンク）
 
-**完了条件**: 削除・リネームが動作。テスト追加。（**ショップ誘導のみ未完了**）
+**完了条件**: 削除・リネーム・属性変更が動作。テスト追加。（**ショップ誘導のみ未完了**）
+
+---
+
+### フェーズ 4b — 属性抽選・属性変更（ガチャ）
+
+**目的**: 新規作成時の属性ランダム化と、既存カードの px/💎 による属性変更ループ。
+
+**参照**: [ATTRIBUTE_SPEC §3](./ATTRIBUTE_SPEC.md#3-属性一覧解放)、[ECONOMY_SPEC §8.4](./ECONOMY_SPEC.md#84-属性変更属性リタッチ属性セレクト)
+
+**作業**
+
+1. ~~`rollAttribute()` — 解放済み属性・直近解放 +10%~~ — **✅ 2026-06-20**
+2. ~~`createCardFromDrawing` — hash+色比率の代わりに `rollAttribute`~~ — **✅**
+3. ~~`attributeChange.ts` — リタッチ/セレクト + BP 再算出~~ — **✅**
+4. ~~経済定数 `PIXEL_COST_ATTRIBUTE_RETOUCH` / `JEWEL_COST_ATTRIBUTE_SELECT`~~ — **✅**
+5. ~~カード詳細 ▼ メニュー・モーダル2種~~ — **✅**
+6. ~~編集画面 — 名前常時編集・保存一括課金（`CardRenameDialog` 廃止）~~ — **✅**
+7. ~~完了モーダル — BP 変化 + `EconomyBalanceChange`（保有コイン/ジュエル）~~ — **✅ 2026-06-20**
+
+**完了条件**: 新規作成でランダム属性。詳細からリタッチ/セレクトで属性・BP が変わる。完了時に通貨残高増減を控えめ表示。 — **✅ 達成**
 
 ---
 
@@ -431,6 +455,9 @@ flowchart TD
 | `UNIVERSAL_LIMIT_BREAK_LEVEL_REWARD` | 10 | L≡0 (mod 10), L≥20 |
 | `REVIVE_PAINTED_MULTIPLIER` | 3 | 復活 px: 塗り×3 が基礎 |
 | `LOST_WEIGHT_RARITY` / `LOST_WEIGHT_STARS` | 表参照 | 復活コストのレア・★傾斜 |
+| `PIXEL_COST_ATTRIBUTE_RETOUCH` | 200 | 属性リタッチ1回 |
+| `JEWEL_COST_ATTRIBUTE_SELECT` | 20 | 属性セレクト1回 |
+| `ATTRIBUTE_ROLL_RECENT_BOOST` | 1.1 | 直近解放属性の抽選权重（`rollAttribute.ts`） |
 | `MOCK_JEWEL_PACK_SMALL` | 100 | 開発用 |
 | `PALETTE_SHOP_MIN_USER_LEVEL` | 50 | 追加色ショップ購入の最低レベル（`paletteShop.ts`） |
 | `PIXEL_COST_PALETTE_SHOP_TIER1` | 2000 | 紫・濃い緑・茶・赤茶（各1回） |
@@ -446,7 +473,7 @@ flowchart TD
 | 1 | `src/types/index.ts`, `src/user/economy.ts`, `src/storage/index.ts` |
 | 2 | `src/config/progressionUnlocks.ts`, `src/App.tsx`, `src/components/DeckUnlockModal.tsx` |
 | 3 | `src/deckSlots.ts`, `src/App.tsx`, `src/components/DeckUnlockModal.tsx`, `src/components/DeckScreen.tsx` |
-| 4 | `DeckScreen.tsx`, `DeckCardDetailOverlay.tsx`, `CardRenameDialog.tsx`, `EditorScreen.tsx`, `App.tsx` |
+| 4 | `DeckScreen.tsx`, `DeckCardDetailOverlay.tsx`, `EditorScreen.tsx`, `App.tsx`, `src/card/rollAttribute.ts`, `attributeChange.ts`, `AttributeRetouchModal.tsx`, `AttributeSelectModal.tsx` |
 | 5 | `src/components/GraveyardPickModal.tsx`, `src/battle/graveyardLoot.ts`, `src/components/InventoryScreen.tsx`, `src/config/economy.ts`, `src/App.tsx` |
 | 6 | `src/card/limitBreak.ts`, `DeckCardDetailOverlay.tsx`, `DeckScreen.tsx`, `SettingsScreen.tsx`, `src/user/profile.ts` |
 | 7 | 新規 `src/ad/*`, エディタ保存経路, バトル開始経路, `MockRewardAdModal`, `historyRematch.ts`, `HistoryRematchRulesModal` |
@@ -489,19 +516,21 @@ flowchart TD
 6. ~~フェーズ **6** — 限界突破 UI~~ — **2026-06-14 完了**
 7. ~~履歴再戦・バトル履歴 UI~~ — **2026-06-16 完了**（フェーズ7a の一部）
 8. ~~フェーズ **4**（削除）— 💎1・返還・復活コスト塗り式~~ — **2026-06-17 完了**
-9. ~~フェーズ **4**（リネーム）— 初回100px・2回目以降💎1~~ — **2026-06-17 完了**
+9. ~~フェーズ **4**（リネーム）— 編集画面・保存時一括課金~~ — **2026-06-17 完了**（2026-06-20 に UI 刷新）
 10. ~~フェーズ **7a**（勝利2倍・通常戦3回に1回）~~ — **2026-06-17 完了**（日次 cap は未着手）
 11. ~~フェーズ **3** — デッキ3〜 💎 解放（`unlockDeckWithJewels`）~~ — **2026-06-17 完了**
 12. ~~フェーズ **8**（追加色パレット）~~ — **2026-06-17 完了**（`ShopScreen`・`paletteShopUnlocks`・schema v5）
+13. ~~フェーズ **4b** — 属性抽選・リタッチ/セレクト~~ — **2026-06-20 完了**
 
 **次の推奨**
 
-13. フェーズ **8** 残り — 💎 パック（モック購入）、護符ショップ、不足時 deep link
-14. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）・日次10戦 cap（`battlesToday`）
+14. フェーズ **8** 残り — 💎 パック（モック購入）、護符ショップ、不足時 deep link
+15. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）・日次10戦 cap（`battlesToday`）
 
 **判断待ち（確定済み）**
 
-- [x] 新規作成の **命名** は無料。リネームは **初回100px・2回目以降💎1**（`renameCount`）
+- [x] 新規作成の **命名** は無料。リネームは **編集画面で常時編集**、**保存時一括課金**（初回100px・2回目以降💎1）
+- [x] **属性リタッチ 200px / 属性セレクト 💎20**（作成時は `rollAttribute`・直近解放 +10%）
 - [x] レアカード戦利品のかけら: **N=1, R=2, SR=3**
 - [x] 護符価格: **px と 💎 の両方**（300px / 25💎）
 - [x] 日次リセットのタイムゾーン（**JST 固定**）

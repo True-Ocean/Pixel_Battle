@@ -19,6 +19,11 @@ interface DeckCardDetailCardProps {
   showTalismanUi?: boolean;
   unusedTalismanCount?: number;
   onTalismanPress?: () => void;
+  showAttributeEdit?: boolean;
+  attributeMenuOpen?: boolean;
+  onAttributeMenuToggle?: () => void;
+  onAttributeRetouch?: () => void;
+  onAttributeSelect?: () => void;
 }
 
 export function DeckCardDetailCard({
@@ -27,6 +32,11 @@ export function DeckCardDetailCard({
   showTalismanUi = false,
   unusedTalismanCount = 0,
   onTalismanPress,
+  showAttributeEdit = false,
+  attributeMenuOpen = false,
+  onAttributeMenuToggle,
+  onAttributeRetouch,
+  onAttributeSelect,
 }: DeckCardDetailCardProps) {
   const rarityMeta = getRarityMeta(card.rarity);
   const attrMeta = getAttributeMeta(card.attribute);
@@ -96,6 +106,39 @@ export function DeckCardDetailCard({
           <AttributeBadge attribute={card.attribute} size="deck" />
         </div>
         <p className="deck-detail-card-attr-desc">{attrMeta.description}</p>
+        {showAttributeEdit && onAttributeMenuToggle && (
+          <div className="deck-detail-card-attr-menu-wrap">
+            <button
+              type="button"
+              className="deck-detail-card-attr-menu-btn"
+              aria-label="属性メニュー"
+              aria-expanded={attributeMenuOpen}
+              onClick={onAttributeMenuToggle}
+            >
+              ▼
+            </button>
+            {attributeMenuOpen && (
+              <div className="deck-detail-card-attr-menu" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="deck-detail-card-attr-menu-item"
+                  onClick={onAttributeRetouch}
+                >
+                  属性リタッチ
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="deck-detail-card-attr-menu-item"
+                  onClick={onAttributeSelect}
+                >
+                  属性セレクト
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <AttributeBattleGuide attribute={card.attribute} />

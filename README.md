@@ -5,6 +5,7 @@
 - 開発指示書: [`docs/PROTOTYPE_DEVELOPMENT_SPEC.md`](docs/PROTOTYPE_DEVELOPMENT_SPEC.md)
 - 属性・戦闘効果: [`docs/ATTRIBUTE_SPEC.md`](docs/ATTRIBUTE_SPEC.md)
 - 経済・報酬: [`docs/ECONOMY_SPEC.md`](docs/ECONOMY_SPEC.md)
+- 経済ロードマップ: [`docs/ECONOMY_ROADMAP.md`](docs/ECONOMY_ROADMAP.md)
 
 ## セットアップ
 
@@ -52,6 +53,8 @@ src/
 ## 進捗
 
 - [x] Step 1: Vite + React + TS、画面骨格、型・定数・保存の土台
-- [x] Step 2: カード生成（色バランス + hash、キャンバス、デッキ追加）
+- [x] Step 2: カード生成（解放済み属性からランダム抽選、キャンバス、デッキ追加）
+- [x] 属性変更: カード詳細の属性リタッチ（200px）/ 属性セレクト（💎20）
+- [x] 編集画面: 名前常時編集・保存時一括課金（リネーム + キャンバス拡大）
 - [x] Step 3–5: 戦闘エンジン、3枚選択、CPU戦、仮ロスト、戦績
 - [x] 盤面UI: CPU5枚見せ合い、BattleCard（BP右上・属性左下・盾・フォーカス）、クリック操作
