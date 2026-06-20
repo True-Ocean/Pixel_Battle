@@ -59,7 +59,7 @@ export function UserProfileBar({
 
           <div className="user-profile-currencies" aria-label="所持通貨">
             <div
-              className="user-profile-currency-track"
+              className="user-profile-currency-track user-profile-currency-track--pixels"
               role="status"
               aria-label={`px ${freePixels.toLocaleString()}`}
             >
