@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { MissionCategory, MissionState } from '../mission/types';
 import {
   countUnclaimedMissions,
+  listClaimableMissionsInCategory,
   shouldShowBeginnerMissions,
 } from '../mission';
 import { LevelRewardList } from './LevelRewardList';
@@ -50,6 +51,15 @@ export function MissionScreen({
     () => countUnclaimedMissions(missionState),
     [missionState],
   );
+  const unclaimedByCategory = useMemo(
+    () => ({
+      beginner: listClaimableMissionsInCategory(missionState, 'beginner').length,
+      daily: listClaimableMissionsInCategory(missionState, 'daily').length,
+      weekly: listClaimableMissionsInCategory(missionState, 'weekly').length,
+      permanent: listClaimableMissionsInCategory(missionState, 'permanent').length,
+    }),
+    [missionState],
+  );
 
   useEffect(() => {
     if (categoryTab === 'beginner' && !showBeginner) {
@@ -88,7 +98,7 @@ export function MissionScreen({
           ミッション
           {unclaimedCount > 0 && topTab !== 'missions' && (
             <span className="mission-tab-badge" aria-label={`未受取${unclaimedCount}件`}>
-              {unclaimedCount}
+              {unclaimedCount > 9 ? '9+' : unclaimedCount}
             </span>
           )}
         </button>
@@ -124,6 +134,14 @@ export function MissionScreen({
                 onClick={() => setCategoryTab(id)}
               >
                 {label}
+                {unclaimedByCategory[id] > 0 && categoryTab !== id && (
+                  <span
+                    className="mission-tab-badge"
+                    aria-label={`未受取${unclaimedByCategory[id]}件`}
+                  >
+                    {unclaimedByCategory[id] > 9 ? '9+' : unclaimedByCategory[id]}
+                  </span>
+                )}
               </button>
             ))}
           </div>

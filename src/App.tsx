@@ -17,6 +17,7 @@ import {
   claimMission,
   claimMissionsInCategory,
   countUnclaimedMissions,
+  formatMissionCompleteToastMessage,
   getMissionById,
   getMissionChallengeTarget,
 } from './mission';
@@ -74,6 +75,7 @@ import { AppDock } from './components/AppDock';
 import { DeckScreen } from './components/DeckScreen';
 import { MemoryAlbumScreen } from './components/MemoryAlbumScreen';
 import { MissionScreen } from './components/MissionScreen';
+import { MissionCompleteToast } from './components/MissionCompleteToast';
 import { EditorScreen } from './components/EditorScreen';
 import { BattleHubScreen } from './components/BattleHubScreen';
 import { BattleDeckSelectScreen } from './components/BattleDeckSelectScreen';
@@ -143,6 +145,9 @@ function App() {
     applyMissionResets(initialSave.missionState ?? createInitialMissionState()),
   );
   const [shopPurchaseMessage, setShopPurchaseMessage] = useState<string | null>(
+    null,
+  );
+  const [missionCompleteToast, setMissionCompleteToast] = useState<string | null>(
     null,
   );
 
@@ -332,24 +337,36 @@ function App() {
     (
       events: ReadonlyArray<{ type: MissionEventType; amount?: number }>,
       savePatch?: Omit<Parameters<typeof persistSave>[0], 'missionState'>,
-    ): MissionState => {
+    ) => {
       const prev = missionStateRef.current;
-      const { state: next } = applyMissionEvents(prev, events);
-      const missionChanged = next !== prev;
+      const result = applyMissionEvents(prev, events);
+      const missionChanged = result.state !== prev;
       if (missionChanged) {
-        missionStateRef.current = next;
-        setMissionState(next);
+        missionStateRef.current = result.state;
+        setMissionState(result.state);
       }
       if (savePatch || missionChanged) {
         persistSave({
           ...savePatch,
-          ...(missionChanged ? { missionState: next } : {}),
+          ...(missionChanged ? { missionState: result.state } : {}),
         });
       }
-      return next;
+      const toastMessage = formatMissionCompleteToastMessage(result.newlyCompleted);
+      if (toastMessage) {
+        setMissionCompleteToast(toastMessage);
+      }
+      return result;
     },
     [persistSave],
   );
+
+  useEffect(() => {
+    if (!missionCompleteToast) return;
+    const timerId = window.setTimeout(() => {
+      setMissionCompleteToast(null);
+    }, 4000);
+    return () => window.clearTimeout(timerId);
+  }, [missionCompleteToast]);
 
   const appOpenReportedRef = useRef(false);
   useEffect(() => {
@@ -1442,13 +1459,20 @@ function App() {
       if (outcome.winner === 'player') {
         battleMissionEvents.push({ type: 'battle_win' });
       }
-      const { state: nextMissionState } = applyMissionEvents(
+      const missionResult = applyMissionEvents(
         missionStateRef.current,
         battleMissionEvents,
       );
+      const nextMissionState = missionResult.state;
       if (nextMissionState !== missionStateRef.current) {
         missionStateRef.current = nextMissionState;
         setMissionState(nextMissionState);
+      }
+      const toastMessage = formatMissionCompleteToastMessage(
+        missionResult.newlyCompleted,
+      );
+      if (toastMessage) {
+        setMissionCompleteToast(toastMessage);
       }
       saveSave({
         schemaVersion: initialSave.schemaVersion,
@@ -2445,6 +2469,10 @@ function App() {
               : undefined
           }
         />
+      )}
+
+      {missionCompleteToast && (
+        <MissionCompleteToast message={missionCompleteToast} />
       )}
 
       {historyRematchFlow?.phase === 'rules' && (

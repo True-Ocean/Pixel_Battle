@@ -1442,6 +1442,10 @@ button.battle-hub-deck-icon.is-move-target {
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
 }
 
 .mission-category-subtab.is-active {
@@ -1776,6 +1780,35 @@ button.battle-hub-deck-icon.is-move-target {
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 0 1px #fff;
+}
+
+.mission-complete-toast-wrap {
+  position: fixed;
+  top: max(0.35rem, var(--safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  width: min(calc(100vw - 1rem), calc(var(--phone-shell-w, 100vw) - 1rem));
+  pointer-events: none;
+}
+
+.mission-complete-toast {
+  pointer-events: none;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  box-shadow: 0 8px 24px rgba(67, 56, 202, 0.16);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.mission-complete-toast-message {
+  margin: 0;
+  font-weight: 800;
+  color: #312e81;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .level-reward-list {
