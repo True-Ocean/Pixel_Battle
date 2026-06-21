@@ -42,6 +42,12 @@ export function LevelRewardList({ userLevel }: LevelRewardListProps) {
                 />
               ))}
             </div>
+            <span
+              className="level-reward-earned-mark"
+              aria-hidden={!isEarned}
+            >
+              {isEarned ? '✓' : null}
+            </span>
           </li>
         );
       })}

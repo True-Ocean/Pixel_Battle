@@ -1868,7 +1868,7 @@ button.battle-hub-deck-icon.is-move-target {
 .level-reward-row {
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: 3.1rem minmax(0, 1fr);
+  grid-template-columns: 3.1rem minmax(0, 1fr) 1.85rem;
   align-items: center;
   gap: 0.45rem;
   padding: 0.55rem 0.65rem;
@@ -1881,7 +1881,22 @@ button.battle-hub-deck-icon.is-move-target {
 .level-reward-row.is-earned {
   background: #f1f5f9;
   border-color: #dbe3ee;
-  opacity: 0.72;
+}
+
+.level-reward-earned-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  min-height: 1.85rem;
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1;
+  color: transparent;
+}
+
+.level-reward-row.is-earned .level-reward-earned-mark {
+  color: #16a34a;
 }
 
 .level-reward-level {
