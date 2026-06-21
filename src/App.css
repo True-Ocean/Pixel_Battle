@@ -1306,6 +1306,7 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .mission-subtab {
+  position: relative;
   min-height: 2.5rem;
   padding: 0.45rem 0.65rem;
   border-radius: 8px;
@@ -1316,6 +1317,7 @@ button.battle-hub-deck-icon.is-move-target {
   font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .mission-subtab.is-active {
@@ -1404,12 +1406,15 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .mission-tab-badge {
+  position: absolute;
+  top: 0.12rem;
+  right: 0.12rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 1rem;
   height: 1rem;
-  margin-left: 0.25rem;
+  margin-left: 0;
   padding: 0 0.22rem;
   border-radius: 999px;
   background: #ef4444;
@@ -1417,7 +1422,7 @@ button.battle-hub-deck-icon.is-move-target {
   font-size: 0.62rem;
   font-weight: 800;
   line-height: 1;
-  vertical-align: middle;
+  box-shadow: 0 0 0 1px #fff;
 }
 
 .mission-category-subtabs {
@@ -1432,6 +1437,7 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .mission-category-subtab {
+  position: relative;
   min-height: 2.15rem;
   padding: 0.35rem 0.4rem;
   border-radius: 8px;
@@ -1445,7 +1451,7 @@ button.battle-hub-deck-icon.is-move-target {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.2rem;
+  white-space: nowrap;
 }
 
 .mission-category-subtab.is-active {
