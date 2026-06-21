@@ -1334,6 +1334,450 @@ button.battle-hub-deck-icon.is-move-target {
   text-align: center;
 }
 
+.mission-list-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mission-list-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mission-list-bulk-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6.7rem 2.85rem;
+  gap: 0.45rem;
+  padding: 0 0.7rem;
+}
+
+.mission-list-bulk-row .mission-bulk-claim-btn {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.mission-bulk-claim-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid #6366f1;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #4338ca;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mission-bulk-claim-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.mission-bulk-claim-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: #4338ca;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.mission-unclaimed-note {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.mission-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1rem;
+  height: 1rem;
+  margin-left: 0.25rem;
+  padding: 0 0.22rem;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.mission-category-subtabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.mission-category-subtabs--compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.mission-category-subtab {
+  min-height: 2.15rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mission-category-subtab.is-active {
+  border-color: #646cff;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.mission-list-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mission-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.mission-list-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+}
+
+.mission-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.mission-card--locked {
+  background: #f8fafc;
+  opacity: 0.72;
+}
+
+.mission-card--claimed {
+  background: #f1f5f9;
+  opacity: 0.82;
+}
+
+.mission-card--claimable {
+  border-color: #c7d2fe;
+  background: #f8faff;
+}
+
+.mission-card-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6.7rem 2.85rem;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.mission-card-copy {
+  min-width: 0;
+}
+
+.mission-card-title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.mission-card-description {
+  margin: 0.12rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.mission-card-rewards {
+  align-self: center;
+  width: 6.7rem;
+}
+
+.mission-card-action-slot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.85rem;
+}
+
+.mission-card-action-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.mission-card-progress-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.mission-card-progress {
+  height: 0.42rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.mission-card-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+}
+
+.mission-card-progress-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.mission-card-locked-label,
+.mission-card-claimed-label,
+.mission-card-complete-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.mission-card-complete-label {
+  color: #4338ca;
+}
+
+.mission-card-claimed-label {
+  color: #64748b;
+}
+
+.mission-card-claim-btn {
+  flex-shrink: 0;
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+  border: none;
+  border-radius: 8px;
+  background: #6366f1;
+  color: #fff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mission-card-challenge-btn {
+  flex-shrink: 0;
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid #6366f1;
+  border-radius: 8px;
+  background: #fff;
+  color: #4338ca;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mission-card-claimed-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.mission-card--challengeable {
+  border-color: #e2e8f0;
+}
+
+.mission-reward-chips {
+  display: grid;
+  grid-template-columns: 3.75rem 2.75rem;
+  column-gap: 0.2rem;
+  align-items: center;
+  width: 100%;
+}
+
+.mission-reward-chips--jewels-only {
+  grid-template-columns: 3.75rem;
+}
+
+.mission-reward-chip-slot {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.mission-reward-chip-slot--px {
+  justify-content: flex-start;
+}
+
+.mission-reward-chip-slot--jewels {
+  justify-content: flex-start;
+}
+
+.mission-reward-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18rem;
+  padding: 0.14rem 0.38rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.mission-reward-chip-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.mission-claim-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.52);
+}
+
+.mission-claim-panel {
+  box-sizing: border-box;
+  width: min(100%, 18rem);
+  padding: 1rem 0.9rem 0.85rem;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+  text-align: center;
+}
+
+.mission-claim-title {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.mission-claim-meta {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+}
+
+.mission-claim-rewards {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+.mission-claim-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.mission-claim-reward-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.mission-claim-close {
+  width: 100%;
+  min-height: 2.5rem;
+  border: none;
+  border-radius: 10px;
+  background: #6366f1;
+  color: #fff;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.app-dock-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-dock-badge {
+  position: absolute;
+  top: -0.18rem;
+  right: -0.28rem;
+  min-width: 0.95rem;
+  height: 0.95rem;
+  padding: 0 0.18rem;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 1px #fff;
+}
+
 .level-reward-list {
   list-style: none;
   margin: 0;

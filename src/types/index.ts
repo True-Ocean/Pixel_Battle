@@ -1,4 +1,5 @@
 /** 全10属性（docs/ATTRIBUTE_SPEC.md §3） */
+export type { MissionState } from '../mission/types';
 export type Attribute =
   | 'attack'
   | 'defense'
@@ -198,6 +199,8 @@ export interface SaveData {
   shopPurchase?: ShopPurchaseState;
   /** サブスクリプション */
   subscription?: UserSubscription;
+  /** ミッション進捗 */
+  missionState?: MissionState;
 }
 
 /** アプリ画面（ルーターなし・state で切替） */

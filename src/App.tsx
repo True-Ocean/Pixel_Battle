@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
-import type { AdState, Attribute, Card, MemoryAlbumState, ScreenId, ShopPurchaseState, SubscriptionPlan, UserProfile, UserEconomy, UserInventory, UserSubscription, BattleOutcome, BattleHistoryEntry } from './types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { AdState, Attribute, Card, MemoryAlbumState, MissionState, ScreenId, ShopPurchaseState, SubscriptionPlan, UserProfile, UserEconomy, UserInventory, UserSubscription, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { isAttributeUnlockedAtLevel } from './config/attributeUnlock';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
@@ -10,6 +10,17 @@ import { applyCardSurvivalRecords, applyCardFullRevive, consumeTalismanFromCard,
 import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
+import { createInitialMissionState } from './user/missionState';
+import { applyMissionResets } from './mission/reset';
+import {
+  applyMissionEvents,
+  claimMission,
+  claimMissionsInCategory,
+  countUnclaimedMissions,
+  getMissionById,
+  getMissionChallengeTarget,
+} from './mission';
+import type { MissionCategory, MissionEventType } from './mission';
 import { loadSave, resetBattleHistory, saveSave } from './storage';
 import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
@@ -128,6 +139,9 @@ function App() {
   const [subscription, setSubscription] = useState<UserSubscription>(() =>
     normalizeUserSubscription(initialSave.subscription),
   );
+  const [missionState, setMissionState] = useState<MissionState>(() =>
+    applyMissionResets(initialSave.missionState ?? createInitialMissionState()),
+  );
   const [shopPurchaseMessage, setShopPurchaseMessage] = useState<string | null>(
     null,
   );
@@ -220,6 +234,7 @@ function App() {
   const memoryAlbumRef = useRef(memoryAlbum);
   const shopPurchaseRef = useRef(shopPurchase);
   const subscriptionRef = useRef(subscription);
+  const missionStateRef = useRef(missionState);
   const isHistoryRematchRef = useRef(false);
   const historyRematchEntryRef = useRef<BattleHistoryEntry | null>(null);
   const battleStartSnapshotRef = useRef<{
@@ -244,6 +259,7 @@ function App() {
   memoryAlbumRef.current = memoryAlbum;
   shopPurchaseRef.current = shopPurchase;
   subscriptionRef.current = subscription;
+  missionStateRef.current = missionState;
 
   const devPreferSavedLevelRef = useRef(initialSave.devPreferSavedLevel === true);
   const devFileOverrideLevelRef = useRef<number | null | undefined>(
@@ -268,6 +284,7 @@ function App() {
       memoryAlbum?: MemoryAlbumState;
       shopPurchase?: ShopPurchaseState;
       subscription?: UserSubscription;
+      missionState?: MissionState;
       devPreferSavedLevel?: boolean;
       devFileOverrideLevel?: number | null;
     }) => {
@@ -298,6 +315,7 @@ function App() {
         memoryAlbum: next.memoryAlbum ?? memoryAlbumRef.current,
         shopPurchase: next.shopPurchase ?? shopPurchaseRef.current,
         subscription: next.subscription ?? subscriptionRef.current,
+        missionState: next.missionState ?? missionStateRef.current,
         ...(devPreferSavedLevelRef.current
           ? {
               devPreferSavedLevel: true as const,
@@ -307,8 +325,38 @@ function App() {
           : {}),
       });
     },
-    [activeDeckIndex, adState, decks, economy, inventory, lastBattleDeckIndex, paletteShopUnlocks, shopPurchase, subscription, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
+    [activeDeckIndex, adState, decks, economy, inventory, lastBattleDeckIndex, missionState, paletteShopUnlocks, shopPurchase, subscription, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
   );
+
+  const reportAndPersistMissionEvents = useCallback(
+    (
+      events: ReadonlyArray<{ type: MissionEventType; amount?: number }>,
+      savePatch?: Omit<Parameters<typeof persistSave>[0], 'missionState'>,
+    ): MissionState => {
+      const prev = missionStateRef.current;
+      const { state: next } = applyMissionEvents(prev, events);
+      const missionChanged = next !== prev;
+      if (missionChanged) {
+        missionStateRef.current = next;
+        setMissionState(next);
+      }
+      if (savePatch || missionChanged) {
+        persistSave({
+          ...savePatch,
+          ...(missionChanged ? { missionState: next } : {}),
+        });
+      }
+      return next;
+    },
+    [persistSave],
+  );
+
+  const appOpenReportedRef = useRef(false);
+  useEffect(() => {
+    if (appOpenReportedRef.current) return;
+    appOpenReportedRef.current = true;
+    reportAndPersistMissionEvents([{ type: 'app_open' }]);
+  }, [reportAndPersistMissionEvents]);
 
   const applyShopPurchaseResult = useCallback(
     (result: {
@@ -619,15 +667,20 @@ function App() {
 
   const addCard = useCallback(
     (card: Card) => {
+      let added = false;
       updateActiveDeck((prev) => {
         const next = normalizeDeckLayout(prev);
         const emptyIndex = next.findIndex((slot) => slot == null);
         if (emptyIndex < 0) return next;
         next[emptyIndex] = card;
+        added = true;
         return next;
       });
+      if (added) {
+        reportAndPersistMissionEvents([{ type: 'card_created' }]);
+      }
     },
-    [updateActiveDeck],
+    [reportAndPersistMissionEvents, updateActiveDeck],
   );
 
   const updateCard = useCallback(
@@ -679,8 +732,9 @@ function App() {
       } else {
         persistSave({ decks: nextDecks });
       }
+      reportAndPersistMissionEvents([{ type: 'card_edit_saved' }]);
     },
-    [persistSave],
+    [persistSave, reportAndPersistMissionEvents],
   );
 
   const pendingRetouchCardRef = useRef<Card | null>(null);
@@ -1383,6 +1437,19 @@ function App() {
       );
       const lastBattleIndex =
         battleStartSnapshotRef.current?.deckIndex ?? deckIndex;
+      const battleMissionEvents: Array<{ type: MissionEventType; amount?: number }> =
+        [{ type: 'battle_play' }];
+      if (outcome.winner === 'player') {
+        battleMissionEvents.push({ type: 'battle_win' });
+      }
+      const { state: nextMissionState } = applyMissionEvents(
+        missionStateRef.current,
+        battleMissionEvents,
+      );
+      if (nextMissionState !== missionStateRef.current) {
+        missionStateRef.current = nextMissionState;
+        setMissionState(nextMissionState);
+      }
       saveSave({
         schemaVersion: initialSave.schemaVersion,
         user: nextUser,
@@ -1396,6 +1463,7 @@ function App() {
         unlockedDeckCount: nextUnlockedDeckCount,
         battleHistory: nextHistory,
         deckNames: deckNamesRef.current,
+        missionState: nextMissionState,
       });
       setLastBattleDeckIndex(lastBattleIndex);
       lastBattleDeckIndexRef.current = lastBattleIndex;
@@ -1415,22 +1483,33 @@ function App() {
 
   const finalizeHistoryRematchOutcome = useCallback(
     (outcome: BattleOutcome) => {
-      if (outcome.winner !== 'player') return;
+      const battleMissionEvents: Array<{ type: MissionEventType; amount?: number }> =
+        [{ type: 'battle_play' }];
+      if (outcome.winner === 'player') {
+        battleMissionEvents.push({ type: 'battle_win' });
+      }
 
-      const pixelTotal = calcSurvivorPixels(
-        countBattleSurvivors(
-          outcome.playerCardIds,
-          outcome.defeatedPlayerCardIds,
-        ),
-      );
-      if (pixelTotal <= 0) return;
+      let nextEconomy = economyRef.current;
+      if (outcome.winner === 'player') {
+        const pixelTotal = calcSurvivorPixels(
+          countBattleSurvivors(
+            outcome.playerCardIds,
+            outcome.defeatedPlayerCardIds,
+          ),
+        );
+        if (pixelTotal > 0) {
+          nextEconomy = addFreePixels(economyRef.current, pixelTotal);
+          economyRef.current = nextEconomy;
+          setEconomy(nextEconomy);
+        }
+      }
 
-      const nextEconomy = addFreePixels(economyRef.current, pixelTotal);
-      economyRef.current = nextEconomy;
-      setEconomy(nextEconomy);
-      persistSave({ economy: nextEconomy, adState: adStateRef.current });
+      reportAndPersistMissionEvents(battleMissionEvents, {
+        economy: nextEconomy,
+        adState: adStateRef.current,
+      });
     },
-    [persistSave],
+    [reportAndPersistMissionEvents],
   );
 
   const handleBattleOutcome = useCallback(
@@ -2003,6 +2082,95 @@ function App() {
     [clearHistoryRematch, resetHistoryRematchFlow],
   );
 
+  const handleClaimMission = useCallback(
+    (missionId: string) => {
+      const result = claimMission(
+        missionStateRef.current,
+        economyRef.current,
+        missionId,
+      );
+      if (!result) return;
+      setMissionState(result.state);
+      setEconomy(result.economy);
+      persistSave({ missionState: result.state, economy: result.economy });
+    },
+    [persistSave],
+  );
+
+  const handleClaimCategoryMissions = useCallback(
+    (category: MissionCategory) => {
+      const result = claimMissionsInCategory(
+        missionStateRef.current,
+        economyRef.current,
+        category,
+      );
+      if (result.missionIds.length === 0) return null;
+      setMissionState(result.state);
+      setEconomy(result.economy);
+      persistSave({ missionState: result.state, economy: result.economy });
+      return {
+        pxGranted: result.pxGranted,
+        jewelsGranted: result.jewelsGranted,
+        missionCount: result.missionIds.length,
+      };
+    },
+    [persistSave],
+  );
+
+  const handleChallengeMission = useCallback(
+    (missionId: string) => {
+      const mission = getMissionById(missionId);
+      const target = mission ? getMissionChallengeTarget(mission.eventType) : null;
+      if (!target) return;
+
+      setBattleEndDock(false);
+      clearHistoryRematch();
+      resetHistoryRematchFlow();
+      setDeckReorderMode(false);
+
+      if (target.kind === 'battleHub') {
+        setScreen('battleHub');
+        return;
+      }
+
+      if (target.kind === 'createCard') {
+        const deck = normalizeDeckLayout(
+          decksRef.current[activeDeckIndexRef.current] ?? [],
+        );
+        const hasEmptySlot = deck.some((slot) => slot == null);
+        if (!hasEmptySlot) {
+          setDetailCardId(null);
+          setScreen('deck');
+          return;
+        }
+        setEditingCard(null);
+        setEditorReturnToDetail(false);
+        setDetailCardId(null);
+        setScreen('editor');
+        return;
+      }
+
+      const deck = normalizeDeckLayout(
+        decksRef.current[activeDeckIndexRef.current] ?? [],
+      );
+      const card = deck.find((slot) => slot != null);
+      if (!card) {
+        setEditingCard(null);
+        setEditorReturnToDetail(false);
+        setDetailCardId(null);
+        setScreen('editor');
+        return;
+      }
+      setEditingCard(card);
+      setEditorReturnToDetail(false);
+      setDetailCardId(null);
+      setScreen('editor');
+    },
+    [clearHistoryRematch, resetHistoryRematchFlow],
+  );
+
+  const missionUnclaimedCount = countUnclaimedMissions(missionState);
+
   const openSettings = useCallback(() => {
     if (isTabId(screen) || screen === 'records') {
       settingsReturnScreenRef.current = screen;
@@ -2122,7 +2290,13 @@ function App() {
           />
         )}
         {screen === 'mission' && (
-          <MissionScreen userLevel={user?.level ?? 1} />
+          <MissionScreen
+            userLevel={user?.level ?? 1}
+            missionState={missionState}
+            onClaimMission={handleClaimMission}
+            onClaimCategoryMissions={handleClaimCategoryMissions}
+            onChallengeMission={handleChallengeMission}
+          />
         )}
         {screen === 'battleHub' && (
           <BattleHubScreen
@@ -2261,7 +2435,17 @@ function App() {
         )}
       </main>
 
-      {showDock && <AppDock activeTab={activeTab} onSelect={selectTab} />}
+      {showDock && (
+        <AppDock
+          activeTab={activeTab}
+          onSelect={selectTab}
+          tabBadges={
+            missionUnclaimedCount > 0
+              ? { mission: missionUnclaimedCount }
+              : undefined
+          }
+        />
+      )}
 
       {historyRematchFlow?.phase === 'rules' && (
         <HistoryRematchRulesModal

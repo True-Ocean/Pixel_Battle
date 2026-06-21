@@ -35,6 +35,11 @@ import {
 import { normalizeEditorShopUnlocks } from '../config/editorShop';
 import { normalizePaletteShopUnlocks, migratePaletteShopUnlocksForSchema } from '../config/paletteUnlock';
 import {
+  createInitialMissionState,
+  normalizeMissionState,
+} from '../user/missionState';
+import { applyMissionResets } from '../mission/reset';
+import {
   applyDueSubscriptionGrants,
   createInitialShopPurchaseState,
   createInitialSubscription,
@@ -43,7 +48,7 @@ import {
 } from '../user/shop';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
-export const SAVE_SCHEMA_VERSION = 7;
+export const SAVE_SCHEMA_VERSION = 8;
 
 function readPaletteShopUnlocks(
   raw: unknown,
@@ -74,6 +79,7 @@ function emptySave(): SaveData {
     memoryAlbum: createInitialMemoryAlbum(),
     shopPurchase: createInitialShopPurchaseState(),
     subscription: createInitialSubscription(),
+    missionState: createInitialMissionState(),
   };
 }
 
@@ -350,6 +356,7 @@ export function applyProgressionMigrations(save: SaveData): SaveData {
     editorShopUnlocks: normalizeEditorShopUnlocks(save.editorShopUnlocks),
     shopPurchase: normalizeShopPurchaseState(save.shopPurchase),
     subscription: normalizeUserSubscription(save.subscription),
+    missionState: applyMissionResets(normalizeMissionState(save.missionState)),
   };
 
   const subscriptionSync = applyDueSubscriptionGrants(
@@ -445,6 +452,9 @@ export function loadSave(): SaveData {
       ),
       shopPurchase: normalizeShopPurchaseState(parsed.shopPurchase),
       subscription: normalizeUserSubscription(parsed.subscription),
+      missionState: applyMissionResets(
+        normalizeMissionState(parsed.missionState),
+      ),
       ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
     });
 
@@ -532,6 +542,9 @@ export function saveSave(data: SaveData): void {
   if (subscription.plan !== 'none') {
     payload.subscription = subscription;
   }
+  payload.missionState = applyMissionResets(
+    normalizeMissionState(data.missionState),
+  );
   if (data.devPreferSavedLevel === true) {
     payload.devPreferSavedLevel = true;
     payload.devFileOverrideLevel =

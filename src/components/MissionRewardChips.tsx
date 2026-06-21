@@ -1,0 +1,54 @@
+import type { MissionReward } from '../mission/types';
+import { JewelIcon } from './JewelIcon';
+import { PixelCoinIcon } from './PixelCoinIcon';
+
+interface MissionRewardChipsProps {
+  reward: MissionReward;
+  className?: string;
+}
+
+export function MissionRewardChips({ reward, className }: MissionRewardChipsProps) {
+  const hasPx = reward.px != null && reward.px > 0;
+  const hasJewels = reward.jewels != null && reward.jewels > 0;
+  if (!hasPx && !hasJewels) return null;
+
+  return (
+    <div
+      className={[
+        'mission-reward-chips',
+        hasPx ? 'mission-reward-chips--has-px' : 'mission-reward-chips--jewels-only',
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      aria-label={[
+        hasPx ? `${reward.px!.toLocaleString()}px` : null,
+        hasJewels ? `ジュエル${reward.jewels!.toLocaleString()}` : null,
+      ]
+        .filter(Boolean)
+        .join('、')}
+    >
+      <div className="mission-reward-chip-slot mission-reward-chip-slot--px">
+        {hasPx ? (
+          <span className="mission-reward-chip mission-reward-chip--px">
+            <PixelCoinIcon className="mission-reward-chip-icon" aria-hidden="true" />
+            <span>{reward.px!.toLocaleString()}</span>
+          </span>
+        ) : hasJewels ? (
+          <span className="mission-reward-chip mission-reward-chip--jewels">
+            <JewelIcon className="mission-reward-chip-icon" aria-hidden="true" />
+            <span>{reward.jewels!.toLocaleString()}</span>
+          </span>
+        ) : null}
+      </div>
+      {hasPx && hasJewels && (
+        <div className="mission-reward-chip-slot mission-reward-chip-slot--jewels">
+          <span className="mission-reward-chip mission-reward-chip--jewels">
+            <JewelIcon className="mission-reward-chip-icon" aria-hidden="true" />
+            <span>{reward.jewels!.toLocaleString()}</span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}

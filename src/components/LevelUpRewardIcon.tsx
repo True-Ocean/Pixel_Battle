@@ -26,7 +26,7 @@ function rewardAriaLabel(reward: LevelUpRewardEntry): string {
     return 'パレット解放';
   }
   if (reward.kind === 'tool' && reward.editorFeature) {
-    return 'お絵描きツール';
+    return 'お絵描きツール解放';
   }
   if (reward.kind === 'canvas' && reward.canvasSize != null) {
     return `キャンバスサイズ：${reward.canvasSize} × ${reward.canvasSize}`;
@@ -113,6 +113,7 @@ export function LevelUpRewardIcon({ reward, level }: LevelUpRewardIconProps) {
           feature={reward.editorFeature}
           className="level-reward-editor-tool-icon"
         />
+        <span className="level-reward-chip-text">解放</span>
       </span>
     );
   }
