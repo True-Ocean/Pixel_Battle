@@ -5,7 +5,7 @@
 | ドキュメント版 | 1.8 |
 | 最終更新 | 2026-06-20 |
 | 対象 | ウェブプロトタイプ → 将来 Unity / API |
-| 関連 | [プロトタイプ開発指示書](./PROTOTYPE_DEVELOPMENT_SPEC.md) / [経済仕様書](./ECONOMY_SPEC.md) |
+| 関連 | [プロトタイプ開発指示書](./PROTOTYPE_DEVELOPMENT_SPEC.md) / [効果音仕様](./SFX_SPEC.md) / [経済仕様書](./ECONOMY_SPEC.md) |
 | 実装 | `src/config/attributes.ts`（表示マスタ）、`src/card/rollAttribute.ts`（作成・リタッチ抽選）、`src/card/attributeChange.ts`（属性変更・BP 再算出）、`src/game/`（戦闘エンジン） |
 
 ---

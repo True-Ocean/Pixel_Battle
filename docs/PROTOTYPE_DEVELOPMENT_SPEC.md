@@ -4,7 +4,7 @@
 |------|------|
 | ドキュメント版 | 2.13 |
 | 最終更新 | 2026-06-21 |
-| 関連 | [属性・戦闘効果仕様](./ATTRIBUTE_SPEC.md) / [経済仕様](./ECONOMY_SPEC.md) / [経済ロードマップ](./ECONOMY_ROADMAP.md) |
+| 関連 | [属性・戦闘効果仕様](./ATTRIBUTE_SPEC.md) / [効果音仕様](./SFX_SPEC.md) / [経済仕様](./ECONOMY_SPEC.md) / [経済ロードマップ](./ECONOMY_ROADMAP.md) |
 | 対象 | ウェブプロトタイプ（React + Vite + TypeScript） |
 | 本番想定 | Unity（クライアント）＋ API / DB（将来） |
 
@@ -89,8 +89,9 @@
 
 ```
 src/
+  audio/          # BGM・SE プレイヤー（UI 層から利用。game/ 非依存）
   components/     # 画面（キャンバス、デッキ、戦闘UI、MissionScreen、ConfirmDialog、SetupScreen）
-  config/         # balance.ts / missions.ts / palette.ts（定数）
+  config/         # balance.ts / missions.ts / palette.ts / bgm.ts / sfx.ts（定数）
   mission/        # ミッション進捗・受取・JST リセット（UI非依存）
   game/           # 純粋な戦闘ロジック（UI非依存）
   canvas/         # 16×16 描画・flood fill・チェッカーボード
@@ -1292,7 +1293,11 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 - **オンライン対人** — フレンド対戦・リアルタイムマッチ（[ECONOMY §13.3](./ECONOMY_SPEC.md#133-オンライン対人戦将来構想保留)）
 - 非同期対戦・リプレイ検証
 
-### 14.4 その他
+### 14.4 オーディオ
+
+- **効果音（SE）** — BGM のみ実装済み。SE は [SFX_SPEC.md](./SFX_SPEC.md) に v1 仕様（9 種・ミニマル方針）を定義。**実装・素材は未着手**
+
+### 14.5 その他
 
 - メール・パスワード認証
 - 課金拡張
