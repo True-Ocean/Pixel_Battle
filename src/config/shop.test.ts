@@ -31,8 +31,10 @@ describe('shop catalog', () => {
   });
 
   it('formats bonus labels', () => {
-    expect(formatJewelPackLabel(JEWEL_PACKS[1]!)).toBe('250+30');
-    expect(formatShardPackLabel(UNIVERSAL_SHARD_PACKS[1]!)).toBe('20+5');
+    expect(formatJewelPackLabel(JEWEL_PACKS[0]!)).toBe('100個');
+    expect(formatJewelPackLabel(JEWEL_PACKS[1]!)).toBe('250個+おまけ30個');
+    expect(formatShardPackLabel(UNIVERSAL_SHARD_PACKS[0]!)).toBe('10個');
+    expect(formatShardPackLabel(UNIVERSAL_SHARD_PACKS[1]!)).toBe('20個+おまけ5個');
   });
 
   it('defines subscription plans', () => {

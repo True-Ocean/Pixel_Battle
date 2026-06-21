@@ -653,7 +653,7 @@ export function EditorScreen({
           )}
           <p className="muted editor-name-hint">
             {isEditing
-              ? 'イメージ・カード名の変更は保存ボタンで確定します'
+              ? 'サイズ拡大・編集・リネームは保存ボタンで確定します'
               : 'あなたが描いたイメージとカード名から、カードが自動生成されます'}
           </p>
         </div>

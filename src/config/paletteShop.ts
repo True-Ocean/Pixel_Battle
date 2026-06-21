@@ -1,5 +1,10 @@
 import { PALETTE_EDITOR_COLOR_COUNT } from './balance';
-import { isPaletteUnlockedAtLevel } from './paletteUnlock';
+import {
+  getPaletteLevelUnlockRequirement,
+  isPaletteShopUnlocked,
+  isPaletteUnlocked,
+  isPaletteUnlockedAtLevel,
+} from './paletteUnlock';
 
 /** 右2列4色（紫・濃い緑・薄紫・赤茶）の購入に必要なレベル */
 export const PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL = 50;
@@ -85,6 +90,58 @@ export function getAllJewelPaletteIndices(): readonly number[] {
 /** @deprecated getAllJewelPaletteIndices を使用 */
 export function getAllShopPaletteIndices(): readonly number[] {
   return getAllJewelPaletteIndices();
+}
+
+export type PaletteUnlockModalMode =
+  | { kind: 'purchase'; jewelCost: number }
+  | { kind: 'level'; unlockLevel: number }
+  | { kind: 'jewel_after_color'; prerequisiteIndex: number; jewelCost: number }
+  | { kind: 'jewel_after_level'; minLevel: number; jewelCost: number };
+
+/** 未解放パレットタップ時のモーダル表示種別 */
+export function getPaletteUnlockModalMode(
+  paletteIndex: number,
+  userLevel: number,
+  shopUnlocks: readonly number[],
+): PaletteUnlockModalMode | null {
+  if (isPaletteUnlocked(paletteIndex, userLevel, shopUnlocks)) return null;
+
+  const jewelCost = getJewelCostForPaletteIndex(paletteIndex);
+
+  if (
+    isJewelPaletteIndex(paletteIndex) &&
+    canOfferPaletteJewelPurchase(paletteIndex, userLevel) &&
+    !isPaletteShopUnlocked(paletteIndex, shopUnlocks) &&
+    jewelCost != null
+  ) {
+    return { kind: 'purchase', jewelCost };
+  }
+
+  if (isJewelPaletteIndex(paletteIndex) && jewelCost != null) {
+    if (isBottomRowJewelPaletteIndex(paletteIndex)) {
+      const topIndex = getTopPaletteIndexForBottom(paletteIndex);
+      if (topIndex != null && !isPaletteUnlockedAtLevel(topIndex, userLevel)) {
+        return { kind: 'jewel_after_color', prerequisiteIndex: topIndex, jewelCost };
+      }
+    }
+    if (
+      isRightColumnJewelPaletteIndex(paletteIndex) &&
+      Math.floor(userLevel) < PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL
+    ) {
+      return {
+        kind: 'jewel_after_level',
+        minLevel: PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL,
+        jewelCost,
+      };
+    }
+  }
+
+  const unlockLevel = getPaletteLevelUnlockRequirement(paletteIndex);
+  if (unlockLevel != null && userLevel < unlockLevel) {
+    return { kind: 'level', unlockLevel };
+  }
+
+  return null;
 }
 
 /** @deprecated */

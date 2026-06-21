@@ -197,14 +197,14 @@ export function totalShardsInPack(pack: UniversalShardPackDefinition): number {
 
 export function formatJewelPackLabel(pack: JewelPackDefinition): string {
   if (pack.bonusJewels > 0) {
-    return `${pack.baseJewels.toLocaleString()}+${pack.bonusJewels.toLocaleString()}`;
+    return `${pack.baseJewels.toLocaleString()}個+おまけ${pack.bonusJewels.toLocaleString()}個`;
   }
-  return pack.baseJewels.toLocaleString();
+  return `${pack.baseJewels.toLocaleString()}個`;
 }
 
 export function formatShardPackLabel(pack: UniversalShardPackDefinition): string {
   if (pack.bonusShards > 0) {
-    return `${pack.baseShards}+${pack.bonusShards}`;
+    return `${pack.baseShards}個+おまけ${pack.bonusShards}個`;
   }
-  return String(pack.baseShards);
+  return `${pack.baseShards}個`;
 }

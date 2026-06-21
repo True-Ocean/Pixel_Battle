@@ -141,7 +141,7 @@ export function ShopScreen({
                       iconClassName="shop-product-jewel-icon"
                     />
                     <p className="shop-product-detail muted">
-                      {formatJewelPackLabel(pack)}個
+                      {formatJewelPackLabel(pack)}
                       {showFirstBonus && (
                         <span className="shop-product-badge">初回2倍</span>
                       )}
@@ -204,7 +204,7 @@ export function ShopScreen({
                     <div className="shop-item-row">
                       <UniversalShardIcon className="shop-item-icon" />
                       <span className="shop-item-label">
-                        {formatShardPackLabel(pack)}個
+                        {formatShardPackLabel(pack)}
                       </span>
                     </div>
                     {purchasedToday >= 1 && (

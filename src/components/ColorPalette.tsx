@@ -11,16 +11,10 @@ import {
   PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL,
 } from '../config/paletteShop';
 import {
+  getPaletteLevelUnlockRequirement,
   isPaletteUnlocked,
   isPaletteUnlockedAtLevel,
-  PALETTE_UNLOCK_LEVELS,
 } from '../config/paletteUnlock';
-
-function paletteUnlockLevelForIndex(index: number): number | null {
-  if (index < 3) return 1;
-  const extraIndex = index - 3;
-  return PALETTE_UNLOCK_LEVELS[extraIndex] ?? null;
-}
 
 const LIGHT_SWATCH_COLORS = new Set([
   '#ffffff',
@@ -60,22 +54,18 @@ export function ColorPalette({
         const unlocked = isPaletteUnlocked(index, userLevel, shopUnlocks);
         const isJewelColor = isJewelPaletteIndex(index);
         const unlockLevel = !isJewelColor
-          ? paletteUnlockLevelForIndex(index)
+          ? getPaletteLevelUnlockRequirement(index)
           : null;
         const label = PALETTE_COLOR_LABELS[index];
         const active = brushColor === color;
         const isLight = LIGHT_SWATCH_COLORS.has(color.toLowerCase());
-        const canPurchaseJewel =
-          isJewelColor &&
-          canOfferPaletteJewelPurchase(index, userLevel) &&
-          !unlocked;
 
         let title = label;
         if (!unlocked) {
           if (isBottomRowJewelPaletteIndex(index)) {
             const topIndex = index - 10;
             if (!isPaletteUnlockedAtLevel(topIndex, userLevel)) {
-              const topLevel = paletteUnlockLevelForIndex(topIndex);
+              const topLevel = getPaletteLevelUnlockRequirement(topIndex);
               title =
                 topLevel != null
                   ? `上の色（Lv${topLevel}）解放後に💎購入可能`
@@ -106,14 +96,13 @@ export function ColorPalette({
               .filter(Boolean)
               .join(' ')}
             style={{ background: color }}
-            disabled={!unlocked && !canPurchaseJewel}
             title={title}
             onClick={() => {
               if (unlocked) {
                 onSelectColor(color);
                 return;
               }
-              if (canPurchaseJewel) onRequestShopUnlock?.(index);
+              onRequestShopUnlock?.(index);
             }}
           >
             {!unlocked && (

@@ -103,12 +103,31 @@ export function getDefaultDeckSlotLabel(index: number): string {
   return `デッキ${index + 1}`;
 }
 
+export interface DeckJewelUnlockMessageParts {
+  prefix: string;
+  suffix: string;
+}
+
 export interface DeckUnlockModalContent {
   title: string;
   message: string;
   note?: string;
   showJewelCost: boolean;
   canUnlockWithJewels: boolean;
+  /** デッキ3以降: 「{deck}は{prev}解放後に」+ 💎 + 「で解放できます。」 */
+  jewelUnlockMessage?: DeckJewelUnlockMessageParts;
+}
+
+function buildDeckJewelUnlockMessageParts(
+  slotIndex: number,
+): DeckJewelUnlockMessageParts | undefined {
+  if (slotIndex < DECK_JEWEL_UNLOCK_MIN_SLOT_INDEX) return undefined;
+  const deckLabel = getDefaultDeckSlotLabel(slotIndex);
+  const previousDeckLabel = getDefaultDeckSlotLabel(slotIndex - 1);
+  return {
+    prefix: `${deckLabel}は${previousDeckLabel}解放後に`,
+    suffix: 'で解放できます。',
+  };
 }
 
 /** ジュエルで解放できる最小デッキ index（デッキ3 = index 2） */
@@ -140,10 +159,13 @@ export function getDeckUnlockModalContent(
   const previousDeckLabel = getDefaultDeckSlotLabel(slotIndex - 1);
   const title = `${deckLabel} は未解放`;
 
+  const jewelUnlockMessage = buildDeckJewelUnlockMessageParts(slotIndex);
+
   if (slotIndex > nextUnlockIndex) {
     return {
       title,
-      message: `${deckLabel}は${previousDeckLabel}解放後に解放できます。`,
+      message: jewelUnlockMessage ? '' : `${deckLabel}は${previousDeckLabel}解放後に解放できます。`,
+      jewelUnlockMessage,
       showJewelCost: false,
       canUnlockWithJewels: false,
     };
@@ -167,7 +189,6 @@ export function getDeckUnlockModalContent(
     };
   }
 
-  const sequentialMessage = `${deckLabel}は${previousDeckLabel}解放後に解放できます。`;
   const canUnlockWithJewels = canUnlockDeckSlotWithJewels(
     slotIndex,
     unlockedDeckCount,
@@ -177,7 +198,8 @@ export function getDeckUnlockModalContent(
   if (userLevel < DECK_JEWEL_UNLOCK_MIN_USER_LEVEL) {
     return {
       title,
-      message: sequentialMessage,
+      message: jewelUnlockMessage ? '' : `${deckLabel}は${previousDeckLabel}解放後に解放できます。`,
+      jewelUnlockMessage,
       note: `現在 Lv.${userLevel} です。ユーザーレベル10到達後にジュエルで解放できます。`,
       showJewelCost: false,
       canUnlockWithJewels: false,
@@ -187,6 +209,7 @@ export function getDeckUnlockModalContent(
   return {
     title,
     message: '',
+    jewelUnlockMessage,
     showJewelCost: false,
     canUnlockWithJewels,
   };

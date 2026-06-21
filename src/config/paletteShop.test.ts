@@ -3,6 +3,7 @@ import {
   canOfferPaletteJewelPurchase,
   getAllJewelPaletteIndices,
   getJewelCostForPaletteIndex,
+  getPaletteUnlockModalMode,
   isBottomRowJewelPaletteIndex,
   isRightColumnJewelPaletteIndex,
 } from './paletteShop';
@@ -28,5 +29,27 @@ describe('paletteShop A案', () => {
     expect(canOfferPaletteJewelPurchase(8, 49)).toBe(false);
     expect(canOfferPaletteJewelPurchase(8, 50)).toBe(true);
     expect(canOfferPaletteJewelPurchase(18, 50)).toBe(true);
+  });
+
+  it('未解放パレットのモーダル種別を返す', () => {
+    expect(getPaletteUnlockModalMode(3, 1, [])).toEqual({
+      kind: 'level',
+      unlockLevel: 5,
+    });
+    expect(getPaletteUnlockModalMode(13, 4, [])).toEqual({
+      kind: 'jewel_after_color',
+      prerequisiteIndex: 3,
+      jewelCost: 100,
+    });
+    expect(getPaletteUnlockModalMode(8, 40, [])).toEqual({
+      kind: 'jewel_after_level',
+      minLevel: 50,
+      jewelCost: 100,
+    });
+    expect(getPaletteUnlockModalMode(8, 50, [])).toEqual({
+      kind: 'purchase',
+      jewelCost: 100,
+    });
+    expect(getPaletteUnlockModalMode(8, 50, [8])).toBeNull();
   });
 });

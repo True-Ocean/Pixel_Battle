@@ -38,6 +38,14 @@ export function isPaletteUnlockedAtLevel(
   return paletteIndex < getUnlockedPaletteCount(userLevel);
 }
 
+/** レベル解放パレット index の必要ユーザーレベル（index 0〜2 は Lv1） */
+export function getPaletteLevelUnlockRequirement(index: number): number | null {
+  if (index < 0 || index >= PALETTE_EDITOR_LEVEL_UNLOCK_COUNT) return null;
+  if (index < 3) return 1;
+  const extraIndex = index - 3;
+  return PALETTE_UNLOCK_LEVELS[extraIndex] ?? null;
+}
+
 export function normalizePaletteShopUnlocks(raw: unknown): number[] {
   if (!Array.isArray(raw)) return [];
   const seen = new Set<number>();

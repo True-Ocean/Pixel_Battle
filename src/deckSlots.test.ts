@@ -91,20 +91,32 @@ describe('deck display names', () => {
 describe('getDeckUnlockModalContent', () => {
   it('deck 4 requires deck 3 when skipping ahead', () => {
     const content = getDeckUnlockModalContent(3, 2, 15);
-    expect(content.message).toBe('デッキ4はデッキ3解放後に解放できます。');
+    expect(content.message).toBe('');
+    expect(content.jewelUnlockMessage).toEqual({
+      prefix: 'デッキ4はデッキ3解放後に',
+      suffix: 'で解放できます。',
+    });
     expect(content.note).toBeUndefined();
     expect(content.showJewelCost).toBe(false);
   });
 
   it('deck 5 requires deck 4 when skipping ahead', () => {
     const content = getDeckUnlockModalContent(4, 3, 15);
-    expect(content.message).toBe('デッキ5はデッキ4解放後に解放できます。');
+    expect(content.message).toBe('');
+    expect(content.jewelUnlockMessage).toEqual({
+      prefix: 'デッキ5はデッキ4解放後に',
+      suffix: 'で解放できます。',
+    });
     expect(content.note).toBeUndefined();
   });
 
   it('next unlock deck 4 shows jewel offer after deck 3', () => {
     const content = getDeckUnlockModalContent(3, 3, 15);
     expect(content.message).toBe('');
+    expect(content.jewelUnlockMessage).toEqual({
+      prefix: 'デッキ4はデッキ3解放後に',
+      suffix: 'で解放できます。',
+    });
     expect(content.showJewelCost).toBe(false);
     expect(content.canUnlockWithJewels).toBe(true);
   });
@@ -113,6 +125,10 @@ describe('getDeckUnlockModalContent', () => {
     const content = getDeckUnlockModalContent(2, 2, 15);
     expect(content.title).toBe('デッキ3 は未解放');
     expect(content.message).toBe('');
+    expect(content.jewelUnlockMessage).toEqual({
+      prefix: 'デッキ3はデッキ2解放後に',
+      suffix: 'で解放できます。',
+    });
     expect(content.showJewelCost).toBe(false);
     expect(content.canUnlockWithJewels).toBe(true);
     expect(content.note).toBeUndefined();
@@ -120,7 +136,11 @@ describe('getDeckUnlockModalContent', () => {
 
   it('deck 3 before level 10 uses sequential message', () => {
     const content = getDeckUnlockModalContent(2, 2, 5);
-    expect(content.message).toBe('デッキ3はデッキ2解放後に解放できます。');
+    expect(content.message).toBe('');
+    expect(content.jewelUnlockMessage).toEqual({
+      prefix: 'デッキ3はデッキ2解放後に',
+      suffix: 'で解放できます。',
+    });
     expect(content.note).toBe(
       '現在 Lv.5 です。ユーザーレベル10到達後にジュエルで解放できます。',
     );
@@ -129,6 +149,10 @@ describe('getDeckUnlockModalContent', () => {
   it('deck 3 when skipping ahead has no extra note', () => {
     const content = getDeckUnlockModalContent(2, 1, 15);
     expect(content.note).toBeUndefined();
+    expect(content.jewelUnlockMessage).toEqual({
+      prefix: 'デッキ3はデッキ2解放後に',
+      suffix: 'で解放できます。',
+    });
   });
 
   it('deck 2 stays level 10 gated', () => {
@@ -136,13 +160,17 @@ describe('getDeckUnlockModalContent', () => {
     expect(content.title).toBe('デッキ2 は未解放');
     expect(content.message).toBe('デッキ2はユーザーレベル10到達で解放されます。');
     expect(content.note).toBe('現在 Lv.5 です。');
+    expect(content.jewelUnlockMessage).toBeUndefined();
   });
 
   it('ignores custom deck names in unlock messages', () => {
     const content = getDeckUnlockModalContent(3, 2, 15);
-    expect(content.message).toBe('デッキ4はデッキ3解放後に解放できます。');
-    expect(content.message).not.toContain('メイン');
-    expect(getDeckUnlockModalContent(2, 2, 15).message).toBe('');
+    expect(content.message).toBe('');
+    expect(content.jewelUnlockMessage?.prefix).toBe('デッキ4はデッキ3解放後に');
+    expect(content.jewelUnlockMessage?.prefix).not.toContain('メイン');
+    expect(getDeckUnlockModalContent(2, 2, 15).jewelUnlockMessage?.prefix).toBe(
+      'デッキ3はデッキ2解放後に',
+    );
   });
 });
 

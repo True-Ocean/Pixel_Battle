@@ -3158,6 +3158,46 @@ button.battle-hub-deck-icon.is-move-target {
   min-height: 2.45rem;
 }
 
+.palette-unlock-panel--info {
+  width: max-content;
+  max-width: min(calc(100% - 2.5rem), 17rem);
+}
+
+.palette-unlock-info-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+  margin: 0 0 0.55rem;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.palette-unlock-info-message-line {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.palette-unlock-inline-swatch {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.05rem;
+  vertical-align: -0.15em;
+  border: 1px solid #666;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.palette-unlock-inline-swatch-light {
+  border-color: #999;
+}
+
+.palette-unlock-panel--info .deck-unlock-close {
+  margin-top: 0;
+}
+
 .palette-unlock-insufficient {
   margin-bottom: 0.45rem;
   text-align: center;

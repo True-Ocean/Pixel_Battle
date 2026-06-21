@@ -80,7 +80,21 @@ export function DeckUnlockModal({
         <h2 id="deck-unlock-title" className="deck-unlock-title">
           {readyToUnlock ? 'デッキ解放' : content.title}
         </h2>
-        {!readyToUnlock && content.message && (
+        {content.jewelUnlockMessage && (
+          <p
+            className="deck-unlock-message"
+            aria-label={`${content.jewelUnlockMessage.prefix}ジュエル ${JEWEL_COST_DECK_UNLOCK.toLocaleString()}${content.jewelUnlockMessage.suffix}`}
+          >
+            {content.jewelUnlockMessage.prefix}
+            <JewelAmount
+              amount={JEWEL_COST_DECK_UNLOCK}
+              className="deck-unlock-jewel-cost"
+              iconClassName="deck-unlock-jewel-icon"
+            />
+            {content.jewelUnlockMessage.suffix}
+          </p>
+        )}
+        {!content.jewelUnlockMessage && !readyToUnlock && content.message && (
           <p className="deck-unlock-message">{content.message}</p>
         )}
         {!readyToUnlock && content.note && (
