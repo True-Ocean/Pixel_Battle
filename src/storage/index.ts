@@ -457,6 +457,7 @@ export function loadSave(): SaveData {
         normalizeMissionState(parsed.missionState),
       ),
       soundEnabled: normalizeSoundEnabled(parsed.soundEnabled),
+      deckIntroSeen: parsed.deckIntroSeen === true,
       ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
     });
 
@@ -549,6 +550,9 @@ export function saveSave(data: SaveData): void {
   );
   if (data.soundEnabled === false) {
     payload.soundEnabled = false;
+  }
+  if (data.deckIntroSeen === true) {
+    payload.deckIntroSeen = true;
   }
   if (data.devPreferSavedLevel === true) {
     payload.devPreferSavedLevel = true;

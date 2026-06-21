@@ -920,6 +920,11 @@ export function DeckScreen({
           <p className="muted deck-cross-drop-hint">
             スロットを選んでドロップ（カード同士は入れ替え）。タブ上でドロップすると空きスロットへ自動配置（満杯のときはキャンセル）
           </p>
+        ) : deckCardCount < DECK_MAX && !reorderMode ? (
+          <p className="deck-screen-progress-hint muted">
+            {deckCardCount} / {DECK_MAX} 枚 — あと {DECK_MAX - deckCardCount}{' '}
+            枚でバトル可能
+          </p>
         ) : (
           <p className="deck-screen-power" aria-label={`戦力 ${deckPower}`}>
             戦力{' '}

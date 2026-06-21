@@ -88,6 +88,7 @@ import { SettingsScreen } from './components/SettingsScreen';
 import { ShopScreen } from './components/ShopScreen';
 import { SetupScreen } from './components/SetupScreen';
 import { TitleScreen } from './components/TitleScreen';
+import { DeckIntroModal } from './components/DeckIntroModal';
 import { UserProfileBar } from './components/UserProfileBar';
 import { isDockVisible, isTabId, type TabId } from './navigation/screenIds';
 import { normalizeSoundEnabled } from './user/preferences';
@@ -156,6 +157,10 @@ function App() {
   const [missionCompleteToast, setMissionCompleteToast] = useState<string | null>(
     null,
   );
+  const [deckIntroSeen, setDeckIntroSeen] = useState(
+    () => initialSave.deckIntroSeen === true,
+  );
+  const [deckIntroOpen, setDeckIntroOpen] = useState(false);
 
   const activeDeck = useMemo(
     () => normalizeDeckLayout(decks[activeDeckIndex] ?? []),
@@ -299,6 +304,7 @@ function App() {
       devPreferSavedLevel?: boolean;
       devFileOverrideLevel?: number | null;
       soundEnabled?: boolean;
+      deckIntroSeen?: boolean;
     }) => {
       if (next.devPreferSavedLevel !== undefined) {
         devPreferSavedLevelRef.current = next.devPreferSavedLevel;
@@ -329,6 +335,7 @@ function App() {
         subscription: next.subscription ?? subscriptionRef.current,
         missionState: next.missionState ?? missionStateRef.current,
         soundEnabled: next.soundEnabled ?? soundEnabled,
+        deckIntroSeen: next.deckIntroSeen ?? deckIntroSeen,
         ...(devPreferSavedLevelRef.current
           ? {
               devPreferSavedLevel: true as const,
@@ -338,7 +345,7 @@ function App() {
           : {}),
       });
     },
-    [activeDeckIndex, adState, decks, economy, inventory, lastBattleDeckIndex, missionState, paletteShopUnlocks, shopPurchase, soundEnabled, subscription, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
+    [activeDeckIndex, adState, deckIntroSeen, decks, economy, inventory, lastBattleDeckIndex, missionState, paletteShopUnlocks, shopPurchase, soundEnabled, subscription, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
   );
 
   const reportAndPersistMissionEvents = useCallback(
@@ -375,6 +382,22 @@ function App() {
     }, 4000);
     return () => window.clearTimeout(timerId);
   }, [missionCompleteToast]);
+
+  const dismissDeckIntro = useCallback(() => {
+    setDeckIntroOpen(false);
+    setDeckIntroSeen(true);
+    persistSave({ deckIntroSeen: true });
+  }, [persistSave]);
+
+  useEffect(() => {
+    if (!user || deckIntroSeen || screen !== 'deck') return;
+    if (activeDeckCardCount >= DECK_MAX) {
+      setDeckIntroSeen(true);
+      persistSave({ deckIntroSeen: true });
+      return;
+    }
+    setDeckIntroOpen(true);
+  }, [user, deckIntroSeen, screen, activeDeckCardCount, persistSave]);
 
   const appOpenReportedRef = useRef(false);
   useEffect(() => {
@@ -2350,6 +2373,7 @@ function App() {
             deckNames={deckNames}
             unlockedDeckCount={unlockedDeckCount}
             lastBattleDeckIndex={lastBattleDeckIndex}
+            userLevel={user?.level ?? 1}
             onStartBattle={requestGoToBattleSetup}
             onGoToMyDeck={goToMyDeckWithCard}
             onReorderDeckAt={reorderDeckAt}
@@ -2505,6 +2529,10 @@ function App() {
 
       {missionCompleteToast && (
         <MissionCompleteToast message={missionCompleteToast} />
+      )}
+
+      {screen === 'deck' && deckIntroOpen && (
+        <DeckIntroModal onClose={dismissDeckIntro} />
       )}
 
       {historyRematchFlow?.phase === 'rules' && (

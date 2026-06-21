@@ -33,7 +33,10 @@ export function MissionCard({
   const completed = isMissionCompleted(missionState, mission);
   const isCurrent =
     isBeginner && isCurrentBeginnerMission(missionState, mission);
-  const progressPercent = Math.min(100, Math.round((entry.progress / mission.goal) * 100));
+  const progressPercent = Math.min(
+    100,
+    Math.round((entry.progress / mission.goal) * 100),
+  );
   const showProgress = !claimed && !locked;
   const showChallenge =
     !locked &&
@@ -51,6 +54,7 @@ export function MissionCard({
     <li
       className={[
         'mission-card',
+        isBeginner ? 'mission-card--beginner' : '',
         locked ? 'mission-card--locked' : '',
         claimed ? 'mission-card--claimed' : '',
         claimable ? 'mission-card--claimable' : '',
@@ -59,12 +63,12 @@ export function MissionCard({
       ]
         .filter(Boolean)
         .join(' ')}
+      aria-label={mission.title}
     >
       <div className="mission-card-top">
         <div className="mission-card-copy">
           {stepLabel && <p className="mission-card-step">{stepLabel}</p>}
-          <h3 className="mission-card-title">{mission.title}</h3>
-          <p className="mission-card-description muted">{mission.description}</p>
+          <p className="mission-card-description">{mission.description}</p>
         </div>
         <MissionRewardChips reward={mission.reward} className="mission-card-rewards" />
         <div className="mission-card-action-slot">
@@ -94,33 +98,34 @@ export function MissionCard({
         </div>
       </div>
 
-      {showProgress && (
-        <div className="mission-card-progress-wrap">
+      <div
+        className={[
+          'mission-card-progress-wrap',
+          showProgress ? '' : 'mission-card-progress-wrap--hidden',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        aria-hidden={!showProgress}
+      >
+        <div
+          className="mission-card-progress"
+          role={showProgress ? 'progressbar' : undefined}
+          aria-valuenow={showProgress ? entry.progress : undefined}
+          aria-valuemin={showProgress ? 0 : undefined}
+          aria-valuemax={showProgress ? mission.goal : undefined}
+          aria-label={
+            showProgress ? `${entry.progress} / ${mission.goal}` : undefined
+          }
+        >
           <div
-            className="mission-card-progress"
-            role="progressbar"
-            aria-valuenow={entry.progress}
-            aria-valuemin={0}
-            aria-valuemax={mission.goal}
-            aria-label={`${entry.progress} / ${mission.goal}`}
-          >
-            <div
-              className="mission-card-progress-fill"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-          <span className="mission-card-progress-label">
-            {Math.min(entry.progress, mission.goal)} / {mission.goal}
-          </span>
+            className="mission-card-progress-fill"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
-      )}
-      {locked && <p className="mission-card-locked-label muted">未解放</p>}
-      {isCurrent && !claimable && !claimed && !locked && (
-        <p className="mission-card-current-label">いま挑戦中</p>
-      )}
-      {completed && !claimed && !locked && (
-        <p className="mission-card-complete-label">達成！</p>
-      )}
+        <span className="mission-card-progress-label">
+          {Math.min(entry.progress, mission.goal)} / {mission.goal}
+        </span>
+      </div>
     </li>
   );
 }

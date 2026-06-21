@@ -27,6 +27,9 @@ import {
   validateCardNameForCreation,
 } from '../card';
 import { AttributeCreateRouletteModal } from './AttributeCreateRouletteModal';
+import { getEditorHelp } from '../config/helpContent';
+import { HelpInfoButton } from './HelpInfoButton';
+import { HelpPanelModal } from './HelpPanelModal';
 import {
   buildUnlockedColorSet,
   isPaletteColorUnlocked,
@@ -172,6 +175,7 @@ export function EditorScreen({
   );
   const [featureUnlockId, setFeatureUnlockId] =
     useState<EditorShopUnlockId | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [pendingCanvasUpgradeSize, setPendingCanvasUpgradeSize] =
     useState<number | null>(null);
   const isComposingNameRef = useRef(false);
@@ -520,7 +524,14 @@ export function EditorScreen({
   return (
     <section className="screen editor-screen">
       <header className="editor-header">
-        <h1>{isEditing ? 'カード編集' : 'イメージ作成'}</h1>
+        <div className="editor-header-title-row">
+          <h1>{isEditing ? 'カード編集' : 'イメージ作成'}</h1>
+          <HelpInfoButton
+            className="editor-help-btn"
+            ariaLabel={isEditing ? 'カード編集のヘルプ' : 'イメージ作成のヘルプ'}
+            onClick={() => setHelpOpen(true)}
+          />
+        </div>
       </header>
 
       <div className="editor-body">
@@ -774,6 +785,12 @@ export function EditorScreen({
           onUnlockWithJewels={(feature) =>
             onUnlockEditorFeatureWithJewels?.(feature) ?? null
           }
+        />
+      )}
+      {helpOpen && (
+        <HelpPanelModal
+          topic={getEditorHelp(isEditing)}
+          onClose={() => setHelpOpen(false)}
         />
       )}
     </section>

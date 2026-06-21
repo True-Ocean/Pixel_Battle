@@ -59,9 +59,6 @@ export function MissionListPanel({
           onClick={() => onBulkClaim(category)}
         >
           一括受取
-          {claimableCount > 0 && (
-            <span className="mission-bulk-claim-count">{claimableCount}</span>
-          )}
         </button>
       </div>
       <ul className="mission-card-list" aria-label="ミッション一覧">

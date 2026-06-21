@@ -204,6 +204,8 @@ export interface SaveData {
   missionState?: MissionState;
   /** BGM などのサウンド（未設定時はオン） */
   soundEnabled?: boolean;
+  /** マイデッキ初回案内モーダルを表示済み */
+  deckIntroSeen?: boolean;
 }
 
 /** アプリ画面（ルーターなし・state で切替） */

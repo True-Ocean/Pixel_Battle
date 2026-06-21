@@ -134,7 +134,7 @@ export function MissionScreen({
                 onClick={() => setCategoryTab(id)}
               >
                 {label}
-                {unclaimedByCategory[id] > 0 && categoryTab !== id && (
+                {unclaimedByCategory[id] > 0 && (
                   <span
                     className="mission-tab-badge"
                     aria-label={`未受取${unclaimedByCategory[id]}件`}
