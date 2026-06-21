@@ -403,9 +403,11 @@ function App() {
   const appOpenReportedRef = useRef(false);
   useEffect(() => {
     if (appOpenReportedRef.current) return;
+    if (!isProfileComplete(user)) return;
+    if (screen === 'title' || screen === 'setup') return;
     appOpenReportedRef.current = true;
     reportAndPersistMissionEvents([{ type: 'app_open' }]);
-  }, [reportAndPersistMissionEvents]);
+  }, [reportAndPersistMissionEvents, screen, user]);
 
   const applyShopPurchaseResult = useCallback(
     (result: {
@@ -2533,7 +2535,9 @@ function App() {
         />
       )}
 
-      {missionCompleteToast && (
+      {missionCompleteToast &&
+        screen !== 'title' &&
+        screen !== 'setup' && (
         <MissionCompleteToast message={missionCompleteToast} />
       )}
 

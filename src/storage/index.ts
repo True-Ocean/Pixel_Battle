@@ -548,7 +548,9 @@ export function saveSave(data: SaveData): void {
   payload.missionState = applyMissionResets(
     normalizeMissionState(data.missionState),
   );
-  if (data.soundEnabled === false) {
+  if (data.soundEnabled === true) {
+    payload.soundEnabled = true;
+  } else if (data.soundEnabled === false) {
     payload.soundEnabled = false;
   }
   if (data.deckIntroSeen === true) {

@@ -409,7 +409,7 @@ src/
 |------|------|
 | ファイル | `public/audio/Game_BGM.mp3`（通常画面）/ `Battle.mp3`（バトル準備〜戦闘） |
 | 切替 | `src/audio/bgmPlayer.ts` + `useBgm.ts` — 画面 ID に応じて自動切替（title=無音、battleSetup=Battle、他=Game_BGM） |
-| 設定 | 設定画面 **BGM** トグル → `SaveData.soundEnabled`（デフォルト ON）。OFF で BGM 停止 |
+| 設定 | 設定画面 **BGM** トグル → `SaveData.soundEnabled`（デフォルト OFF）。ON で BGM 再生 |
 | 自動再生 | 初回 `pointerdown` / `keydown` で `unlock()`。設定 ON 時はユーザー操作の同期コンテキスト内でも再生（スマホ対応） |
 | SE | [SFX_SPEC.md](./SFX_SPEC.md) 参照（v1 未実装） |
 
@@ -766,7 +766,7 @@ interface UserProfile {
 
 | フィールド | 説明 |
 |------------|------|
-| `soundEnabled?` | BGM ON/OFF（省略時 **true**）。`normalizeSoundEnabled` |
+| `soundEnabled?` | BGM ON/OFF（省略時 **false**）。`normalizeSoundEnabled` |
 | `deckIntroSeen?` | マイデッキ初回案内（`DeckIntroModal`）を表示済みか |
 
 **EXP・レベルアップ（`src/user/level.ts`）**

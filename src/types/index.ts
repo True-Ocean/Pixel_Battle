@@ -202,7 +202,7 @@ export interface SaveData {
   subscription?: UserSubscription;
   /** ミッション進捗 */
   missionState?: MissionState;
-  /** BGM などのサウンド（未設定時はオン） */
+  /** BGM などのサウンド（未設定時はオフ） */
   soundEnabled?: boolean;
   /** マイデッキ初回案内モーダルを表示済み */
   deckIntroSeen?: boolean;

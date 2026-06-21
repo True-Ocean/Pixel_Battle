@@ -41,7 +41,7 @@
 |------|------|
 | BGM | 実装済み（`Game_BGM.mp3` / `Battle.mp3`、`src/audio/bgmPlayer.ts`） |
 | SE | **未実装**（本仕様書が初版） |
-| 設定 | `SaveData.soundEnabled`（デフォルト ON）で BGM ON/OFF。**v1 では SE も同一フラグで制御** |
+| 設定 | `SaveData.soundEnabled`（デフォルト OFF）で BGM ON/OFF。**v1 では SE も同一フラグで制御** |
 | 自動再生 | 初回 `pointerdown` / `keydown` で `bgmPlayer.unlock()`。**SE も同タイミングで unlock する** |
 
 ### 1.3 v1 の対象外
