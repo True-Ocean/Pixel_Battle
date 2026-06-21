@@ -1,10 +1,12 @@
 import type { Attribute } from '../types';
+import type { EditorShopUnlockId } from './editorShop';
 import {
   calcLevelUpJewels,
   calcLevelUpPixels,
   calcLevelUpTalismanGrant,
   calcLevelUpUniversalShards,
   TALISMAN_STARTER_GRANT_LEVEL,
+  TALISMAN_STARTER_GRANT_COUNT,
 } from './economy';
 import {
   EDITOR_FEATURE_LABELS,
@@ -36,6 +38,16 @@ export interface LevelUpRewardEntry {
   attribute?: Attribute;
   /** パレット色解放報酬の表示用スウォッチ */
   paletteIndex?: number;
+  /** お絵描きツール解放報酬 */
+  editorFeature?: EditorShopUnlockId;
+  /** キャンバス上限解放報酬（一辺 px） */
+  canvasSize?: number;
+  /** 汎用かけら付与数 */
+  universalShardAmount?: number;
+  /** デッキ解放の表示ラベル */
+  deckUnlockLabel?: string;
+  /** 護符付与数 */
+  talismanAmount?: number;
   /** 経済・限界突破など未実装の表示用 */
   pending?: boolean;
 }
@@ -64,13 +76,28 @@ function attributeRewardForLevel(level: number): LevelUpRewardEntry {
   };
 }
 
-function toolLabelForLevel(level: number): string {
+function editorFeatureForLevel(level: number): EditorShopUnlockId | null {
   for (const feature of EDITOR_SHOP_UNLOCK_IDS) {
     if (EDITOR_FEATURE_UNLOCK_LEVEL[feature] === level) {
-      return `お絵描きツール「${EDITOR_FEATURE_LABELS[feature]}」が使えるようになりました！`;
+      return feature;
     }
   }
-  return '新しいお絵描きツールが使えるようになりました！';
+  return null;
+}
+
+function toolRewardForLevel(level: number): LevelUpRewardEntry {
+  const editorFeature = editorFeatureForLevel(level);
+  if (editorFeature) {
+    return {
+      kind: 'tool',
+      label: `お絵描きツール「${EDITOR_FEATURE_LABELS[editorFeature]}」が使えるようになりました！`,
+      editorFeature,
+    };
+  }
+  return {
+    kind: 'tool',
+    label: '新しいお絵描きツールが使えるようになりました！',
+  };
 }
 
 function canvasLabelForLevel(level: number): string {
@@ -90,13 +117,18 @@ function getMainRewardAtLevel(level: number): LevelUpRewardEntry | null {
   const mod10 = level % 10;
 
   if (level === 10) {
-    return { kind: 'deck_unlock', label: 'デッキ2が使えるようになりました！' };
+    return {
+      kind: 'deck_unlock',
+      label: 'デッキ2が使えるようになりました！',
+      deckUnlockLabel: 'デッキ2解放',
+    };
   }
   const talismanAmount = calcLevelUpTalismanGrant(level);
   if (talismanAmount > 0) {
     return {
       kind: 'talisman',
       label: `護符を${talismanAmount.toLocaleString()}個プレゼントしました`,
+      talismanAmount,
     };
   }
   if (mod10 === 5) {
@@ -106,16 +138,22 @@ function getMainRewardAtLevel(level: number): LevelUpRewardEntry | null {
     return attributeRewardForLevel(level);
   }
   if (mod5 === 2) {
-    return { kind: 'tool', label: toolLabelForLevel(level) };
+    return toolRewardForLevel(level);
   }
   if (mod5 === 3) {
-    return { kind: 'canvas', label: canvasLabelForLevel(level) };
+    const canvasSize = getMaxCanvasSize(level);
+    return {
+      kind: 'canvas',
+      label: canvasLabelForLevel(level),
+      canvasSize,
+    };
   }
   if (mod5 === 4) {
     const amount = calcLevelUpUniversalShards(level);
     return {
       kind: 'limit_break',
       label: `汎用かけら ×${amount.toLocaleString()}`,
+      universalShardAmount: amount,
     };
   }
   return null;
@@ -140,6 +178,7 @@ export function getLevelUpRewardsAtLevel(level: number): LevelUpRewardEntry[] {
     rewards.push({
       kind: 'talisman',
       label: '護符を1個プレゼントしました',
+      talismanAmount: TALISMAN_STARTER_GRANT_COUNT,
     });
     rewards.push({
       kind: 'lost_unlock',

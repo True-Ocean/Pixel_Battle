@@ -1288,6 +1288,237 @@ button.battle-hub-deck-icon.is-move-target {
   cursor: pointer;
 }
 
+/* --- ミッションタブ --- */
+
+.screen-mission {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.mission-subtabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.mission-subtab {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mission-subtab.is-active {
+  border-color: #646cff;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.mission-list-placeholder {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0.5rem;
+  text-align: center;
+}
+
+.level-reward-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.level-reward-row {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 3.1rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.65rem;
+  margin-bottom: 0.4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.level-reward-row.is-earned {
+  background: #f1f5f9;
+  border-color: #dbe3ee;
+  opacity: 0.72;
+}
+
+.level-reward-level {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.level-reward-row.is-earned .level-reward-level {
+  color: #64748b;
+}
+
+.level-reward-icons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.28rem;
+}
+
+.level-reward-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem;
+  min-height: 1.55rem;
+  padding: 0.12rem 0.34rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.level-reward-row.is-earned .level-reward-chip {
+  border-color: #dbe3ee;
+  background: #eef2f6;
+}
+
+.level-reward-icon-coin,
+.level-reward-icon-jewel {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+}
+
+.level-reward-icon-value {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #334155;
+  line-height: 1;
+}
+
+.level-reward-chip-text {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #334155;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.level-reward-row.is-earned .level-reward-chip-text,
+.level-reward-row.is-earned .level-reward-icon-value {
+  color: #64748b;
+}
+
+.level-reward-chip--attribute {
+  border-radius: 8px;
+  padding-inline: 0.28rem;
+}
+
+.level-reward-icon-attribute {
+  transform: scale(0.82);
+  transform-origin: center;
+}
+
+.level-reward-icon-palette {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.25);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.45);
+  flex-shrink: 0;
+}
+
+.level-reward-chip--palette {
+  border-radius: 8px;
+}
+
+.level-reward-icon-talisman {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.level-reward-chip--tool {
+  padding: 0.1rem 0.24rem;
+  border-radius: 8px;
+}
+
+.level-reward-editor-tool-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 6px;
+  background: #eef1f6;
+}
+
+.level-reward-editor-tool-icon .palette-line-icon,
+.level-reward-editor-tool-icon .palette-rectangle-icon,
+.level-reward-editor-tool-icon .palette-circle-icon {
+  transform: scale(0.88);
+}
+
+.level-reward-editor-tool-icon .palette-selection-icon,
+.level-reward-editor-tool-icon .palette-move-icon {
+  transform: scale(0.82);
+}
+
+.level-reward-editor-tool-icon .palette-eraser-icon {
+  transform: scale(0.78);
+}
+
+.level-reward-editor-tool-icon .palette-emoji-icon,
+.level-reward-editor-tool-icon .palette-undo-icon,
+.level-reward-editor-tool-icon .palette-redo-icon,
+.level-reward-editor-tool-icon .palette-zoom-icon {
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.level-reward-editor-tool-icon .palette-clear-label {
+  font-size: 0.52rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.level-reward-editor-tool-icon .brush-size-tool-dot--medium {
+  width: 0.55rem;
+  height: 0.55rem;
+}
+
+.level-reward-chip--text {
+  border-radius: 8px;
+}
+
+.level-reward-chip--shards {
+  border-radius: 8px;
+}
+
+.level-reward-universal-shard-icon {
+  width: 1rem;
+  height: 1rem;
+  font-size: 0.62rem;
+  flex-shrink: 0;
+}
+
 .screen-records {
   flex: 1;
   min-height: 0;

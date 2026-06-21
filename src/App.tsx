@@ -2121,7 +2121,9 @@ function App() {
             }}
           />
         )}
-        {screen === 'mission' && <MissionScreen />}
+        {screen === 'mission' && (
+          <MissionScreen userLevel={user?.level ?? 1} />
+        )}
         {screen === 'battleHub' && (
           <BattleHubScreen
             key={battleHubResetKey}
