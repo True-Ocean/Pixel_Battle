@@ -206,6 +206,7 @@ export type ScreenId =
   | 'setup'
   | 'deck'
   | 'memoryAlbum'
+  | 'mission'
   | 'battleHub'
   | 'records'
   | 'shop'

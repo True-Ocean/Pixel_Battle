@@ -8,8 +8,8 @@ interface DockItem {
 
 const DOCK_ITEMS: DockItem[] = [
   { id: 'deck', label: 'マイデッキ', icon: '🃏' },
+  { id: 'mission', label: 'ミッション', icon: '🎯' },
   { id: 'battleHub', label: 'バトル', icon: '⚔️' },
-  { id: 'records', label: '戦績', icon: '📊' },
   { id: 'shop', label: 'ショップ', icon: '🛒' },
   { id: 'inventory', label: '所持品', icon: '🎒' },
 ];

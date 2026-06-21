@@ -18,6 +18,7 @@ interface BattleHubScreenProps {
     toDeckIndex: number,
     toCardIndex: number,
   ) => void;
+  onOpenRecords: () => void;
 }
 
 export function BattleHubScreen({
@@ -29,6 +30,7 @@ export function BattleHubScreen({
   onGoToMyDeck,
   onReorderDeckAt,
   onMoveCardBetweenDecks,
+  onOpenRecords,
 }: BattleHubScreenProps) {
   const [view, setView] = useState<BattleHubView>('modes');
 
@@ -50,6 +52,16 @@ export function BattleHubScreen({
 
   return (
     <section className="screen screen-battle-hub screen-battle-hub-modes">
+      <button
+        type="button"
+        className="battle-hub-records-btn"
+        aria-label="戦績を見る"
+        onClick={onOpenRecords}
+      >
+        <span className="battle-hub-records-btn-icon" aria-hidden>
+          📊
+        </span>
+      </button>
       <div className="battle-hub-center">
         <div className="battle-hub-mode-list" role="group" aria-label="バトルモード">
           <button

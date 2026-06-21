@@ -62,6 +62,7 @@ import { AppTitle } from './components/AppTitle';
 import { AppDock } from './components/AppDock';
 import { DeckScreen } from './components/DeckScreen';
 import { MemoryAlbumScreen } from './components/MemoryAlbumScreen';
+import { MissionScreen } from './components/MissionScreen';
 import { EditorScreen } from './components/EditorScreen';
 import { BattleHubScreen } from './components/BattleHubScreen';
 import { BattleDeckSelectScreen } from './components/BattleDeckSelectScreen';
@@ -226,7 +227,7 @@ function App() {
     playerDeck: Card[];
     playerLevel: number;
   } | null>(null);
-  const settingsReturnScreenRef = useRef<TabId>('deck');
+  const settingsReturnScreenRef = useRef<ScreenId>('deck');
   userRef.current = user;
   economyRef.current = economy;
   inventoryRef.current = inventory;
@@ -1973,17 +1974,18 @@ function App() {
 
   const showProfileBar =
     isProfileComplete(user) &&
-    (isTabId(screen) || screen === 'memoryAlbum' || isHistoryRematchDeckSelect);
+    (isTabId(screen) ||
+      screen === 'memoryAlbum' ||
+      screen === 'records' ||
+      isHistoryRematchDeckSelect);
   const showDock =
     isDockVisible(screen) ||
     (screen === 'battleSetup' && battleEndDock) ||
     isHistoryRematchDeckSelect;
   const activeTab: TabId = isHistoryRematchDeckSelect
-    ? 'records'
+    ? 'battleHub'
     : screen === 'battleSetup' && battleEndDock
-      ? isHistoryRematch
-        ? 'records'
-        : 'battleHub'
+      ? 'battleHub'
       : isTabId(screen)
         ? screen
         : 'deck';
@@ -2002,7 +2004,7 @@ function App() {
   );
 
   const openSettings = useCallback(() => {
-    if (isTabId(screen)) {
+    if (isTabId(screen) || screen === 'records') {
       settingsReturnScreenRef.current = screen;
     }
     setScreen('settings');
@@ -2010,6 +2012,17 @@ function App() {
 
   const closeSettings = useCallback(() => {
     setScreen(settingsReturnScreenRef.current);
+  }, []);
+
+  const openRecords = useCallback(() => {
+    setBattleEndDock(false);
+    clearHistoryRematch();
+    resetHistoryRematchFlow();
+    setScreen('records');
+  }, [clearHistoryRematch, resetHistoryRematchFlow]);
+
+  const closeRecords = useCallback(() => {
+    setScreen('battleHub');
   }, []);
 
   return (
@@ -2108,6 +2121,7 @@ function App() {
             }}
           />
         )}
+        {screen === 'mission' && <MissionScreen />}
         {screen === 'battleHub' && (
           <BattleHubScreen
             key={battleHubResetKey}
@@ -2119,6 +2133,7 @@ function App() {
             onGoToMyDeck={goToMyDeckWithCard}
             onReorderDeckAt={reorderDeckAt}
             onMoveCardBetweenDecks={moveCardBetweenDecksInHub}
+            onOpenRecords={openRecords}
           />
         )}
         {isHistoryRematchDeckSelect ? (
@@ -2140,6 +2155,7 @@ function App() {
             battleHistory={battleHistory}
             canRematch={hasHistoryRematchDeck(decks, unlockedDeckCount)}
             onRequestRematch={requestHistoryRematch}
+            onBack={closeRecords}
           />
         )}
         {screen === 'shop' && (

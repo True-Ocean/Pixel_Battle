@@ -9,18 +9,25 @@ interface RecordsScreenProps {
   battleHistory: BattleHistoryEntry[];
   canRematch: boolean;
   onRequestRematch: (entry: BattleHistoryEntry) => void;
+  onBack: () => void;
 }
 
 export function RecordsScreen({
   battleHistory,
   canRematch,
   onRequestRematch,
+  onBack,
 }: RecordsScreenProps) {
   const [subTab, setSubTab] = useState<RecordsSubTab>('history');
   const [selectedEntry, setSelectedEntry] = useState<BattleHistoryEntry | null>(null);
 
   return (
     <section className="screen screen-records">
+      <header className="records-header">
+        <button type="button" className="records-back-btn" onClick={onBack}>
+          バトルに戻る
+        </button>
+      </header>
       <div className="records-subtabs" role="tablist" aria-label="戦績">
         <button
           type="button"
