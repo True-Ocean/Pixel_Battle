@@ -1196,7 +1196,7 @@ function BattleBoard({
           kind: 'illuminate' as const,
           fromSide: line.side,
           fromPosition: line.fromPosition,
-          toSide: line.side === 'player' ? 'cpu' : 'player',
+          toSide: line.side === 'player' ? ('cpu' as const) : ('player' as const),
           toPosition: line.toPosition,
         }))
       : []),

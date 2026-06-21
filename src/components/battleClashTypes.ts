@@ -18,11 +18,11 @@ export interface ClashPlayback {
 }
 
 export const CLASH_MS = {
-  enter: 450,
-  impact: 320,
-  damage: 420,
-  bp: 520,
-  exit: 450,
+  enter: 530,
+  impact: 380,
+  damage: 500,
+  bp: 600,
+  exit: 530,
 } as const;
 
 /** 中央衝突時に重ねる高さ（px）。カードの一部だけが重なる量 */
