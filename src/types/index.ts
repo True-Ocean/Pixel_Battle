@@ -202,6 +202,8 @@ export interface SaveData {
   subscription?: UserSubscription;
   /** ミッション進捗 */
   missionState?: MissionState;
+  /** BGM などのサウンド（未設定時はオン） */
+  soundEnabled?: boolean;
 }
 
 /** アプリ画面（ルーターなし・state で切替） */

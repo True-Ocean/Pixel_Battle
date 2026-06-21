@@ -32,6 +32,8 @@ export interface SettingsScreenProps {
   universalShardCount: number;
   talismanCount: number;
   subscriptionLabel: string;
+  soundEnabled: boolean;
+  onSoundEnabledChange: (enabled: boolean) => void;
   onBack?: () => void;
   devCardOptions: DevCardOption[];
   devDeckFillOptions: DevDeckFillOption[];
@@ -58,7 +60,6 @@ interface PlaceholderRow {
 
 const FUTURE_ROWS: PlaceholderRow[] = [
   { label: '通知設定', hint: '準備中' },
-  { label: 'サウンド', hint: '準備中' },
   { label: 'アカウント連携', hint: '準備中' },
   { label: '利用規約', hint: '準備中' },
 ];
@@ -97,6 +98,34 @@ function SettingsRow({
   );
 }
 
+function SettingsToggleRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="settings-row settings-row-toggle">
+      <span className="settings-row-label">{label}</span>
+      <button
+        type="button"
+        className={`settings-toggle${checked ? ' is-on' : ''}`}
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => onChange(!checked)}
+      >
+        <span className="settings-toggle-track">
+          <span className="settings-toggle-thumb" />
+        </span>
+      </button>
+    </div>
+  );
+}
+
 export function SettingsScreen({
   user,
   unlockedDeckCount,
@@ -106,6 +135,8 @@ export function SettingsScreen({
   universalShardCount,
   talismanCount,
   subscriptionLabel,
+  soundEnabled,
+  onSoundEnabledChange,
   onBack,
   devCardOptions,
   devDeckFillOptions,
@@ -371,6 +402,14 @@ export function SettingsScreen({
               />
             </div>
           </div>
+        </SettingsSection>
+
+        <SettingsSection title="サウンド">
+          <SettingsToggleRow
+            label="BGM"
+            checked={soundEnabled}
+            onChange={onSoundEnabledChange}
+          />
         </SettingsSection>
 
         <SettingsSection title="データ">

@@ -3068,6 +3068,48 @@ button.battle-hub-deck-icon.is-move-target {
   text-align: right;
 }
 
+.settings-row-toggle {
+  align-items: center;
+}
+
+.settings-toggle {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.settings-toggle-track {
+  display: block;
+  position: relative;
+  width: 2.75rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  background: #cbd5e1;
+  transition: background 0.2s ease;
+}
+
+.settings-toggle.is-on .settings-toggle-track {
+  background: #3b82f6;
+}
+
+.settings-toggle-thumb {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.settings-toggle.is-on .settings-toggle-thumb {
+  transform: translateX(1.2rem);
+}
+
 .settings-progress-wrap {
   display: flex;
   flex-direction: column;
@@ -11359,7 +11401,7 @@ button.battle-card {
   text-overflow: ellipsis;
 }
 
-.formation-guide-vs {
+.formation-guide-reveal {
   min-height: 3.6rem;
   background: linear-gradient(
     90deg,
@@ -11371,26 +11413,6 @@ button.battle-card {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 2px 10px rgba(99, 102, 241, 0.18);
-}
-
-.formation-vs-label {
-  margin: 0;
-  font-family: 'Oswald', 'Arial Black', Impact, sans-serif;
-  font-size: 3.15rem;
-  font-weight: 700;
-  font-style: italic;
-  line-height: 1;
-  letter-spacing: 0.12em;
-  padding-left: 0.12em;
-  transform: scaleX(1.06);
-  background: linear-gradient(135deg, #db2777 0%, #4f46e5 52%, #7c3aed 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  filter:
-    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.65))
-    drop-shadow(0 3px 10px rgba(79, 70, 229, 0.38));
 }
 
 .formation-slot.is-readonly {
@@ -11699,7 +11721,7 @@ button.battle-card {
   padding-inline: calc(var(--formation-card-w) * 0.45);
 }
 
-.formation-screen.is-reveal-phase .formation-guide-vs {
+.formation-screen.is-reveal-phase .formation-guide-reveal {
   position: static;
   transform: none;
   flex-shrink: 0;

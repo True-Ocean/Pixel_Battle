@@ -90,6 +90,8 @@ import { SetupScreen } from './components/SetupScreen';
 import { TitleScreen } from './components/TitleScreen';
 import { UserProfileBar } from './components/UserProfileBar';
 import { isDockVisible, isTabId, type TabId } from './navigation/screenIds';
+import { normalizeSoundEnabled } from './user/preferences';
+import { useBgm } from './audio/useBgm';
 import './App.css';
 
 function initialScreen(user: UserProfile | null): ScreenId {
@@ -100,6 +102,10 @@ function App() {
   const initialSave = loadSave();
   const [screen, setScreen] = useState<ScreenId>('title');
   const [enterFromTitle, setEnterFromTitle] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() =>
+    normalizeSoundEnabled(initialSave.soundEnabled),
+  );
+  useBgm(screen, soundEnabled);
   const [user, setUser] = useState<UserProfile | null>(initialSave.user);
   const [economy, setEconomy] = useState<UserEconomy>(
     () => initialSave.economy ?? createInitialEconomy(),
@@ -292,6 +298,7 @@ function App() {
       missionState?: MissionState;
       devPreferSavedLevel?: boolean;
       devFileOverrideLevel?: number | null;
+      soundEnabled?: boolean;
     }) => {
       if (next.devPreferSavedLevel !== undefined) {
         devPreferSavedLevelRef.current = next.devPreferSavedLevel;
@@ -321,6 +328,7 @@ function App() {
         shopPurchase: next.shopPurchase ?? shopPurchaseRef.current,
         subscription: next.subscription ?? subscriptionRef.current,
         missionState: next.missionState ?? missionStateRef.current,
+        soundEnabled: next.soundEnabled ?? soundEnabled,
         ...(devPreferSavedLevelRef.current
           ? {
               devPreferSavedLevel: true as const,
@@ -330,7 +338,7 @@ function App() {
           : {}),
       });
     },
-    [activeDeckIndex, adState, decks, economy, inventory, lastBattleDeckIndex, missionState, paletteShopUnlocks, shopPurchase, subscription, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
+    [activeDeckIndex, adState, decks, economy, inventory, lastBattleDeckIndex, missionState, paletteShopUnlocks, shopPurchase, soundEnabled, subscription, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
   );
 
   const reportAndPersistMissionEvents = useCallback(
@@ -576,6 +584,14 @@ function App() {
     setBattleHubResetKey((key) => key + 1);
     setScreen('battleHub');
   }, [clearHistoryRematch, persistSave]);
+
+  const handleCancelHistoryRematch = useCallback(() => {
+    setBattleEndDock(false);
+    clearHistoryRematch();
+    resetHistoryRematchFlow();
+    setBattleSetupKey((key) => key + 1);
+    setScreen('records');
+  }, [clearHistoryRematch, resetHistoryRematchFlow]);
 
   const continueHistoryRematch = useCallback(
     (entry: BattleHistoryEntry) => {
@@ -1648,6 +1664,11 @@ function App() {
     user,
   ]);
 
+  const handleSoundEnabledChange = useCallback((enabled: boolean) => {
+    setSoundEnabled(enabled);
+    persistSave({ soundEnabled: enabled });
+  }, [persistSave]);
+
   const handleDevSetLevel = useCallback(
     (level: number): string => {
       const currentUser = userRef.current;
@@ -2388,6 +2409,8 @@ function App() {
             universalShardCount={inventory.limitBreakUniversal}
             talismanCount={inventory.talisman}
             subscriptionLabel={subscriptionPlanLabel}
+            soundEnabled={soundEnabled}
+            onSoundEnabledChange={handleSoundEnabledChange}
             onBack={closeSettings}
             devCardOptions={devCardOptions}
             devDeckFillOptions={devDeckFillOptions}
@@ -2446,8 +2469,17 @@ function App() {
             opponentIdentity={cpuOpponent}
             isHistoryRematch={isHistoryRematch}
             enableOpponentMatching={!isHistoryRematch}
-            onCancelMatch={isHistoryRematch ? undefined : handleCancelBattleMatch}
-            cancelMatchDisabled={economy.freePixels < BATTLE_MATCH_CANCEL_COST}
+            onCancelMatch={
+              isHistoryRematch
+                ? handleCancelHistoryRematch
+                : handleCancelBattleMatch
+            }
+            cancelMatchDisabled={
+              isHistoryRematch
+                ? false
+                : economy.freePixels < BATTLE_MATCH_CANCEL_COST
+            }
+            cancelMatchShowsCost={!isHistoryRematch}
             cancelMatchCostPx={BATTLE_MATCH_CANCEL_COST}
             onFinish={handleBattleOutcome}
             onNewBattle={

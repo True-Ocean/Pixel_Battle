@@ -46,6 +46,7 @@ import {
   normalizeShopPurchaseState,
   normalizeUserSubscription,
 } from '../user/shop';
+import { normalizeSoundEnabled } from '../user/preferences';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
 export const SAVE_SCHEMA_VERSION = 8;
@@ -455,6 +456,7 @@ export function loadSave(): SaveData {
       missionState: applyMissionResets(
         normalizeMissionState(parsed.missionState),
       ),
+      soundEnabled: normalizeSoundEnabled(parsed.soundEnabled),
       ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
     });
 
@@ -545,6 +547,9 @@ export function saveSave(data: SaveData): void {
   payload.missionState = applyMissionResets(
     normalizeMissionState(data.missionState),
   );
+  if (data.soundEnabled === false) {
+    payload.soundEnabled = false;
+  }
   if (data.devPreferSavedLevel === true) {
     payload.devPreferSavedLevel = true;
     payload.devFileOverrideLevel =

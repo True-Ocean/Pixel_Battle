@@ -119,6 +119,7 @@ interface BattleSetupScreenProps {
   enableOpponentMatching?: boolean;
   onCancelMatch?: () => void;
   cancelMatchDisabled?: boolean;
+  cancelMatchShowsCost?: boolean;
   cancelMatchCostPx?: number;
   onFinish: (outcome: BattleOutcome) => void;
   onNewBattle: () => void;
@@ -502,13 +503,15 @@ function FormationDeckReveal({
   playerIdentity,
   isSearchingOpponent = false,
   revealCountdown,
+  revealCountdownLabel = 'マッチング完了',
 }: {
   playerSlots: Record<BoardPosition, Card | null>;
   cpuSlots: Record<BoardPosition, Card | null>;
   opponentIdentity: BattleZoneIdentity;
   playerIdentity?: BattleZoneIdentity;
   isSearchingOpponent?: boolean;
-  revealCountdown?: number;
+  revealCountdown: number;
+  revealCountdownLabel?: string;
 }) {
   const searchingIdentity: BattleZoneIdentity = {
     name: '？？？',
@@ -566,20 +569,18 @@ function FormationDeckReveal({
       </div>
 
       <div
-        className="formation-guide formation-guide-vs"
+        className="formation-guide formation-guide-reveal"
         aria-label={
           isSearchingOpponent
             ? 'マッチング中'
-            : revealCountdown != null && revealCountdown > 0
-              ? `マッチング完了、バトル準備まで残り${revealCountdown}秒`
-              : '対戦'
+            : `${revealCountdownLabel}、バトル準備まで残り${revealCountdown}秒`
         }
       >
         {isSearchingOpponent ? (
           <span className="formation-match-complete-label">マッチング中</span>
-        ) : revealCountdown != null && revealCountdown > 0 ? (
+        ) : (
           <div className="formation-match-complete-row">
-            <span className="formation-match-complete-label">マッチング完了</span>
+            <span className="formation-match-complete-label">{revealCountdownLabel}</span>
             <div
               className="formation-reveal-countdown"
               aria-live="polite"
@@ -588,10 +589,6 @@ function FormationDeckReveal({
               {revealCountdown}
             </div>
           </div>
-        ) : (
-          <span className="formation-vs-label" aria-hidden>
-            VS
-          </span>
         )}
       </div>
 
@@ -1593,6 +1590,7 @@ export function BattleSetupScreen({
   enableOpponentMatching = false,
   onCancelMatch,
   cancelMatchDisabled = false,
+  cancelMatchShowsCost = true,
   cancelMatchCostPx = 25,
   onFinish,
   onNewBattle,
@@ -1845,14 +1843,16 @@ export function BattleSetupScreen({
   }, []);
 
   useEffect(() => {
-    if (phase !== 'reveal' || !enableOpponentMatching) return;
-    if (revealCountdown <= 0) {
-      handleRevealContinue();
-      return;
-    }
-    const t = window.setTimeout(() => setRevealCountdown((n) => n - 1), 1000);
+    if (phase !== 'reveal') return;
+    const t = window.setTimeout(() => {
+      if (revealCountdown <= 1) {
+        handleRevealContinue();
+      } else {
+        setRevealCountdown((n) => n - 1);
+      }
+    }, 1000);
     return () => window.clearTimeout(t);
-  }, [phase, enableOpponentMatching, revealCountdown, handleRevealContinue]);
+  }, [phase, revealCountdown, handleRevealContinue]);
 
   const handleMainButton = () => {
     if (!ready) {
@@ -1925,10 +1925,17 @@ export function BattleSetupScreen({
   }
 
   const showMatchActionRow =
-    enableOpponentMatching && onCancelMatch != null && (phase === 'matching' || phase === 'reveal');
+    onCancelMatch != null &&
+    (phase === 'reveal' ||
+      (enableOpponentMatching && phase === 'matching'));
 
   const handleCancelMatchRequest = () => {
-    if (phase !== 'reveal' || cancelMatchDisabled || !onCancelMatch) return;
+    if (phase !== 'reveal' || !onCancelMatch) return;
+    if (!cancelMatchShowsCost) {
+      onCancelMatch();
+      return;
+    }
+    if (cancelMatchDisabled) return;
     setCancelConfirmOpen(true);
   };
 
@@ -1973,11 +1980,7 @@ export function BattleSetupScreen({
                 opponentIdentity={resolvedOpponentIdentity}
                 playerIdentity={resolvedPlayerIdentity}
                 isSearchingOpponent={phase === 'matching'}
-                revealCountdown={
-                  phase === 'reveal' && enableOpponentMatching
-                    ? revealCountdown
-                    : undefined
-                }
+                revealCountdown={revealCountdown}
               />
               <div className="formation-reveal-spacer" aria-hidden />
             </>
@@ -2004,29 +2007,29 @@ export function BattleSetupScreen({
               type="button"
               className="formation-cancel-match-btn"
               onClick={handleCancelMatchRequest}
-              disabled={phase === 'matching' || cancelMatchDisabled}
+              disabled={
+                phase === 'matching' ||
+                (cancelMatchShowsCost && cancelMatchDisabled)
+              }
               aria-hidden={phase === 'matching'}
               tabIndex={phase === 'matching' ? -1 : undefined}
-              aria-label={`キャンセル ${cancelMatchCostPx}ピクセルコイン`}
+              aria-label={
+                cancelMatchShowsCost
+                  ? `キャンセル ${cancelMatchCostPx}ピクセルコイン`
+                  : 'キャンセル'
+              }
             >
               <span className="formation-cancel-match-btn-inner">
                 <span className="formation-cancel-match-btn-label">キャンセル</span>
-                <PixelCoinIcon className="formation-cancel-match-coin" />
-                <span className="formation-cancel-match-cost-value">
-                  {cancelMatchCostPx}
-                </span>
+                {cancelMatchShowsCost && (
+                  <>
+                    <PixelCoinIcon className="formation-cancel-match-coin" />
+                    <span className="formation-cancel-match-cost-value">
+                      {cancelMatchCostPx}
+                    </span>
+                  </>
+                )}
               </span>
-            </button>
-          </div>
-        )}
-        {phase === 'reveal' && !showMatchActionRow && (
-          <div className="actions setup-actions formation-actions">
-            <button
-              type="button"
-              className="primary"
-              onClick={handleRevealContinue}
-            >
-              バトル準備
             </button>
           </div>
         )}

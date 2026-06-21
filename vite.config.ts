@@ -15,6 +15,7 @@ export default defineConfig({
         'apple-touch-icon.png',
         'pwa-192x192.png',
         'pwa-512x512.png',
+        'audio/*.mp3',
       ],
       manifest: {
         name: '簡単！真剣！お絵描きピクセルバトル！',
@@ -47,7 +48,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2,mp3}'],
       },
       devOptions: {
         enabled: false,
