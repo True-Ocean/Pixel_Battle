@@ -1,4 +1,4 @@
-/** 全10属性（docs/ATTRIBUTE_SPEC.md §3） */
+/** 全11属性（docs/ATTRIBUTE_SPEC.md §3） */
 export type { MissionState } from '../mission/types';
 export type Attribute =
   | 'attack'
@@ -10,7 +10,8 @@ export type Attribute =
   | 'heal'
   | 'ice'
   | 'storm'
-  | 'ninja';
+  | 'ninja'
+  | 'illuminate';
 
 /** カードレア度（v1 抽選: N / R / SR、将来: UR / L） */
 export type CardRarity = 'N' | 'R' | 'SR' | 'UR' | 'L';

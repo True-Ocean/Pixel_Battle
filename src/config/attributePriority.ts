@@ -12,6 +12,7 @@ export const ATTRIBUTE_PRIORITY: Record<Attribute, number> = {
   ice: 8,
   storm: 9,
   ninja: 10,
+  illuminate: 11,
 };
 
 const RARITY_ORDER: Record<CardRarity, number> = {

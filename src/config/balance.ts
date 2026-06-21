@@ -200,6 +200,9 @@ export const STORM_USES_PER_BATTLE = 2;
 /** 嵐の与ダメ（currentBp × 比率・各ヒット） */
 export const STORM_DAMAGE_RATIO = 0.5;
 
+/** 照属性の基本BP係数（弓・癒と同型）。ATTRIBUTE_SPEC §4.11 */
+export const ILLUMINATE_BP_RATIO = 0.6;
+
 /** 初回セットアップ・ユーザープロフィール */
 export const USER_INITIAL_LEVEL = 1;
 export const MAX_USER_LEVEL = 50;
@@ -243,6 +246,7 @@ export function getUserBaseBp(
   if (attribute === 'heal') return Math.round(attackBase * HEAL_BP_RATIO);
   if (attribute === 'ice') return Math.round(attackBase * ICE_BP_RATIO);
   if (attribute === 'storm') return Math.round(attackBase * STORM_BP_RATIO);
+  if (attribute === 'illuminate') return Math.round(attackBase * ILLUMINATE_BP_RATIO);
   return attackBase;
 }
 
@@ -295,6 +299,7 @@ export const ATTRIBUTE_POWER = {
   ice: { bpWeight: 1, flatBonus: 0 },
   storm: { bpWeight: 1, flatBonus: 0 },
   ninja: { bpWeight: 1, flatBonus: 0 },
+  illuminate: { bpWeight: 1, flatBonus: 0 },
 } as const satisfies Record<
   Attribute,
   { bpWeight: number; flatBonus: number }

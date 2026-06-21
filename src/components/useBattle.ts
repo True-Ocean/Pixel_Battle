@@ -13,6 +13,8 @@ import {
   getPromotableBackPositions,
   getHealSelectionHint,
   getHealTargets,
+  getIlluminateSelectionHint,
+  getIlluminateTargets,
   getSelectionTurn,
   getShieldTargetsForActor,
   getUnitAt,
@@ -64,13 +66,15 @@ export interface BattlePlayback {
   attacks: ReturnType<typeof resolveTurn>['attacks'];
   shields: ReturnType<typeof resolveTurn>['shields'];
   heals: ReturnType<typeof resolveTurn>['heals'];
+  illuminates: ReturnType<typeof resolveTurn>['illuminates'];
   shieldState: BattleState;
-  stateAfterHeal: BattleState;
+  stateAfterHeals: BattleState;
+  stateAfterIlluminates: BattleState;
   pendingNext: BattleState;
   attackIndex: number;
   attackSubPhase: 'damage' | 'bp';
   healSubPhase: 'damage' | 'bp';
-  phase: 'heal' | 'shield' | 'attack' | 'done';
+  phase: 'heal' | 'illuminate' | 'shield' | 'attack' | 'done';
 }
 
 export function useBattle(
@@ -259,12 +263,47 @@ export function useBattle(
         () => {
           const firstAttack = playback.attacks[0];
           const nextPhase =
+            playback.illuminates.length > 0
+              ? 'illuminate'
+              : playback.shields.length > 0
+                ? 'shield'
+                : firstAttack
+                  ? 'attack'
+                  : 'done';
+          if (nextPhase === 'illuminate') {
+            setState(playback.stateAfterHeals);
+          } else if (nextPhase === 'shield' || nextPhase === 'attack') {
+            setState(playback.stateAfterIlluminates);
+            setState(playback.shieldState);
+          } else {
+            setState(playback.stateAfterIlluminates);
+          }
+          setPlayback((p) =>
+            p
+              ? {
+                  ...p,
+                  phase: nextPhase,
+                  attackIndex: 0,
+                  attackSubPhase: 'damage',
+                }
+              : null,
+          );
+        },
+        CLASH_MS.bp,
+      );
+      return () => window.clearTimeout(t);
+    }
+    if (playback.phase === 'illuminate') {
+      const t = window.setTimeout(
+        () => {
+          const firstAttack = playback.attacks[0];
+          const nextPhase =
             playback.shields.length > 0
               ? 'shield'
               : firstAttack
                 ? 'attack'
                 : 'done';
-          setState(playback.stateAfterHeal);
+          setState(playback.stateAfterIlluminates);
           if (nextPhase === 'shield' || nextPhase === 'attack') {
             setState(playback.shieldState);
           }
@@ -279,7 +318,7 @@ export function useBattle(
               : null,
           );
         },
-        CLASH_MS.bp,
+        CLASH_MS.damage + CLASH_MS.bp,
       );
       return () => window.clearTimeout(t);
     }
@@ -387,24 +426,29 @@ export function useBattle(
       const result = resolveTurn(state, { player: playerChoice, cpu: cpuChoice });
       const firstAttack = result.attacks[0];
       const hasHeals = result.heals.length > 0;
-      setState(hasHeals ? state : result.shieldState);
+      const hasIlluminates = result.illuminates.length > 0;
+      setState(hasHeals || hasIlluminates ? state : result.shieldState);
       setPlayback({
         attacks: result.attacks,
         shields: result.shields,
         heals: result.heals,
+        illuminates: result.illuminates,
         shieldState: result.shieldState,
-        stateAfterHeal: result.stateAfterTurnStart,
+        stateAfterHeals: result.stateAfterHeals,
+        stateAfterIlluminates: result.stateAfterIlluminates,
         pendingNext: result.state,
         attackIndex: 0,
         attackSubPhase: 'damage',
         healSubPhase: 'damage',
         phase: hasHeals
           ? 'heal'
-          : result.shields.length > 0
-            ? 'shield'
-            : firstAttack
-              ? 'attack'
-              : 'done',
+          : hasIlluminates
+            ? 'illuminate'
+            : result.shields.length > 0
+              ? 'shield'
+              : firstAttack
+                ? 'attack'
+                : 'done',
       });
       setUiPhase('clash');
     },
@@ -590,6 +634,11 @@ export function useBattle(
           setUiPhase('pickTarget');
           return;
         }
+        if (action === 'illuminate') {
+          setPendingAction(null);
+          setUiPhase('pickTarget');
+          return;
+        }
         setPendingAction(action);
         setUiPhase(
           action === 'grantShield'
@@ -624,6 +673,20 @@ export function useBattle(
       }
       const actor = getUnitAt(state.player, pendingActor);
       if (!actor) return;
+
+      const illuminateTargets = getIlluminateTargets(actor, state.cpu);
+      if (
+        actor.attribute === 'illuminate' &&
+        illuminateTargets.includes(position) &&
+        (pendingAction === 'illuminate' || pendingAction == null)
+      ) {
+        commitTurn({
+          type: 'illuminate',
+          actorPosition: pendingActor,
+          targetPosition: position,
+        });
+        return;
+      }
 
       const targetUnit = getUnitAt(state.cpu, position);
       if (!targetUnit) {
@@ -723,10 +786,17 @@ export function useBattle(
     (position: BoardPosition, side: 'cpu' | 'player' = 'player') => {
       if (effectivePhase === 'pickTarget') {
         if (side === 'cpu' && pendingActor) {
-          const targetUnit = getUnitAt(state.cpu, position);
-          if (targetUnit?.stealthActive) return false;
           const actor = getUnitAt(state.player, pendingActor);
           if (!actor) return false;
+          const illuminateTargets = getIlluminateTargets(actor, state.cpu);
+          if (
+            illuminateTargets.includes(position) &&
+            (pendingAction === 'illuminate' || pendingAction == null)
+          ) {
+            return true;
+          }
+          const targetUnit = getUnitAt(state.cpu, position);
+          if (targetUnit?.stealthActive) return false;
           const actorActions = availableActionsFor(pendingActor);
           const bowTargets = getBowTargets(state.player, state.cpu, pendingActor);
           const meleeTargets = getMeleeTargets(state.cpu);
@@ -861,6 +931,7 @@ export function useBattle(
     }
     if (effectivePhase === 'clash' && playback) {
       if (playback.phase === 'heal') return '回復';
+      if (playback.phase === 'illuminate') return 'ステルス解除';
       if (playback.phase === 'shield') return '盾付与';
       if (playback.phase === 'attack') return '攻撃判定中';
       return '攻撃判定中';
@@ -902,6 +973,16 @@ export function useBattle(
         }
         if (actorActions.includes('storm') && actorActions.length === 1) {
           return '再タップで嵐、それ以外をタップで解除';
+        }
+        if (
+          actor?.attribute === 'illuminate' &&
+          actorActions.includes('illuminate')
+        ) {
+          return getIlluminateSelectionHint(
+            actor,
+            state.cpu,
+            actorActions.includes('meleeAttack'),
+          );
         }
         if (
           actor?.attribute === 'defense' &&

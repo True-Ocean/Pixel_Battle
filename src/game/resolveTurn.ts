@@ -9,6 +9,7 @@ import { getUnitAt } from './battleState';
 import { getDisplayTurn, unitSnapshot } from './battleLogEvent';
 import { applyDefeated } from './turnPhases/defeated';
 import { resolveHeals } from './turnPhases/heals';
+import { resolveIlluminates } from './turnPhases/illuminates';
 import { resolveCombatAttacks } from './turnPhases/combatAttacks';
 import { resolveShields } from './turnPhases/shields';
 import type { ResolveTurnResult } from './turnResult';
@@ -21,7 +22,11 @@ export type {
 } from './turnResult';
 
 function cloneField(field: BattleUnit[]): BattleUnit[] {
-  return field.map((u) => ({ ...u, poisonStacks: u.poisonStacks.map((s) => ({ ...s })) }));
+  return field.map((u) => ({
+    ...u,
+    poisonStacks: u.poisonStacks.map((s) => ({ ...s })),
+    illuminatedNinjaCardIds: [...u.illuminatedNinjaCardIds],
+  }));
 }
 
 function cloneBattleState(state: BattleState): BattleState {
@@ -56,7 +61,11 @@ export function resolveTurn(
 
   const healResult = resolveHeals(next, choices, player, cpu);
   next = healResult.state;
-  const stateAfterTurnStart = cloneBattleState(next);
+  const stateAfterHeals = cloneBattleState(next);
+
+  const illuminateResult = resolveIlluminates(next, choices, player, cpu);
+  next = illuminateResult.state;
+  const stateAfterIlluminates = cloneBattleState(next);
 
   const shieldResult = resolveShields(next, choices, player, cpu);
   next = shieldResult.state;
@@ -76,10 +85,12 @@ export function resolveTurn(
 
   return {
     state: next,
-    stateAfterTurnStart,
+    stateAfterHeals,
+    stateAfterIlluminates,
     shieldState,
     shieldGrants: shieldResult.shieldGrants,
     heals: healResult.heals,
+    illuminates: illuminateResult.illuminates,
     attacks: combatResult.attacks,
     shields: shieldResult.shields,
   };

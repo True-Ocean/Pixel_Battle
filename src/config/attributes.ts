@@ -149,9 +149,24 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
     bg: '#444444',
     border: '#222222',
   },
+  illuminate: {
+    label: '照',
+    ariaName: '照属性',
+    description:
+      '行動時に敵忍1体のステルスを解除できる\n（同じ敵忍は1回まで・前衛は照らすか近接）',
+    battleGuide: [
+      '・後衛時：敵忍1体を選んで照らす（ステルス解除・初回無反撃も失う）',
+      '・前衛時：照らすか近接攻撃のどちらか',
+      '・同じ敵忍は1枚あたり1回まで照らせる',
+      '・照らす行動は癒の後・盾付与・攻撃より先に処理される',
+      '・他属性よりBPが低い',
+    ].join('\n'),
+    bg: '#ffdd66',
+    border: '#ccaa33',
+  },
 };
 
-// 解放順（Lv）: Lv6力 Lv11弓 Lv16両 Lv21毒 Lv26癒 Lv31氷 Lv36嵐 Lv41忍
+// 解放順（Lv）: Lv6力 Lv11弓 Lv16両 Lv21毒 Lv26癒 Lv31氷 Lv36嵐 Lv41忍 Lv46照
 // 詳細: docs/ATTRIBUTE_SPEC.md
 
 export function getAttributeMeta(attribute: Attribute): AttributeMeta {

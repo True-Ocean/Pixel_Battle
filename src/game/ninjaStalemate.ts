@@ -9,6 +9,7 @@ function cloneField(field: BattleUnit[]): BattleUnit[] {
   return field.map((u) => ({
     ...u,
     poisonStacks: u.poisonStacks.map((s) => ({ ...s })),
+    illuminatedNinjaCardIds: [...u.illuminatedNinjaCardIds],
   }));
 }
 

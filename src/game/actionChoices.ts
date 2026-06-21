@@ -7,6 +7,7 @@ import type {
 import { getBowTargets } from './bowCombat';
 import { getDualTargets } from './dualCombat';
 import { getHealTargets } from './healCombat';
+import { getIlluminateTargets } from './illuminateCombat';
 import { getSelectionTurn } from './iceCombat';
 import {
   FRONT_POSITIONS,
@@ -85,6 +86,15 @@ export function enumerateBattleActionChoices(
         actorPosition: position,
         targetPosition: position,
       });
+    }
+    if (actions.includes('illuminate')) {
+      for (const target of getIlluminateTargets(unit, enemyField)) {
+        candidates.push({
+          type: 'illuminate',
+          actorPosition: position,
+          targetPosition: target,
+        });
+      }
     }
   }
 

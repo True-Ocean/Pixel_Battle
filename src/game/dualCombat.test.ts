@@ -34,6 +34,7 @@ describe('dualCombat', () => {
         bowArrowsRemaining: 0,
         stormUsesRemaining: 0,
         ninjaFirstStrikeUsed: false,
+        illuminatedNinjaCardIds: [],
         rarity: 'N' as const,
         stars: 0 as const,
       },

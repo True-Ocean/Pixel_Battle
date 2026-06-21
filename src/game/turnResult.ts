@@ -63,13 +63,22 @@ export interface HealPlayback {
   freezeCleared: boolean;
 }
 
+export interface IlluminatePlayback {
+  side: BattleSide;
+  fromPosition: BoardPosition;
+  toPosition: BoardPosition;
+}
+
 export interface ResolveTurnResult {
   state: BattleState;
-  /** 癒の後、盾付与前 */
-  stateAfterTurnStart: BattleState;
+  /** 癒の後・照の前 */
+  stateAfterHeals: BattleState;
+  /** 癒・照の後、盾付与前 */
+  stateAfterIlluminates: BattleState;
   shieldState: BattleState;
   shieldGrants: ShieldGrants;
   heals: HealPlayback[];
+  illuminates: IlluminatePlayback[];
   attacks: AttackPlayback[];
   shields: ShieldPlayback[];
 }

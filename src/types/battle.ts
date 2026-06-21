@@ -15,7 +15,8 @@ export type BattleActionType =
   | 'bowAttack'
   | 'dualAttack'
   | 'heal'
-  | 'storm';
+  | 'storm'
+  | 'illuminate';
 
 /** 毒 DoT スタック（Phase 4 で付与処理） */
 export interface PoisonStack {
@@ -53,6 +54,8 @@ export interface BattleUnit {
   stormUsesRemaining: number;
   /** 忍初回無反撃を消費したか（Phase 8） */
   ninjaFirstStrikeUsed: boolean;
+  /** 照：この照カードが既に照らした敵忍の cardId（各忍1回まで） */
+  illuminatedNinjaCardIds: string[];
   /** tie-break 用 */
   rarity: CardRarity;
   stars: CardStars;
@@ -94,7 +97,8 @@ export interface BattleEvent {
     | 'storm_cast'
     | 'storm_engulf'
     | 'attack_preempted'
-    | 'stealth_mutual_break';
+    | 'stealth_mutual_break'
+    | 'illuminated';
   turn: number;
   side?: BattleSide;
   actor?: BattleLogUnitSnapshot;

@@ -157,7 +157,7 @@ describe('user inventory', () => {
     expect(filled.limitBreakUniversal).toBe(10);
     expect(filled.limitBreakShards.attack).toBe(10);
     expect(filled.limitBreakShards.ninja).toBe(10);
-    expect(Object.keys(filled.limitBreakShards)).toHaveLength(10);
+    expect(Object.keys(filled.limitBreakShards)).toHaveLength(11);
   });
 
   it('属性かけらと汎用かけらを個別に設定できる', () => {

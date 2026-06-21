@@ -13,6 +13,7 @@ export const ATTRIBUTE_UNLOCK_SCHEDULE: ReadonlyArray<{
   { level: 31, attribute: 'ice' },
   { level: 36, attribute: 'storm' },
   { level: 41, attribute: 'ninja' },
+  { level: 46, attribute: 'illuminate' },
 ];
 
 const BASE_ATTRIBUTES: Attribute[] = ['attack', 'defense'];

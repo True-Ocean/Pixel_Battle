@@ -30,9 +30,10 @@ describe('attributeUnlock', () => {
     expect(levels).toEqual([...levels].sort((a, b) => a - b));
   });
 
-  it('直近解放属性を返す', () => {
-    expect(getLatestUnlockedAttribute(5)).toBeNull();
-    expect(getLatestUnlockedAttribute(6)).toBe('power');
-    expect(getLatestUnlockedAttribute(31)).toBe('ice');
+  it('Lv46で照が解放される', () => {
+    expect(getUnlockedAttributes(45)).not.toContain('illuminate');
+    expect(getUnlockedAttributes(46)).toContain('illuminate');
+    expect(getAttributeUnlockLevel('illuminate')).toBe(46);
+    expect(getLatestUnlockedAttribute(46)).toBe('illuminate');
   });
 });

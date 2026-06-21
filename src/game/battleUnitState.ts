@@ -17,6 +17,7 @@ export function createExtendedBattleUnitState(
   | 'bowArrowsRemaining'
   | 'stormUsesRemaining'
   | 'ninjaFirstStrikeUsed'
+  | 'illuminatedNinjaCardIds'
   | 'rarity'
   | 'stars'
 > {
@@ -33,6 +34,7 @@ export function createExtendedBattleUnitState(
     stormUsesRemaining:
       card.attribute === 'storm' ? STORM_USES_PER_BATTLE : 0,
     ninjaFirstStrikeUsed: false,
+    illuminatedNinjaCardIds: [],
     rarity: card.rarity,
     stars: card.stars,
   };

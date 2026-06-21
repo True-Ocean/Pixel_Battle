@@ -6,6 +6,7 @@ import { getDualTargets } from '../dualCombat';
 import { canUseHealAction } from '../healCombat';
 import { isFrozen } from '../iceCombat';
 import { canUseStormAction } from '../stormCombat';
+import { canUseIlluminateAction } from '../illuminateCombat';
 import {
   canUseShieldAction,
   getMeleeTargets,
@@ -58,6 +59,19 @@ export function getActionTypesForUnit(
     }
     if (canUseStormAction(unit, enemyField)) {
       actions.push('storm');
+    }
+    return actions;
+  }
+
+  if (unit.attribute === 'illuminate') {
+    if (canUseIlluminateAction(unit, enemyField)) {
+      actions.push('illuminate');
+    }
+    if (
+      isFrontPosition(position) &&
+      getMeleeTargets(enemyField).length > 0
+    ) {
+      actions.push('meleeAttack');
     }
     return actions;
   }

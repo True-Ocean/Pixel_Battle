@@ -26,6 +26,7 @@ function unit(
     bowArrowsRemaining: 0,
     stormUsesRemaining: 0,
     ninjaFirstStrikeUsed: false,
+    illuminatedNinjaCardIds: [],
     rarity: 'N',
     stars: 0,
     ...partial,

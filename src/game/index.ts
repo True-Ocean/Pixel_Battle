@@ -32,6 +32,12 @@ export type {
   ShieldPlayback,
 } from './turnResult';
 export {
+  canUseIlluminateAction,
+  getIlluminateSelectionHint,
+  getIlluminateTargets,
+  isValidIlluminateTarget,
+} from './illuminateCombat';
+export {
   canReceiveHeal,
   canUseHealAction,
   calcHealAmount,

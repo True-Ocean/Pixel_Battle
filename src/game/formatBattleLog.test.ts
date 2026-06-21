@@ -255,6 +255,23 @@ describe('formatBattleLog', () => {
     );
   });
 
+  it('照のステルス解除ログに属性・BPを含める', () => {
+    const events: BattleEvent[] = [
+      { type: 'turn_start', turn: 1 },
+      {
+        type: 'illuminated',
+        turn: 1,
+        actor: { name: 'テラスくん', attribute: 'illuminate', bp: 420 },
+        target: { name: 'あかのいし', attribute: 'ninja', bp: 547 },
+      },
+    ];
+
+    const groups = formatBattleLog(events);
+    expect(groups[0].lines[0]).toBe(
+      'テラスくん（照・BP420）があかのいし（忍・BP547）の隠れ身を照らした',
+    );
+  });
+
   it('同一ターン内で2回目以降のカードは名前のみ表示する', () => {
     const events: BattleEvent[] = [
       { type: 'turn_start', turn: 1 },

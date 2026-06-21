@@ -38,7 +38,7 @@ type SlotKey = `${'cpu' | 'player'}:${BoardPosition}`;
 
 interface ArrowLine {
   key: string;
-  kind: 'attack' | 'attack-secondary' | 'shield' | 'heal';
+  kind: 'attack' | 'attack-secondary' | 'shield' | 'heal' | 'illuminate';
   fromSide: 'cpu' | 'player';
   fromPosition: BoardPosition;
   toSide: 'cpu' | 'player';
@@ -82,7 +82,7 @@ interface DamageMarker {
   side: 'cpu' | 'player';
   position: BoardPosition;
   label: string;
-  kind?: 'attack' | 'poison' | 'heal';
+  kind?: 'attack' | 'poison' | 'heal' | 'illuminate';
 }
 
 function FormationZoneBanner({
@@ -793,6 +793,12 @@ function BattleUnitSlot({
   const highlightedHeal = battle.playback?.heals.some(
     (h) => h.side === side && (h.fromPosition === position || h.toPosition === position),
   );
+  const highlightedIlluminate = battle.playback?.illuminates.some(
+    (i) =>
+      (i.side === side && i.fromPosition === position) ||
+      ((i.side === 'player' ? 'cpu' : 'player') === side &&
+        i.toPosition === position),
+  );
   const attackFx = getAttackSlotFx(battle.playback, side, position);
   const healFx = getHealSlotFx(battle.playback, side, position);
   const poisonFx = getPoisonDotSlotFx(battle.turnStartPlayback, side, position);
@@ -829,8 +835,8 @@ function BattleUnitSlot({
       } ${highlightedAttack ? 'is-attack-highlight' : ''} ${
         highlightedShield ? 'is-shield-highlight' : ''
       } ${highlightedHeal ? 'is-heal-highlight' : ''} ${
-        highlightedAttack ? 'is-shaking' : ''
-      } ${targetKind}`}
+        highlightedIlluminate ? 'is-illuminate-highlight' : ''
+      } ${highlightedAttack ? 'is-shaking' : ''} ${targetKind}`}
       onClick={
         battleEnded
           ? undefined
@@ -1010,6 +1016,20 @@ function FormationArrowLayer({
           <path d="M 0 0 L 10 5 L 0 10 z" className="formation-arrow-head-heal" />
         </marker>
         <marker
+          id="formation-arrow-illuminate"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="5"
+          markerHeight="5"
+          orient="auto-start-reverse"
+        >
+          <path
+            d="M 0 0 L 10 5 L 0 10 z"
+            className="formation-arrow-head-illuminate"
+          />
+        </marker>
+        <marker
           id="formation-arrow-attack-secondary"
           viewBox="0 0 10 10"
           refX="8"
@@ -1030,7 +1050,9 @@ function FormationArrowLayer({
             className={
               line.kind === 'attack-secondary'
                 ? 'formation-arrow-outline formation-arrow-outline-secondary'
-                : 'formation-arrow-outline'
+                : line.kind === 'illuminate'
+                  ? 'formation-arrow-outline formation-arrow-outline-illuminate'
+                  : 'formation-arrow-outline'
             }
             x1={line.x1}
             y1={line.y1}
@@ -1110,7 +1132,9 @@ function FormationDamageLayer({
               ? ' formation-damage-float-poison'
               : label.kind === 'heal'
                 ? ' formation-damage-float-heal'
-                : ''
+                : label.kind === 'illuminate'
+                  ? ' formation-damage-float-illuminate'
+                  : ''
           }`}
           style={{ left: label.x, top: label.y }}
         >
@@ -1154,6 +1178,7 @@ function BattleBoard({
       : null;
   const shieldLines = battle.playback?.shields ?? [];
   const healLines = battle.playback?.heals ?? [];
+  const illuminateLines = battle.playback?.illuminates ?? [];
   const arrowLines: ArrowLine[] = [
     ...(battle.playback?.phase === 'heal'
       ? healLines.map((line, index) => ({
@@ -1162,6 +1187,16 @@ function BattleBoard({
           fromSide: line.side,
           fromPosition: line.fromPosition,
           toSide: line.side,
+          toPosition: line.toPosition,
+        }))
+      : []),
+    ...(battle.playback?.phase === 'illuminate'
+      ? illuminateLines.map((line, index) => ({
+          key: `illuminate-${index}-${line.side}-${line.fromPosition}-${line.toPosition}`,
+          kind: 'illuminate' as const,
+          fromSide: line.side,
+          fromPosition: line.fromPosition,
+          toSide: line.side === 'player' ? 'cpu' : 'player',
           toPosition: line.toPosition,
         }))
       : []),
@@ -1256,6 +1291,17 @@ function BattleBoard({
           kind: 'heal',
         });
       }
+    }
+  }
+  if (battle.playback?.phase === 'illuminate') {
+    for (const illuminate of illuminateLines) {
+      damageMarkers.push({
+        key: `illuminate-${illuminate.side}-${illuminate.toPosition}`,
+        side: illuminate.side === 'player' ? 'cpu' : 'player',
+        position: illuminate.toPosition,
+        label: 'ステルス解除',
+        kind: 'illuminate',
+      });
     }
   }
   if (

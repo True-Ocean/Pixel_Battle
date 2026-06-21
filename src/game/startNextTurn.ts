@@ -6,12 +6,16 @@ import { expireFreeze } from './iceCombat';
 import { applyPoisonDoT } from './turnPhases/poisonDoT';
 import type { PoisonDoTPlayback } from './turnResult';
 
-function cloneField<T extends { poisonStacks: { sourceCardId: string; damagePerTurn: number }[] }>(
+function cloneField<T extends {
+  poisonStacks: { sourceCardId: string; damagePerTurn: number }[];
+  illuminatedNinjaCardIds: string[];
+}>(
   field: T[],
 ): T[] {
   return field.map((u) => ({
     ...u,
     poisonStacks: u.poisonStacks.map((s) => ({ ...s })),
+    illuminatedNinjaCardIds: [...u.illuminatedNinjaCardIds],
   }));
 }
 

@@ -28,6 +28,7 @@ function unit(overrides: Partial<BattleUnit> = {}): BattleUnit {
     bowArrowsRemaining: 0,
     stormUsesRemaining: 0,
     ninjaFirstStrikeUsed: false,
+    illuminatedNinjaCardIds: [],
     rarity: 'N',
     stars: 0,
     ...overrides,
