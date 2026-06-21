@@ -19,7 +19,7 @@ export function DeckIntroModal({ onClose }: DeckIntroModalProps) {
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="deck-intro-title" className="help-panel-title">
-          マイデッキへようこそ
+          ピクセルバトルへようこそ
         </h2>
         <ul className="help-panel-list deck-intro-list">
           <li>
@@ -34,7 +34,7 @@ export function DeckIntroModal({ onClose }: DeckIntroModalProps) {
             タブから CPU 戦を始められます。
           </li>
           <li>
-            ミッションタブには、はじめての手順もあります。
+            ミッションタブには、ビギナー用のミッションもあります。
           </li>
         </ul>
         <div className="help-panel-actions">
