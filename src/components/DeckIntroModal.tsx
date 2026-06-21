@@ -27,7 +27,7 @@ export function DeckIntroModal({ onClose }: DeckIntroModalProps) {
           </li>
           <li>
             空きスロットの <strong>「新規作成」</strong>{' '}
-            から、好きな絵と名前でカードを作れます。
+            から、自分が描いたイメージとカード名でカードを作れます。
           </li>
           <li>
             {DECK_MAX} 枚揃ったら、下の <strong>バトル</strong>{' '}
