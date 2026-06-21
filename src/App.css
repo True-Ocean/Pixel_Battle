@@ -2611,6 +2611,25 @@ button.battle-hub-deck-icon.is-move-target {
   margin-top: 0.35rem;
 }
 
+.help-panel-inline-economy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+  vertical-align: middle;
+  margin: 0 0.06rem;
+}
+
+.help-panel-inline-icon {
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
+}
+
+.help-panel-inline-economy-value {
+  font-weight: 600;
+  line-height: 1;
+}
+
 .help-panel-actions {
   display: flex;
   justify-content: center;
@@ -3066,6 +3085,27 @@ button.battle-hub-deck-icon.is-move-target {
   border-bottom: 1px solid #e2e8f0;
   cursor: pointer;
   list-style: none;
+}
+
+.inventory-shards-summary-inner {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.inventory-shards-summary-title {
+  flex-shrink: 0;
+}
+
+.inventory-shards-summary-hint {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.68rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: #94a3b8;
+  text-align: right;
 }
 
 .inventory-shards-summary::-webkit-details-marker {

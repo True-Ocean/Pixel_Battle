@@ -29,8 +29,8 @@ export function HelpPanelModal({ topic, onClose }: HelpPanelModalProps) {
             <section key={section.title} className="help-panel-section">
               <h3 className="help-panel-section-title">{section.title}</h3>
               <ul className="help-panel-list">
-                {section.items.map((item) => (
-                  <li key={item}>{item}</li>
+                {section.items.map((item, index) => (
+                  <li key={`${section.title}-${index}`}>{item}</li>
                 ))}
               </ul>
             </section>

@@ -6,6 +6,7 @@ import { UniversalShardIcon } from './UniversalShardIcon';
 
 const ALL_ATTRIBUTES = Object.keys(ATTRIBUTE_META) as Attribute[];
 const SHARD_NAME_SUFFIX = 'のかけら';
+const SHARD_SECTION_HINT = 'カードの限界突破のために消費する素材';
 
 function formatItemCount(count: number): string {
   return `${count.toLocaleString()}個`;
@@ -87,7 +88,12 @@ export function InventoryScreen({
 
         {hasAnyShards && (
           <details className="inventory-shards" open>
-            <summary className="inventory-shards-summary">属性のかけら</summary>
+            <summary className="inventory-shards-summary">
+              <span className="inventory-shards-summary-inner">
+                <span className="inventory-shards-summary-title">属性のかけら</span>
+                <span className="inventory-shards-summary-hint">{SHARD_SECTION_HINT}</span>
+              </span>
+            </summary>
             <ul className="inventory-shard-list">
               {hasUniversalShards && (
                 <li
