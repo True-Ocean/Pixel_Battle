@@ -127,9 +127,7 @@ interface BattleSetupScreenProps {
   onBattleEndedChange?: (ended: boolean) => void;
 }
 
-type SelectedSetupCard =
-  | { source: 'hand'; index: number }
-  | { source: 'slot'; position: BoardPosition };
+type SelectedSetupSlot = BoardPosition | null;
 
 function shuffle<T>(items: T[]): T[] {
   const arr = [...items];
@@ -354,54 +352,6 @@ function getAttackSlotFx(
         ? { from: bpFrom, to: bpTo, active: true as const }
         : undefined,
   };
-}
-
-function TinyCard({
-  card,
-  side,
-  faceDown = false,
-  selected = false,
-  defeated = false,
-  hidden = false,
-  cardRef,
-  onClick,
-}: {
-  card: Card;
-  side: 'cpu' | 'player';
-  faceDown?: boolean;
-  selected?: boolean;
-  defeated?: boolean;
-  hidden?: boolean;
-  cardRef?: (el: HTMLButtonElement | null) => void;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      ref={cardRef}
-      type="button"
-      className={`formation-tiny-card ${selected ? 'is-selected' : ''} ${
-        defeated ? 'is-defeated' : ''
-      } ${hidden ? 'is-deploy-source-hidden' : ''}`}
-      onClick={onClick}
-      disabled={!onClick}
-      aria-label={faceDown ? '裏向きのカード' : card.name}
-    >
-      <BattleCard
-        name={card.name}
-        pixels={card.pixels}
-        attribute={card.attribute}
-        currentBp={card.bp}
-        variant="compact"
-        fixedSize
-        flipEnabled
-        side={side}
-        rarity={card.rarity}
-        faceDown={faceDown}
-        hideBp={faceDown}
-        dead={defeated}
-      />
-    </button>
-  );
 }
 
 function SetupSlot({
@@ -630,19 +580,15 @@ function FormationDeckReveal({
 function FormationBoardSetup({
   timeLeft,
   playerSlots,
-  playerHand,
-  selected,
+  selectedSlot,
   playerIdentity,
   onSlotClick,
-  onHandClick,
 }: {
   timeLeft: number;
   playerSlots: Record<BoardPosition, Card | null>;
-  playerHand: Card[];
-  selected: SelectedSetupCard | null;
+  selectedSlot: SelectedSetupSlot;
   playerIdentity?: BattleZoneIdentity;
   onSlotClick: (position: BoardPosition) => void;
-  onHandClick: (index: number) => void;
 }) {
   return (
     <div className="formation-setup-body">
@@ -671,11 +617,8 @@ function FormationBoardSetup({
                   position={position}
                   side="player"
                   hideFrame={!!playerSlots[position]}
-                  selected={
-                    selected?.source === 'slot' &&
-                    selected.position === position
-                  }
-                  valid={!!selected}
+                  selected={selectedSlot === position}
+                  valid={selectedSlot != null}
                   onClick={() => onSlotClick(position)}
                 />
               ))}
@@ -688,30 +631,12 @@ function FormationBoardSetup({
                   position={position}
                   side="player"
                   hideFrame={!!playerSlots[position]}
-                  selected={
-                    selected?.source === 'slot' &&
-                    selected.position === position
-                  }
-                  valid={!!selected}
+                  selected={selectedSlot === position}
+                  valid={selectedSlot != null}
                   onClick={() => onSlotClick(position)}
                 />
               ))}
             </div>
-            {playerHand.length > 0 && (
-              <div className="formation-grave formation-hand formation-hand-player">
-                {playerHand.map((card, index) => (
-                  <TinyCard
-                    key={card.id}
-                    card={card}
-                    side="player"
-                    selected={
-                      selected?.source === 'hand' && selected.index === index
-                    }
-                    onClick={() => onHandClick(index)}
-                  />
-                ))}
-              </div>
-            )}
           </div>
           {playerIdentity && (
             <FormationZoneBanner identity={playerIdentity} side="player" />
@@ -1613,7 +1538,6 @@ export function BattleSetupScreen({
   );
   const [revealCountdown, setRevealCountdown] = useState(MATCH_REVEAL_COUNTDOWN_SEC);
   const [timeLeft, setTimeLeft] = useState(SETUP_TIME_LIMIT_SEC);
-  const [playerHand, setPlayerHand] = useState<Card[]>(() => []);
   const [playerSlots, setPlayerSlots] = useState<
     Record<BoardPosition, Card | null>
   >(() => ({ ...playerFormation }));
@@ -1631,7 +1555,7 @@ export function BattleSetupScreen({
   } | null>(null);
   const [cpuDeployCooldown, setCpuDeployCooldown] = useState(false);
   const [cpuMeasureTick, setCpuMeasureTick] = useState(0);
-  const [selected, setSelected] = useState<SelectedSetupCard | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<SelectedSetupSlot>(null);
   const [battleEnded, setBattleEnded] = useState(false);
   const [battleSubView, setBattleSubView] = useState<'play' | 'log'>('play');
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
@@ -1669,7 +1593,6 @@ export function BattleSetupScreen({
     backRight: null,
   });
 
-  const ready = BOARD_POSITIONS.every((position) => playerSlots[position]);
   const battleCards = useMemo(
     () => ({
       player: orderedCards(playerSlots),
@@ -1757,27 +1680,6 @@ export function BattleSetupScreen({
     cpuMeasureTick,
   ]);
 
-  const randomFill = useCallback(() => {
-    const pool = [
-      ...BOARD_POSITIONS.map((position) => playerSlots[position]).filter(
-        (card): card is Card => card != null,
-      ),
-      ...playerHand,
-    ];
-    const cards =
-      pool.length >= DECK_MAX ? shuffle(pool) : shuffle([...playerDeck]);
-    const next = BOARD_POSITIONS.reduce(
-      (acc, position, index) => {
-        acc[position] = cards[index] ?? null;
-        return acc;
-      },
-      {} as Record<BoardPosition, Card | null>,
-    );
-    setPlayerSlots(next);
-    setPlayerHand([]);
-    setSelected(null);
-  }, [playerDeck, playerHand, playerSlots]);
-
   useEffect(() => {
     if (phase === 'battle') {
       setBattleSubView('play');
@@ -1787,54 +1689,32 @@ export function BattleSetupScreen({
   useEffect(() => {
     if (phase !== 'setup') return;
     if (timeLeft <= 0) {
-      if (!ready) randomFill();
       setPhase('battle');
       return;
     }
     const t = window.setTimeout(() => setTimeLeft((n) => n - 1), 1000);
     return () => window.clearTimeout(t);
-  }, [phase, timeLeft, ready, randomFill]);
+  }, [phase, timeLeft]);
 
   const handleSlotClick = (position: BoardPosition) => {
-    if (!selected) {
+    if (selectedSlot == null) {
       if (playerSlots[position]) {
-        setSelected({ source: 'slot', position });
+        setSelectedSlot(position);
       }
       return;
     }
 
-    if (selected.source === 'slot' && selected.position === position) {
-      setSelected(null);
+    if (selectedSlot === position) {
+      setSelectedSlot(null);
       return;
     }
 
     const nextSlots = { ...playerSlots };
-    let nextHand = [...playerHand];
-
-    if (selected.source === 'hand') {
-      const handCard = playerHand[selected.index];
-      if (!handCard) return;
-      const slotCard = nextSlots[position];
-      nextSlots[position] = handCard;
-      nextHand = playerHand.filter((_, index) => index !== selected.index);
-      if (slotCard) nextHand.push(slotCard);
-    } else {
-      const fromCard = nextSlots[selected.position];
-      nextSlots[selected.position] = nextSlots[position];
-      nextSlots[position] = fromCard;
-    }
-
+    const fromCard = nextSlots[selectedSlot];
+    nextSlots[selectedSlot] = nextSlots[position];
+    nextSlots[position] = fromCard;
     setPlayerSlots(nextSlots);
-    setPlayerHand(nextHand);
-    setSelected(null);
-  };
-
-  const handleHandClick = (index: number) => {
-    setSelected((prev) =>
-      prev?.source === 'hand' && prev.index === index
-        ? null
-        : { source: 'hand', index },
-    );
+    setSelectedSlot(null);
   };
 
   const handleRevealContinue = useCallback(() => {
@@ -1855,10 +1735,6 @@ export function BattleSetupScreen({
   }, [phase, revealCountdown, handleRevealContinue]);
 
   const handleMainButton = () => {
-    if (!ready) {
-      randomFill();
-      return;
-    }
     setBattleEnded(false);
     setHistoryRematchRewardPixels(null);
     setPhase('battle');
@@ -1988,11 +1864,9 @@ export function BattleSetupScreen({
             <FormationBoardSetup
               timeLeft={timeLeft}
               playerSlots={playerSlots}
-              playerHand={playerHand}
-              selected={selected}
+              selectedSlot={selectedSlot}
               playerIdentity={resolvedPlayerIdentity}
               onSlotClick={handleSlotClick}
-              onHandClick={handleHandClick}
             />
           )}
         </div>
@@ -2036,7 +1910,7 @@ export function BattleSetupScreen({
         {phase === 'setup' && (
           <div className="actions setup-actions formation-actions">
             <button type="button" className="primary" onClick={handleMainButton}>
-              {ready ? '準備完了' : 'ランダム配置'}
+              準備完了
             </button>
           </div>
         )}
