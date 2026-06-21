@@ -1,7 +1,7 @@
 # 経済・課金・広告 — 実装ロードマップ
 
 **作成日**: 2026-06-14  
-**最終更新**: 2026-06-20（サブスクアップグレード日割り）  
+**最終更新**: 2026-06-21（ミッション MVP・BGM・SE 仕様書・照属性を反映）  
 **ステータス**: 設計合意（議論ベース）・段階実装の指針  
 **関連**: [ECONOMY_SPEC.md](./ECONOMY_SPEC.md)（旧 §10 ポーション/溶解モデルは本書で置き換え）、[PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) §5.9
 
@@ -132,7 +132,7 @@
 
 ---
 
-## 2. 現状（2026-06-20 時点・経済バランス・px 創作コスト反映後）
+## 2. 現状（2026-06-21 時点・経済バランス・px 創作コスト反映後）
 
 | 領域 | 状態 |
 |------|------|
@@ -172,6 +172,12 @@
 | デッキ3〜 💎 解放 | ✅ `unlockDeckWithJewels()`・`canUnlockDeckSlotWithJewels`・`DeckUnlockModal`（フェーズ3） |
 | 💎 不足→ショップ誘導 | **不採用**（deep link は実装しない） |
 | **サブスク特典（§11.5）** | ✅ ライト CM 解除・プレ常時2倍（**フェーズ9 完了**） |
+| **ミッション MVP** | ✅ `MissionScreen`・schema v8・JST 日次/週次リセット・達成トースト/未受取バッジ（[PROTOTYPE §4.8](./PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション)） |
+| **BGM** | ✅ `bgmPlayer` / `soundEnabled` / 設定画面トグル（[PROTOTYPE §4.10](./PROTOTYPE_DEVELOPMENT_SPEC.md#410-サウンドbgm)） |
+| **ヘルプ** | ✅ バトルハブ/エディタ ? モーダル・マイデッキ初回案内（[PROTOTYPE §4.9](./PROTOTYPE_DEVELOPMENT_SPEC.md#49-ヘルプ初回案内)） |
+| **照属性（Lv46）** | ✅ 戦闘実装（[ATTRIBUTE_SPEC §4.11](./ATTRIBUTE_SPEC.md#411-照illuminate実装済み)） |
+| **効果音（SE）** | 仕様のみ — [SFX_SPEC.md](./SFX_SPEC.md) v1（9種・**未実装**） |
+| **UI ナビ** | Dock 再構成（マイデッキ/ミッション/バトル/ショップ/所持品）。戦績はバトルハブ 📊（[PROTOTYPE #48](./PROTOTYPE_DEVELOPMENT_SPEC.md#15-決定履歴サマリ)） |
 
 ---
 
@@ -433,6 +439,7 @@
 | UR / Legend | §14.3 |
 | 勝利時相手カードコレクション | §14.1 脚注（**思い出アルバム**とは別・未実装） |
 | 補欠枠 | §14.2 |
+| **ユーザーレベル上限・キャンバス** | `MAX_USER_LEVEL` を 50 超にする際は [PROTOTYPE §5.7](./PROTOTYPE_DEVELOPMENT_SPEC.md#57-キャンバスサイズとレベル解放) に従い **キャンバス上限も L≡3 帯で +2px 連動拡張**（`canvasUnlock.ts` とセット更新） |
 
 ---
 
@@ -586,6 +593,7 @@ flowchart TD
 18. ~~フェーズ **9** — サブスク特典~~ — **2026-06-20 完了**
 19. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`）
 20. フェーズ **10** — レア抽選・創作ボonus
+21. **効果音 v1** — [SFX_SPEC.md](./SFX_SPEC.md) §12 チェックリスト（素材 + `sfxPlayer` + バトル/ルーレットフック）
 
 **判断待ち（確定済み — 2026-06-20 ショップ設計）**
 

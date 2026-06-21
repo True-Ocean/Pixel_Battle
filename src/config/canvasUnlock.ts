@@ -3,7 +3,7 @@ import { CANVAS_SIZE_DEFAULT } from './balance';
 /** 選択可能な最小一辺長 */
 export const CANVAS_SIZE_MIN = CANVAS_SIZE_DEFAULT;
 
-/** 上限引き上げのマイルストーン（Lv50 上限 34px） */
+/** 上限引き上げのマイルストーン（Lv50 上限 34px）。MAX_USER_LEVEL 引き上げ時は L≡3 帯で配列を延長すること（docs §5.7） */
 export const CANVAS_MAX_MILESTONES = [16, 18, 20, 22, 24, 26, 28, 30, 32, 34] as const;
 
 /** @deprecated CANVAS_MAX_MILESTONES を使用 */

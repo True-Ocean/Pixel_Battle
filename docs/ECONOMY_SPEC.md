@@ -2,10 +2,10 @@
 
 | 項目 | 内容 |
 |------|------|
-| ドキュメント版 | 2.9 |
-| 最終更新 | 2026-06-20（サブスクアップグレード日割り） |
+| ドキュメント版 | 2.11 |
+| 最終更新 | 2026-06-21 |
 | 対象 | ウェブ版（React + Vite + TypeScript）→ 将来 Unity / API |
-| 関連 | [プロトタイプ開発指示書](./PROTOTYPE_DEVELOPMENT_SPEC.md) / [属性・戦闘効果仕様](./ATTRIBUTE_SPEC.md) / [実装ロードマップ](./ECONOMY_ROADMAP.md) |
+| 関連 | [プロトタイプ開発指示書](./PROTOTYPE_DEVELOPMENT_SPEC.md) / [属性・戦闘効果仕様](./ATTRIBUTE_SPEC.md) / [効果音仕様](./SFX_SPEC.md) / [実装ロードマップ](./ECONOMY_ROADMAP.md) |
 
 ---
 
@@ -173,12 +173,12 @@ px = floor(√塗り数 × K × 色係数)
 
 | 項目 | 内容 |
 |------|------|
-| 入口 | **戦績** → **バトル履歴** → 対戦詳細 →「もう一度対戦する」 |
+| 入口 | **バトル**ハブ右上 **📊** → **戦績** → **バトル履歴** → 対戦詳細 →「もう一度対戦する」（[PROTOTYPE §4.6](./PROTOTYPE_DEVELOPMENT_SPEC.md#46-戦績バトル履歴)） |
 | 初回告知 | **再戦時のルール** モーダル（`HistoryRematchRulesModal`）。「今日はこれ以降表示しない」→ JST 日次キー `historyRematchRulesDismissedDayKey` |
 | 広告 | **3回に1回**、ルールモーダル後・**デッキ選択の前** にモックリワード広告（[§11.4](#114-履歴再戦モック)） |
 | デッキ選択 | 通常 CPU 戦と同一 UI（`BattleDeckSelectScreen`）。**5枚揃い** なら **ロストカード含め** 出撃可（`deckReadinessMode="historyRematch"`） |
 | 相手デッキ | 履歴の **カード構成は維持**。**BP のみ** 現在のユーザーレベルで再計算（`prepareHistoryOpponentDeck`） |
-| マッチング演出 | **スキップ**（相手確定済み） |
+| マッチング演出 | **相手探索（matching）はスキップ**（相手確定済み）。**3秒 reveal カウントダウンは実施**（敵5枚は即スロット表示）。キャンセル **px 不要** |
 | 履歴追記 | **しない** |
 | 戦績 | カード `wins` / `losses`・ユーザー戦績は **更新しない** |
 | EXP | **加算しない** |
@@ -940,8 +940,8 @@ interface Card {
   losses: number;
   reviveCount: number;
   createdAt: string;
-  rarity: CardRarity;        // v1 経済以降
-  stars: 0 | 1 | 2 | 3;      // 限界突破（将来）
+  rarity: CardRarity;        // N / R / SR（v1 実装済み）
+  stars: 0 | 1 | 2 | 3;      // 限界突破（v1 実装済み）
   status: CardStatus;          // active | lost
   talismanEquipped: boolean;   // 護符装備
 }
@@ -1230,6 +1230,9 @@ interface MemoryAlbumState {
 | フェーズ 5〜6 | 戦利品かけら・限界突破 UI・均等BP | §4.1, §9.3, §16.9 | ✅ |
 | フェーズ 7 | 広告（モック→SDK） | §11 | 一部 ✅（2倍・履歴再戦・通常戦3回に1回。§11.6 参照） |
 | フェーズ 8〜9 | ショップ・サブスク | §10, §12 | ✅ 完了（[§16.4](#164-ショップ)・§11.5） |
+| — | **ミッション MVP** | [PROTOTYPE §4.8](./PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション) | ✅（schema v8・JST リセット・トースト/バッジ） |
+| — | **BGM** | [PROTOTYPE §4.10](./PROTOTYPE_DEVELOPMENT_SPEC.md#410-サウンドbgm) | ✅ |
+| — | **効果音（SE）v1** | [SFX_SPEC.md](./SFX_SPEC.md) | 仕様のみ（未実装） |
 | フェーズ 10 | レア抽選・創作ボーナス | §9.2 | — |
 | フェーズ 11 | ゴーストデッキ対人・オンライン対人・UR/L 等 | §13, §14 | — |
 
@@ -1455,6 +1458,8 @@ floor( 塗りマス数 × REVIVE_PAINTED_MULTIPLIER × レア倍率 × ★倍率
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.11 | 2026-06-21 | §15.1 `rarity` / `stars` を v1 実装済みに更新 |
+| 2.10 | 2026-06-21 | §4.1.2 履歴再戦の reveal カウントダウンを明記。§18 にミッション MVP・BGM・SE 行を追加 |
 | 2.9 | 2026-06-20 | **§12.1.1 アップグレード日割り** — 差額 `ceil(300×残り比率)`、月次差分も同比率（切り捨て）、UI に残り日数 |
 | 2.8 | 2026-06-20 | **§12.1.1 サブスク排他・アップグレード** — ライト→プレ差額300円、月次差分付与、周期維持、ShopScreen ボタン状態 |
 | 2.7 | 2026-06-20 | **ショップ・サブスク設計確定** — §4.1.1/§11.3 10戦cap廃止→3回に1回、§11.1 2倍対象をEXP+px+かけらに、§10.2/§12 全商品・3タブUI、§12 サブスク500/800円、護符1500px、§11.5 会員CM、§15 SaveData 拡張 |
