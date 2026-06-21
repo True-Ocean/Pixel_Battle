@@ -11,7 +11,10 @@ import {
   reportMissionEvent,
 } from '../mission';
 import { applyMissionResets, getMissionWeekKey } from '../mission/reset';
-import { isMissionClaimable } from '../mission/progress';
+import {
+  isCurrentBeginnerMission,
+  isMissionClaimable,
+} from '../mission/progress';
 
 const monday = new Date('2026-06-14T15:00:00.000Z'); // JST 2026-06-15 Mon
 const tuesday = new Date('2026-06-15T15:00:00.000Z'); // JST 2026-06-16 Tue
@@ -33,6 +36,34 @@ describe('mission reset', () => {
     state = applyMissionResets(state, tuesday);
     expect(state.entries.daily_battle_win).toBeUndefined();
     expect(state.dailyDayKey).toBe('2026-06-16');
+  });
+
+  it('clears weekly progress when week changes', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'battle_win', 3, tuesday).state;
+    expect(state.entries.weekly_battle_win?.progress).toBe(3);
+
+    state = applyMissionResets(state, nextMonday);
+    expect(state.entries.weekly_battle_win).toBeUndefined();
+    expect(state.weeklyWeekKey).toBe('2026-06-22');
+  });
+
+  it('drops unclaimed daily completion on day change', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'app_open', 1, monday).state;
+    expect(isMissionClaimable(state, getMissionById('daily_login')!)).toBe(true);
+
+    state = applyMissionResets(state, tuesday);
+    expect(state.entries.daily_login).toBeUndefined();
+    expect(isMissionClaimable(state, getMissionById('daily_login')!)).toBe(false);
+  });
+
+  it('keeps permanent progress across daily reset', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'battle_win', 5, monday).state;
+
+    state = applyMissionResets(state, tuesday);
+    expect(state.entries.permanent_battle_win_10?.progress).toBe(5);
   });
 });
 
@@ -116,6 +147,23 @@ describe('mission progress and claim', () => {
 
     state = reportMissionEvent(state, 'card_edit_saved', 1, monday).state;
     expect(state.entries.beginner_edit_card?.progress).toBe(1);
+  });
+
+  it('tracks the single active beginner mission', () => {
+    let state = createInitialMissionState(monday);
+    const create = getMissionById('beginner_create_card')!;
+    const edit = getMissionById('beginner_edit_card')!;
+
+    expect(isCurrentBeginnerMission(state, create)).toBe(true);
+    expect(isCurrentBeginnerMission(state, edit)).toBe(false);
+
+    state = reportMissionEvent(state, 'card_created', 1, monday).state;
+    expect(isCurrentBeginnerMission(state, create)).toBe(true);
+
+    const economy = createInitialEconomy();
+    state = claimMission(state, economy, 'beginner_create_card', monday)!.state;
+    expect(isCurrentBeginnerMission(state, create)).toBe(false);
+    expect(isCurrentBeginnerMission(state, edit)).toBe(true);
   });
 
   it('marks beginnerCompleted when all beginner missions are claimed', () => {

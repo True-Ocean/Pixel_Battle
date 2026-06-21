@@ -1505,6 +1505,49 @@ button.battle-hub-deck-icon.is-move-target {
   background: #f8faff;
 }
 
+.mission-card--current {
+  border-color: #818cf8;
+  background: #f5f7ff;
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.12);
+}
+
+.mission-card-step {
+  margin: 0 0 0.12rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #6366f1;
+}
+
+.mission-card-current-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #4338ca;
+}
+
+.mission-beginner-intro {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.7rem 0.15rem;
+}
+
+.mission-beginner-intro-text {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #334155;
+}
+
+.mission-beginner-intro-meta {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .mission-card-top {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 6.7rem 2.85rem;

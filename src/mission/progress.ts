@@ -188,7 +188,7 @@ export function isCurrentBeginnerMission(
   const missions = getBeginnerMissions();
   for (const candidate of missions) {
     if (!isBeginnerMissionUnlocked(candidate, state)) continue;
-    if (!isMissionClaimed(candidate, state)) {
+    if (!isMissionClaimed(state, candidate)) {
       return candidate.id === mission.id;
     }
   }

@@ -1,5 +1,8 @@
-import { getMissionsByCategory } from '../config/missions';
-import { listClaimableMissionsInCategory } from '../mission';
+import { getBeginnerMissions, getMissionsByCategory } from '../config/missions';
+import {
+  isMissionClaimed,
+  listClaimableMissionsInCategory,
+} from '../mission';
 import type { MissionCategory, MissionState } from '../mission/types';
 import { MissionCard } from './MissionCard';
 
@@ -18,8 +21,15 @@ export function MissionListPanel({
   onBulkClaim,
   onChallenge,
 }: MissionListPanelProps) {
-  const missions = getMissionsByCategory(category);
+  const missions =
+    category === 'beginner'
+      ? getBeginnerMissions()
+      : getMissionsByCategory(category);
   const claimableCount = listClaimableMissionsInCategory(missionState, category).length;
+  const beginnerClaimedCount =
+    category === 'beginner'
+      ? missions.filter((mission) => isMissionClaimed(missionState, mission)).length
+      : 0;
 
   if (missions.length === 0) {
     return (
@@ -31,6 +41,16 @@ export function MissionListPanel({
 
   return (
     <div className="mission-list-panel">
+      {category === 'beginner' && (
+        <div className="mission-beginner-intro">
+          <p className="mission-beginner-intro-text">
+            順番に挑戦してクリアしよう
+          </p>
+          <p className="mission-beginner-intro-meta muted">
+            {beginnerClaimedCount} / {missions.length} 受取済み
+          </p>
+        </div>
+      )}
       <div className="mission-list-bulk-row">
         <button
           type="button"
