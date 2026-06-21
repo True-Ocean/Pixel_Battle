@@ -92,6 +92,7 @@ import { DeckIntroModal } from './components/DeckIntroModal';
 import { UserProfileBar } from './components/UserProfileBar';
 import { isDockVisible, isTabId, type TabId } from './navigation/screenIds';
 import { normalizeSoundEnabled } from './user/preferences';
+import { bgmPlayer } from './audio/bgmPlayer';
 import { useBgm } from './audio/useBgm';
 import './App.css';
 
@@ -1688,6 +1689,11 @@ function App() {
   ]);
 
   const handleSoundEnabledChange = useCallback((enabled: boolean) => {
+    // モバイルはユーザー操作の同期コンテキスト内で play() する必要がある
+    if (enabled) {
+      bgmPlayer.unlock();
+    }
+    bgmPlayer.setEnabled(enabled);
     setSoundEnabled(enabled);
     persistSave({ soundEnabled: enabled });
   }, [persistSave]);
