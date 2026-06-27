@@ -68,17 +68,17 @@ describe('mission reset', () => {
 
   it('clears daily progress when day changes', () => {
     let state = createInitialMissionState(monday);
-    state = reportMissionEvent(state, 'battle_win', 1, monday).state;
-    expect(state.entries.daily_battle_win?.progress).toBe(1);
+    state = reportMissionEvent(state, 'cpu_battle_win', 1, monday).state;
+    expect(state.entries.daily_cpu_battle_win_1?.progress).toBe(1);
 
     state = applyMissionResets(state, tuesday);
-    expect(state.entries.daily_battle_win).toBeUndefined();
+    expect(state.entries.daily_cpu_battle_win_1).toBeUndefined();
     expect(state.dailyDayKey).toBe('2026-06-16');
   });
 
   it('clears weekly progress when week changes', () => {
     let state = createInitialMissionState(monday);
-    state = reportMissionEvent(state, 'battle_win', 3, tuesday).state;
+    state = reportMissionEvent(state, 'cpu_battle_win', 3, tuesday).state;
     expect(state.entries.weekly_battle_win?.progress).toBe(3);
 
     state = applyMissionResets(state, nextMonday);
@@ -120,11 +120,51 @@ describe('mission progress and claim', () => {
     const result = applyMissionEvents(state, [
       { type: 'battle_play' },
       { type: 'battle_win' },
+      { type: 'cpu_battle_win' },
     ], monday);
-    expect(result.state.entries.daily_battle_win?.progress).toBe(1);
+    expect(result.state.entries.daily_cpu_battle_win_1?.progress).toBe(1);
     expect(result.state.entries.weekly_battle_play?.progress).toBe(1);
     expect(result.state.entries.weekly_battle_win?.progress).toBe(1);
-    expect(result.newlyCompleted.map((m) => m.id)).toEqual(['daily_battle_win']);
+    expect(result.newlyCompleted.map((m) => m.id)).toEqual(['daily_cpu_battle_win_1']);
+  });
+
+  it('counts cpu and rematch wins separately for daily missions', () => {
+    let state = createInitialMissionState(monday);
+
+    state = applyMissionEvents(state, [
+      { type: 'battle_play' },
+      { type: 'battle_win' },
+      { type: 'cpu_battle_win' },
+    ], monday).state;
+    expect(state.entries.daily_cpu_battle_win_1?.progress).toBe(1);
+    expect(state.entries.daily_history_rematch_win).toBeUndefined();
+
+    state = applyMissionEvents(state, [
+      { type: 'battle_play' },
+      { type: 'history_rematch_play' },
+      { type: 'battle_win' },
+      { type: 'history_rematch_win' },
+    ], monday).state;
+    expect(state.entries.daily_cpu_battle_win_1?.progress).toBe(1);
+    expect(state.entries.daily_history_rematch_win?.progress).toBe(1);
+  });
+
+  it('grants jewel from daily cpu 5-win mission', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'cpu_battle_win', 5, monday).state;
+    const economy = createInitialEconomy();
+    const inventory = createInitialInventory();
+
+    const claimed = claimMission(
+      state,
+      economy,
+      inventory,
+      'daily_cpu_battle_win_5',
+      monday,
+    )!;
+    expect(claimed.pxGranted).toBe(80);
+    expect(claimed.jewelsGranted).toBe(1);
+    expect(claimed.economy.jewels).toBe(1);
   });
 
   it('claims reward and prevents double claim', () => {
@@ -135,8 +175,8 @@ describe('mission progress and claim', () => {
 
     const claimed = claimMission(state, economy, inventory, 'daily_login', monday);
     expect(claimed).not.toBeNull();
-    expect(claimed!.pxGranted).toBe(50);
-    expect(claimed!.economy.freePixels).toBe(50);
+    expect(claimed!.pxGranted).toBe(40);
+    expect(claimed!.economy.freePixels).toBe(40);
     expect(claimed!.state.entries.daily_login?.claimedAt).toBeTruthy();
 
     const again = claimMission(
@@ -180,30 +220,30 @@ describe('mission progress and claim', () => {
   it('bulk claim sums rewards for all claimable missions', () => {
     let state = createInitialMissionState(monday);
     state = reportMissionEvent(state, 'app_open', 1, monday).state;
-    state = reportMissionEvent(state, 'card_created', 1, monday).state;
+    state = reportMissionEvent(state, 'card_edit_saved', 1, monday).state;
 
     const economy = createInitialEconomy();
     const inventory = createInitialInventory();
     const bulk = claimAllMissions(state, economy, inventory, monday);
     expect(bulk.missionIds.sort()).toEqual(
-      ['beginner_create_card', 'daily_card_create', 'daily_login'].sort(),
+      ['daily_card_edit', 'daily_login'].sort(),
     );
-    expect(bulk.pxGranted).toBe(260);
-    expect(bulk.jewelsGranted).toBe(5);
+    expect(bulk.pxGranted).toBe(80);
+    expect(bulk.jewelsGranted).toBe(0);
     expect(isMissionClaimable(bulk.state, getMissionById('daily_login')!)).toBe(false);
   });
 
   it('bulk claim only claims missions in the given category', () => {
     let state = createInitialMissionState(monday);
     state = reportMissionEvent(state, 'app_open', 1, monday).state;
-    state = reportMissionEvent(state, 'card_created', 1, monday).state;
+    state = reportMissionEvent(state, 'card_edit_saved', 1, monday).state;
 
     const economy = createInitialEconomy();
     const inventory = createInitialInventory();
     const bulk = claimMissionsInCategory(state, economy, inventory, 'daily', monday);
-    expect(bulk.missionIds.sort()).toEqual(['daily_card_create', 'daily_login'].sort());
-    expect(bulk.pxGranted).toBe(110);
-    expect(isMissionClaimable(bulk.state, getMissionById('beginner_create_card')!)).toBe(true);
+    expect(bulk.missionIds.sort()).toEqual(['daily_card_edit', 'daily_login'].sort());
+    expect(bulk.pxGranted).toBe(80);
+    expect(isMissionClaimable(bulk.state, getMissionById('beginner_create_card')!)).toBe(false);
   });
 
   it('unlocks beginner missions sequentially after claim', () => {

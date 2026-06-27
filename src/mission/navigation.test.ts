@@ -7,6 +7,7 @@ import {
 describe('mission navigation', () => {
   it('maps event types to challenge targets', () => {
     expect(getMissionChallengeTarget('battle_win')).toEqual({ kind: 'battleHub' });
+    expect(getMissionChallengeTarget('cpu_battle_win')).toEqual({ kind: 'battleHub' });
     expect(getMissionChallengeTarget('battle_play')).toEqual({ kind: 'battleHub' });
     expect(getMissionChallengeTarget('battle_log_viewed')).toEqual({ kind: 'battleHub' });
     expect(getMissionChallengeTarget('card_created')).toEqual({ kind: 'createCard' });
@@ -21,6 +22,7 @@ describe('mission navigation', () => {
       kind: 'records',
     });
     expect(getMissionChallengeTarget('history_rematch_play')).toEqual({ kind: 'records' });
+    expect(getMissionChallengeTarget('history_rematch_win')).toEqual({ kind: 'records' });
     expect(getMissionChallengeTarget('app_open')).toBeNull();
   });
 

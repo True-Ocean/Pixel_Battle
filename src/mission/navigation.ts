@@ -15,6 +15,7 @@ export function getMissionChallengeTarget(
 ): MissionChallengeTarget | null {
   switch (eventType) {
     case 'battle_win':
+    case 'cpu_battle_win':
     case 'battle_play':
     case 'battle_log_viewed':
       return { kind: 'battleHub' };
@@ -30,6 +31,7 @@ export function getMissionChallengeTarget(
       return { kind: 'deckCardDetail' };
     case 'history_opponent_detail_viewed':
     case 'history_rematch_play':
+    case 'history_rematch_win':
       return { kind: 'records' };
     case 'app_open':
       return null;

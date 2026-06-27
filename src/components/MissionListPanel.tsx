@@ -2,6 +2,7 @@ import { getBeginnerMissions, getMissionsByCategory } from '../config/missions';
 import {
   isMissionClaimed,
   listClaimableMissionsInCategory,
+  sortMissionsForDisplay,
 } from '../mission';
 import type { MissionCategory, MissionState } from '../mission/types';
 import { MissionCard } from './MissionCard';
@@ -21,10 +22,14 @@ export function MissionListPanel({
   onBulkClaim,
   onChallenge,
 }: MissionListPanelProps) {
-  const missions =
+  const missions = sortMissionsForDisplay(
     category === 'beginner'
       ? getBeginnerMissions()
-      : getMissionsByCategory(category);
+      : getMissionsByCategory(category),
+    missionState,
+    category,
+  );
+  const reorderCompleted = category !== 'beginner';
   const claimableCount = listClaimableMissionsInCategory(missionState, category).length;
   const beginnerClaimedCount =
     category === 'beginner'
@@ -61,7 +66,15 @@ export function MissionListPanel({
           一括受取
         </button>
       </div>
-      <ul className="mission-card-list" aria-label="ミッション一覧">
+      <ul
+        className={[
+          'mission-card-list',
+          reorderCompleted ? 'mission-card-list--reorder-completed' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        aria-label="ミッション一覧"
+      >
         {missions.map((mission) => (
           <MissionCard
             key={mission.id}

@@ -1524,6 +1524,19 @@ button.battle-hub-deck-icon.is-move-target {
   opacity: 0.82;
 }
 
+.mission-card-list--reorder-completed .mission-card--claimed {
+  opacity: 0.62;
+  border-color: #e8edf2;
+}
+
+.mission-card-list--reorder-completed .mission-card--claimed .mission-card-description {
+  color: #94a3b8;
+}
+
+.mission-card-list--reorder-completed .mission-card--claimed .mission-card-rewards {
+  opacity: 0.72;
+}
+
 .mission-card--claimable {
   border-color: #c7d2fe;
   background: #f8faff;

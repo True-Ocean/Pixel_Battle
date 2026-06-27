@@ -31,6 +31,7 @@ export {
   getMissionChallengeTarget,
 } from './navigation';
 export type { MissionChallengeTarget } from './navigation';
+export { sortMissionsForDisplay } from './display';
 export { formatMissionCompleteToastMessage } from './toast';
 export type {
   MissionBulkClaimResult,

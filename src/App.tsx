@@ -1600,7 +1600,7 @@ function App() {
       const battleMissionEvents: Array<{ type: MissionEventType; amount?: number }> =
         [{ type: 'battle_play' }];
       if (outcome.winner === 'player') {
-        battleMissionEvents.push({ type: 'battle_win' });
+        battleMissionEvents.push({ type: 'battle_win' }, { type: 'cpu_battle_win' });
       }
       const missionResult = applyMissionEvents(
         missionStateRef.current,
@@ -1650,7 +1650,10 @@ function App() {
       const battleMissionEvents: Array<{ type: MissionEventType; amount?: number }> =
         [{ type: 'battle_play' }, { type: 'history_rematch_play' }];
       if (outcome.winner === 'player') {
-        battleMissionEvents.push({ type: 'battle_win' });
+        battleMissionEvents.push(
+          { type: 'battle_win' },
+          { type: 'history_rematch_win' },
+        );
       }
 
       let nextEconomy = economyRef.current;

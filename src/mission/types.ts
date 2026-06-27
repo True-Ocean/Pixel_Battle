@@ -5,6 +5,8 @@ export type MissionCategory = 'daily' | 'weekly' | 'permanent' | 'beginner';
 export type MissionEventType =
   | 'app_open'
   | 'battle_win'
+  | 'cpu_battle_win'
+  | 'history_rematch_win'
   | 'battle_play'
   | 'card_created'
   | 'card_edit_saved'
