@@ -3,10 +3,10 @@ import {
   getSubscriptionPlanById,
   getUniversalShardPackById,
   SUBSCRIPTION_PERIOD_MS,
-  calcProratedMonthlyGrantDelta,
   calcProratedUpgradePriceYen,
   calcSubscriptionRemainingDays,
   calcSubscriptionRemainingRatio,
+  subscriptionMonthlyGrantDelta,
   totalJewelsInPack,
   totalShardsInPack,
   type JewelPackId,
@@ -296,14 +296,13 @@ function applySubscriptionMonthlyGrant(
   return { economy: nextEconomy, inventory: nextInventory };
 }
 
-function applyProratedSubscriptionGrantDelta(
+function applySubscriptionGrantDelta(
   economy: UserEconomy,
   inventory: UserInventory,
   from: Exclude<SubscriptionPlanId, 'none'>,
   to: Exclude<SubscriptionPlanId, 'none'>,
-  ratio: number,
 ): { economy: UserEconomy; inventory: UserInventory } {
-  const delta = calcProratedMonthlyGrantDelta(from, to, ratio);
+  const delta = subscriptionMonthlyGrantDelta(from, to);
   let nextEconomy = economy;
   if (delta.pixels > 0) {
     nextEconomy = addFreePixels(nextEconomy, delta.pixels);
@@ -352,12 +351,11 @@ export function mockSubscribe(
 
     const premium = getSubscriptionPlanById('premium');
     const upgradePriceYen = calcProratedUpgradePriceYen(ratio);
-    const granted = applyProratedSubscriptionGrantDelta(
+    const granted = applySubscriptionGrantDelta(
       economy,
       inventory,
       'light',
       'premium',
-      ratio,
     );
     return {
       ok: true,

@@ -111,7 +111,7 @@ describe('mockSubscribe', () => {
     expect(outcome.result.subscription.nextGrantAt).toBeTruthy();
   });
 
-  it('upgrades light to premium with prorated price and grant', () => {
+  it('upgrades light to premium with prorated price and full grant delta', () => {
     const now = Date.parse('2026-06-20T00:00:00+09:00');
     const expiresAt = new Date(now + 5 * 86_400_000).toISOString();
     const nextGrantAt = new Date(now + 15 * 86_400_000).toISOString();
@@ -143,9 +143,9 @@ describe('mockSubscribe', () => {
     expect(upgrade.result.subscription.plan).toBe('premium');
     expect(upgrade.result.subscription.expiresAt).toBe(expiresAt);
     expect(upgrade.result.subscription.nextGrantAt).toBe(nextGrantAt);
-    expect(upgrade.result.economy.freePixels).toBe(1166);
-    expect(upgrade.result.economy.jewels).toBe(291);
-    expect(upgrade.result.inventory.talisman).toBe(1);
+    expect(upgrade.result.economy.freePixels).toBe(2000);
+    expect(upgrade.result.economy.jewels).toBe(500);
+    expect(upgrade.result.inventory.talisman).toBe(2);
     expect(upgrade.result.message).toContain('差額50');
     expect(upgrade.result.message).toContain('残り5日分');
   });

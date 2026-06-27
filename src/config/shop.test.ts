@@ -5,7 +5,6 @@ import {
   SUBSCRIPTION_PERIOD_MS,
   SUBSCRIPTION_UPGRADE_LIGHT_TO_PREMIUM_YEN,
   UNIVERSAL_SHARD_PACKS,
-  calcProratedMonthlyGrantDelta,
   calcProratedUpgradePriceYen,
   calcSubscriptionRemainingDays,
   calcSubscriptionRemainingRatio,
@@ -49,15 +48,10 @@ describe('shop catalog', () => {
     });
   });
 
-  it('prorates upgrade price and grant delta by remaining period', () => {
+  it('prorates upgrade price by remaining period', () => {
     const ratio = 5 / 30;
     expect(calcProratedUpgradePriceYen(ratio)).toBe(50);
     expect(calcProratedUpgradePriceYen(1)).toBe(300);
-    expect(calcProratedMonthlyGrantDelta('light', 'premium', ratio)).toEqual({
-      pixels: 166,
-      jewels: 41,
-      talismans: 0,
-    });
   });
 
   it('calculates remaining ratio from expiresAt', () => {

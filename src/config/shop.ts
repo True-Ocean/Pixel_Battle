@@ -134,23 +134,6 @@ export function calcProratedUpgradePriceYen(ratio: number): number {
   );
 }
 
-/** 月次付与差分の日割り（切り捨て） */
-export function calcProratedMonthlyGrantDelta(
-  from: Exclude<SubscriptionPlanId, 'none'>,
-  to: Exclude<SubscriptionPlanId, 'none'>,
-  ratio: number,
-): { pixels: number; jewels: number; talismans: number } {
-  const delta = subscriptionMonthlyGrantDelta(from, to);
-  if (ratio <= 0) {
-    return { pixels: 0, jewels: 0, talismans: 0 };
-  }
-  return {
-    pixels: Math.floor(delta.pixels * ratio),
-    jewels: Math.floor(delta.jewels * ratio),
-    talismans: Math.floor(delta.talismans * ratio),
-  };
-}
-
 export function getSubscriptionPlanById(
   id: Exclude<SubscriptionPlanId, 'none'>,
 ): SubscriptionPlanDefinition {
