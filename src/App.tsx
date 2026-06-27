@@ -6,7 +6,7 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, type LimitBreakShardSpendPlan } from './card';
+import { applyCardSurvivalRecords, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
@@ -1523,19 +1523,16 @@ function App() {
       if (toastMessage) {
         setMissionCompleteToast(toastMessage);
       }
-      saveSave({
-        schemaVersion: initialSave.schemaVersion,
+      persistSave({
         user: nextUser,
         economy: nextEconomy,
         inventory: nextInventory,
-        adState: adStateRef.current,
         talismanStarterGranted: nextTalismanStarterGranted,
         decks: nextDecks,
         activeDeckIndex: deckIndex,
         lastBattleDeckIndex: lastBattleIndex,
         unlockedDeckCount: nextUnlockedDeckCount,
         battleHistory: nextHistory,
-        deckNames: deckNamesRef.current,
         missionState: nextMissionState,
       });
       setLastBattleDeckIndex(lastBattleIndex);
@@ -1551,7 +1548,7 @@ function App() {
       setDecks(nextDecks);
       setBattleHistory(nextHistory);
     },
-    [initialSave.schemaVersion],
+    [persistSave],
   );
 
   const finalizeHistoryRematchOutcome = useCallback(

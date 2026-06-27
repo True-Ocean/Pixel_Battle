@@ -43,7 +43,7 @@ describe('paletteUnlock', () => {
     expect(isPaletteUnlocked(8, 50, [])).toBe(false);
     expect(isPaletteUnlocked(8, 50, [8])).toBe(true);
     expect(isPaletteUnlocked(12, 50, [12])).toBe(true);
-    expect(isPaletteUnlocked(8, 49, [8])).toBe(false);
+    expect(isPaletteUnlocked(8, 49, [8])).toBe(true);
     expect(getUnlockedPaletteIndices(50, [8, 12])).toEqual([
       0, 1, 2, 3, 4, 5, 6, 7, 8, 12,
     ]);

@@ -87,6 +87,11 @@ describe('resetBattleRecords', () => {
       activeDeckIndex: 0,
       lastBattleDeckIndex: 0,
       unlockedDeckCount: 1,
+      paletteShopUnlocks: [8],
+      subscription: {
+        plan: 'premium',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+      },
     };
 
     expect(resetBattleRecords(save)).toEqual({
@@ -126,6 +131,11 @@ describe('resetBattleRecords', () => {
       unlockedDeckCount: 1,
       battleHistory: [],
       talismanStarterGranted: false,
+      paletteShopUnlocks: [8],
+      subscription: {
+        plan: 'premium',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+      },
     });
   });
 });

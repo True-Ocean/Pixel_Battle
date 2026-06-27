@@ -177,8 +177,8 @@ export function isPaletteUnlocked(
     return isPaletteUnlockedAtLevel(paletteIndex, userLevel);
   }
   if (!isJewelPaletteIndex(paletteIndex)) return false;
-  if (!isPaletteShopUnlocked(paletteIndex, shopUnlocks)) return false;
-  return canOfferPaletteJewelPurchase(paletteIndex, userLevel);
+  if (isPaletteShopUnlocked(paletteIndex, shopUnlocks)) return true;
+  return false;
 }
 
 export function canOfferPaletteShopPurchase(

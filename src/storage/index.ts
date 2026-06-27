@@ -506,60 +506,116 @@ export function loadSave(): SaveData {
   }
 }
 
+function mergeWithStoredSave(data: SaveData): SaveData {
+  if (typeof localStorage === 'undefined') return data;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return data;
+    const stored = JSON.parse(raw) as Record<string, unknown>;
+    return {
+      ...data,
+      paletteShopUnlocks:
+        data.paletteShopUnlocks ??
+        normalizePaletteShopUnlocks(stored.paletteShopUnlocks),
+      editorShopUnlocks:
+        data.editorShopUnlocks ??
+        normalizeEditorShopUnlocks(stored.editorShopUnlocks),
+      subscription:
+        data.subscription ??
+        normalizeUserSubscription(stored.subscription),
+      shopPurchase:
+        data.shopPurchase ??
+        normalizeShopPurchaseState(stored.shopPurchase),
+      memoryAlbum:
+        data.memoryAlbum ??
+        normalizeMemoryAlbum(stored.memoryAlbum),
+      missionState:
+        data.missionState ??
+        applyMissionResets(normalizeMissionState(stored.missionState)),
+      soundEnabled:
+        data.soundEnabled ?? normalizeSoundEnabled(stored.soundEnabled),
+      deckIntroSeen:
+        data.deckIntroSeen ??
+        (stored.deckIntroSeen === true ? true : undefined),
+      talismanStarterGranted:
+        data.talismanStarterGranted ??
+        (stored.talismanStarterGranted === true ? true : undefined),
+      devPreferSavedLevel:
+        data.devPreferSavedLevel ??
+        (stored.devPreferSavedLevel === true ? true : undefined),
+      devFileOverrideLevel:
+        data.devFileOverrideLevel ??
+        (typeof stored.devFileOverrideLevel === 'number'
+          ? stored.devFileOverrideLevel
+          : undefined),
+      deckNames:
+        data.deckNames ??
+        (Array.isArray(stored.deckNames)
+          ? stored.deckNames.filter(
+              (name): name is string => typeof name === 'string',
+            )
+          : undefined),
+    };
+  } catch {
+    return data;
+  }
+}
+
 export function saveSave(data: SaveData): void {
+  const merged = mergeWithStoredSave(data);
   const payload: Record<string, unknown> = {
-    schemaVersion: data.schemaVersion ?? SAVE_SCHEMA_VERSION,
-    user: data.user,
-    economy: data.economy ?? createInitialEconomy(),
-    inventory: data.inventory ?? createInitialInventory(),
-    adState: data.adState ?? createInitialAdState(),
-    decks: normalizeDeckSlots(data.decks).map((deck) => deck.slice(0, DECK_MAX)),
-    activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
+    schemaVersion: merged.schemaVersion ?? SAVE_SCHEMA_VERSION,
+    user: merged.user,
+    economy: merged.economy ?? createInitialEconomy(),
+    inventory: merged.inventory ?? createInitialInventory(),
+    adState: merged.adState ?? createInitialAdState(),
+    decks: normalizeDeckSlots(merged.decks).map((deck) => deck.slice(0, DECK_MAX)),
+    activeDeckIndex: clampDeckSlotIndex(merged.activeDeckIndex),
     lastBattleDeckIndex: clampDeckSlotIndex(
-      data.lastBattleDeckIndex ?? data.activeDeckIndex,
+      merged.lastBattleDeckIndex ?? merged.activeDeckIndex,
     ),
-    unlockedDeckCount: clampUnlockedDeckCount(data.unlockedDeckCount),
-    deckNames: data.deckNames,
-    battleHistory: data.battleHistory ?? [],
+    unlockedDeckCount: clampUnlockedDeckCount(merged.unlockedDeckCount),
+    deckNames: merged.deckNames,
+    battleHistory: merged.battleHistory ?? [],
   };
-  if (data.talismanStarterGranted === true) {
+  if (merged.talismanStarterGranted === true) {
     payload.talismanStarterGranted = true;
   }
-  const paletteShopUnlocks = normalizePaletteShopUnlocks(data.paletteShopUnlocks);
+  const paletteShopUnlocks = normalizePaletteShopUnlocks(merged.paletteShopUnlocks);
   if (paletteShopUnlocks.length > 0) {
     payload.paletteShopUnlocks = paletteShopUnlocks;
   }
-  const editorShopUnlocks = normalizeEditorShopUnlocks(data.editorShopUnlocks);
+  const editorShopUnlocks = normalizeEditorShopUnlocks(merged.editorShopUnlocks);
   if (editorShopUnlocks.length > 0) {
     payload.editorShopUnlocks = editorShopUnlocks;
   }
-  payload.memoryAlbum = normalizeMemoryAlbum(data.memoryAlbum);
-  const shopPurchase = normalizeShopPurchaseState(data.shopPurchase);
+  payload.memoryAlbum = normalizeMemoryAlbum(merged.memoryAlbum);
+  const shopPurchase = normalizeShopPurchaseState(merged.shopPurchase);
   if (
     shopPurchase.jewelPack200FirstBonusUsed === true ||
     shopPurchase.shopShardPurchasesDayKey != null
   ) {
     payload.shopPurchase = shopPurchase;
   }
-  const subscription = normalizeUserSubscription(data.subscription);
+  const subscription = normalizeUserSubscription(merged.subscription);
   if (subscription.plan !== 'none') {
     payload.subscription = subscription;
   }
   payload.missionState = applyMissionResets(
-    normalizeMissionState(data.missionState),
+    normalizeMissionState(merged.missionState),
   );
-  if (data.soundEnabled === true) {
+  if (merged.soundEnabled === true) {
     payload.soundEnabled = true;
-  } else if (data.soundEnabled === false) {
+  } else if (merged.soundEnabled === false) {
     payload.soundEnabled = false;
   }
-  if (data.deckIntroSeen === true) {
+  if (merged.deckIntroSeen === true) {
     payload.deckIntroSeen = true;
   }
-  if (data.devPreferSavedLevel === true) {
+  if (merged.devPreferSavedLevel === true) {
     payload.devPreferSavedLevel = true;
     payload.devFileOverrideLevel =
-      data.devFileOverrideLevel ?? DEV_USER_LEVEL_OVERRIDE ?? null;
+      merged.devFileOverrideLevel ?? DEV_USER_LEVEL_OVERRIDE ?? null;
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
@@ -575,6 +631,7 @@ export function resetBattleHistory(data: SaveData): SaveData {
 /** 開発用: ユーザー戦績とカード勝敗などを初期化（デッキ内容・ユーザー名は維持） */
 export function resetBattleRecords(data: SaveData): SaveData {
   return {
+    ...data,
     schemaVersion: data.schemaVersion ?? SAVE_SCHEMA_VERSION,
     user: data.user
       ? {
@@ -594,7 +651,6 @@ export function resetBattleRecords(data: SaveData): SaveData {
       data.lastBattleDeckIndex ?? data.activeDeckIndex,
     ),
     unlockedDeckCount: clampUnlockedDeckCount(data.unlockedDeckCount),
-    deckNames: data.deckNames,
     battleHistory: [],
     talismanStarterGranted: false,
   };
