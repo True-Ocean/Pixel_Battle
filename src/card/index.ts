@@ -22,6 +22,13 @@ export {
   validateCardNameForCreation,
   getCardNameHalfUnits,
 } from './cardNameInput';
+export {
+  sanitizeCardUserNoteInput,
+  finalizeCardUserNote,
+  applyUserNoteToCard,
+  hasCardUserNote,
+  formatCardUserNoteLimitLabel,
+} from './cardNoteInput';
 export { computeColorRatios, normalizePixelColor } from './colors';
 export {
   rollRarity,

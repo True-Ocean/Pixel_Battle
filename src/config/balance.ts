@@ -19,6 +19,10 @@ export const DECK_NAME_MAX_LENGTH = 12;
 export const CARD_NAME_MAX_LENGTH = 10;
 /** カード名の最大半角ユニット（半角1・全角2。10全角＝20半角） */
 export const CARD_NAME_MAX_HALF_UNITS = CARD_NAME_MAX_LENGTH * 2;
+/** カードノートの最大文字数（全角換算） */
+export const CARD_USER_NOTE_MAX_LENGTH = 100;
+/** カードノートの最大半角ユニット（半角1・全角2。100全角＝200半角） */
+export const CARD_USER_NOTE_MAX_HALF_UNITS = CARD_USER_NOTE_MAX_LENGTH * 2;
 export const FRONT_SIZE = 2;
 export const BACK_SIZE = 3;
 export const FIELD_SIZE = 3;

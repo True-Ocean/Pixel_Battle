@@ -5999,6 +5999,201 @@ button.battle-hub-deck-icon.is-move-target {
   font-weight: 600;
 }
 
+.card-note-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(10, 12, 20, 0.62);
+}
+
+.card-note-panel {
+  width: min(100%, 22rem);
+  padding: 1.15rem 1rem 1rem;
+  border-radius: 14px;
+  background: #fffdf8;
+  border: 1px solid rgba(100, 108, 255, 0.28);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+}
+
+.card-note-panel--view {
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.card-note-view-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+  min-width: 0;
+}
+
+.card-note-view-header-icon {
+  flex: 0 0 auto;
+  width: 1.35rem;
+  height: 1.35rem;
+  color: #4338ca;
+}
+
+.card-note-view-title {
+  margin: 0;
+  min-width: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #1a1a22;
+}
+
+.card-note-title {
+  margin: 0 0 0.55rem;
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: #1a1a22;
+}
+
+.card-note-message {
+  margin: 0 0 0.75rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.card-note-limit-label {
+  display: inline-block;
+  margin-left: 0.15rem;
+}
+
+.card-note-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.card-note-textarea {
+  width: 100%;
+  min-height: 7.5rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #c8c8d0;
+  background: #fff;
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.card-note-textarea:focus {
+  outline: 2px solid rgba(100, 108, 255, 0.35);
+  border-color: #646cff;
+}
+
+.card-note-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.card-note-view-body {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #2a2a34;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: min(50vh, 16rem);
+  overflow-y: auto;
+}
+
+.card-note-panel--view .card-note-view-body {
+  margin-bottom: 0;
+}
+
+.card-note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.card-note-actions--single {
+  justify-content: stretch;
+}
+
+.card-note-actions--single .card-note-save {
+  width: 100%;
+}
+
+.card-note-cancel,
+.card-note-save {
+  min-height: 2.55rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.card-note-cancel {
+  border: 1px solid #bbb;
+  background: #f0f0f4;
+  color: inherit;
+}
+
+.card-note-save {
+  border: none;
+  background: linear-gradient(180deg, #646cff 0%, #535bf2 100%);
+  color: #fff;
+  font-weight: 600;
+}
+
+.card-note-icon-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.35rem;
+  border-radius: 8px;
+  border: 1px solid #c8c8d4;
+  background: linear-gradient(180deg, #fff 0%, #f4f4f8 100%);
+  color: #667;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-note-icon-btn--filled {
+  border-color: #a5b4fc;
+  background: linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%);
+  color: #4338ca;
+}
+
+.card-note-icon-btn-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: block;
+}
+
+.deck-detail-card-note-btn {
+  position: absolute;
+  right: 0.15rem;
+  bottom: 0.1rem;
+  z-index: 5;
+  min-width: 2.35rem;
+  min-height: 2.35rem;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+}
+
 .deck-screen-footer-hint {
   margin: 0;
   font-size: 0.78rem;

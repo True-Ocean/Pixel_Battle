@@ -46,6 +46,8 @@ export interface Card {
   talismanEquipped?: boolean;
   /** 有償リネームの実行回数（0 = 初回リネームは px） */
   renameCount?: number;
+  /** ユーザーが付けたメモ（改行可・全角100文字相当まで） */
+  userNote?: string;
   createdAt: string;
 }
 

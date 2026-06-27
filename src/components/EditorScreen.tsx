@@ -25,6 +25,8 @@ import {
   sanitizeCardNameInput,
   updateCardFromDrawing,
   validateCardNameForCreation,
+  applyUserNoteToCard,
+  finalizeCardUserNote,
 } from '../card';
 import { AttributeCreateRouletteModal } from './AttributeCreateRouletteModal';
 import { getEditorHelp } from '../config/helpContent';
@@ -62,6 +64,8 @@ import {
 import { PixelCanvas, type PixelCanvasHandle } from './PixelCanvas';
 import { ToolStrip } from './ToolStrip';
 import { PixelCoinIcon } from './PixelCoinIcon';
+import { CardNoteEditModal } from './CardNoteEditModal';
+import { CardNoteIconButton } from './CardNoteIconButton';
 
 interface EditorScreenProps {
   deckCount: number;
@@ -141,6 +145,7 @@ export function EditorScreen({
   );
 
   const [name, setName] = useState(() => editTarget?.name ?? '');
+  const [userNote, setUserNote] = useState(() => editTarget?.userNote ?? '');
   const [canvasSize, setCanvasSize] = useState<number>(() => {
     if (isEditing && editTarget) {
       return editCanvasSize;
@@ -180,6 +185,7 @@ export function EditorScreen({
   const [featureUnlockId, setFeatureUnlockId] =
     useState<EditorShopUnlockId | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [noteEditOpen, setNoteEditOpen] = useState(false);
   const [pendingCanvasUpgradeSize, setPendingCanvasUpgradeSize] =
     useState<number | null>(null);
   const isComposingNameRef = useRef(false);
@@ -380,12 +386,15 @@ export function EditorScreen({
     }
     try {
       if (isEditing && editTarget) {
-        const card = updateCardFromDrawing(
-          editTarget,
-          name,
-          pixels,
-          userLevel,
-          { paletteShopUnlocks },
+        const card = applyUserNoteToCard(
+          updateCardFromDrawing(
+            editTarget,
+            name,
+            pixels,
+            userLevel,
+            { paletteShopUnlocks },
+          ),
+          userNote,
         );
         onUpdated?.(card);
       } else {
@@ -394,12 +403,15 @@ export function EditorScreen({
           setError(nameError);
           return;
         }
-        const card = createCardFromDrawing(name, pixels, {
-          userLevel,
-          paletteShopUnlocks,
-          canvasSize,
-          ...(forceAttribute ? { forceAttribute } : {}),
-        });
+        const card = applyUserNoteToCard(
+          createCardFromDrawing(name, pixels, {
+            userLevel,
+            paletteShopUnlocks,
+            canvasSize,
+            ...(forceAttribute ? { forceAttribute } : {}),
+          }),
+          userNote,
+        );
         onCreated(card);
       }
       onBack();
@@ -479,12 +491,15 @@ export function EditorScreen({
     setError(null);
     try {
       const previousBp = editTarget.bp;
-      const card = updateCardFromDrawing(
-        editTarget,
-        name,
-        pixels,
-        userLevel,
-        { paletteShopUnlocks },
+      const card = applyUserNoteToCard(
+        updateCardFromDrawing(
+          editTarget,
+          name,
+          pixels,
+          userLevel,
+          { paletteShopUnlocks },
+        ),
+        userNote,
       );
       const spentPx = getEditorSaveTotalPixelCost(saveCharges);
       setSaveConfirmPending({
@@ -533,6 +548,7 @@ export function EditorScreen({
     !isEditing ||
     !saveCharges ||
     canAffordEditorSave({ freePixels }, saveCharges);
+  const noteFilled = finalizeCardUserNote(userNote) != null;
 
   return (
     <section className="screen editor-screen">
@@ -651,6 +667,13 @@ export function EditorScreen({
                   applyCardNameInput(e.target.value);
                 }}
               />
+              <CardNoteIconButton
+                filled={noteFilled}
+                ariaLabel={
+                  noteFilled ? 'カードノートを編集' : 'カードノートを追加'
+                }
+                onClick={() => setNoteEditOpen(true)}
+              />
             </div>
           </label>
           {DEV_MODE && !isEditing && (
@@ -677,7 +700,7 @@ export function EditorScreen({
           )}
           <p className="muted editor-name-hint">
             {isEditing
-              ? 'サイズ拡大・編集・リネームは保存ボタンで確定します'
+              ? 'サイズ拡大・編集・リネーム・ノートは保存ボタンで確定します'
               : 'あなたが描いたイメージとカード名から、カードが自動生成されます'}
           </p>
         </div>
@@ -805,6 +828,13 @@ export function EditorScreen({
         <HelpPanelModal
           topic={getEditorHelp(isEditing)}
           onClose={() => setHelpOpen(false)}
+        />
+      )}
+      {noteEditOpen && (
+        <CardNoteEditModal
+          initialValue={userNote}
+          onSave={setUserNote}
+          onClose={() => setNoteEditOpen(false)}
         />
       )}
     </section>

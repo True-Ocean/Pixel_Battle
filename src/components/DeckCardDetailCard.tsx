@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { getAttributeMeta } from '../config/attributes';
 import type { BattleGuideTermId } from '../config/battleGuideCommon';
-import { canReviveLostCard } from '../card';
+import { canReviveLostCard, hasCardUserNote } from '../card';
 import { calcFullReviveCost } from '../config/economy';
 import { getRarityMeta } from '../config/rarity';
 import type { Card } from '../types';
@@ -15,6 +15,8 @@ import { LimitBreakStars } from './LimitBreakStars';
 import { InlinePxCost } from './HelpInlineEconomy';
 import { RarityBadge } from './RarityBadge';
 import { TalismanCardBadge } from './TalismanCardBadge';
+import { CardNoteIconButton } from './CardNoteIconButton';
+import { CardNoteViewModal } from './CardNoteViewModal';
 
 interface DeckCardDetailCardProps {
   card: Card;
@@ -43,13 +45,16 @@ export function DeckCardDetailCard({
 }: DeckCardDetailCardProps) {
   const [attrDetailOpen, setAttrDetailOpen] = useState(false);
   const [openTermId, setOpenTermId] = useState<BattleGuideTermId | null>(null);
+  const [noteViewOpen, setNoteViewOpen] = useState(false);
   const rarityMeta = getRarityMeta(card.rarity);
   const attrMeta = getAttributeMeta(card.attribute);
   const battleGuide = attrMeta.battleGuide.trim();
+  const showUserNote = hasCardUserNote(card);
 
   useEffect(() => {
     setAttrDetailOpen(false);
     setOpenTermId(null);
+    setNoteViewOpen(false);
   }, [card.id, card.attribute]);
 
   const cardStyle = {
@@ -89,6 +94,14 @@ export function DeckCardDetailCard({
 
       <div className="deck-detail-card-art">
         <CardPreview pixels={card.pixels} />
+        {showUserNote && (
+          <CardNoteIconButton
+            className="deck-detail-card-note-btn"
+            filled
+            ariaLabel="カードノートを見る"
+            onClick={() => setNoteViewOpen(true)}
+          />
+        )}
         {isLost && (
           <span className="card-lost-badge card-lost-badge--detail" aria-hidden>
             ロスト中
@@ -193,6 +206,14 @@ export function DeckCardDetailCard({
 
       {openTermId && (
         <BattleTermGuideModal termId={openTermId} onClose={() => setOpenTermId(null)} />
+      )}
+
+      {noteViewOpen && card.userNote && (
+        <CardNoteViewModal
+          cardName={card.name}
+          userNote={card.userNote}
+          onClose={() => setNoteViewOpen(false)}
+        />
       )}
 
       <p className="deck-detail-card-record">
