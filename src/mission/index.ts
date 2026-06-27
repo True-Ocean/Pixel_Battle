@@ -2,6 +2,7 @@ export {
   MISSION_DEFINITIONS,
   getBeginnerMissions,
   getMissionById,
+  getMissionDefinitions,
   getMissionsByCategory,
 } from '../config/missions';
 export type { MissionId } from '../config/missions';
@@ -31,7 +32,7 @@ export {
   getMissionChallengeTarget,
 } from './navigation';
 export type { MissionChallengeTarget } from './navigation';
-export { sortMissionsForDisplay } from './display';
+export { sortMissionsForDisplay, filterMissionsForDisplay } from './display';
 export { formatMissionCompleteToastMessage } from './toast';
 export type {
   MissionBulkClaimResult,

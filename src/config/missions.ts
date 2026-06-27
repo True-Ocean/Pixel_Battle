@@ -1,6 +1,11 @@
-import type { MissionDefinition } from '../mission/types';
+import type { MissionDefinition, MissionState } from '../mission/types';
+import {
+  buildPermanentCounterMissionById,
+  getActivePermanentMissions,
+  getPermanentCollectionMissions,
+} from './permanentMissions';
 
-/** MVP 用ミッション定義（件数は config 追加で増減） */
+/** デイリー・ウィークリー・ビギナー（常設は state に応じて動的生成） */
 export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
   // --- デイリー ---
   {
@@ -10,7 +15,7 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
     description: 'アプリを起動する',
     eventType: 'app_open',
     goal: 1,
-    reward: { px: 40 },
+    reward: { px: 5 },
   },
   {
     id: 'daily_cpu_battle_win_1',
@@ -19,7 +24,7 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
     description: 'CPU戦に1回勝利する',
     eventType: 'cpu_battle_win',
     goal: 1,
-    reward: { px: 50 },
+    reward: { px: 5 },
   },
   {
     id: 'daily_cpu_battle_win_3',
@@ -28,7 +33,7 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
     description: 'CPU戦に3回勝利する',
     eventType: 'cpu_battle_win',
     goal: 3,
-    reward: { px: 60 },
+    reward: { px: 10 },
   },
   {
     id: 'daily_cpu_battle_win_5',
@@ -37,7 +42,7 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
     description: 'CPU戦に5回勝利する',
     eventType: 'cpu_battle_win',
     goal: 5,
-    reward: { px: 80, jewels: 1 },
+    reward: { px: 15, jewels: 1 },
   },
   {
     id: 'daily_card_edit',
@@ -46,7 +51,7 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
     description: 'カードを1回編集して保存する',
     eventType: 'card_edit_saved',
     goal: 1,
-    reward: { px: 40 },
+    reward: { px: 5 },
   },
   {
     id: 'daily_history_rematch_win',
@@ -55,54 +60,71 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
     description: 'バトル履歴から再戦して1回勝利する',
     eventType: 'history_rematch_win',
     goal: 1,
-    reward: { px: 50 },
+    reward: { px: 5 },
   },
   // --- ウィークリー ---
   {
-    id: 'weekly_battle_win',
+    id: 'weekly_login_5',
+    category: 'weekly',
+    title: 'ログイン5日',
+    description: '7日間のうち5日アプリを起動する',
+    eventType: 'app_open',
+    goal: 5,
+    reward: { px: 10 },
+  },
+  {
+    id: 'weekly_cpu_battle_win_10',
     category: 'weekly',
     title: 'CPU戦10勝',
     description: 'CPU戦に10回勝利する',
     eventType: 'cpu_battle_win',
     goal: 10,
+    reward: { px: 10 },
+  },
+  {
+    id: 'weekly_cpu_battle_win_20',
+    category: 'weekly',
+    title: 'CPU戦20勝',
+    description: 'CPU戦に20回勝利する',
+    eventType: 'cpu_battle_win',
+    goal: 20,
+    reward: { px: 20 },
+  },
+  {
+    id: 'weekly_cpu_battle_win_30',
+    category: 'weekly',
+    title: 'CPU戦30勝',
+    description: 'CPU戦に30回勝利する',
+    eventType: 'cpu_battle_win',
+    goal: 30,
     reward: { jewels: 5 },
   },
   {
-    id: 'weekly_battle_play',
+    id: 'weekly_history_rematch_win_2',
     category: 'weekly',
-    title: 'バトル10回',
-    description: 'CPU戦を10回プレイする',
-    eventType: 'battle_play',
-    goal: 10,
-    reward: { px: 150 },
+    title: '履歴再戦2勝',
+    description: 'バトル履歴から再戦して2回勝利する',
+    eventType: 'history_rematch_win',
+    goal: 2,
+    reward: { px: 10 },
   },
   {
-    id: 'weekly_card_edit',
+    id: 'weekly_attribute_retouch',
     category: 'weekly',
-    title: 'カード編集3回',
-    description: 'カードを3回編集して保存する',
-    eventType: 'card_edit_saved',
-    goal: 3,
-    reward: { px: 120 },
-  },
-  // --- 常設 ---
-  {
-    id: 'permanent_battle_win_10',
-    category: 'permanent',
-    title: '累計10勝',
-    description: 'CPU戦に累計10回勝利する',
-    eventType: 'battle_win',
-    goal: 10,
-    reward: { jewels: 10 },
+    title: '属性リタッチ',
+    description: '属性リタッチを1回行う',
+    eventType: 'attribute_retouch',
+    goal: 1,
+    reward: { px: 15 },
   },
   {
-    id: 'permanent_card_create_5',
-    category: 'permanent',
-    title: '累計5枚作成',
-    description: 'カードを累計5枚作成する',
-    eventType: 'card_created',
-    goal: 5,
-    reward: { px: 200 },
+    id: 'weekly_limit_break',
+    category: 'weekly',
+    title: '限界突破',
+    description: '限界突破を1回行う',
+    eventType: 'limit_break',
+    goal: 1,
+    reward: { jewels: 5 },
   },
   // --- ビギナー（チュートリアル） ---
   {
@@ -244,13 +266,32 @@ const MISSION_BY_ID = new Map<string, MissionDefinition>(
   MISSION_DEFINITIONS.map((mission) => [mission.id, mission]),
 );
 
-export function getMissionById(id: string): MissionDefinition | undefined {
-  return MISSION_BY_ID.get(id);
+export function getMissionDefinitions(
+  state: MissionState,
+): MissionDefinition[] {
+  return [...MISSION_DEFINITIONS, ...getActivePermanentMissions(state)];
+}
+
+export function getMissionById(
+  id: string,
+  state?: MissionState,
+): MissionDefinition | undefined {
+  const staticMission = MISSION_BY_ID.get(id);
+  if (staticMission) return staticMission;
+  const permanentMission = buildPermanentCounterMissionById(id);
+  if (!permanentMission) return undefined;
+  if (!state) return permanentMission;
+  const active = getActivePermanentMissions(state);
+  return active.find((mission) => mission.id === id);
 }
 
 export function getMissionsByCategory(
   category: MissionDefinition['category'],
+  state?: MissionState,
 ): MissionDefinition[] {
+  if (category === 'permanent') {
+    return state ? getActivePermanentMissions(state) : getPermanentCollectionMissions();
+  }
   return MISSION_DEFINITIONS.filter((mission) => mission.category === category);
 }
 

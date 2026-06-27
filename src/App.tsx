@@ -6,7 +6,7 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX, USER_INITIAL_LEVEL } from '.
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, type LimitBreakShardSpendPlan } from './card';
+import { applyCardSurvivalRecords, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, hasCardUserNote, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
@@ -23,6 +23,7 @@ import {
   getMissionChallengeTarget,
 } from './mission';
 import type { MissionCategory, MissionEventType } from './mission';
+import { hasAllAttributesCollected } from './mission/attributeCollection';
 import { loadSave, saveSave, SAVE_SCHEMA_VERSION } from './storage';
 import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, setMemoryAlbumUnlockedRows, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
@@ -55,7 +56,7 @@ import {
   calcFullReviveCost,
   calcGraveyardShardReward,
   calcLostCardDeleteRewards,
-  calcSurvivorPixels,
+  calcSurvivorPixelsForBattleVictory,
   calcVictoryBattlePixels,
   countBattleSurvivors,
   canUnlockMoreMemoryAlbumRows,
@@ -398,8 +399,22 @@ function App() {
     [persistSave],
   );
 
+  const reportAttributeCollectionIfComplete = useCallback(
+    (savePatch?: Omit<Parameters<typeof persistSave>[0], 'missionState'>) => {
+      if (
+        !hasAllAttributesCollected(decksRef.current, memoryAlbumRef.current)
+      ) {
+        return;
+      }
+      reportAndPersistMissionEvents(
+        [{ type: 'attribute_collection_complete' }],
+        savePatch,
+      );
+    },
+    [reportAndPersistMissionEvents],
+  );
+
   useEffect(() => {
-    if (!missionCompleteToast) return;
     const timerId = window.setTimeout(() => {
       setMissionCompleteToast(null);
     }, 4000);
@@ -811,9 +826,10 @@ function App() {
       });
       if (added) {
         reportAndPersistMissionEvents([{ type: 'card_created' }]);
+        reportAttributeCollectionIfComplete();
       }
     },
-    [reportAndPersistMissionEvents, updateActiveDeck],
+    [reportAndPersistMissionEvents, reportAttributeCollectionIfComplete, updateActiveDeck],
   );
 
   const updateCard = useCallback(
@@ -822,6 +838,7 @@ function App() {
       options?: {
         saveCharges?: EditorSaveCharges;
         nameChanged?: boolean;
+        canvasResized?: boolean;
       },
     ) => {
       const charges = options?.saveCharges;
@@ -865,7 +882,24 @@ function App() {
       } else {
         persistSave({ decks: nextDecks });
       }
-      reportAndPersistMissionEvents([{ type: 'card_edit_saved' }]);
+
+      const missionEvents: Array<{ type: MissionEventType; amount?: number }> = [
+        { type: 'card_edit_saved' },
+      ];
+      if (options?.nameChanged) {
+        missionEvents.push({ type: 'card_renamed' });
+      }
+      if (options?.canvasResized) {
+        missionEvents.push({ type: 'canvas_resized' });
+      }
+      if (
+        original &&
+        !hasCardUserNote(original) &&
+        hasCardUserNote(finalCard)
+      ) {
+        missionEvents.push({ type: 'card_note_saved' });
+      }
+      reportAndPersistMissionEvents(missionEvents);
     },
     [persistSave, reportAndPersistMissionEvents],
   );
@@ -946,7 +980,8 @@ function App() {
     decksRef.current = nextDecks;
     persistSave({ decks: nextDecks });
     reportAndPersistMissionEvents([{ type: 'attribute_retouch' }]);
-  }, [persistSave, reportAndPersistMissionEvents]);
+    reportAttributeCollectionIfComplete();
+  }, [persistSave, reportAndPersistMissionEvents, reportAttributeCollectionIfComplete]);
 
   const selectCardAttributeInDeck = useCallback(
     (
@@ -990,6 +1025,8 @@ function App() {
       setEconomy(spent);
       economyRef.current = spent;
       persistSave({ decks: nextDecks, economy: spent });
+      reportAndPersistMissionEvents([{ type: 'attribute_selected' }]);
+      reportAttributeCollectionIfComplete();
       return {
         attribute,
         previousBp,
@@ -998,7 +1035,7 @@ function App() {
         nextJewels: spent.jewels,
       };
     },
-    [persistSave],
+    [persistSave, reportAndPersistMissionEvents, reportAttributeCollectionIfComplete],
   );
 
   const removeCardFromDeck = useCallback((id: string) => {
@@ -1088,9 +1125,10 @@ function App() {
       economyRef.current = deleted.economyAfter;
       inventoryRef.current = deleted.inventoryAfter;
 
+      reportAndPersistMissionEvents([{ type: 'card_deleted' }]);
       return deleted.outcome;
     },
-    [computeCardDeleteOutcome, persistSave, removeCardFromDeck],
+    [computeCardDeleteOutcome, persistSave, removeCardFromDeck, reportAndPersistMissionEvents],
   );
 
   const addCardToMemoryAlbumFromDeck = useCallback(
@@ -1112,9 +1150,11 @@ function App() {
       setMemoryAlbum(nextAlbum);
       memoryAlbumRef.current = nextAlbum;
 
+      reportAndPersistMissionEvents([{ type: 'memory_album_saved' }]);
+      reportAttributeCollectionIfComplete();
       return 'ok';
     },
-    [persistSave, removeCardFromDeck],
+    [persistSave, removeCardFromDeck, reportAndPersistMissionEvents, reportAttributeCollectionIfComplete],
   );
 
   const unlockMemoryAlbumRowWithJewels = useCallback((): string | null => {
@@ -1181,9 +1221,10 @@ function App() {
       economyRef.current = deleted.economyAfter;
       inventoryRef.current = deleted.inventoryAfter;
 
+      reportAndPersistMissionEvents([{ type: 'card_deleted' }]);
       return deleted.outcome;
     },
-    [computeCardDeleteOutcome, persistSave],
+    [computeCardDeleteOutcome, persistSave, reportAndPersistMissionEvents],
   );
 
   const equipTalismanOnCard = useCallback(
@@ -1252,8 +1293,9 @@ function App() {
       setEconomy(nextEconomy);
       decksRef.current = nextDecks;
       economyRef.current = nextEconomy;
+      reportAndPersistMissionEvents([{ type: 'card_revived' }]);
     },
-    [persistSave],
+    [persistSave, reportAndPersistMissionEvents],
   );
 
   const limitBreakCard = useCallback(
@@ -1521,7 +1563,7 @@ function App() {
               outcome.defeatedPlayerCardIds,
               graveyardCard,
             ).total
-          : calcSurvivorPixels(
+          : calcSurvivorPixelsForBattleVictory(
               countBattleSurvivors(
                 outcome.playerCardIds,
                 outcome.defeatedPlayerCardIds,
@@ -1658,7 +1700,7 @@ function App() {
 
       let nextEconomy = economyRef.current;
       if (outcome.winner === 'player') {
-        const pixelTotal = calcSurvivorPixels(
+        const pixelTotal = calcSurvivorPixelsForBattleVictory(
           countBattleSurvivors(
             outcome.playerCardIds,
             outcome.defeatedPlayerCardIds,
@@ -2332,7 +2374,7 @@ function App() {
 
   const handleChallengeMission = useCallback(
     (missionId: string) => {
-      const mission = getMissionById(missionId);
+      const mission = getMissionById(missionId, missionStateRef.current);
       const target = mission ? getMissionChallengeTarget(mission.eventType) : null;
       if (!target) return;
 

@@ -86,6 +86,7 @@ interface EditorScreenProps {
     options?: {
       saveCharges: ReturnType<typeof calcEditorSaveCharges>;
       nameChanged: boolean;
+      canvasResized: boolean;
     },
   ) => void;
   onUnlockPaletteWithJewels?: (index: number) => string | null;
@@ -183,6 +184,7 @@ export function EditorScreen({
     nextJewels: number;
     saveCharges: ReturnType<typeof calcEditorSaveCharges>;
     nameChanged: boolean;
+    canvasResized: boolean;
   } | null>(null);
   const [canvasUpgradeOpen, setCanvasUpgradeOpen] = useState(false);
   const [paletteUnlockIndex, setPaletteUnlockIndex] = useState<number | null>(
@@ -526,6 +528,7 @@ export function EditorScreen({
         nextJewels: jewels,
         saveCharges,
         nameChanged,
+        canvasResized: canvasSize !== editCanvasSize,
       });
     } catch (e) {
       setError(e instanceof CardCreationError ? e.message : '保存に失敗しました');
@@ -534,9 +537,9 @@ export function EditorScreen({
 
   const handleSaveConfirm = () => {
     if (!saveConfirmPending) return;
-    const { card, saveCharges, nameChanged } = saveConfirmPending;
+    const { card, saveCharges, nameChanged, canvasResized } = saveConfirmPending;
     setSaveConfirmPending(null);
-    onUpdated?.(card, { saveCharges, nameChanged });
+    onUpdated?.(card, { saveCharges, nameChanged, canvasResized });
     onBack();
   };
 

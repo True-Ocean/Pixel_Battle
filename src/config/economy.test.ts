@@ -69,7 +69,7 @@ function makeCard(
 
 describe('economy constants', () => {
   it('uses agreed balance values', () => {
-    expect(LEVEL_UP_PIXEL_REWARD).toBe(300);
+    expect(LEVEL_UP_PIXEL_REWARD).toBe(100);
     expect(LOST_MIN_USER_LEVEL).toBe(5);
     expect(TALISMAN_STARTER_GRANT_LEVEL).toBe(5);
     expect(TALISMAN_STARTER_GRANT_COUNT).toBe(1);
@@ -107,20 +107,20 @@ describe('getLimitBreakShardsRequired', () => {
 });
 
 describe('calcLevelUpPixels', () => {
-  it('returns fixed 300 regardless of level', () => {
-    expect(calcLevelUpPixels(5)).toBe(300);
-    expect(calcLevelUpPixels(20)).toBe(300);
+  it('returns fixed 100 regardless of level', () => {
+    expect(calcLevelUpPixels(5)).toBe(100);
+    expect(calcLevelUpPixels(20)).toBe(100);
   });
 });
 
 describe('calcLevelUpJewels', () => {
   it('returns base jewels every level', () => {
-    expect(calcLevelUpJewels(1)).toBe(30);
-    expect(calcLevelUpJewels(12)).toBe(30);
+    expect(calcLevelUpJewels(1)).toBe(10);
+    expect(calcLevelUpJewels(12)).toBe(10);
   });
 
   it('totals jewels without bonus', () => {
-    expect(calcTotalLevelUpJewels([9, 10])).toBe(60);
+    expect(calcTotalLevelUpJewels([9, 10])).toBe(20);
   });
 });
 
@@ -223,7 +223,7 @@ describe('calcGraveyardShardReward', () => {
 });
 
 describe('calcVictoryBattlePixels', () => {
-  it('combines survivor and graveyard rewards', () => {
+  it('combines halved survivor and graveyard battle rewards', () => {
     const card = makeCard([
       ['#ff0000', '#00ff00'],
       ['#0000ff', null],
@@ -234,9 +234,17 @@ describe('calcVictoryBattlePixels', () => {
       card,
     );
     expect(countBattleSurvivors(['a', 'b', 'c', 'd', 'e'], ['a', 'b'])).toBe(3);
-    expect(result.survivorPixels).toBe(30);
-    expect(result.graveyardPixels).toBe(1);
-    expect(result.total).toBe(31);
+    expect(result.survivorPixels).toBe(15);
+    expect(result.graveyardPixels).toBe(0);
+    expect(result.total).toBe(15);
+  });
+
+  it('does not change delete refund graveyard formula', () => {
+    const card = makeCard([
+      ['#ff0000', '#00ff00'],
+      ['#0000ff', null],
+    ]);
+    expect(calcCardDeleteRefundPixels(card)).toBe(1);
   });
 });
 

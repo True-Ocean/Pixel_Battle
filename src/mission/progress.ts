@@ -1,7 +1,7 @@
 import {
   getBeginnerMissions,
   getMissionById,
-  MISSION_DEFINITIONS,
+  getMissionDefinitions,
 } from '../config/missions';
 import { getBattlesDayKey } from '../user/adState';
 import { applyMissionResets } from './reset';
@@ -94,7 +94,7 @@ export function isMissionClaimable(
 }
 
 export function countUnclaimedMissions(state: MissionState): number {
-  return MISSION_DEFINITIONS.filter((mission) => {
+  return getMissionDefinitions(state).filter((mission) => {
     if (mission.category === 'beginner' && state.beginnerCompleted) return false;
     return isMissionClaimable(state, mission);
   }).length;
@@ -125,7 +125,7 @@ export function reportMissionEvent(
 
   const nextEntries = { ...next.entries };
 
-  for (const mission of MISSION_DEFINITIONS) {
+  for (const mission of getMissionDefinitions(next)) {
     if (mission.eventType !== eventType) continue;
     if (!isMissionActive(mission, next)) continue;
 

@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react';
 import { CPU_OPPONENT_LEVEL, DECK_MAX, MATCH_REVEAL_COUNTDOWN_SEC, SETUP_TIME_LIMIT_SEC } from '../config/balance';
-import { calcSurvivorPixels, countBattleSurvivors } from '../config/economy';
+import { calcSurvivorPixelsForBattleVictory, countBattleSurvivors } from '../config/economy';
 import { computeDeckPower } from '../card';
 import type { Card, BattleOutcome, BattleOutcomeCore } from '../types';
 import type { BoardPosition } from '../types/battle';
@@ -1765,7 +1765,7 @@ export function BattleSetupScreen({
     (outcome: BattleOutcomeCore) => {
       if (isHistoryRematch && outcome.winner === 'player') {
         setHistoryRematchRewardPixels(
-          calcSurvivorPixels(
+          calcSurvivorPixelsForBattleVictory(
             countBattleSurvivors(
               outcome.playerCardIds,
               outcome.defeatedPlayerCardIds,

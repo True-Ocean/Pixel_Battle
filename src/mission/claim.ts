@@ -1,4 +1,8 @@
-import { getMissionById, MISSION_DEFINITIONS } from '../config/missions';
+import {
+  getMissionById,
+  getMissionDefinitions,
+} from '../config/missions';
+import { expandPermanentTierCapAfterClaim } from '../config/permanentMissions';
 import { addFreePixels, addJewels } from '../user/economy';
 import { addInventoryCount } from '../user/inventory';
 import type { UserEconomy, UserInventory } from '../types';
@@ -101,6 +105,10 @@ function markClaimed(
     }
   }
 
+  if (mission.category === 'permanent') {
+    next = expandPermanentTierCapAfterClaim(next, mission, date);
+  }
+
   return next;
 }
 
@@ -111,7 +119,7 @@ export function claimMission(
   missionId: string,
   date: Date = new Date(),
 ): MissionClaimResult | null {
-  const mission = getMissionById(missionId);
+  const mission = getMissionById(missionId, state);
   if (!mission) return null;
   if (!isMissionClaimable(state, mission)) return null;
 
@@ -136,7 +144,7 @@ export function claimMission(
 
 /** 受取可能ミッション一覧 */
 export function listClaimableMissions(state: MissionState): MissionDefinition[] {
-  return MISSION_DEFINITIONS.filter((mission) => {
+  return getMissionDefinitions(state).filter((mission) => {
     if (mission.category === 'beginner' && state.beginnerCompleted) return false;
     return isMissionClaimable(state, mission);
   });

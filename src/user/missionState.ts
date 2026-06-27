@@ -69,11 +69,30 @@ export function normalizeMissionState(
       ? candidate.appOpenDayKey
       : undefined;
 
+  const permanentTierCaps: MissionState['permanentTierCaps'] = {};
+  if (
+    candidate.permanentTierCaps &&
+    typeof candidate.permanentTierCaps === 'object'
+  ) {
+    for (const [key, value] of Object.entries(candidate.permanentTierCaps)) {
+      if (
+        typeof value === 'number' &&
+        Number.isFinite(value) &&
+        value >= 200
+      ) {
+        permanentTierCaps[key] = Math.floor(value);
+      }
+    }
+  }
+
   return {
     dailyDayKey: storedDailyKey,
     weeklyWeekKey: storedWeeklyKey,
     beginnerCompleted: candidate.beginnerCompleted === true,
     ...(appOpenDayKey ? { appOpenDayKey } : {}),
+    ...(Object.keys(permanentTierCaps).length > 0
+      ? { permanentTierCaps }
+      : {}),
     entries,
   };
 }

@@ -17,7 +17,7 @@ export const LOST_WEIGHT_STARS: Record<CardStars, number> = {
 };
 
 /** レベルアップ1回あたりのジュエル */
-export const JEWELS_PER_LEVEL = 30;
+export const JEWELS_PER_LEVEL = 10;
 
 /** L ≡ 4 (mod 5), L ≥ 5 の汎用かけら付与数 */
 export const LEVEL_UP_UNIVERSAL_SHARD_REWARD = 20;
@@ -183,8 +183,11 @@ export const REVIVE_PAINTED_MULTIPLIER = 3;
 /** 勝利時・生存1枚あたりのピクセル */
 export const PIXELS_PER_SURVIVOR = 10;
 
-/** 戦利品 = floor(√塗り) × K × 色係数 */
+/** 戦利品 = floor(√塗り) × K × 色係数（削除返還・Lost 重み等の基準値） */
 export const GRAVEYARD_SQRT_MULTIPLIER = 1;
+
+/** バトル勝利時の px 倍率（生存＋墓地戦利品。削除返還には適用しない） */
+export const BATTLE_VICTORY_PX_MULTIPLIER = 0.5;
 
 /** 使用色が1色増えるごとの係数加算（1色=1.0） */
 export const COLOR_DIVERSITY_BONUS_PER_EXTRA_COLOR = 0.05;
@@ -202,7 +205,7 @@ export const TALISMAN_STARTER_GRANT_LEVEL = 5;
 export const TALISMAN_STARTER_GRANT_COUNT = 1;
 
 /** レベルアップ1回あたりの px（固定） */
-export const LEVEL_UP_PIXEL_REWARD = 300;
+export const LEVEL_UP_PIXEL_REWARD = 100;
 
 export function calcLevelUpPixels(_level?: number): number {
   return LEVEL_UP_PIXEL_REWARD;
@@ -285,6 +288,15 @@ export function calcSurvivorPixels(survivorCount: number): number {
   return Math.max(0, Math.floor(survivorCount)) * PIXELS_PER_SURVIVOR;
 }
 
+export function applyBattleVictoryPxMultiplier(amount: number): number {
+  return Math.floor(Math.max(0, amount) * BATTLE_VICTORY_PX_MULTIPLIER);
+}
+
+/** バトル勝利時の生存報酬 px */
+export function calcSurvivorPixelsForBattleVictory(survivorCount: number): number {
+  return applyBattleVictoryPxMultiplier(calcSurvivorPixels(survivorCount));
+}
+
 export function calcGraveyardPixelReward(card: Card): number {
   const painted = countPaintedCells(card.pixels);
   if (painted <= 0) return 0;
@@ -292,6 +304,11 @@ export function calcGraveyardPixelReward(card: Card): number {
   return Math.floor(
     Math.sqrt(painted) * GRAVEYARD_SQRT_MULTIPLIER * colorMult,
   );
+}
+
+/** バトル勝利時の墓地戦利品 px */
+export function calcGraveyardPixelRewardForBattleVictory(card: Card): number {
+  return applyBattleVictoryPxMultiplier(calcGraveyardPixelReward(card));
 }
 
 /** 墓地戦利品の属性かけら数（レア度別） */
@@ -317,8 +334,8 @@ export function calcVictoryBattlePixels(
     playerCardIds,
     defeatedPlayerCardIds,
   );
-  const survivorPixels = calcSurvivorPixels(survivorCount);
-  const graveyardPixels = calcGraveyardPixelReward(graveyardCard);
+  const survivorPixels = calcSurvivorPixelsForBattleVictory(survivorCount);
+  const graveyardPixels = calcGraveyardPixelRewardForBattleVictory(graveyardCard);
   return {
     survivorCount,
     survivorPixels,

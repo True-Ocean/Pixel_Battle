@@ -33,6 +33,15 @@ export function getMissionChallengeTarget(
     case 'history_rematch_play':
     case 'history_rematch_win':
       return { kind: 'records' };
+    case 'card_deleted':
+    case 'card_revived':
+    case 'memory_album_saved':
+    case 'card_renamed':
+    case 'card_note_saved':
+    case 'canvas_resized':
+    case 'attribute_selected':
+    case 'attribute_collection_complete':
+      return { kind: 'deckCardDetail' };
     case 'app_open':
       return null;
   }

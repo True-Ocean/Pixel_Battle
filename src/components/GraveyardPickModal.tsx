@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  calcGraveyardPixelReward,
+  calcGraveyardPixelRewardForBattleVictory,
   calcGraveyardShardReward,
-  calcSurvivorPixels,
+  calcSurvivorPixelsForBattleVictory,
 } from '../config/economy';
 import { getRarityMeta } from '../config/rarity';
 import type { Attribute, Card } from '../types';
@@ -114,8 +114,10 @@ export function GraveyardPickModal({
   }, []);
 
   const selected = graveyardCards.find((card) => card.id === selectedId) ?? null;
-  const survivorPixels = calcSurvivorPixels(survivorCards.length);
-  const graveyardPixels = selected ? calcGraveyardPixelReward(selected) : 0;
+  const survivorPixels = calcSurvivorPixelsForBattleVictory(survivorCards.length);
+  const graveyardPixels = selected
+    ? calcGraveyardPixelRewardForBattleVictory(selected)
+    : 0;
   const graveyardShards = selected ? calcGraveyardShardReward(selected) : 0;
   const totalPixels = survivorPixels + graveyardPixels;
   const confirmAriaLabel = selected ? undefined : '戦利品を選んでください';
@@ -158,7 +160,7 @@ export function GraveyardPickModal({
           </h3>
           <ul className="graveyard-pick-list">
             {graveyardCards.map((card) => {
-              const reward = calcGraveyardPixelReward(card);
+              const reward = calcGraveyardPixelRewardForBattleVictory(card);
               const rarityMeta = getRarityMeta(card.rarity);
               const isSelected = card.id === selectedId;
               return (

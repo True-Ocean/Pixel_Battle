@@ -79,10 +79,10 @@ describe('mission reset', () => {
   it('clears weekly progress when week changes', () => {
     let state = createInitialMissionState(monday);
     state = reportMissionEvent(state, 'cpu_battle_win', 3, tuesday).state;
-    expect(state.entries.weekly_battle_win?.progress).toBe(3);
+    expect(state.entries.weekly_cpu_battle_win_10?.progress).toBe(3);
 
     state = applyMissionResets(state, nextMonday);
-    expect(state.entries.weekly_battle_win).toBeUndefined();
+    expect(state.entries.weekly_cpu_battle_win_10).toBeUndefined();
     expect(state.weeklyWeekKey).toBe('2026-06-22');
   });
 
@@ -98,10 +98,10 @@ describe('mission reset', () => {
 
   it('keeps permanent progress across daily reset', () => {
     let state = createInitialMissionState(monday);
-    state = reportMissionEvent(state, 'battle_win', 5, monday).state;
+    state = reportMissionEvent(state, 'cpu_battle_win', 5, monday).state;
 
     state = applyMissionResets(state, tuesday);
-    expect(state.entries.permanent_battle_win_10?.progress).toBe(5);
+    expect(state.entries.permanent_cpu_battle_win_20?.progress).toBe(5);
   });
 });
 
@@ -123,8 +123,7 @@ describe('mission progress and claim', () => {
       { type: 'cpu_battle_win' },
     ], monday);
     expect(result.state.entries.daily_cpu_battle_win_1?.progress).toBe(1);
-    expect(result.state.entries.weekly_battle_play?.progress).toBe(1);
-    expect(result.state.entries.weekly_battle_win?.progress).toBe(1);
+    expect(result.state.entries.weekly_cpu_battle_win_10?.progress).toBe(1);
     expect(result.newlyCompleted.map((m) => m.id)).toEqual(['daily_cpu_battle_win_1']);
   });
 
@@ -162,9 +161,27 @@ describe('mission progress and claim', () => {
       'daily_cpu_battle_win_5',
       monday,
     )!;
-    expect(claimed.pxGranted).toBe(80);
+    expect(claimed.pxGranted).toBe(15);
     expect(claimed.jewelsGranted).toBe(1);
     expect(claimed.economy.jewels).toBe(1);
+  });
+
+  it('advances tiered weekly cpu win missions together', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'cpu_battle_win', 10, monday).state;
+
+    expect(state.entries.weekly_cpu_battle_win_10?.progress).toBe(10);
+    expect(state.entries.weekly_cpu_battle_win_20?.progress).toBe(10);
+    expect(state.entries.weekly_cpu_battle_win_30?.progress).toBe(10);
+    expect(isMissionClaimable(state, getMissionById('weekly_cpu_battle_win_10')!)).toBe(
+      true,
+    );
+    expect(isMissionClaimable(state, getMissionById('weekly_cpu_battle_win_20')!)).toBe(
+      false,
+    );
+    expect(isMissionClaimable(state, getMissionById('weekly_cpu_battle_win_30')!)).toBe(
+      false,
+    );
   });
 
   it('claims reward and prevents double claim', () => {
@@ -175,8 +192,8 @@ describe('mission progress and claim', () => {
 
     const claimed = claimMission(state, economy, inventory, 'daily_login', monday);
     expect(claimed).not.toBeNull();
-    expect(claimed!.pxGranted).toBe(40);
-    expect(claimed!.economy.freePixels).toBe(40);
+    expect(claimed!.pxGranted).toBe(5);
+    expect(claimed!.economy.freePixels).toBe(5);
     expect(claimed!.state.entries.daily_login?.claimedAt).toBeTruthy();
 
     const again = claimMission(
@@ -228,7 +245,7 @@ describe('mission progress and claim', () => {
     expect(bulk.missionIds.sort()).toEqual(
       ['daily_card_edit', 'daily_login'].sort(),
     );
-    expect(bulk.pxGranted).toBe(80);
+    expect(bulk.pxGranted).toBe(10);
     expect(bulk.jewelsGranted).toBe(0);
     expect(isMissionClaimable(bulk.state, getMissionById('daily_login')!)).toBe(false);
   });
@@ -242,7 +259,7 @@ describe('mission progress and claim', () => {
     const inventory = createInitialInventory();
     const bulk = claimMissionsInCategory(state, economy, inventory, 'daily', monday);
     expect(bulk.missionIds.sort()).toEqual(['daily_card_edit', 'daily_login'].sort());
-    expect(bulk.pxGranted).toBe(80);
+    expect(bulk.pxGranted).toBe(10);
     expect(isMissionClaimable(bulk.state, getMissionById('beginner_create_card')!)).toBe(false);
   });
 

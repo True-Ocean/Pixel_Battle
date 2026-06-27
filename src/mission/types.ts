@@ -16,7 +16,15 @@ export type MissionEventType =
   | 'battle_log_viewed'
   | 'history_opponent_detail_viewed'
   | 'history_rematch_play'
-  | 'limit_break';
+  | 'limit_break'
+  | 'card_deleted'
+  | 'card_revived'
+  | 'memory_album_saved'
+  | 'card_renamed'
+  | 'card_note_saved'
+  | 'canvas_resized'
+  | 'attribute_selected'
+  | 'attribute_collection_complete';
 
 /** ミッション報酬 */
 export interface MissionReward {
@@ -58,6 +66,8 @@ export interface MissionState {
   beginnerCompleted?: boolean;
   /** 当日初回起動を記録した日次キー */
   appOpenDayKey?: string;
+  /** 常設カウンター: カテゴリ（idPrefix）ごとの現在 tier 上限（未設定時 200） */
+  permanentTierCaps?: Partial<Record<string, number>>;
   entries: Record<string, MissionProgressEntry>;
 }
 

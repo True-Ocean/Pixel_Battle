@@ -25,7 +25,7 @@ export function MissionListPanel({
   const missions = sortMissionsForDisplay(
     category === 'beginner'
       ? getBeginnerMissions()
-      : getMissionsByCategory(category),
+      : getMissionsByCategory(category, missionState),
     missionState,
     category,
   );
@@ -39,7 +39,11 @@ export function MissionListPanel({
   if (missions.length === 0) {
     return (
       <div className="mission-list-empty">
-        <p className="muted">ミッションはありません</p>
+        <p className="muted">
+          {category === 'permanent'
+            ? 'すべての常設ミッションを達成しました'
+            : 'ミッションはありません'}
+        </p>
       </div>
     );
   }
