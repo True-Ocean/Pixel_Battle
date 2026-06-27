@@ -34,6 +34,8 @@ import type { AttributeSelectOutcome } from './attributeSelectTypes';
 import type { AttributeRetouchResult } from './AttributeRetouchModal';
 import { DeckRenameDialog } from './DeckRenameDialog';
 import { DeckUnlockModal } from './DeckUnlockModal';
+import { HelpInfoButton } from './HelpInfoButton';
+import { HelpPanelModal } from './HelpPanelModal';
 import { LostCardDeckNoticeModal } from './LostCardDeckNoticeModal';
 import { TalismanCardBadge } from './TalismanCardBadge';
 import { TalismanIcon } from './TalismanIcon';
@@ -45,6 +47,7 @@ import {
   getDeckRowShift,
 } from './deckReorder';
 import { isLossEnabledAtUserLevel } from '../user/talismanStarter';
+import { getDeckHelp } from '../config/helpContent';
 
 const DECK_DRAG_CHIP_SIZE = 56;
 const DECK_TAB_LONG_PRESS_MS = 500;
@@ -357,6 +360,7 @@ export function DeckScreen({
   const [pendingUnequipTalisman, setPendingUnequipTalisman] = useState<Card | null>(null);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
   const [renameDeckIndex, setRenameDeckIndex] = useState<number | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef(false);
   const lastTabTapRef = useRef<{ index: number; at: number } | null>(null);
@@ -862,12 +866,13 @@ export function DeckScreen({
     <section
       className={`screen screen-deck${reorderMode ? ' screen-deck-reordering' : ''}${dragState ? ' screen-deck-dragging' : ''}`}
     >
-      <div
-        ref={tabsRef}
-        className={`deck-slot-tabs${reorderMode ? ' deck-slot-tabs-reordering' : ''}${dragState ? ' deck-slot-tabs-dragging' : ''}`}
-        role="tablist"
-        aria-label="デッキ"
-      >
+      <div className="deck-screen-top">
+        <div
+          ref={tabsRef}
+          className={`deck-slot-tabs${reorderMode ? ' deck-slot-tabs-reordering' : ''}${dragState ? ' deck-slot-tabs-dragging' : ''}`}
+          role="tablist"
+          aria-label="デッキ"
+        >
         {Array.from({ length: DECK_SLOT_COUNT }, (_, index) => {
           const unlocked = isDeckSlotUnlocked(index, unlockedDeckCount);
           const isActive = index === activeDeckIndex;
@@ -947,24 +952,32 @@ export function DeckScreen({
             </button>
           );
         })}
+        </div>
       </div>
 
       <div className="deck-screen-header">
-        {crossDeckTargetIndex != null ? (
-          <p className="muted deck-cross-drop-hint">
-            スロットを選んでドロップ（カード同士は入れ替え）。タブ上でドロップすると空きスロットへ自動配置（満杯のときはキャンセル）
-          </p>
-        ) : deckCardCount < DECK_MAX && !reorderMode ? (
-          <p className="deck-screen-progress-hint muted">
-            {deckCardCount} / {DECK_MAX} 枚 — あと {DECK_MAX - deckCardCount}{' '}
-            枚でバトル可能
-          </p>
-        ) : (
-          <p className="deck-screen-power" aria-label={`戦力 ${deckPower}`}>
-            戦力{' '}
-            <span className="deck-screen-power-value">{deckPower}</span>
-          </p>
-        )}
+        <div className="deck-screen-header-main">
+          {crossDeckTargetIndex != null ? (
+            <p className="muted deck-cross-drop-hint">
+              スロットを選んでドロップ（カード同士は入れ替え）。タブ上でドロップすると空きスロットへ自動配置（満杯のときはキャンセル）
+            </p>
+          ) : deckCardCount < DECK_MAX && !reorderMode ? (
+            <p className="deck-screen-progress-hint muted">
+              {deckCardCount} / {DECK_MAX} 枚 — あと {DECK_MAX - deckCardCount}{' '}
+              枚でバトル可能
+            </p>
+          ) : (
+            <p className="deck-screen-power" aria-label={`戦力 ${deckPower}`}>
+              戦力{' '}
+              <span className="deck-screen-power-value">{deckPower}</span>
+            </p>
+          )}
+        </div>
+        <HelpInfoButton
+          className="deck-help-btn"
+          ariaLabel="カードの見方"
+          onClick={() => setHelpOpen(true)}
+        />
       </div>
 
       {crossDeckTargetIndex != null ? (
@@ -1144,6 +1157,14 @@ export function DeckScreen({
             </span>
           </div>
         )
+      )}
+
+      {helpOpen && (
+        <HelpPanelModal
+          topic={getDeckHelp()}
+          panelClassName="help-panel--deck-guide"
+          onClose={() => setHelpOpen(false)}
+        />
       )}
 
       {lostCardNoticePendingId != null && (

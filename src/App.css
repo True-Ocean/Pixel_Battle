@@ -2677,6 +2677,43 @@ button.battle-hub-deck-icon.is-move-target {
   margin-top: 0.35rem;
 }
 
+.help-panel-defined-item-label {
+  display: block;
+  font-weight: 700;
+}
+
+.help-panel-defined-item-desc {
+  margin-top: 0.15rem;
+  padding-left: 1rem;
+}
+
+.help-panel-defined-item-line {
+  margin: 0;
+}
+
+.help-panel-defined-item-line + .help-panel-defined-item-line {
+  margin-top: 0.2rem;
+}
+
+.help-panel-section:has(.help-panel-defined-item) .help-panel-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.help-panel-list li:has(.help-panel-defined-item) + li:has(.help-panel-defined-item) {
+  margin-top: 0.55rem;
+}
+
+.help-panel-sublist {
+  margin: 0.35rem 0 0;
+  padding-left: 1.15rem;
+  list-style: disc;
+}
+
+.help-panel-sublist li + li {
+  margin-top: 0.25rem;
+}
+
 .help-panel-inline-economy {
   display: inline-flex;
   align-items: center;
@@ -2719,6 +2756,36 @@ button.battle-hub-deck-icon.is-move-target {
   border-color: #0284c7;
   background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
   color: #fff;
+}
+
+.help-panel--deck-guide {
+  max-height: 92vh;
+}
+
+.help-panel--deck-guide .help-panel-scroll {
+  flex: none;
+  min-height: auto;
+  overflow-y: visible;
+}
+
+.help-panel--deck-guide .help-panel-title {
+  margin-bottom: 0.45rem;
+}
+
+.help-panel--deck-guide .help-panel-actions {
+  margin-top: 0.6rem;
+}
+
+.help-panel--deck-guide .help-panel-list li:has(.help-panel-defined-item) + li:has(.help-panel-defined-item) {
+  margin-top: 0.38rem;
+}
+
+.help-panel--deck-guide .help-panel-defined-item-desc {
+  margin-top: 0.1rem;
+}
+
+.help-panel--deck-guide .help-panel-defined-item-line + .help-panel-defined-item-line {
+  margin-top: 0.12rem;
 }
 
 .deck-intro-list {
@@ -3610,8 +3677,14 @@ button.battle-hub-deck-icon.is-move-target {
   flex-shrink: 0;
   margin-bottom: 0.5rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.deck-screen-header-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .deck-screen-header h1 {
@@ -3859,7 +3932,15 @@ button.battle-hub-deck-icon.is-move-target {
   grid-template-columns: repeat(5, 1fr);
   gap: 0.35rem;
   flex-shrink: 0;
-  margin-bottom: 0.55rem;
+}
+
+.deck-screen-top {
+  flex-shrink: 0;
+  margin-bottom: 0.35rem;
+}
+
+.deck-help-btn {
+  flex-shrink: 0;
 }
 
 .deck-slot-tab {

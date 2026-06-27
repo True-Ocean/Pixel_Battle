@@ -5,17 +5,19 @@ import { useModalScrollLock } from './useModalScrollLock';
 interface HelpPanelModalProps {
   topic: HelpTopic;
   onClose: () => void;
+  panelClassName?: string;
 }
 
-export function HelpPanelModal({ topic, onClose }: HelpPanelModalProps) {
+export function HelpPanelModal({ topic, onClose, panelClassName }: HelpPanelModalProps) {
   useModalScrollLock(true);
 
   const titleId = 'help-panel-title';
+  const panelClassNames = ['help-panel', panelClassName].filter(Boolean).join(' ');
 
   return createPortal(
     <div className="help-panel-backdrop" onClick={onClose}>
       <div
-        className="help-panel"
+        className={panelClassNames}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -27,7 +29,9 @@ export function HelpPanelModal({ topic, onClose }: HelpPanelModalProps) {
         <div className="help-panel-scroll">
           {topic.sections.map((section, sectionIndex) => (
             <section key={sectionIndex} className="help-panel-section">
-              <h3 className="help-panel-section-title">{section.title}</h3>
+              {section.title != null && section.title !== '' && (
+                <h3 className="help-panel-section-title">{section.title}</h3>
+              )}
               <ul className="help-panel-list">
                 {section.items.map((item, index) => (
                   <li key={`${sectionIndex}-${index}`}>{item}</li>

@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import { HelpInlinePxCost, HelpInlinePxIcon } from '../components/HelpInlineEconomy';
-import { PIXEL_COST_RENAME } from './economy';
+import { PIXEL_COST_RENAME, REVIVE_CAP } from './economy';
 
 export type HelpItem = string | ReactNode;
 
 export interface HelpSection {
-  title: string | ReactNode;
+  title?: string | ReactNode;
   items: readonly HelpItem[];
   /** このレベル以上で表示 */
   minLevel?: number;
@@ -26,6 +26,68 @@ export function getVisibleHelpSections(
 }
 
 export { getBattleHubHelp } from './battleHubHelp';
+
+function HelpDefinedItem({
+  label,
+  lines,
+}: {
+  label: string;
+  lines: readonly string[];
+}) {
+  return (
+    <div className="help-panel-defined-item">
+      <strong className="help-panel-defined-item-label">{label}</strong>
+      <div className="help-panel-defined-item-desc">
+        {lines.map((line) => (
+          <p key={line} className="help-panel-defined-item-line">
+            {line}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function getDeckHelp(): HelpTopic {
+  return {
+    title: 'カードの見方（左から）',
+    sections: [
+      {
+        items: [
+          <HelpDefinedItem
+            label="レア度"
+            lines={['N：ノーマル、R：レア、SR：スーパーレア']}
+          />,
+          <HelpDefinedItem
+            label="イメージアイコン"
+            lines={['ユーザーがお絵描きして作成したイメージ']}
+          />,
+          <HelpDefinedItem
+            label="カード名"
+            lines={['ユーザーが名付けたカード名']}
+          />,
+          <HelpDefinedItem
+            label="BP"
+            lines={['バトルポイント、カードの強さを表します']}
+          />,
+          <HelpDefinedItem
+            label="属性"
+            lines={['カードには様々な属性があり、それぞれに異なる能力があります']}
+          />,
+          <HelpDefinedItem
+            label="バトル実績"
+            lines={[
+              '生存：最後まで倒されずに生存していた回数',
+              '墓地：途中で倒された回数',
+              `復活：ロスト後に復活した回数（最大${REVIVE_CAP}回）`,
+            ]}
+          />,
+          <HelpDefinedItem label="限界突破" lines={['★の数で表します']} />,
+        ],
+      },
+    ],
+  };
+}
 
 export function getEditorHelp(isEditing: boolean): HelpTopic {
   const common: HelpSection[] = [
