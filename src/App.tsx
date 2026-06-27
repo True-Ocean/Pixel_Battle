@@ -23,7 +23,7 @@ import {
 } from './mission';
 import type { MissionCategory, MissionEventType } from './mission';
 import { loadSave, resetBattleHistory, saveSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
   unlockPaletteWithJewels,
@@ -660,6 +660,13 @@ function App() {
     },
     [continueHistoryRematch, historyRematchFlow, persistSave],
   );
+
+  const handleDismissLostCardDeckNoticeForToday = useCallback(() => {
+    const nextAdState = dismissLostCardDeckNoticeForToday(adStateRef.current);
+    adStateRef.current = nextAdState;
+    setAdState(nextAdState);
+    persistSave({ adState: nextAdState });
+  }, [persistSave]);
 
   const executeHistoryRematchBattle = useCallback(
     (deckIndex: number) => {
@@ -2351,6 +2358,8 @@ function App() {
             onRenameDeck={handleRenameDeck}
             onEquipTalisman={equipTalismanOnCard}
             onUnequipTalisman={unequipTalismanOnCard}
+            showLostCardDeckNotice={shouldShowLostCardDeckNoticeModal(adState)}
+            onDismissLostCardDeckNoticeForToday={handleDismissLostCardDeckNoticeForToday}
           />
         )}
         {screen === 'memoryAlbum' && (

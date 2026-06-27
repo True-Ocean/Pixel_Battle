@@ -88,6 +88,8 @@ export interface AdState {
   battleStarts?: number;
   /** 再戦ルールモーダルを非表示にした日（JST "YYYY-MM-DD"） */
   historyRematchRulesDismissedDayKey?: string;
+  /** ロストカード案内モーダルを非表示にした日（JST "YYYY-MM-DD"） */
+  lostCardDeckNoticeDismissedDayKey?: string;
 }
 
 /** ユーザープロフィール（localStorage 永続化） */

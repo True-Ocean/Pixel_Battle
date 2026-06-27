@@ -12,6 +12,20 @@ export function HelpInlinePxIcon() {
   );
 }
 
+interface HelpInlinePxCostProps {
+  amount: number;
+}
+
+export function HelpInlinePxCost({ amount }: HelpInlinePxCostProps) {
+  return (
+    <span className="help-panel-inline-economy">
+      <PixelCoinIcon className={`${ICON_CLASS} ${ICON_CLASS}--px`} aria-hidden="true" />
+      <span className="help-panel-inline-economy-value">{amount.toLocaleString()}</span>
+      <span className="sr-only">px</span>
+    </span>
+  );
+}
+
 interface HelpInlineJewelCostProps {
   amount: number;
 }

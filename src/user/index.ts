@@ -45,11 +45,13 @@ export {
 export {
   createInitialAdState,
   dismissHistoryRematchRulesForToday,
+  dismissLostCardDeckNoticeForToday,
   getBattlesDayKey,
   normalizeAdState,
   isNormalBattleAdsEnabledAtUserLevel,
   shouldRequireBattleStartAd,
   shouldShowHistoryRematchRulesModal,
+  shouldShowLostCardDeckNoticeModal,
 } from './adState';
 export {
   addCardToMemoryAlbum,

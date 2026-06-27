@@ -52,11 +52,20 @@ export function normalizeAdState(raw: unknown, date: Date = new Date()): AdState
     candidate.historyRematchRulesDismissedDayKey.length > 0
       ? candidate.historyRematchRulesDismissedDayKey
       : undefined;
+  const lostCardDeckNoticeDismissedDayKey =
+    typeof candidate.lostCardDeckNoticeDismissedDayKey === 'string' &&
+    candidate.lostCardDeckNoticeDismissedDayKey.length > 0
+      ? candidate.lostCardDeckNoticeDismissedDayKey
+      : undefined;
 
   const todayKey = getBattlesDayKey(date);
   const resetBattlesToday = battlesDayKey !== todayKey ? 0 : battlesToday;
   const rulesDismissedToday =
     historyRematchRulesDismissedDayKey === todayKey
+      ? todayKey
+      : undefined;
+  const lostCardNoticeDismissedToday =
+    lostCardDeckNoticeDismissedDayKey === todayKey
       ? todayKey
       : undefined;
 
@@ -67,6 +76,9 @@ export function normalizeAdState(raw: unknown, date: Date = new Date()): AdState
     battleStarts,
     ...(rulesDismissedToday != null
       ? { historyRematchRulesDismissedDayKey: rulesDismissedToday }
+      : {}),
+    ...(lostCardNoticeDismissedToday != null
+      ? { lostCardDeckNoticeDismissedDayKey: lostCardNoticeDismissedToday }
       : {}),
     ...(creativeAdCounter != null ? { creativeAdCounter } : {}),
   };
@@ -88,6 +100,25 @@ export function dismissHistoryRematchRulesForToday(
   return {
     ...adState,
     historyRematchRulesDismissedDayKey: getBattlesDayKey(date),
+  };
+}
+
+/** ロストカード案内モーダルを表示するか（当日スキップ未設定なら表示） */
+export function shouldShowLostCardDeckNoticeModal(
+  adState: AdState,
+  date: Date = new Date(),
+): boolean {
+  const todayKey = getBattlesDayKey(date);
+  return adState.lostCardDeckNoticeDismissedDayKey !== todayKey;
+}
+
+export function dismissLostCardDeckNoticeForToday(
+  adState: AdState,
+  date: Date = new Date(),
+): AdState {
+  return {
+    ...adState,
+    lostCardDeckNoticeDismissedDayKey: getBattlesDayKey(date),
   };
 }
 

@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
+import { HelpInlinePxCost, HelpInlinePxIcon } from '../components/HelpInlineEconomy';
 import { PIXEL_COST_RENAME } from './economy';
 
 export type HelpItem = string | ReactNode;
 
 export interface HelpSection {
-  title: string;
+  title: string | ReactNode;
   items: readonly HelpItem[];
   /** このレベル以上で表示 */
   minLevel?: number;
@@ -31,8 +32,8 @@ export function getEditorHelp(isEditing: boolean): HelpTopic {
     {
       title: 'カードの作り方',
       items: [
-        '絵と名前から、BP・属性・レア度が自動で決まります。',
-        '新規作成時の属性は、解放済みの中からランダムです。',
+        '自分がお絵描きしたイメージとカード名から、BP・属性・レア度が自動で決まります。',
+        '属性は、新規作成時に、解放済み属性の中からランダムに決定されます。',
         '1 マス以上塗る必要があります。',
       ],
     },
@@ -59,16 +60,26 @@ export function getEditorHelp(isEditing: boolean): HelpTopic {
       {
         title: '変更できること',
         items: [
-          'ドット絵・カード名・キャンバスサイズ（拡大のみ）を変更できます。',
-          '属性はここでは変更できません。カード詳細のリタッチ/セレクトを使います。',
-          '保存すると、現在のレベルに応じて BP が再計算されます。',
+          'イメージ・カード名・キャンバスサイズ（拡大のみ）を変更できます。',
+          'カードを編集しても、属性は変わりません。属性を変更するには、カード詳細の属性変更ボタンを使います。',
+          '編集内容を保存すると、現在のレベルに応じて BP が再計算されます。',
         ],
       },
       {
-        title: 'px がかかる操作',
+        title: (
+          <>
+            <HelpInlinePxIcon />
+            がかかる操作
+          </>
+        ),
         items: [
-          `名前を変えて保存 … 🪙${PIXEL_COST_RENAME.toLocaleString()}`,
-          'キャンバス拡大 … 拡大した分の px（保存前に元サイズへ戻せば拡大コスト 0）',
+          <>
+            カード名を変えて保存 … <HelpInlinePxCost amount={PIXEL_COST_RENAME} />
+          </>,
+          <>
+            キャンバス拡大 … 拡大した分の <HelpInlinePxIcon />
+            相当額
+          </>,
         ],
       },
     ],

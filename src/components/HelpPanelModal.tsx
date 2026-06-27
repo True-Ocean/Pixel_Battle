@@ -25,12 +25,12 @@ export function HelpPanelModal({ topic, onClose }: HelpPanelModalProps) {
           {topic.title}
         </h2>
         <div className="help-panel-scroll">
-          {topic.sections.map((section) => (
-            <section key={section.title} className="help-panel-section">
+          {topic.sections.map((section, sectionIndex) => (
+            <section key={sectionIndex} className="help-panel-section">
               <h3 className="help-panel-section-title">{section.title}</h3>
               <ul className="help-panel-list">
                 {section.items.map((item, index) => (
-                  <li key={`${section.title}-${index}`}>{item}</li>
+                  <li key={`${sectionIndex}-${index}`}>{item}</li>
                 ))}
               </ul>
             </section>

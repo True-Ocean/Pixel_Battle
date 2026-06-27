@@ -6,6 +6,7 @@ import {
   normalizeAdState,
   shouldRequireBattleStartAd,
   shouldShowHistoryRematchRulesModal,
+  shouldShowLostCardDeckNoticeModal,
 } from './adState';
 
 describe('ad state', () => {
@@ -106,6 +107,24 @@ describe('ad state', () => {
     expect(
       shouldShowHistoryRematchRulesModal(
         { ...adState, historyRematchRulesDismissedDayKey: '2026-06-14' },
+        date,
+      ),
+    ).toBe(true);
+  });
+
+  it('shows lost card deck notice until dismissed for today', () => {
+    const date = new Date('2026-06-14T15:00:00.000Z');
+    const adState = createInitialAdState(date);
+    expect(shouldShowLostCardDeckNoticeModal(adState, date)).toBe(true);
+    expect(
+      shouldShowLostCardDeckNoticeModal(
+        { ...adState, lostCardDeckNoticeDismissedDayKey: '2026-06-15' },
+        date,
+      ),
+    ).toBe(false);
+    expect(
+      shouldShowLostCardDeckNoticeModal(
+        { ...adState, lostCardDeckNoticeDismissedDayKey: '2026-06-14' },
         date,
       ),
     ).toBe(true);

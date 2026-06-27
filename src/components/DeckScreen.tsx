@@ -34,6 +34,7 @@ import type { AttributeSelectOutcome } from './attributeSelectTypes';
 import type { AttributeRetouchResult } from './AttributeRetouchModal';
 import { DeckRenameDialog } from './DeckRenameDialog';
 import { DeckUnlockModal } from './DeckUnlockModal';
+import { LostCardDeckNoticeModal } from './LostCardDeckNoticeModal';
 import { TalismanCardBadge } from './TalismanCardBadge';
 import { TalismanIcon } from './TalismanIcon';
 import { JewelAmount } from './JewelIcon';
@@ -90,6 +91,8 @@ export interface DeckScreenProps {
   onRenameDeck?: (deckIndex: number, name: string) => void;
   onEquipTalisman: (cardId: string) => void;
   onUnequipTalisman: (cardId: string) => void;
+  showLostCardDeckNotice?: boolean;
+  onDismissLostCardDeckNoticeForToday?: () => void;
 }
 
 interface DeckDragState {
@@ -338,8 +341,11 @@ export function DeckScreen({
   onRenameDeck,
   onEquipTalisman,
   onUnequipTalisman,
+  showLostCardDeckNotice = false,
+  onDismissLostCardDeckNoticeForToday,
 }: DeckScreenProps) {
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
+  const [lostCardNoticePendingId, setLostCardNoticePendingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Card | null>(null);
   const [deleteConfirmFinal, setDeleteConfirmFinal] = useState(false);
   const [deleteResult, setDeleteResult] = useState<CardDeleteOutcome | null>(null);
@@ -375,6 +381,10 @@ export function DeckScreen({
     };
   }, [reorderMode]);
 
+  useEffect(() => {
+    setLostCardNoticePendingId(null);
+  }, [activeDeckIndex]);
+
   const selectedCard =
     detailCardId != null
       ? deckLayout.find((item) => item?.id === detailCardId) ?? null
@@ -383,6 +393,30 @@ export function DeckScreen({
   const closeDetail = useCallback(() => {
     onDetailCardIdChange(null);
   }, [onDetailCardIdChange]);
+
+  const handleCardPress = useCallback(
+    (card: Card) => {
+      if (isCardLost(card) && showLostCardDeckNotice) {
+        setLostCardNoticePendingId(card.id);
+        return;
+      }
+      onDetailCardIdChange(card.id);
+    },
+    [onDetailCardIdChange, showLostCardDeckNotice],
+  );
+
+  const handleLostCardNoticeConfirm = useCallback(
+    (options: { suppressToday: boolean }) => {
+      const cardId = lostCardNoticePendingId;
+      if (!cardId) return;
+      if (options.suppressToday) {
+        onDismissLostCardDeckNoticeForToday?.();
+      }
+      setLostCardNoticePendingId(null);
+      onDetailCardIdChange(cardId);
+    },
+    [lostCardNoticePendingId, onDetailCardIdChange, onDismissLostCardDeckNoticeForToday],
+  );
 
   const exitReorderMode = useCallback(() => {
     onReorderModeChange(false);
@@ -1015,7 +1049,7 @@ export function DeckScreen({
                     type="button"
                     className="deck-card-main"
                     disabled={reorderMode}
-                    onClick={() => onDetailCardIdChange(card.id)}
+                    onClick={() => handleCardPress(card)}
                   >
                     <DeckCardRowBody card={card} />
                     {cardIsLost && (
@@ -1110,6 +1144,10 @@ export function DeckScreen({
             </span>
           </div>
         )
+      )}
+
+      {lostCardNoticePendingId != null && (
+        <LostCardDeckNoticeModal onConfirm={handleLostCardNoticeConfirm} />
       )}
 
       {selectedCard && (
