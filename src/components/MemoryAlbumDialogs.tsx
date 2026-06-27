@@ -105,7 +105,7 @@ export function MemoryAlbumFullDialog({
             disabled={!canAffordUnlock}
             onClick={onUnlockRow}
           >
-            <span>行を解放する</span>
+            <span>アルバム拡張</span>
             <JewelAmount
               amount={jewelCost}
               className="memory-album-full-unlock-jewel"
@@ -131,3 +131,64 @@ export function MemoryAlbumFullDialog({
 
 export const MEMORY_ALBUM_SAVE_CONFIRM_MESSAGE =
   'アルバムに保存すると、デッキに戻すことはできなくなり、閲覧のみ可能となります。よろしいですか？';
+
+interface MemoryAlbumExpandConfirmDialogProps {
+  open: boolean;
+  jewelCost: number;
+  canAfford: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+export function MemoryAlbumExpandConfirmDialog({
+  open,
+  jewelCost,
+  canAfford,
+  onConfirm,
+  onCancel,
+}: MemoryAlbumExpandConfirmDialogProps) {
+  if (!open) return null;
+
+  return createPortal(
+    <div className="confirm-dialog-backdrop" onClick={onCancel}>
+      <div
+        className="confirm-dialog memory-album-expand-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="memory-album-expand-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2 id="memory-album-expand-title" className="confirm-dialog-title">
+          アルバム拡張
+        </h2>
+        <p className="confirm-dialog-message memory-album-expand-message">
+          <JewelAmount
+            amount={jewelCost}
+            className="memory-album-expand-message-jewel"
+            iconClassName="memory-album-expand-message-jewel-icon"
+          />
+          <span>でアルバムを拡張します。よろしいですか？</span>
+        </p>
+        {!canAfford && (
+          <p className="confirm-dialog-message muted memory-album-expand-insufficient">
+            ジュエルが不足しています。
+          </p>
+        )}
+        <div className="confirm-dialog-actions">
+          <button
+            type="button"
+            className="confirm-dialog-confirm"
+            disabled={!canAfford}
+            onClick={onConfirm}
+          >
+            拡張する
+          </button>
+          <button type="button" className="confirm-dialog-cancel" onClick={onCancel}>
+            キャンセル
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}

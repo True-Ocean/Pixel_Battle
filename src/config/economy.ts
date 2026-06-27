@@ -49,8 +49,27 @@ export const MEMORY_ALBUM_SLOTS_PER_ROW = 5;
 /** 思い出アルバム: 初期解放行数 */
 export const MEMORY_ALBUM_INITIAL_ROWS = 1;
 
-/** 思い出アルバム: 追加1行（5枠）解放のジュエル */
-export const JEWEL_COST_MEMORY_ALBUM_ROW = 1000;
+/** 思い出アルバム: 💎 で追加解放できる行数（UI に縦並び表示） */
+export const MEMORY_ALBUM_MAX_EXPANSION_ROWS = 9;
+
+/** 思い出アルバム: 追加1行（5枠）解放のジュエル（アルバム拡張） */
+export const JEWEL_COST_MEMORY_ALBUM_ROW = 500;
+
+export function getMemoryAlbumMaxRows(): number {
+  return MEMORY_ALBUM_INITIAL_ROWS + MEMORY_ALBUM_MAX_EXPANSION_ROWS;
+}
+
+export function clampMemoryAlbumUnlockedRows(unlockedRows: number): number {
+  const maxRows = getMemoryAlbumMaxRows();
+  return Math.min(
+    maxRows,
+    Math.max(MEMORY_ALBUM_INITIAL_ROWS, Math.floor(unlockedRows)),
+  );
+}
+
+export function canUnlockMoreMemoryAlbumRows(unlockedRows: number): boolean {
+  return clampMemoryAlbumUnlockedRows(unlockedRows) < getMemoryAlbumMaxRows();
+}
 
 /** 追加色パレット tier1（紫・濃い緑・茶・赤茶）の px コスト */
 export const PIXEL_COST_PALETTE_SHOP_TIER1 = 2000;

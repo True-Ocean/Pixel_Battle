@@ -23,8 +23,8 @@ import {
   getMissionChallengeTarget,
 } from './mission';
 import type { MissionCategory, MissionEventType } from './mission';
-import { loadSave, resetBattleHistory, saveSave, SAVE_SCHEMA_VERSION } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
+import { loadSave, saveSave, SAVE_SCHEMA_VERSION } from './storage';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, setMemoryAlbumUnlockedRows, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
   unlockPaletteWithJewels,
@@ -34,7 +34,10 @@ import {
   normalizeEditorShopUnlocks,
   unlockEditorFeatureWithJewels,
 } from './user/editorShop';
-import type { EditorShopUnlockId } from './config/editorShop';
+import {
+  EDITOR_SHOP_UNLOCK_IDS,
+  type EditorShopUnlockId,
+} from './config/editorShop';
 import { normalizePaletteShopUnlocks } from './config/paletteUnlock';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
 import type { JewelPackId, ShopTabId, UniversalShardPackId } from './config/shop';
@@ -55,11 +58,13 @@ import {
   calcSurvivorPixels,
   calcVictoryBattlePixels,
   countBattleSurvivors,
+  canUnlockMoreMemoryAlbumRows,
   type CardDeleteOutcome,
   JEWEL_COST_DELETE,
   JEWEL_COST_MEMORY_ALBUM_ROW,
   JEWEL_COST_ATTRIBUTE_SELECT,
   JEWEL_COST_DECK_UNLOCK,
+  MEMORY_ALBUM_INITIAL_ROWS,
   PIXEL_COST_ATTRIBUTE_RETOUCH,
   getCardRenameCount,
   getEditorSaveTotalPixelCost,
@@ -1112,6 +1117,10 @@ function App() {
   );
 
   const unlockMemoryAlbumRowWithJewels = useCallback((): string | null => {
+    if (!canUnlockMoreMemoryAlbumRows(memoryAlbumRef.current.unlockedRows)) {
+      return 'アルバムはこれ以上拡張できません。';
+    }
+
     const nextEconomy = spendJewels(
       economyRef.current,
       JEWEL_COST_MEMORY_ALBUM_ROW,
@@ -1128,6 +1137,20 @@ function App() {
     memoryAlbumRef.current = nextAlbum;
     return null;
   }, [persistSave]);
+
+  const handleDevSetMemoryAlbumExpansionRows = useCallback(
+    (expansionRows: number) => {
+      if (!import.meta.env.DEV) return;
+      const nextAlbum = setMemoryAlbumUnlockedRows(
+        memoryAlbumRef.current,
+        expansionRows + MEMORY_ALBUM_INITIAL_ROWS,
+      );
+      persistSave({ memoryAlbum: nextAlbum });
+      setMemoryAlbum(nextAlbum);
+      memoryAlbumRef.current = nextAlbum;
+    },
+    [persistSave],
+  );
 
   const deleteCardFromMemoryAlbum = useCallback(
     (id: string): CardDeleteOutcome | null => {
@@ -1724,38 +1747,6 @@ function App() {
     setBattleEndDock(ended);
   }, []);
 
-  const handleResetBattleRecords = useCallback(() => {
-    const next = resetBattleHistory({
-      schemaVersion: SAVE_SCHEMA_VERSION,
-      user,
-      economy,
-      inventory,
-      adState,
-      talismanStarterGranted,
-      decks,
-      activeDeckIndex,
-      lastBattleDeckIndex,
-      unlockedDeckCount,
-      deckNames,
-      battleHistory,
-    });
-    persistSave(next);
-    setBattleHistory([]);
-  }, [
-    activeDeckIndex,
-    adState,
-    battleHistory,
-    deckNames,
-    decks,
-    economy,
-    inventory,
-    lastBattleDeckIndex,
-    persistSave,
-    talismanStarterGranted,
-    unlockedDeckCount,
-    user,
-  ]);
-
   const handleSoundEnabledChange = useCallback((enabled: boolean) => {
     // モバイルはユーザー操作の同期コンテキスト内で play() する必要がある
     if (enabled) {
@@ -2133,6 +2124,27 @@ function App() {
     paletteShopUnlocksRef.current = [];
     persistSave({ paletteShopUnlocks: [] });
     return 'ショップ追加分の色を未解放に戻しました。';
+  }, [persistSave]);
+
+  const handleDevUnlockAllEditorTools = useCallback((): string => {
+    if (!import.meta.env.DEV) {
+      return '開発ビルドでのみ利用できます。';
+    }
+    const nextUnlocks = [...EDITOR_SHOP_UNLOCK_IDS];
+    setEditorShopUnlocks(nextUnlocks);
+    editorShopUnlocksRef.current = nextUnlocks;
+    persistSave({ editorShopUnlocks: nextUnlocks });
+    return `お絵描きツールをすべて解放しました（${nextUnlocks.length}種）。`;
+  }, [persistSave]);
+
+  const handleDevClearEditorShopUnlocks = useCallback((): string => {
+    if (!import.meta.env.DEV) {
+      return '開発ビルドでのみ利用できます。';
+    }
+    setEditorShopUnlocks([]);
+    editorShopUnlocksRef.current = [];
+    persistSave({ editorShopUnlocks: [] });
+    return 'お絵描きツールを未解放に戻しました。';
   }, [persistSave]);
 
   const handleRenameDeck = useCallback(
@@ -2535,9 +2547,10 @@ function App() {
             onBack={closeSettings}
             devCardOptions={devCardOptions}
             devDeckFillOptions={devDeckFillOptions}
-            onResetBattleRecords={handleResetBattleRecords}
             onDevSetLevel={handleDevSetLevel}
             onDevSetUnlockedDeckCount={handleDevSetUnlockedDeckCount}
+            memoryAlbumUnlockedRows={memoryAlbum.unlockedRows}
+            onDevSetMemoryAlbumExpansionRows={handleDevSetMemoryAlbumExpansionRows}
             onDevSetFreePixels={handleDevSetFreePixels}
             onDevSetJewels={handleDevSetJewels}
             onDevSetSubscription={handleDevSetSubscription}
@@ -2546,9 +2559,10 @@ function App() {
             onDevSetTalisman={handleDevSetTalisman}
             onDevMarkCardLost={handleDevMarkCardLost}
             onDevFillDeckSlots={handleDevFillDeckSlots}
-            paletteShopUnlockCount={paletteShopUnlocks.length}
             onDevUnlockAllPaletteColors={handleDevUnlockAllPaletteColors}
             onDevClearPaletteShopUnlocks={handleDevClearPaletteShopUnlocks}
+            onDevUnlockAllEditorTools={handleDevUnlockAllEditorTools}
+            onDevClearEditorShopUnlocks={handleDevClearEditorShopUnlocks}
           />
         )}
         {screen === 'editor' && (

@@ -4,11 +4,14 @@ import {
   DECK_SLOT_INITIAL_UNLOCKED,
   MAX_USER_LEVEL,
 } from '../config/balance';
+import {
+  getMemoryAlbumCapacity,
+  MEMORY_ALBUM_INITIAL_ROWS,
+  MEMORY_ALBUM_MAX_EXPANSION_ROWS,
+} from '../config/economy';
 import { clampUnlockedDeckCount } from '../deckSlots';
 import { getLevelProgress } from '../user';
 import type { SubscriptionPlan, UserProfile } from '../types';
-import { ConfirmDialog } from './ConfirmDialog';
-import { getAllJewelPaletteIndices } from '../config/paletteShop';
 
 interface DevCardOption {
   id: string;
@@ -37,9 +40,10 @@ export interface SettingsScreenProps {
   onBack?: () => void;
   devCardOptions: DevCardOption[];
   devDeckFillOptions: DevDeckFillOption[];
-  onResetBattleRecords: () => void;
   onDevSetLevel: (level: number) => string;
   onDevSetUnlockedDeckCount: (count: number) => void;
+  memoryAlbumUnlockedRows: number;
+  onDevSetMemoryAlbumExpansionRows: (expansionRows: number) => void;
   onDevSetFreePixels: (amount: number) => void;
   onDevSetJewels: (amount: number) => void;
   onDevSetSubscription: (plan: SubscriptionPlan) => string;
@@ -48,9 +52,10 @@ export interface SettingsScreenProps {
   onDevSetTalisman: (count: number) => string;
   onDevMarkCardLost: (cardId: string) => string;
   onDevFillDeckSlots: (deckIndex: number) => string;
-  paletteShopUnlockCount?: number;
   onDevUnlockAllPaletteColors: () => string;
   onDevClearPaletteShopUnlocks: () => string;
+  onDevUnlockAllEditorTools: () => string;
+  onDevClearEditorShopUnlocks: () => string;
 }
 
 interface PlaceholderRow {
@@ -67,12 +72,16 @@ const FUTURE_ROWS: PlaceholderRow[] = [
 function SettingsSection({
   title,
   children,
+  compact = false,
 }: {
   title: string;
   children: ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <section className="settings-section">
+    <section
+      className={`settings-section${compact ? ' settings-section--compact' : ''}`}
+    >
       <h2 className="settings-section-title">{title}</h2>
       <div className="settings-section-body">{children}</div>
     </section>
@@ -126,6 +135,123 @@ function SettingsToggleRow({
   );
 }
 
+function SettingsDevGroup({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="settings-dev-group">
+      <h3 className="settings-dev-group-title">{title}</h3>
+      {hint ? (
+        <p className="settings-dev-group-hint muted">{hint}</p>
+      ) : null}
+      <div className="settings-dev-group-body">{children}</div>
+    </section>
+  );
+}
+
+function SettingsDevNumberField({
+  id,
+  label,
+  value,
+  min,
+  max,
+  step = 1,
+  onChange,
+  onApply,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  onChange: (value: string) => void;
+  onApply: () => void;
+}) {
+  return (
+    <div className="settings-dev-field">
+      <label className="settings-dev-field-label" htmlFor={id}>
+        {label}
+      </label>
+      <div className="settings-dev-field-row">
+        <input
+          id={id}
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          className="settings-dev-field-input"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <button
+          type="button"
+          className="settings-dev-apply-btn"
+          onClick={onApply}
+        >
+          適用
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SettingsDevTogglePair({
+  label,
+  onUnlockAll,
+  onClear,
+}: {
+  label: string;
+  onUnlockAll: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="settings-dev-toggle-pair">
+      <span className="settings-dev-field-label">{label}</span>
+      <div className="settings-dev-button-row">
+        <button
+          type="button"
+          className="settings-dev-apply-btn"
+          onClick={onUnlockAll}
+        >
+          全解放
+        </button>
+        <button
+          type="button"
+          className="settings-dev-apply-btn"
+          onClick={onClear}
+        >
+          未解放
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SettingsDevNotices({ messages }: { messages: (string | null)[] }) {
+  const visible = messages.filter(
+    (message): message is string =>
+      message != null && message.trim().length > 0,
+  );
+  if (visible.length === 0) return null;
+
+  return (
+    <div className="settings-dev-notices">
+      {visible.map((message, index) => (
+        <p key={index} className="settings-dev-notice" role="status">
+          {message}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 export function SettingsScreen({
   user,
   unlockedDeckCount,
@@ -140,9 +266,10 @@ export function SettingsScreen({
   onBack,
   devCardOptions,
   devDeckFillOptions,
-  onResetBattleRecords,
   onDevSetLevel,
   onDevSetUnlockedDeckCount,
+  memoryAlbumUnlockedRows,
+  onDevSetMemoryAlbumExpansionRows,
   onDevSetFreePixels,
   onDevSetJewels,
   onDevSetSubscription,
@@ -151,16 +278,21 @@ export function SettingsScreen({
   onDevSetTalisman,
   onDevMarkCardLost,
   onDevFillDeckSlots,
-  paletteShopUnlockCount = 0,
   onDevUnlockAllPaletteColors,
   onDevClearPaletteShopUnlocks,
+  onDevUnlockAllEditorTools,
+  onDevClearEditorShopUnlocks,
 }: SettingsScreenProps) {
-  const [resetOpen, setResetOpen] = useState(false);
   const [devLevelInput, setDevLevelInput] = useState(
     () => String(user?.level ?? 1),
   );
   const [devDeckUnlockInput, setDevDeckUnlockInput] = useState(
     () => String(unlockedDeckCount || DECK_SLOT_INITIAL_UNLOCKED),
+  );
+  const [devAlbumExpansionInput, setDevAlbumExpansionInput] = useState(() =>
+    String(
+      Math.max(0, memoryAlbumUnlockedRows - MEMORY_ALBUM_INITIAL_ROWS),
+    ),
   );
   const [devFreePixelsInput, setDevFreePixelsInput] = useState(
     () => String(freePixels),
@@ -177,6 +309,7 @@ export function SettingsScreen({
   );
   const [devNotice, setDevNotice] = useState<string | null>(null);
   const [devDeckNotice, setDevDeckNotice] = useState<string | null>(null);
+  const [devAlbumNotice, setDevAlbumNotice] = useState<string | null>(null);
   const [devPixelsNotice, setDevPixelsNotice] = useState<string | null>(null);
   const [devJewelsNotice, setDevJewelsNotice] = useState<string | null>(null);
   const [devSubscriptionNotice, setDevSubscriptionNotice] = useState<
@@ -185,6 +318,7 @@ export function SettingsScreen({
   const [devLostNotice, setDevLostNotice] = useState<string | null>(null);
   const [devFillNotice, setDevFillNotice] = useState<string | null>(null);
   const [devPaletteNotice, setDevPaletteNotice] = useState<string | null>(null);
+  const [devEditorNotice, setDevEditorNotice] = useState<string | null>(null);
   const [devShardsNotice, setDevShardsNotice] = useState<string | null>(null);
   const [devLostCardId, setDevLostCardId] = useState('');
   const [devFillDeckIndex, setDevFillDeckIndex] = useState(0);
@@ -252,6 +386,12 @@ export function SettingsScreen({
     setDevDeckUnlockInput(String(unlockedDeckCount));
   }, [unlockedDeckCount]);
 
+  useEffect(() => {
+    setDevAlbumExpansionInput(
+      String(Math.max(0, memoryAlbumUnlockedRows - MEMORY_ALBUM_INITIAL_ROWS)),
+    );
+  }, [memoryAlbumUnlockedRows]);
+
   if (!user) {
     return (
       <section className="screen screen-settings">
@@ -286,6 +426,26 @@ export function SettingsScreen({
     onDevSetUnlockedDeckCount(clamped);
     setDevDeckUnlockInput(String(clamped));
     setDevDeckNotice(`デッキ解放数を ${clamped} に変更しました。`);
+  };
+
+  const handleDevAlbumExpansionApply = () => {
+    const parsed = Number.parseInt(devAlbumExpansionInput, 10);
+    if (
+      !Number.isFinite(parsed) ||
+      parsed < 0 ||
+      parsed > MEMORY_ALBUM_MAX_EXPANSION_ROWS
+    ) {
+      setDevAlbumNotice(
+        `アルバム拡張の解放数は 0〜${MEMORY_ALBUM_MAX_EXPANSION_ROWS} の整数を入力してください。`,
+      );
+      return;
+    }
+    onDevSetMemoryAlbumExpansionRows(parsed);
+    setDevAlbumExpansionInput(String(parsed));
+    const totalRows = MEMORY_ALBUM_INITIAL_ROWS + parsed;
+    setDevAlbumNotice(
+      `アルバム拡張を ${parsed} 行解放しました（保存上限 ${getMemoryAlbumCapacity(totalRows)} 枚）。`,
+    );
   };
 
   const handleDevFreePixelsApply = () => {
@@ -355,7 +515,13 @@ export function SettingsScreen({
     setDevPaletteNotice(onDevClearPaletteShopUnlocks());
   };
 
-  const shopPaletteTotal = getAllJewelPaletteIndices().length;
+  const handleDevUnlockAllEditorTools = () => {
+    setDevEditorNotice(onDevUnlockAllEditorTools());
+  };
+
+  const handleDevClearEditorShopUnlocks = () => {
+    setDevEditorNotice(onDevClearEditorShopUnlocks());
+  };
 
   const selectedDevCard = devCardOptions.find((option) => option.id === devLostCardId);
   const selectedDevFillDeck = devDeckFillOptions.find(
@@ -377,7 +543,7 @@ export function SettingsScreen({
         </header>
       )}
       <div className="settings-scroll">
-        <SettingsSection title="アカウント">
+        <SettingsSection title="アカウント" compact>
           <SettingsRow label="ユーザー名" value={user.username} />
           <SettingsRow label="レベル" value={`Lv.${user.level}`} />
           <SettingsRow
@@ -404,428 +570,254 @@ export function SettingsScreen({
           </div>
         </SettingsSection>
 
-        <SettingsSection title="サウンド">
+        {isDev && (
+          <SettingsSection title="開発">
+            <div className="settings-dev-groups">
+              <SettingsDevGroup title="ヘッダーの設定">
+                <div className="settings-dev-grid settings-dev-grid--triple">
+                  <SettingsDevNumberField
+                    id="settings-dev-level"
+                    label="レベル"
+                    min={1}
+                    max={MAX_USER_LEVEL}
+                    value={devLevelInput}
+                    onChange={setDevLevelInput}
+                    onApply={handleDevApply}
+                  />
+                  <SettingsDevNumberField
+                    id="settings-dev-free-pixels"
+                    label="pxコイン"
+                    min={0}
+                    value={devFreePixelsInput}
+                    onChange={setDevFreePixelsInput}
+                    onApply={handleDevFreePixelsApply}
+                  />
+                  <SettingsDevNumberField
+                    id="settings-dev-jewels"
+                    label="ジュエル"
+                    min={0}
+                    value={devJewelsInput}
+                    onChange={setDevJewelsInput}
+                    onApply={handleDevJewelsApply}
+                  />
+                </div>
+              </SettingsDevGroup>
+
+              <SettingsDevGroup title="スロット解放">
+                <div className="settings-dev-grid">
+                  <SettingsDevNumberField
+                    id="settings-dev-deck-unlock"
+                    label="デッキ数"
+                    min={1}
+                    max={DECK_SLOT_COUNT}
+                    value={devDeckUnlockInput}
+                    onChange={setDevDeckUnlockInput}
+                    onApply={handleDevDeckUnlockApply}
+                  />
+                  <SettingsDevNumberField
+                    id="settings-dev-album-expansion"
+                    label="アルバム拡張"
+                    min={0}
+                    max={MEMORY_ALBUM_MAX_EXPANSION_ROWS}
+                    value={devAlbumExpansionInput}
+                    onChange={setDevAlbumExpansionInput}
+                    onApply={handleDevAlbumExpansionApply}
+                  />
+                </div>
+              </SettingsDevGroup>
+
+              <SettingsDevGroup title="サブスク（モック）">
+                <div className="settings-dev-button-row">
+                  <button
+                    type="button"
+                    className="settings-dev-apply-btn settings-dev-apply-btn--wide"
+                    onClick={() => handleDevSubscriptionSet('none')}
+                  >
+                    未加入
+                  </button>
+                  <button
+                    type="button"
+                    className="settings-dev-apply-btn settings-dev-apply-btn--wide"
+                    onClick={() => handleDevSubscriptionSet('light')}
+                  >
+                    ライト
+                  </button>
+                  <button
+                    type="button"
+                    className="settings-dev-apply-btn settings-dev-apply-btn--wide"
+                    onClick={() => handleDevSubscriptionSet('premium')}
+                  >
+                    プレミアム
+                  </button>
+                </div>
+              </SettingsDevGroup>
+
+              <SettingsDevGroup title="所持アイテム">
+                <div className="settings-dev-grid settings-dev-grid--triple">
+                  <SettingsDevNumberField
+                    id="settings-dev-attribute-shards"
+                    label="属性かけら"
+                    min={0}
+                    value={devAttributeShardsInput}
+                    onChange={setDevAttributeShardsInput}
+                    onApply={handleDevAttributeShardsApply}
+                  />
+                  <SettingsDevNumberField
+                    id="settings-dev-universal-shards"
+                    label="汎用かけら"
+                    min={0}
+                    value={devUniversalShardsInput}
+                    onChange={setDevUniversalShardsInput}
+                    onApply={handleDevUniversalShardsApply}
+                  />
+                  <SettingsDevNumberField
+                    id="settings-dev-talisman"
+                    label="護符"
+                    min={0}
+                    value={devTalismanInput}
+                    onChange={setDevTalismanInput}
+                    onApply={handleDevTalismanApply}
+                  />
+                </div>
+              </SettingsDevGroup>
+
+              <SettingsDevGroup title="お絵描き">
+                <div className="settings-dev-drawing-row">
+                  <SettingsDevTogglePair
+                    label="色パレット"
+                    onUnlockAll={handleDevUnlockAllPaletteColors}
+                    onClear={handleDevClearPaletteShopUnlocks}
+                  />
+                  <SettingsDevTogglePair
+                    label="お絵描きツール"
+                    onUnlockAll={handleDevUnlockAllEditorTools}
+                    onClear={handleDevClearEditorShopUnlocks}
+                  />
+                </div>
+              </SettingsDevGroup>
+
+              <SettingsDevGroup title="カード操作">
+                <div className="settings-dev-stack settings-dev-card-actions">
+                  <div className="settings-dev-block">
+                    <label
+                      className="settings-dev-field-label"
+                      htmlFor="settings-dev-fill-deck"
+                    >
+                      デッキ自動生成（空きスロット）
+                    </label>
+                    <div className="settings-dev-field-row">
+                      <select
+                        id="settings-dev-fill-deck"
+                        className="settings-dev-field-input settings-dev-field-select"
+                        value={String(devFillDeckIndex)}
+                        onChange={(event) =>
+                          setDevFillDeckIndex(
+                            Number.parseInt(event.target.value, 10),
+                          )
+                        }
+                      >
+                        {devDeckFillOptions.map((option) => (
+                          <option
+                            key={option.index}
+                            value={option.index}
+                            disabled={option.locked}
+                          >
+                            {option.label}
+                            {option.locked
+                              ? ' · 未解放'
+                              : option.emptySlots === 0
+                                ? ' · 満杯'
+                                : ` · 空き${option.emptySlots}`}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className="settings-dev-apply-btn"
+                        disabled={
+                          !selectedDevFillDeck ||
+                          selectedDevFillDeck.locked ||
+                          selectedDevFillDeck.emptySlots === 0
+                        }
+                        onClick={handleDevFillDeckSlots}
+                      >
+                        生成
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="settings-dev-block">
+                    <label
+                      className="settings-dev-field-label"
+                      htmlFor="settings-dev-lost-card"
+                    >
+                      Lost 化するカード
+                    </label>
+                    <div className="settings-dev-field-row">
+                      <select
+                        id="settings-dev-lost-card"
+                        className="settings-dev-field-input settings-dev-field-select"
+                        value={devLostCardId}
+                        disabled={devCardOptions.length === 0}
+                        onChange={(event) => setDevLostCardId(event.target.value)}
+                      >
+                        {devCardOptions.length === 0 ? (
+                          <option value="">カードがありません</option>
+                        ) : (
+                          devCardOptions.map((option) => (
+                            <option
+                              key={option.id}
+                              value={option.id}
+                              disabled={option.isLost}
+                            >
+                              {option.label}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                      <button
+                        type="button"
+                        className="settings-dev-apply-btn"
+                        disabled={!selectedDevCard || selectedDevCard.isLost}
+                        onClick={handleDevMarkCardLost}
+                      >
+                        Lost にする
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </SettingsDevGroup>
+            </div>
+
+            <SettingsDevNotices
+              messages={[
+                devNotice,
+                devDeckNotice,
+                devAlbumNotice,
+                devPixelsNotice,
+                devJewelsNotice,
+                devSubscriptionNotice,
+                devShardsNotice,
+                devLostNotice,
+                devFillNotice,
+                devPaletteNotice,
+                devEditorNotice,
+              ]}
+            />
+          </SettingsSection>
+        )}
+
+        <SettingsSection title="その他">
           <SettingsToggleRow
             label="BGM"
             checked={soundEnabled}
             onChange={onSoundEnabledChange}
           />
-        </SettingsSection>
-
-        <SettingsSection title="データ">
-          <p className="settings-section-note muted">
-            対戦履歴のみ削除します。レベル・デッキ・所持品は変更されません。
-          </p>
-          <button
-            type="button"
-            className="settings-action-btn settings-action-btn-danger"
-            onClick={() => setResetOpen(true)}
-          >
-            バトル履歴をリセット
-          </button>
-        </SettingsSection>
-
-        {isDev && (
-          <SettingsSection title="開発">
-            <div className="settings-dev-quick-row">
-              <div className="settings-dev-quick-cell settings-dev-quick-cell--compact">
-                <label
-                  className="settings-dev-level-label"
-                  htmlFor="settings-dev-level"
-                >
-                  レベル
-                </label>
-                <div className="settings-dev-level-row">
-                  <input
-                    id="settings-dev-level"
-                    type="number"
-                    min={1}
-                    max={MAX_USER_LEVEL}
-                    step={1}
-                    className="settings-dev-level-input"
-                    value={devLevelInput}
-                    onChange={(event) => setDevLevelInput(event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="settings-dev-level-apply"
-                    onClick={handleDevApply}
-                  >
-                    適用
-                  </button>
-                </div>
-              </div>
-              <div className="settings-dev-quick-cell settings-dev-quick-cell--compact">
-                <label
-                  className="settings-dev-level-label"
-                  htmlFor="settings-dev-deck-unlock"
-                >
-                  デッキ数
-                </label>
-                <div className="settings-dev-level-row">
-                  <input
-                    id="settings-dev-deck-unlock"
-                    type="number"
-                    min={1}
-                    max={DECK_SLOT_COUNT}
-                    step={1}
-                    className="settings-dev-level-input"
-                    value={devDeckUnlockInput}
-                    onChange={(event) =>
-                      setDevDeckUnlockInput(event.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="settings-dev-level-apply"
-                    onClick={handleDevDeckUnlockApply}
-                  >
-                    適用
-                  </button>
-                </div>
-              </div>
-              <div className="settings-dev-quick-cell settings-dev-quick-cell--wide">
-                <label
-                  className="settings-dev-level-label"
-                  htmlFor="settings-dev-free-pixels"
-                >
-                  pxコイン
-                </label>
-                <div className="settings-dev-level-row">
-                  <input
-                    id="settings-dev-free-pixels"
-                    type="number"
-                    min={0}
-                    step={1}
-                    className="settings-dev-level-input"
-                    value={devFreePixelsInput}
-                    onChange={(event) =>
-                      setDevFreePixelsInput(event.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="settings-dev-level-apply"
-                    onClick={handleDevFreePixelsApply}
-                  >
-                    適用
-                  </button>
-                </div>
-              </div>
-              <div className="settings-dev-quick-cell settings-dev-quick-cell--compact">
-                <label
-                  className="settings-dev-level-label"
-                  htmlFor="settings-dev-jewels"
-                >
-                  ジュエル
-                </label>
-                <div className="settings-dev-level-row">
-                  <input
-                    id="settings-dev-jewels"
-                    type="number"
-                    min={0}
-                    step={1}
-                    className="settings-dev-level-input"
-                    value={devJewelsInput}
-                    onChange={(event) => setDevJewelsInput(event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="settings-dev-level-apply"
-                    onClick={handleDevJewelsApply}
-                  >
-                    適用
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="settings-dev-level">
-              <span className="settings-dev-level-label">サブスク（モック）</span>
-              <div className="settings-dev-level-row settings-dev-palette-row">
-                <button
-                  type="button"
-                  className="settings-dev-level-apply settings-dev-level-apply--wide"
-                  onClick={() => handleDevSubscriptionSet('none')}
-                >
-                  未加入
-                </button>
-                <button
-                  type="button"
-                  className="settings-dev-level-apply settings-dev-level-apply--wide"
-                  onClick={() => handleDevSubscriptionSet('light')}
-                >
-                  ライト
-                </button>
-                <button
-                  type="button"
-                  className="settings-dev-level-apply settings-dev-level-apply--wide"
-                  onClick={() => handleDevSubscriptionSet('premium')}
-                >
-                  プレミアム
-                </button>
-              </div>
-            </div>
-            <div className="settings-dev-shards-row">
-              <div className="settings-dev-quick-cell">
-                <label
-                  className="settings-dev-level-label"
-                  htmlFor="settings-dev-attribute-shards"
-                >
-                  属性かけら（全種）
-                </label>
-                <div className="settings-dev-level-row">
-                  <input
-                    id="settings-dev-attribute-shards"
-                    type="number"
-                    min={0}
-                    step={1}
-                    className="settings-dev-level-input"
-                    value={devAttributeShardsInput}
-                    onChange={(event) =>
-                      setDevAttributeShardsInput(event.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="settings-dev-level-apply"
-                    onClick={handleDevAttributeShardsApply}
-                  >
-                    適用
-                  </button>
-                </div>
-              </div>
-              <div className="settings-dev-quick-cell">
-                <label
-                  className="settings-dev-level-label"
-                  htmlFor="settings-dev-universal-shards"
-                >
-                  汎用かけら
-                </label>
-                <div className="settings-dev-level-row">
-                  <input
-                    id="settings-dev-universal-shards"
-                    type="number"
-                    min={0}
-                    step={1}
-                    className="settings-dev-level-input"
-                    value={devUniversalShardsInput}
-                    onChange={(event) =>
-                      setDevUniversalShardsInput(event.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="settings-dev-level-apply"
-                    onClick={handleDevUniversalShardsApply}
-                  >
-                    適用
-                  </button>
-                </div>
-              </div>
-              <div className="settings-dev-quick-cell">
-                <label
-                  className="settings-dev-level-label"
-                  htmlFor="settings-dev-talisman"
-                >
-                  護符
-                </label>
-                <div className="settings-dev-level-row">
-                  <input
-                    id="settings-dev-talisman"
-                    type="number"
-                    min={0}
-                    step={1}
-                    className="settings-dev-level-input"
-                    value={devTalismanInput}
-                    onChange={(event) => setDevTalismanInput(event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="settings-dev-level-apply"
-                    onClick={handleDevTalismanApply}
-                  >
-                    適用
-                  </button>
-                </div>
-              </div>
-            </div>
-            <p className="settings-dev-level-hint muted">
-              属性かけらは全属性を同じ数に、汎用かけらと護符は個別に設定できます。
-            </p>
-            <div className="settings-dev-level">
-              <span className="settings-dev-level-label">色パレット（ショップ追加分）</span>
-              <div className="settings-dev-level-row settings-dev-palette-row">
-                <button
-                  type="button"
-                  className="settings-dev-level-apply settings-dev-level-apply--wide"
-                  onClick={handleDevUnlockAllPaletteColors}
-                >
-                  全解放
-                </button>
-                <button
-                  type="button"
-                  className="settings-dev-level-apply settings-dev-level-apply--wide"
-                  onClick={handleDevClearPaletteShopUnlocks}
-                >
-                  未解放
-                </button>
-              </div>
-              <p className="settings-dev-level-hint muted">
-                解放済み {paletteShopUnlockCount}/{shopPaletteTotal} 色（💎購入分）
-              </p>
-            </div>
-            <div className="settings-dev-level">
-              <label
-                className="settings-dev-level-label"
-                htmlFor="settings-dev-fill-deck"
-              >
-                デッキ自動生成（空きスロット）
-              </label>
-              <div className="settings-dev-level-row">
-                <select
-                  id="settings-dev-fill-deck"
-                  className="settings-dev-level-input settings-dev-level-select"
-                  value={String(devFillDeckIndex)}
-                  onChange={(event) =>
-                    setDevFillDeckIndex(Number.parseInt(event.target.value, 10))
-                  }
-                >
-                  {devDeckFillOptions.map((option) => (
-                    <option
-                      key={option.index}
-                      value={option.index}
-                      disabled={option.locked}
-                    >
-                      {option.label}
-                      {option.locked
-                        ? ' · 未解放'
-                        : option.emptySlots === 0
-                          ? ' · 満杯'
-                          : ` · 空き${option.emptySlots}`}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="settings-dev-level-apply"
-                  disabled={
-                    !selectedDevFillDeck ||
-                    selectedDevFillDeck.locked ||
-                    selectedDevFillDeck.emptySlots === 0
-                  }
-                  onClick={handleDevFillDeckSlots}
-                >
-                  生成
-                </button>
-              </div>
-            </div>
-            <div className="settings-dev-level">
-              <label
-                className="settings-dev-level-label"
-                htmlFor="settings-dev-lost-card"
-              >
-                Lost 化するカード
-              </label>
-              <div className="settings-dev-level-row">
-                <select
-                  id="settings-dev-lost-card"
-                  className="settings-dev-level-input settings-dev-level-select"
-                  value={devLostCardId}
-                  disabled={devCardOptions.length === 0}
-                  onChange={(event) => setDevLostCardId(event.target.value)}
-                >
-                  {devCardOptions.length === 0 ? (
-                    <option value="">カードがありません</option>
-                  ) : (
-                    devCardOptions.map((option) => (
-                      <option
-                        key={option.id}
-                        value={option.id}
-                        disabled={option.isLost}
-                      >
-                        {option.label}
-                      </option>
-                    ))
-                  )}
-                </select>
-                <button
-                  type="button"
-                  className="settings-dev-level-apply"
-                  disabled={!selectedDevCard || selectedDevCard.isLost}
-                  onClick={handleDevMarkCardLost}
-                >
-                  Lost にする
-                </button>
-              </div>
-            </div>
-            {devNotice && (
-              <p className="settings-dev-notice" role="status">
-                {devNotice}
-              </p>
-            )}
-            {devDeckNotice && (
-              <p className="settings-dev-notice" role="status">
-                {devDeckNotice}
-              </p>
-            )}
-            {devPixelsNotice && (
-              <p className="settings-dev-notice" role="status">
-                {devPixelsNotice}
-              </p>
-            )}
-            {devJewelsNotice && (
-              <p className="settings-dev-notice" role="status">
-                {devJewelsNotice}
-              </p>
-            )}
-            {devSubscriptionNotice && (
-              <p className="settings-dev-notice" role="status">
-                {devSubscriptionNotice}
-              </p>
-            )}
-            {devShardsNotice && (
-              <p className="settings-dev-notice" role="status">
-                {devShardsNotice}
-              </p>
-            )}
-            {devLostNotice && (
-              <p className="settings-dev-notice" role="status">
-                {devLostNotice}
-              </p>
-            )}
-            {devFillNotice && (
-              <p className="settings-dev-notice" role="status">
-                {devFillNotice}
-              </p>
-            )}
-            {devPaletteNotice && (
-              <p className="settings-dev-notice" role="status">
-                {devPaletteNotice}
-              </p>
-            )}
-          </SettingsSection>
-        )}
-
-        <SettingsSection title="その他">
           {FUTURE_ROWS.map((row) => (
             <SettingsRow key={row.label} label={row.label} hint={row.hint} />
           ))}
         </SettingsSection>
       </div>
-
-      <ConfirmDialog
-        open={resetOpen}
-        title="バトル履歴をリセット"
-        message="対戦履歴をすべて削除します。ユーザー情報・デッキ・所持品は変更されません。"
-        confirmLabel="リセット"
-        cancelLabel="キャンセル"
-        confirmVariant="danger"
-        onConfirm={() => {
-          setResetOpen(false);
-          onResetBattleRecords();
-        }}
-        onCancel={() => setResetOpen(false)}
-      />
     </section>
   );
 }

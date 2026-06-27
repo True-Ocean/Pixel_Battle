@@ -1,4 +1,6 @@
 import {
+  canUnlockMoreMemoryAlbumRows,
+  clampMemoryAlbumUnlockedRows,
   getMemoryAlbumCapacity,
   MEMORY_ALBUM_INITIAL_ROWS,
 } from '../config/economy';
@@ -32,7 +34,7 @@ export function normalizeMemoryAlbum(raw: unknown): MemoryAlbumState {
   const unlockedRows =
     typeof candidate.unlockedRows === 'number' &&
     Number.isFinite(candidate.unlockedRows)
-      ? Math.max(MEMORY_ALBUM_INITIAL_ROWS, Math.floor(candidate.unlockedRows))
+      ? clampMemoryAlbumUnlockedRows(candidate.unlockedRows)
       : MEMORY_ALBUM_INITIAL_ROWS;
   return { cards, unlockedRows };
 }
@@ -70,8 +72,21 @@ export function removeCardFromMemoryAlbumById(
 }
 
 export function unlockMemoryAlbumRow(album: MemoryAlbumState): MemoryAlbumState {
+  if (!canUnlockMoreMemoryAlbumRows(album.unlockedRows)) {
+    return album;
+  }
   return {
     ...album,
     unlockedRows: album.unlockedRows + 1,
+  };
+}
+
+export function setMemoryAlbumUnlockedRows(
+  album: MemoryAlbumState,
+  unlockedRows: number,
+): MemoryAlbumState {
+  return {
+    ...album,
+    unlockedRows: clampMemoryAlbumUnlockedRows(unlockedRows),
   };
 }

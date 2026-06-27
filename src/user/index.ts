@@ -60,6 +60,7 @@ export {
   memoryAlbumHasSpace,
   normalizeMemoryAlbum,
   removeCardFromMemoryAlbumById,
+  setMemoryAlbumUnlockedRows,
   unlockMemoryAlbumRow,
 } from './memoryAlbum';
 export {

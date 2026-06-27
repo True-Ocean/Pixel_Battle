@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   canAffordMemoryAlbumRowUnlock,
   getMemoryAlbumCapacity,
+  getMemoryAlbumMaxRows,
   JEWEL_COST_MEMORY_ALBUM_ROW,
   MEMORY_ALBUM_SLOTS_PER_ROW,
 } from '../config/economy';
@@ -9,7 +10,7 @@ import { getRarityMeta } from '../config/rarity';
 import type { Card, MemoryAlbumState } from '../types';
 import { CardPreview } from './CardPreview';
 import { MemoryAlbumDetailOverlay } from './MemoryAlbumDetailOverlay';
-import { JewelAmount } from './JewelIcon';
+import { MemoryAlbumExpandConfirmDialog } from './MemoryAlbumDialogs';
 
 interface MemoryAlbumScreenProps {
   album: MemoryAlbumState;
@@ -43,14 +44,75 @@ function MemoryAlbumTile({
   );
 }
 
-function MemoryAlbumEmptyTile({ locked }: { locked: boolean }) {
+function MemoryAlbumEmptyTile() {
+  return (
+    <div className="memory-album-tile memory-album-tile--empty" aria-hidden />
+  );
+}
+
+function MemoryAlbumCardRow({
+  rowIndex,
+  cards,
+  onSelectCard,
+}: {
+  rowIndex: number;
+  cards: Card[];
+  onSelectCard: (cardId: string) => void;
+}) {
+  return (
+    <div className="memory-album-row">
+      {Array.from({ length: MEMORY_ALBUM_SLOTS_PER_ROW }, (_, colIndex) => {
+        const slotIndex = rowIndex * MEMORY_ALBUM_SLOTS_PER_ROW + colIndex;
+        const card = cards[slotIndex];
+        if (card) {
+          return (
+            <MemoryAlbumTile
+              key={card.id}
+              card={card}
+              onSelect={() => onSelectCard(card.id)}
+            />
+          );
+        }
+        return <MemoryAlbumEmptyTile key={`empty-${slotIndex}`} />;
+      })}
+    </div>
+  );
+}
+
+function MemoryAlbumExpansionSlot({
+  isFirstAfterUnlocked,
+  enabled,
+  onClick,
+}: {
+  isFirstAfterUnlocked: boolean;
+  enabled: boolean;
+  onClick: () => void;
+}) {
   return (
     <div
-      className={`memory-album-tile memory-album-tile--empty${
-        locked ? ' memory-album-tile--locked' : ''
-      }`}
-      aria-hidden
-    />
+      className={[
+        'memory-album-row',
+        'memory-album-expansion-row',
+        isFirstAfterUnlocked ? 'memory-album-expansion-row--spaced' : '',
+        enabled ? '' : 'memory-album-expansion-row--inactive',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <div className="memory-album-row-height-sizer" aria-hidden />
+      <button
+        type="button"
+        className="memory-album-expansion-slot-btn"
+        disabled={!enabled}
+        onClick={onClick}
+        aria-label={`アルバム拡張（${JEWEL_COST_MEMORY_ALBUM_ROW}ジュエル）`}
+      >
+        <span className="memory-album-expansion-icon" aria-hidden>
+          ＋
+        </span>
+        <span className="memory-album-expansion-label">アルバム拡張</span>
+      </button>
+    </div>
   );
 }
 
@@ -63,18 +125,20 @@ export function MemoryAlbumScreen({
 }: MemoryAlbumScreenProps) {
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [expandConfirmOpen, setExpandConfirmOpen] = useState(false);
 
   const capacity = getMemoryAlbumCapacity(album.unlockedRows);
-  const isFull = album.cards.length >= capacity;
-  const canUnlock = canAffordMemoryAlbumRowUnlock({ jewels });
+  const maxRows = getMemoryAlbumMaxRows();
+  const canAffordUnlock = canAffordMemoryAlbumRowUnlock({ jewels });
   const detailCard =
     detailCardId != null
       ? album.cards.find((card) => card.id === detailCardId) ?? null
       : null;
 
-  const handleUnlockRow = () => {
+  const handleConfirmExpand = () => {
     setUnlockError(null);
     const error = onUnlockRow();
+    setExpandConfirmOpen(false);
     if (error) setUnlockError(error);
   };
 
@@ -91,47 +155,34 @@ export function MemoryAlbumScreen({
       </header>
 
       <div className="memory-album-grid-wrap">
-        {Array.from({ length: album.unlockedRows }, (_, rowIndex) => (
-          <div key={`row-${rowIndex}`} className="memory-album-row">
-            {Array.from({ length: MEMORY_ALBUM_SLOTS_PER_ROW }, (_, colIndex) => {
-              const slotIndex = rowIndex * MEMORY_ALBUM_SLOTS_PER_ROW + colIndex;
-              const card = album.cards[slotIndex];
-              if (card) {
-                return (
-                  <MemoryAlbumTile
-                    key={card.id}
-                    card={card}
-                    onSelect={() => setDetailCardId(card.id)}
-                  />
-                );
-              }
-              return <MemoryAlbumEmptyTile key={`empty-${slotIndex}`} locked={false} />;
-            })}
-          </div>
-        ))}
-
-        {isFull && (
-          <div className="memory-album-row memory-album-row--unlock">
-            {Array.from({ length: MEMORY_ALBUM_SLOTS_PER_ROW }, (_, index) => (
-              <MemoryAlbumEmptyTile key={`unlock-slot-${index}`} locked />
-            ))}
-            <button
-              type="button"
-              className={`memory-album-row-unlock-btn${
-                canUnlock ? '' : ' memory-album-row-unlock-btn--pending'
-              }`}
-              disabled={!canUnlock}
-              onClick={handleUnlockRow}
-            >
-              <span>行を解放</span>
-              <JewelAmount
-                amount={JEWEL_COST_MEMORY_ALBUM_ROW}
-                className="memory-album-row-unlock-jewel"
-                iconClassName="memory-album-row-unlock-jewel-icon"
+        {Array.from({ length: maxRows }, (_, rowIndex) => {
+          if (rowIndex < album.unlockedRows) {
+            return (
+              <MemoryAlbumCardRow
+                key={`row-${rowIndex}`}
+                rowIndex={rowIndex}
+                cards={album.cards}
+                onSelectCard={setDetailCardId}
               />
-            </button>
-          </div>
-        )}
+            );
+          }
+
+          const isNextExpansion = rowIndex === album.unlockedRows;
+          return (
+            <MemoryAlbumExpansionSlot
+              key={`expand-${rowIndex}`}
+              isFirstAfterUnlocked={
+                rowIndex === album.unlockedRows && album.unlockedRows === 1
+              }
+              enabled={isNextExpansion}
+              onClick={() => {
+                if (!isNextExpansion) return;
+                setUnlockError(null);
+                setExpandConfirmOpen(true);
+              }}
+            />
+          );
+        })}
       </div>
 
       {unlockError && (
@@ -139,6 +190,14 @@ export function MemoryAlbumScreen({
           {unlockError}
         </p>
       )}
+
+      <MemoryAlbumExpandConfirmDialog
+        open={expandConfirmOpen}
+        jewelCost={JEWEL_COST_MEMORY_ALBUM_ROW}
+        canAfford={canAffordUnlock}
+        onConfirm={handleConfirmExpand}
+        onCancel={() => setExpandConfirmOpen(false)}
+      />
 
       {detailCard && (
         <MemoryAlbumDetailOverlay
