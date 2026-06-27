@@ -8,10 +8,17 @@ import {
   MAX_USER_LEVEL,
 } from '../config/balance';
 import { getSelectableCanvasSizes } from '../config/canvasUnlock';
+import { generateCpuCardName } from '../config/cpuNames';
 import { unlockedPaletteColors } from '../config/palette';
 import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import type { Card, CardStars } from '../types';
-import { pickCpuPattern } from './cpuPatterns';
+import {
+  buildCpuPixelArt,
+  pickCpuPattern,
+  rollCpuTargetDensity,
+} from './cpuPatterns';
+
+export { randomCpuName } from '../config/cpuNames';
 
 function fillGrid(color: string) {
   return createEmptyGrid().map((row) => row.map(() => color));
@@ -29,30 +36,6 @@ export function rollMatchingDurationMs(
 ): number {
   return 2000 + random() * 2000;
 }
-
-const CPU_NAME_PREFIXES = [
-  'なぞ',
-  'ふし',
-  'かげ',
-  'ほの',
-  'くろ',
-  'しろ',
-  'あか',
-  'よわ',
-  'つよ',
-  'わく',
-] as const;
-
-const CPU_NAME_SUFFIXES = [
-  'ぶき',
-  'たて',
-  'まもの',
-  'ひと',
-  'かみ',
-  'けもの',
-  'たま',
-  'いし',
-] as const;
 
 export type CpuDifficulty = 'even' | 'strong';
 
@@ -74,10 +57,6 @@ function pickRandom<T>(items: readonly T[], random: () => number): T {
     items.length - 1,
   );
   return items[idx]!;
-}
-
-export function randomCpuName(random: () => number = Math.random): string {
-  return `${pickRandom(CPU_NAME_PREFIXES, random)}の${pickRandom(CPU_NAME_SUFFIXES, random)}`;
 }
 
 function summarizeDeck(deck: Card[]): DeckSummary {
@@ -168,22 +147,14 @@ function deckMatchesTargets(deck: Card[], targets: DeckTargets): boolean {
   return true;
 }
 
-function uniqueName(used: Set<string>, random: () => number): string {
-  let name = randomCpuName(random);
-  let attempt = 0;
-  while (used.has(name) && attempt < 16) {
-    name = randomCpuName(random);
-    attempt++;
-  }
-  used.add(name);
+function uniqueName(
+  patternId: string,
+  usedNames: Set<string>,
+  random: () => number,
+): string {
+  const name = generateCpuCardName(patternId, usedNames, random);
+  usedNames.add(name);
   return name;
-}
-
-function inferUserLevelFromDeck(deck: Card[]): number {
-  if (deck.length === 0) return USER_INITIAL_LEVEL;
-  const avgBp = deck.reduce((s, c) => s + c.bp, 0) / deck.length;
-  const level = Math.round(avgBp / USER_BP_PER_LEVEL);
-  return Math.max(USER_INITIAL_LEVEL, Math.min(MAX_USER_LEVEL, level));
 }
 
 function pickUnlockedCanvasSize(
@@ -195,15 +166,23 @@ function pickUnlockedCanvasSize(
 
 function buildOneCpuCard(
   usedNames: Set<string>,
+  usedPatternIds: Set<string>,
   random: () => number,
   userLevel: number,
 ): Card {
-  const name = uniqueName(usedNames, random);
   const canvasSize = pickUnlockedCanvasSize(userLevel, random);
   const unlockedPaletteCount = getUnlockedPaletteCount(userLevel);
   const colors = unlockedPaletteColors(unlockedPaletteCount);
-  const pattern = pickCpuPattern(random);
-  const pixels = pattern.build({ canvasSize, colors, random });
+  const pattern = pickCpuPattern(random, usedPatternIds);
+  usedPatternIds.add(pattern.id);
+  const name = uniqueName(pattern.id, usedNames, random);
+  const pixels = buildCpuPixelArt({
+    pattern,
+    canvasSize,
+    colors,
+    targetDensity: rollCpuTargetDensity(random),
+    random,
+  });
   return createCardFromDrawing(name, pixels, {
     userLevel,
     unlockedPaletteCount,
@@ -217,13 +196,21 @@ function buildCandidateDeck(
   userLevel: number,
 ): Card[] {
   const usedNames = new Set<string>();
+  const usedPatternIds = new Set<string>();
   const cards: Card[] = [];
 
   for (let i = 0; i < DECK_MAX; i++) {
-    cards.push(buildOneCpuCard(usedNames, random, userLevel));
+    cards.push(buildOneCpuCard(usedNames, usedPatternIds, random, userLevel));
   }
 
   return cards;
+}
+
+function inferUserLevelFromDeck(deck: Card[]): number {
+  if (deck.length === 0) return USER_INITIAL_LEVEL;
+  const avgBp = deck.reduce((s, c) => s + c.bp, 0) / deck.length;
+  const level = Math.round(avgBp / USER_BP_PER_LEVEL);
+  return Math.max(USER_INITIAL_LEVEL, Math.min(MAX_USER_LEVEL, level));
 }
 
 /**

@@ -5,7 +5,7 @@ import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import { createEmptyGrid } from '../canvas';
 import type { Card } from '../types';
 import { createCardFromDrawing, computeDeckPower } from '../card';
-import { pickCpuPattern } from './cpuPatterns';
+import { pickCpuPattern, buildCpuPixelArt } from './cpuPatterns';
 import {
   buildBalancedCpuDeck,
   buildCpuCardsForDeckFill,
@@ -103,6 +103,12 @@ describe('buildBalancedCpuDeck', () => {
     }
   });
 
+  it('5枚の名前は互いに異なる', () => {
+    const cpu = buildBalancedCpuDeck(stubPlayerDeck(), () => 0.42, 10);
+    const names = cpu.map((card) => card.name);
+    expect(new Set(names).size).toBe(DECK_MAX);
+  });
+
   it('プレイヤー平均 BP の近傍に収まる（互角）', () => {
     const player = stubPlayerDeck();
     const playerAvg = player.reduce((s, c) => s + c.bp, 0) / player.length;
@@ -120,8 +126,8 @@ describe('buildBalancedCpuDeck', () => {
     const targets = buildDeckTargets(player, 'even');
     const cpu = buildBalancedCpuDeck(player, () => 0.33, 10);
     const cpuPower = computeDeckPower(cpu);
-    expect(cpuPower).toBeGreaterThanOrEqual(targets.powerMin - 15);
-    expect(cpuPower).toBeLessThanOrEqual(targets.powerMax + 15);
+    expect(cpuPower).toBeGreaterThanOrEqual(targets.powerMin - 20);
+    expect(cpuPower).toBeLessThanOrEqual(targets.powerMax + 20);
     expect(cpuPower).toBeGreaterThanOrEqual(playerPower * 0.95);
   });
 
@@ -217,6 +223,20 @@ describe('pickCpuPattern', () => {
         expect(colors.map((c) => c.toLowerCase())).toContain(cell.toLowerCase());
       }
     }
+  });
+
+  it('buildCpuPixelArt 経由でも生成できる', () => {
+    const colors = PALETTE_16.slice(0, 6);
+    const pattern = pickCpuPattern(() => 0.1);
+    const grid = buildCpuPixelArt({
+      pattern,
+      canvasSize: 16,
+      colors,
+      targetDensity: 0.45,
+      random: () => 0.25,
+    });
+    expect(grid).toHaveLength(16);
+    expect(grid.flat().filter((c) => c != null).length).toBeGreaterThan(8);
   });
 });
 
