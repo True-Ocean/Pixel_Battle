@@ -11,7 +11,8 @@ import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { createInitialMissionState } from './user/missionState';
-import { applyMissionResets } from './mission/reset';
+import { getBattlesDayKey } from './user/adState';
+import { applyMissionResets, hasMissionPeriodExpired } from './mission/reset';
 import {
   applyMissionEvents,
   claimMission,
@@ -257,6 +258,7 @@ function App() {
   const shopPurchaseRef = useRef(shopPurchase);
   const subscriptionRef = useRef(subscription);
   const missionStateRef = useRef(missionState);
+  const screenRef = useRef(screen);
   const isHistoryRematchRef = useRef(false);
   const historyRematchEntryRef = useRef<BattleHistoryEntry | null>(null);
   const battleStartSnapshotRef = useRef<{
@@ -282,6 +284,7 @@ function App() {
   shopPurchaseRef.current = shopPurchase;
   subscriptionRef.current = subscription;
   missionStateRef.current = missionState;
+  screenRef.current = screen;
 
   const devPreferSavedLevelRef = useRef(initialSave.devPreferSavedLevel === true);
   const devFileOverrideLevelRef = useRef<number | null | undefined>(
@@ -318,6 +321,14 @@ function App() {
       if (next.devFileOverrideLevel !== undefined) {
         devFileOverrideLevelRef.current = next.devFileOverrideLevel;
       }
+      const rawMissionState = next.missionState ?? missionStateRef.current;
+      const missionStateToSave = hasMissionPeriodExpired(rawMissionState)
+        ? applyMissionResets(rawMissionState)
+        : rawMissionState;
+      if (hasMissionPeriodExpired(missionStateRef.current)) {
+        missionStateRef.current = missionStateToSave;
+        setMissionState(missionStateToSave);
+      }
       saveSave({
         schemaVersion: initialSave.schemaVersion,
         user: next.user !== undefined ? next.user : user,
@@ -339,7 +350,7 @@ function App() {
         memoryAlbum: next.memoryAlbum ?? memoryAlbumRef.current,
         shopPurchase: next.shopPurchase ?? shopPurchaseRef.current,
         subscription: next.subscription ?? subscriptionRef.current,
-        missionState: next.missionState ?? missionStateRef.current,
+        missionState: missionStateToSave,
         soundEnabled: next.soundEnabled ?? soundEnabled,
         deckIntroSeen: next.deckIntroSeen ?? deckIntroSeen,
         ...(devPreferSavedLevelRef.current
@@ -405,14 +416,48 @@ function App() {
     setDeckIntroOpen(true);
   }, [user, deckIntroSeen, screen, activeDeckCardCount, persistSave]);
 
-  const appOpenReportedRef = useRef(false);
+  const appOpenReportedDayKeyRef = useRef<string | null>(null);
+
+  const refreshMissionsForCurrentDate = useCallback(() => {
+    const prev = missionStateRef.current;
+    const todayKey = getBattlesDayKey();
+    const periodExpired = hasMissionPeriodExpired(prev);
+    const user = userRef.current;
+    const currentScreen = screenRef.current;
+    const canTrackAppOpen =
+      isProfileComplete(user) &&
+      currentScreen !== 'title' &&
+      currentScreen !== 'setup';
+    const appOpenNeeded =
+      canTrackAppOpen && appOpenReportedDayKeyRef.current !== todayKey;
+
+    if (!periodExpired && !appOpenNeeded) return;
+
+    if (appOpenNeeded) {
+      appOpenReportedDayKeyRef.current = todayKey;
+      reportAndPersistMissionEvents([{ type: 'app_open' }]);
+      return;
+    }
+
+    const next = applyMissionResets(prev);
+    missionStateRef.current = next;
+    setMissionState(next);
+    persistSave({ missionState: next });
+  }, [persistSave, reportAndPersistMissionEvents]);
+
   useEffect(() => {
-    if (appOpenReportedRef.current) return;
-    if (!isProfileComplete(user)) return;
-    if (screen === 'title' || screen === 'setup') return;
-    appOpenReportedRef.current = true;
-    reportAndPersistMissionEvents([{ type: 'app_open' }]);
-  }, [reportAndPersistMissionEvents, screen, user]);
+    refreshMissionsForCurrentDate();
+  }, [refreshMissionsForCurrentDate, screen, user]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshMissionsForCurrentDate();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [refreshMissionsForCurrentDate]);
 
   const applyShopPurchaseResult = useCallback(
     (result: {

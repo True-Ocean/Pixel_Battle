@@ -25,7 +25,7 @@ export {
   reportMissionEvent,
   shouldShowBeginnerMissions,
 } from './progress';
-export { applyMissionResets, getMissionWeekKey } from './reset';
+export { applyMissionResets, getMissionWeekKey, hasMissionPeriodExpired } from './reset';
 export {
   canShowMissionChallenge,
   getMissionChallengeTarget,

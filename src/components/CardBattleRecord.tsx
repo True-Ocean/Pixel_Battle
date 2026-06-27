@@ -20,7 +20,11 @@ export function CardBattleRecord({
     <span className={classes}>
       <span>生存{wins}</span>
       <span>墓地{losses}</span>
-      <span>
+      <span
+        className={
+          reviveCount >= REVIVE_CAP ? 'card-battle-record-revive-at-cap' : undefined
+        }
+      >
         復活 {reviveCount}/{REVIVE_CAP}
       </span>
     </span>

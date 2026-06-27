@@ -10,7 +10,7 @@ import {
   getMissionById,
   reportMissionEvent,
 } from '../mission';
-import { applyMissionResets, getMissionWeekKey } from '../mission/reset';
+import { applyMissionResets, getMissionWeekKey, hasMissionPeriodExpired } from '../mission/reset';
 import {
   isCurrentBeginnerMission,
   isMissionClaimable,
@@ -26,6 +26,13 @@ describe('mission reset', () => {
     expect(getMissionWeekKey(monday)).toBe('2026-06-15');
     expect(getMissionWeekKey(tuesday)).toBe('2026-06-15');
     expect(getMissionWeekKey(nextMonday)).toBe('2026-06-22');
+  });
+
+  it('detects expired daily and weekly periods', () => {
+    const state = createInitialMissionState(monday);
+    expect(hasMissionPeriodExpired(state, monday)).toBe(false);
+    expect(hasMissionPeriodExpired(state, tuesday)).toBe(true);
+    expect(hasMissionPeriodExpired(state, nextMonday)).toBe(true);
   });
 
   it('clears daily progress when day changes', () => {

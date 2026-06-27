@@ -42,6 +42,17 @@ function clearCategoryProgress(
   return { ...state, entries: nextEntries };
 }
 
+/** 日次・週次の期間が切れているか（リセットが必要か） */
+export function hasMissionPeriodExpired(
+  state: MissionState,
+  date: Date = new Date(),
+): boolean {
+  return (
+    state.dailyDayKey !== getBattlesDayKey(date) ||
+    state.weeklyWeekKey !== getMissionWeekKey(date)
+  );
+}
+
 /** 日次・週次リセットを適用 */
 export function applyMissionResets(
   state: MissionState,

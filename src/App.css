@@ -6343,6 +6343,11 @@ button.battle-hub-deck-icon.is-move-target {
   justify-content: inherit;
 }
 
+.card-battle-record-revive-at-cap {
+  color: #dc2626;
+  font-weight: 700;
+}
+
 .deck-detail-card-guide {
   margin: 0.35rem 0 0;
   border-radius: 10px;
