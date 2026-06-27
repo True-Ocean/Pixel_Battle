@@ -204,7 +204,7 @@ describe('rollMatchingDurationMs', () => {
 describe('pickCpuPattern', () => {
   it('指定サイズの模様を返す', () => {
     const colors = PALETTE_16.slice(0, 6);
-    const grid = pickCpuPattern('neutral', () => 0.2).build({
+    const grid = pickCpuPattern(() => 0.2).build({
       canvasSize: 24,
       colors,
       random: () => 0.2,

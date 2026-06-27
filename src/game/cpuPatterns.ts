@@ -4,8 +4,6 @@ import type { PixelColor, PixelGrid } from '../types';
 
 const REF_SIZE = 16;
 
-export type PatternBias = 'attack' | 'defense' | 'neutral';
-
 export interface CpuPatternBuildOptions {
   canvasSize: number;
   colors: readonly string[];
@@ -14,7 +12,6 @@ export interface CpuPatternBuildOptions {
 
 export interface CpuPattern {
   id: string;
-  bias: PatternBias;
   build: (options: CpuPatternBuildOptions) => PixelGrid;
 }
 
@@ -30,11 +27,6 @@ function mid(size: number): number {
   return Math.floor(size / 2);
 }
 
-function paletteIndex(color: string): number {
-  const normalized = color.toLowerCase();
-  return PALETTE_16.findIndex((c) => c.toLowerCase() === normalized);
-}
-
 function findUnlocked(indices: number[], colors: readonly string[]): string | undefined {
   for (const idx of indices) {
     const candidate = PALETTE_16[idx];
@@ -48,60 +40,24 @@ function findUnlocked(indices: number[], colors: readonly string[]): string | un
   return undefined;
 }
 
-function pickColor(
-  bias: PatternBias,
-  colors: readonly string[],
-  random: () => number,
-): PixelColor {
+function pickColor(colors: readonly string[], random: () => number): PixelColor {
   if (colors.length === 0) return null;
 
-  const white = findUnlocked([0], colors) ?? colors[0]!;
-  const black = findUnlocked([1], colors) ?? white;
-  const red = findUnlocked([2], colors) ?? white;
-
   if (colors.length <= 3) {
-    if (bias === 'attack') {
-      return random() < 0.72 ? red : random() < 0.5 ? black : white;
-    }
-    if (bias === 'defense') {
-      return random() < 0.72 ? white : random() < 0.5 ? black : red;
-    }
+    const white = findUnlocked([0], colors) ?? colors[0]!;
+    const black = findUnlocked([1], colors) ?? white;
+    const red = findUnlocked([2], colors) ?? white;
     const roll = random();
     if (roll < 0.34) return red;
     if (roll < 0.67) return white;
     return black;
   }
 
-  const weights = colors.map((color) => {
-    const idx = paletteIndex(color);
-    if (bias === 'attack') {
-      if (idx === 2) return 4;
-      if (idx === 6) return 3;
-      if (idx === 1) return 2;
-      if (idx === 4) return 2;
-      if (idx === 0) return 1;
-      if (idx === 3) return 1;
-      if (idx === 5) return 1;
-      return 1.2;
-    }
-    if (bias === 'defense') {
-      if (idx === 0) return 4;
-      if (idx === 5) return 3;
-      if (idx === 3) return 2;
-      if (idx === 1) return 1.5;
-      if (idx === 2) return 0.5;
-      return 1;
-    }
-    return 1;
-  });
-
-  const total = weights.reduce((sum, weight) => sum + weight, 0);
-  let roll = random() * total;
-  for (let i = 0; i < colors.length; i++) {
-    roll -= weights[i]!;
-    if (roll <= 0) return colors[i]!;
-  }
-  return colors[colors.length - 1]!;
+  const idx = Math.min(
+    Math.floor(random() * colors.length),
+    colors.length - 1,
+  );
+  return colors[idx]!;
 }
 
 function fillRect(
@@ -120,12 +76,12 @@ function fillRect(
   }
 }
 
-function stripesH(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid {
+function stripesH(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
   const stripe = Math.max(1, scaleLen(2 + Math.floor(random() * 2), size));
   for (let r = 0; r < size; r++) {
-    const color = pickColor(bias, options.colors, random);
+    const color = pickColor(options.colors, random);
     if (Math.floor(r / stripe) % 2 === 0) {
       for (let c = 0; c < size; c++) grid[r]![c] = color;
     }
@@ -133,12 +89,12 @@ function stripesH(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid
   return grid;
 }
 
-function stripesV(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid {
+function stripesV(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
   const stripe = Math.max(1, scaleLen(2 + Math.floor(random() * 2), size));
   for (let c = 0; c < size; c++) {
-    const color = pickColor(bias, options.colors, random);
+    const color = pickColor(options.colors, random);
     if (Math.floor(c / stripe) % 2 === 0) {
       for (let r = 0; r < size; r++) grid[r]![c] = color;
     }
@@ -146,25 +102,25 @@ function stripesV(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid
   return grid;
 }
 
-function checker(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid {
+function checker(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
   const cell = Math.max(1, scaleLen(2 + Math.floor(random() * 2), size));
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
       if ((Math.floor(r / cell) + Math.floor(c / cell)) % 2 === 0) {
-        grid[r]![c] = pickColor(bias, options.colors, random);
+        grid[r]![c] = pickColor(options.colors, random);
       }
     }
   }
   return grid;
 }
 
-function crossShape(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid {
+function crossShape(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
-  const color = pickColor(bias, options.colors, random);
-  const accent = pickColor(bias, options.colors, random);
+  const color = pickColor(options.colors, random);
+  const accent = pickColor(options.colors, random);
   const center = mid(size);
   for (let i = 0; i < size; i++) {
     grid[center]![i] = color;
@@ -176,7 +132,7 @@ function crossShape(bias: PatternBias, options: CpuPatternBuildOptions): PixelGr
   return grid;
 }
 
-function diamond(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid {
+function diamond(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
   const cx = mid(size);
@@ -186,14 +142,14 @@ function diamond(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid 
     for (let c = 0; c < size; c++) {
       const dist = Math.abs(r - cy) + Math.abs(c - cx);
       if (dist <= radius) {
-        grid[r]![c] = pickColor(bias, options.colors, random);
+        grid[r]![c] = pickColor(options.colors, random);
       }
     }
   }
   return grid;
 }
 
-function ring(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid {
+function ring(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
   const cx = size / 2 - 0.5;
@@ -204,30 +160,37 @@ function ring(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid {
     for (let c = 0; c < size; c++) {
       const d = Math.hypot(r - cy, c - cx);
       if (d >= inner && d <= outer) {
-        grid[r]![c] = pickColor(bias, options.colors, random);
+        grid[r]![c] = pickColor(options.colors, random);
       }
     }
   }
   const block = scaleLen(4, size);
   const blockStart = scalePos(6, size);
-  fillRect(grid, blockStart, blockStart, block, block, pickColor(bias, options.colors, random));
+  fillRect(
+    grid,
+    blockStart,
+    blockStart,
+    block,
+    block,
+    pickColor(options.colors, random),
+  );
   return grid;
 }
 
-function cornerBlocks(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid {
+function cornerBlocks(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
   const block = scaleLen(5, size);
-  fillRect(grid, 0, 0, block, block, pickColor(bias, options.colors, random));
-  fillRect(grid, 0, size - block, block, block, pickColor(bias, options.colors, random));
-  fillRect(grid, size - block, 0, block, block, pickColor(bias, options.colors, random));
+  fillRect(grid, 0, 0, block, block, pickColor(options.colors, random));
+  fillRect(grid, 0, size - block, block, block, pickColor(options.colors, random));
+  fillRect(grid, size - block, 0, block, block, pickColor(options.colors, random));
   fillRect(
     grid,
     size - block,
     size - block,
     block,
     block,
-    pickColor(bias, options.colors, random),
+    pickColor(options.colors, random),
   );
   return grid;
 }
@@ -235,26 +198,24 @@ function cornerBlocks(bias: PatternBias, options: CpuPatternBuildOptions): Pixel
 function catFace(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
-  const fur = random() < 0.5
-    ? pickColor('neutral', options.colors, random)
-    : pickColor('defense', options.colors, random);
+  const fur = pickColor(options.colors, random);
   const eye = findUnlocked([1], options.colors) ?? fur;
   fillRect(grid, scalePos(4, size), scalePos(3, size), scaleLen(3, size), scaleLen(3, size), fur);
   fillRect(grid, scalePos(4, size), scalePos(10, size), scaleLen(3, size), scaleLen(3, size), fur);
   fillRect(grid, scalePos(5, size), scalePos(5, size), scaleLen(8, size), scaleLen(6, size), fur);
   grid[scalePos(7, size)]![scalePos(6, size)] = eye;
   grid[scalePos(7, size)]![scalePos(9, size)] = eye;
-  grid[scalePos(10, size)]![scalePos(7, size)] = pickColor('neutral', options.colors, random);
-  grid[scalePos(11, size)]![scalePos(8, size)] = pickColor('neutral', options.colors, random);
+  grid[scalePos(10, size)]![scalePos(7, size)] = pickColor(options.colors, random);
+  grid[scalePos(11, size)]![scalePos(8, size)] = pickColor(options.colors, random);
   return grid;
 }
 
 function birdShape(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
-  const body = pickColor('neutral', options.colors, random);
-  const wing = pickColor('attack', options.colors, random);
-  const beak = findUnlocked([2], options.colors) ?? pickColor('attack', options.colors, random);
+  const body = pickColor(options.colors, random);
+  const wing = pickColor(options.colors, random);
+  const beak = findUnlocked([2], options.colors) ?? pickColor(options.colors, random);
   const eye = findUnlocked([1], options.colors) ?? body;
   fillRect(grid, scalePos(6, size), scalePos(4, size), scaleLen(5, size), scaleLen(8, size), body);
   fillRect(grid, scalePos(4, size), scalePos(2, size), scaleLen(3, size), scaleLen(4, size), wing);
@@ -267,8 +228,8 @@ function birdShape(options: CpuPatternBuildOptions): PixelGrid {
 function fishShape(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
-  const body = pickColor('neutral', options.colors, random);
-  const fin = pickColor('attack', options.colors, random);
+  const body = pickColor(options.colors, random);
+  const fin = pickColor(options.colors, random);
   const eye = findUnlocked([1], options.colors) ?? body;
   fillRect(grid, scalePos(6, size), scalePos(3, size), scaleLen(5, size), scaleLen(9, size), body);
   fillRect(grid, scalePos(5, size), scalePos(2, size), scaleLen(3, size), scaleLen(3, size), fin);
@@ -277,13 +238,10 @@ function fishShape(options: CpuPatternBuildOptions): PixelGrid {
   return grid;
 }
 
-function shieldShape(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid {
+function shieldShape(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
-  const main =
-    bias === 'defense'
-      ? pickColor('defense', options.colors, random)
-      : pickColor(bias, options.colors, random);
+  const main = pickColor(options.colors, random);
   const top = scalePos(3, size);
   const bottom = scalePos(12, size);
   const pivot = scalePos(7, size);
@@ -301,15 +259,15 @@ function shieldShape(bias: PatternBias, options: CpuPatternBuildOptions): PixelG
     scalePos(6, size),
     scaleLen(3, size),
     scaleLen(4, size),
-    pickColor(bias, options.colors, random),
+    pickColor(options.colors, random),
   );
   return grid;
 }
 
-function arrowUp(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid {
+function arrowUp(options: CpuPatternBuildOptions): PixelGrid {
   const { canvasSize: size, random } = options;
   const grid = createEmptyGrid(size);
-  const color = pickColor(bias, options.colors, random);
+  const color = pickColor(options.colors, random);
   const center = mid(size);
   for (let i = 0; i < scaleLen(6, size); i++) {
     fillRect(grid, scalePos(2, size) + i, center - i, 1, 1 + i * 2, color);
@@ -326,34 +284,26 @@ function arrowUp(bias: PatternBias, options: CpuPatternBuildOptions): PixelGrid 
 }
 
 export const CPU_PATTERNS: CpuPattern[] = [
-  { id: 'stripes-h', bias: 'neutral', build: (o) => stripesH('neutral', o) },
-  { id: 'stripes-v', bias: 'neutral', build: (o) => stripesV('neutral', o) },
-  { id: 'checker', bias: 'neutral', build: (o) => checker('neutral', o) },
-  { id: 'cross', bias: 'neutral', build: (o) => crossShape('neutral', o) },
-  { id: 'diamond', bias: 'neutral', build: (o) => diamond('neutral', o) },
-  { id: 'ring', bias: 'neutral', build: (o) => ring('neutral', o) },
-  { id: 'corners', bias: 'neutral', build: (o) => cornerBlocks('neutral', o) },
-  { id: 'stripes-h-atk', bias: 'attack', build: (o) => stripesH('attack', o) },
-  { id: 'checker-atk', bias: 'attack', build: (o) => checker('attack', o) },
-  { id: 'arrow', bias: 'attack', build: (o) => arrowUp('attack', o) },
-  { id: 'stripes-v-def', bias: 'defense', build: (o) => stripesV('defense', o) },
-  { id: 'checker-def', bias: 'defense', build: (o) => checker('defense', o) },
-  { id: 'shield', bias: 'defense', build: (o) => shieldShape('defense', o) },
-  { id: 'cat', bias: 'neutral', build: catFace },
-  { id: 'bird', bias: 'attack', build: birdShape },
-  { id: 'fish', bias: 'neutral', build: fishShape },
+  { id: 'stripes-h', build: stripesH },
+  { id: 'stripes-v', build: stripesV },
+  { id: 'checker', build: checker },
+  { id: 'cross', build: crossShape },
+  { id: 'diamond', build: diamond },
+  { id: 'ring', build: ring },
+  { id: 'corners', build: cornerBlocks },
+  { id: 'arrow', build: arrowUp },
+  { id: 'shield', build: shieldShape },
+  { id: 'cat', build: catFace },
+  { id: 'bird', build: birdShape },
+  { id: 'fish', build: fishShape },
 ];
 
 export function pickCpuPattern(
-  prefer: PatternBias,
   random: () => number = Math.random,
 ): CpuPattern {
-  const pool = CPU_PATTERNS.filter(
-    (p) => p.bias === prefer || (prefer !== 'neutral' && p.bias === 'neutral'),
-  );
   const idx = Math.min(
-    Math.floor(random() * pool.length),
-    pool.length - 1,
+    Math.floor(random() * CPU_PATTERNS.length),
+    CPU_PATTERNS.length - 1,
   );
-  return pool[idx] ?? CPU_PATTERNS[0]!;
+  return CPU_PATTERNS[idx] ?? CPU_PATTERNS[0]!;
 }

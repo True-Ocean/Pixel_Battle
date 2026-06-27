@@ -11,7 +11,7 @@ import { getSelectableCanvasSizes } from '../config/canvasUnlock';
 import { unlockedPaletteColors } from '../config/palette';
 import { getUnlockedPaletteCount } from '../config/paletteUnlock';
 import type { Card, CardStars } from '../types';
-import { pickCpuPattern, type PatternBias } from './cpuPatterns';
+import { pickCpuPattern } from './cpuPatterns';
 
 function fillGrid(color: string) {
   return createEmptyGrid().map((row) => row.map(() => color));
@@ -21,7 +21,6 @@ function fillGrid(color: string) {
 export const STRONG_ENEMY_CHANCE = 0.28;
 
 const MAX_DECK_ATTEMPTS = 56;
-const ATTR_TOLERANCE = 1;
 const POWER_TOLERANCE_AFTER_PROGRESSION = 20;
 
 /** マッチング演出の表示時間（ミリ秒）: 2〜4秒のランダム */
@@ -60,8 +59,6 @@ export type CpuDifficulty = 'even' | 'strong';
 interface DeckSummary {
   avgBp: number;
   power: number;
-  attacks: number;
-  defenses: number;
 }
 
 interface DeckTargets {
@@ -69,8 +66,6 @@ interface DeckTargets {
   powerMax: number;
   avgBpMin: number;
   avgBpMax: number;
-  attackCount: number;
-  defenseCount: number;
 }
 
 function pickRandom<T>(items: readonly T[], random: () => number): T {
@@ -87,14 +82,11 @@ export function randomCpuName(random: () => number = Math.random): string {
 
 function summarizeDeck(deck: Card[]): DeckSummary {
   if (deck.length === 0) {
-    return { avgBp: 80, power: 400, attacks: 2, defenses: 3 };
+    return { avgBp: 80, power: 400 };
   }
-  const attacks = deck.filter((c) => c.attribute === 'attack').length;
   return {
     avgBp: deck.reduce((s, c) => s + c.bp, 0) / deck.length,
     power: computeDeckPower(deck),
-    attacks,
-    defenses: deck.length - attacks,
   };
 }
 
@@ -118,20 +110,11 @@ export function buildDeckTargets(
       ? { min: 1.05, max: 1.2 }
       : { min: 1.0, max: 1.1 };
 
-  let attackCount = player.attacks;
-  let defenseCount = player.defenses;
-  if (difficulty === 'strong') {
-    attackCount = Math.min(4, player.attacks + 1);
-    defenseCount = DECK_MAX - attackCount;
-  }
-
   return {
     powerMin: player.power * powerScale.min,
     powerMax: player.power * powerScale.max,
     avgBpMin: player.avgBp * bpScale.min,
     avgBpMax: player.avgBp * bpScale.max,
-    attackCount,
-    defenseCount,
   };
 }
 
@@ -182,9 +165,6 @@ function deckMatchesTargets(deck: Card[], targets: DeckTargets): boolean {
   if (cpu.avgBp > targets.avgBpMax + 10) {
     return false;
   }
-  if (Math.abs(cpu.attacks - targets.attackCount) > ATTR_TOLERANCE) {
-    return false;
-  }
   return true;
 }
 
@@ -214,7 +194,6 @@ function pickUnlockedCanvasSize(
 }
 
 function buildOneCpuCard(
-  prefer: PatternBias,
   usedNames: Set<string>,
   random: () => number,
   userLevel: number,
@@ -223,7 +202,7 @@ function buildOneCpuCard(
   const canvasSize = pickUnlockedCanvasSize(userLevel, random);
   const unlockedPaletteCount = getUnlockedPaletteCount(userLevel);
   const colors = unlockedPaletteColors(unlockedPaletteCount);
-  const pattern = pickCpuPattern(prefer, random);
+  const pattern = pickCpuPattern(random);
   const pixels = pattern.build({ canvasSize, colors, random });
   return createCardFromDrawing(name, pixels, {
     userLevel,
@@ -234,25 +213,14 @@ function buildOneCpuCard(
 }
 
 function buildCandidateDeck(
-  targets: DeckTargets,
   random: () => number,
   userLevel: number,
 ): Card[] {
   const usedNames = new Set<string>();
   const cards: Card[] = [];
-  const biases: PatternBias[] = [];
 
-  for (let i = 0; i < targets.attackCount; i++) biases.push('attack');
-  for (let i = 0; i < targets.defenseCount; i++) biases.push('defense');
-  while (biases.length < DECK_MAX) biases.push('neutral');
-
-  for (let i = biases.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [biases[i], biases[j]] = [biases[j]!, biases[i]!];
-  }
-
-  for (const prefer of biases) {
-    cards.push(buildOneCpuCard(prefer, usedNames, random, userLevel));
+  for (let i = 0; i < DECK_MAX; i++) {
+    cards.push(buildOneCpuCard(usedNames, random, userLevel));
   }
 
   return cards;
@@ -270,14 +238,14 @@ export function buildBalancedCpuDeck(
   const targets = buildDeckTargets(playerDeck, difficulty);
 
   let lastAttempt = applyPlayerProgressionProfile(
-    buildCandidateDeck(targets, random, userLevel),
+    buildCandidateDeck(random, userLevel),
     playerDeck,
     userLevel,
     random,
   );
   for (let attempt = 0; attempt < MAX_DECK_ATTEMPTS; attempt++) {
     const candidate = applyPlayerProgressionProfile(
-      buildCandidateDeck(targets, random, userLevel),
+      buildCandidateDeck(random, userLevel),
       playerDeck,
       userLevel,
       random,
