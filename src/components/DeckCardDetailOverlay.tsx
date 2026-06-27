@@ -45,6 +45,7 @@ interface DeckCardDetailOverlayProps {
   onTalismanPress?: () => void;
   /** ライト / プレ: 編集入室 CM スキップ（🎬 非表示） */
   skipsCreativeAd?: boolean;
+  onBattleGuideOpen?: () => void;
 }
 
 export function DeckCardDetailOverlay({
@@ -71,6 +72,7 @@ export function DeckCardDetailOverlay({
   unusedTalismanCount = 0,
   onTalismanPress,
   skipsCreativeAd = false,
+  onBattleGuideOpen,
 }: DeckCardDetailOverlayProps) {
   const canAffordDelete = jewels >= JEWEL_COST_DELETE;
   const canRevive = canReviveLostCard(card);
@@ -156,6 +158,7 @@ export function DeckCardDetailOverlay({
               setAttributeMenuOpen(false);
               setSelectModalOpen(true);
             }}
+            onBattleGuideOpen={onBattleGuideOpen}
           />
         </div>
 

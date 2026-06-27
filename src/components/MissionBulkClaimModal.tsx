@@ -2,10 +2,12 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { JewelIcon } from './JewelIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
+import { UniversalShardIcon } from './UniversalShardIcon';
 
 interface MissionBulkClaimModalProps {
   pxGranted: number;
   jewelsGranted: number;
+  universalShardsGranted: number;
   missionCount: number;
   onClose: () => void;
 }
@@ -13,6 +15,7 @@ interface MissionBulkClaimModalProps {
 export function MissionBulkClaimModal({
   pxGranted,
   jewelsGranted,
+  universalShardsGranted,
   missionCount,
   onClose,
 }: MissionBulkClaimModalProps) {
@@ -42,6 +45,7 @@ export function MissionBulkClaimModal({
 
   const hasPx = pxGranted > 0;
   const hasJewels = jewelsGranted > 0;
+  const hasUniversalShards = universalShardsGranted > 0;
 
   return createPortal(
     <div className="mission-claim-backdrop" onClick={onClose}>
@@ -69,6 +73,12 @@ export function MissionBulkClaimModal({
             <span className="mission-claim-reward mission-claim-reward--jewels">
               <JewelIcon className="mission-claim-reward-icon" aria-hidden="true" />
               <span>{jewelsGranted.toLocaleString()}</span>
+            </span>
+          )}
+          {hasUniversalShards && (
+            <span className="mission-claim-reward mission-claim-reward--shards">
+              <UniversalShardIcon className="mission-claim-reward-icon" aria-hidden="true" />
+              <span>{universalShardsGranted.toLocaleString()}</span>
             </span>
           )}
         </div>

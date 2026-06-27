@@ -10,6 +10,7 @@ interface RecordsScreenProps {
   canRematch: boolean;
   onRequestRematch: (entry: BattleHistoryEntry) => void;
   onBack: () => void;
+  onOpponentCardView?: () => void;
 }
 
 export function RecordsScreen({
@@ -17,6 +18,7 @@ export function RecordsScreen({
   canRematch,
   onRequestRematch,
   onBack,
+  onOpponentCardView,
 }: RecordsScreenProps) {
   const [subTab, setSubTab] = useState<RecordsSubTab>('history');
   const [selectedEntry, setSelectedEntry] = useState<BattleHistoryEntry | null>(null);
@@ -70,6 +72,7 @@ export function RecordsScreen({
             setSelectedEntry(null);
             onRequestRematch(entry);
           }}
+          onOpponentCardView={onOpponentCardView}
         />
       )}
     </section>

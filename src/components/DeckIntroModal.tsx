@@ -19,7 +19,7 @@ export function DeckIntroModal({ onClose }: DeckIntroModalProps) {
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="deck-intro-title" className="help-panel-title">
-          ピクセルバトルへようこそ
+          ピクセルバトルへようこそ！
         </h2>
         <ul className="help-panel-list deck-intro-list">
           <li>

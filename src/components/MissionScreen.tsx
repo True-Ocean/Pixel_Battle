@@ -16,6 +16,7 @@ type MissionCategoryTab = MissionCategory;
 interface MissionClaimSummary {
   pxGranted: number;
   jewelsGranted: number;
+  universalShardsGranted: number;
   missionCount: number;
 }
 
@@ -164,6 +165,7 @@ export function MissionScreen({
         <MissionBulkClaimModal
           pxGranted={bulkClaimSummary.pxGranted}
           jewelsGranted={bulkClaimSummary.jewelsGranted}
+          universalShardsGranted={bulkClaimSummary.universalShardsGranted}
           missionCount={bulkClaimSummary.missionCount}
           onClose={() => setBulkClaimSummary(null)}
         />

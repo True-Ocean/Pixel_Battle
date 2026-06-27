@@ -1743,6 +1743,20 @@ button.battle-hub-deck-icon.is-move-target {
   height: 0.9rem;
 }
 
+.mission-reward-chip-slot--shards {
+  justify-content: flex-end;
+}
+
+.mission-reward-chip--shards {
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+  color: #5b21b6;
+}
+
+.mission-claim-reward--shards {
+  color: #5b21b6;
+}
+
 .mission-claim-backdrop {
   position: fixed;
   inset: 0;

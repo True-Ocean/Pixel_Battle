@@ -13,9 +13,16 @@ interface BattleHistoryDetailOverlayProps {
   canRematch: boolean;
   onClose: () => void;
   onRematch: (entry: BattleHistoryEntry) => void;
+  onOpponentCardView?: () => void;
 }
 
-function HistoryCardRow({ card, onSelect }: { card: Card; onSelect: (card: Card) => void }) {
+function HistoryCardRow({
+  card,
+  onSelect,
+}: {
+  card: Card;
+  onSelect: (card: Card) => void;
+}) {
   const rarityMeta = getRarityMeta(card.rarity);
 
   return (
@@ -54,6 +61,7 @@ export function BattleHistoryDetailOverlay({
   canRematch,
   onClose,
   onRematch,
+  onOpponentCardView,
 }: BattleHistoryDetailOverlayProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [detailCard, setDetailCard] = useState<Card | null>(null);
@@ -125,7 +133,14 @@ export function BattleHistoryDetailOverlay({
               <h3 className="records-history-detail-deck-title">相手デッキ</h3>
               <ul className="records-history-card-list">
                 {entry.opponentDeck.map((card) => (
-                  <HistoryCardRow key={card.id} card={card} onSelect={setDetailCard} />
+                  <HistoryCardRow
+                    key={card.id}
+                    card={card}
+                    onSelect={(selected) => {
+                      onOpponentCardView?.();
+                      setDetailCard(selected);
+                    }}
+                  />
                 ))}
               </ul>
             </div>

@@ -99,6 +99,7 @@ export interface DeckScreenProps {
   onDismissLostCardDeckNoticeForToday?: () => void;
   /** ライト / プレ: 編集入室 CM スキップ（🎬 非表示） */
   skipsCreativeAd?: boolean;
+  onBattleGuideOpen?: () => void;
 }
 
 interface DeckDragState {
@@ -362,6 +363,7 @@ export function DeckScreen({
   showLostCardDeckNotice = false,
   onDismissLostCardDeckNoticeForToday,
   skipsCreativeAd = false,
+  onBattleGuideOpen,
 }: DeckScreenProps) {
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [lostCardNoticePendingId, setLostCardNoticePendingId] = useState<string | null>(null);
@@ -1214,6 +1216,7 @@ export function DeckScreen({
           unusedTalismanCount={inventory.talisman}
           onTalismanPress={showTalismanUi ? handleTalismanPress : undefined}
           skipsCreativeAd={skipsCreativeAd}
+          onBattleGuideOpen={onBattleGuideOpen}
         />
       )}
 

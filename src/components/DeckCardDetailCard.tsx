@@ -29,6 +29,7 @@ interface DeckCardDetailCardProps {
   onAttributeMenuToggle?: () => void;
   onAttributeRetouch?: () => void;
   onAttributeSelect?: () => void;
+  onBattleGuideOpen?: () => void;
 }
 
 export function DeckCardDetailCard({
@@ -42,6 +43,7 @@ export function DeckCardDetailCard({
   onAttributeMenuToggle,
   onAttributeRetouch,
   onAttributeSelect,
+  onBattleGuideOpen,
 }: DeckCardDetailCardProps) {
   const [attrDetailOpen, setAttrDetailOpen] = useState(false);
   const [openTermId, setOpenTermId] = useState<BattleGuideTermId | null>(null);
@@ -179,7 +181,12 @@ export function DeckCardDetailCard({
               className="deck-detail-card-attr-expand-btn"
               aria-label={attrDetailOpen ? '詳しい説明を閉じる' : '詳しい説明を開く'}
               aria-expanded={attrDetailOpen}
-              onClick={() => setAttrDetailOpen((open) => !open)}
+              onClick={() => {
+                setAttrDetailOpen((open) => {
+                  if (!open) onBattleGuideOpen?.();
+                  return !open;
+                });
+              }}
             >
               {attrDetailOpen ? '▲' : '▼'}
             </button>

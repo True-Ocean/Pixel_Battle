@@ -125,6 +125,7 @@ interface BattleSetupScreenProps {
   onNewBattle: () => void;
   newBattleDisabled?: boolean;
   onBattleEndedChange?: (ended: boolean) => void;
+  onBattleLogViewed?: () => void;
 }
 
 type SelectedSetupSlot = BoardPosition | null;
@@ -1462,6 +1463,7 @@ function BattleSession({
   onEndedChange,
   view,
   endActions,
+  onBattleLogViewed,
 }: {
   playerCards: Card[];
   cpuCards: Card[];
@@ -1477,6 +1479,7 @@ function BattleSession({
     newBattleDisabled?: boolean;
     historyRematchRewardPixels?: number | null;
   };
+  onBattleLogViewed?: () => void;
 }) {
   const battle = useBattle(playerCards, cpuCards, onFinish);
   const ended = battle.effectivePhase === 'ended' && battle.result != null;
@@ -1488,6 +1491,18 @@ function BattleSession({
   useEffect(() => {
     onEndedChange?.(ended);
   }, [ended, onEndedChange]);
+
+  const resolvedEndActions = endActions
+    ? {
+        ...endActions,
+        onOpenLog: () => {
+          if (battle.state.events.length > 0) {
+            onBattleLogViewed?.();
+          }
+          endActions.onOpenLog();
+        },
+      }
+    : undefined;
 
   if (view === 'log') {
     return (
@@ -1506,7 +1521,7 @@ function BattleSession({
       battle={battle}
       opponentIdentity={opponentIdentity}
       playerIdentity={playerIdentity}
-      endActions={endActions}
+      endActions={resolvedEndActions}
     />
   );
 }
@@ -1526,6 +1541,7 @@ export function BattleSetupScreen({
   onNewBattle,
   newBattleDisabled = false,
   onBattleEndedChange,
+  onBattleLogViewed,
 }: BattleSetupScreenProps) {
   const opponentProfile: BattleZoneProfile = opponentIdentity ?? {
     name: 'CPU',
@@ -1837,6 +1853,7 @@ export function BattleSetupScreen({
               onFinish={handleBattleFinish}
               onEndedChange={setBattleEnded}
               view={battleSubView}
+              onBattleLogViewed={onBattleLogViewed}
               endActions={{
                 onNewBattle,
                 onOpenLog: () => setBattleSubView('log'),

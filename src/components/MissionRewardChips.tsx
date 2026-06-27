@@ -1,6 +1,7 @@
 import type { MissionReward } from '../mission/types';
 import { JewelIcon } from './JewelIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
+import { UniversalShardIcon } from './UniversalShardIcon';
 
 interface MissionRewardChipsProps {
   reward: MissionReward;
@@ -10,7 +11,8 @@ interface MissionRewardChipsProps {
 export function MissionRewardChips({ reward, className }: MissionRewardChipsProps) {
   const hasPx = reward.px != null && reward.px > 0;
   const hasJewels = reward.jewels != null && reward.jewels > 0;
-  if (!hasPx && !hasJewels) return null;
+  const hasUniversalShards = reward.universalShards != null && reward.universalShards > 0;
+  if (!hasPx && !hasJewels && !hasUniversalShards) return null;
 
   return (
     <div
@@ -35,7 +37,13 @@ export function MissionRewardChips({ reward, className }: MissionRewardChipsProp
             <span className="sr-only">ジュエル</span>
             <span>{reward.jewels!.toLocaleString()}</span>
           </span>
-        ) : null}
+        ) : (
+          <span className="mission-reward-chip mission-reward-chip--shards">
+            <UniversalShardIcon className="mission-reward-chip-icon" aria-hidden="true" />
+            <span className="sr-only">汎用かけら</span>
+            <span>{reward.universalShards!.toLocaleString()}</span>
+          </span>
+        )}
       </div>
       {hasPx && hasJewels && (
         <div className="mission-reward-chip-slot mission-reward-chip-slot--jewels">
@@ -43,6 +51,15 @@ export function MissionRewardChips({ reward, className }: MissionRewardChipsProp
             <JewelIcon className="mission-reward-chip-icon" aria-hidden="true" />
             <span className="sr-only">ジュエル</span>
             <span>{reward.jewels!.toLocaleString()}</span>
+          </span>
+        </div>
+      )}
+      {hasUniversalShards && hasPx && (
+        <div className="mission-reward-chip-slot mission-reward-chip-slot--shards">
+          <span className="mission-reward-chip mission-reward-chip--shards">
+            <UniversalShardIcon className="mission-reward-chip-icon" aria-hidden="true" />
+            <span className="sr-only">汎用かけら</span>
+            <span>{reward.universalShards!.toLocaleString()}</span>
           </span>
         </div>
       )}

@@ -7,12 +7,21 @@ export type MissionEventType =
   | 'battle_win'
   | 'battle_play'
   | 'card_created'
-  | 'card_edit_saved';
+  | 'card_edit_saved'
+  | 'deck_reordered'
+  | 'attribute_battle_guide_viewed'
+  | 'attribute_retouch'
+  | 'battle_log_viewed'
+  | 'history_opponent_detail_viewed'
+  | 'history_rematch_play'
+  | 'limit_break';
 
 /** ミッション報酬 */
 export interface MissionReward {
   px?: number;
   jewels?: number;
+  /** 汎用かけら（限界突破素材） */
+  universalShards?: number;
 }
 
 /** ミッション定義（config） */
@@ -53,16 +62,20 @@ export interface MissionState {
 export interface MissionClaimResult {
   state: MissionState;
   economy: import('../types').UserEconomy;
+  inventory: import('../types').UserInventory;
   pxGranted: number;
   jewelsGranted: number;
+  universalShardsGranted: number;
   missionId: string;
 }
 
 export interface MissionBulkClaimResult {
   state: MissionState;
   economy: import('../types').UserEconomy;
+  inventory: import('../types').UserInventory;
   pxGranted: number;
   jewelsGranted: number;
+  universalShardsGranted: number;
   missionIds: string[];
 }
 

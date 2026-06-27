@@ -1,6 +1,7 @@
 import { getMissionById, MISSION_DEFINITIONS } from '../config/missions';
 import { addFreePixels, addJewels } from '../user/economy';
-import type { UserEconomy } from '../types';
+import { addInventoryCount } from '../user/inventory';
+import type { UserEconomy, UserInventory } from '../types';
 import {
   isMissionClaimable,
 } from './progress';
@@ -14,34 +15,63 @@ import type {
 } from './types';
 import { getBeginnerMissions } from '../config/missions';
 
-function sumRewards(rewards: MissionReward[]): { px: number; jewels: number } {
+function sumRewards(rewards: MissionReward[]): {
+  px: number;
+  jewels: number;
+  universalShards: number;
+} {
   let px = 0;
   let jewels = 0;
+  let universalShards = 0;
   for (const reward of rewards) {
     px += reward.px ?? 0;
     jewels += reward.jewels ?? 0;
+    universalShards += reward.universalShards ?? 0;
   }
-  return { px, jewels };
+  return { px, jewels, universalShards };
 }
 
-function applyRewardToEconomy(
+function applyReward(
   economy: UserEconomy,
+  inventory: UserInventory,
   reward: MissionReward,
-): { economy: UserEconomy; pxGranted: number; jewelsGranted: number } {
-  let next = economy;
+): {
+  economy: UserEconomy;
+  inventory: UserInventory;
+  pxGranted: number;
+  jewelsGranted: number;
+  universalShardsGranted: number;
+} {
+  let nextEconomy = economy;
+  let nextInventory = inventory;
   let pxGranted = 0;
   let jewelsGranted = 0;
+  let universalShardsGranted = 0;
 
   if (reward.px != null && reward.px > 0) {
-    next = addFreePixels(next, reward.px);
+    nextEconomy = addFreePixels(nextEconomy, reward.px);
     pxGranted += reward.px;
   }
   if (reward.jewels != null && reward.jewels > 0) {
-    next = addJewels(next, reward.jewels);
+    nextEconomy = addJewels(nextEconomy, reward.jewels);
     jewelsGranted += reward.jewels;
   }
+  if (reward.universalShards != null && reward.universalShards > 0) {
+    nextInventory = addInventoryCount(
+      nextInventory,
+      'limitBreakUniversal',
+      reward.universalShards,
+    );
+    universalShardsGranted += reward.universalShards;
+  }
 
-  return { economy: next, pxGranted, jewelsGranted };
+  return {
+    economy: nextEconomy,
+    inventory: nextInventory,
+    pxGranted,
+    jewelsGranted,
+    universalShardsGranted,
+  };
 }
 
 function markClaimed(
@@ -77,6 +107,7 @@ function markClaimed(
 export function claimMission(
   state: MissionState,
   economy: UserEconomy,
+  inventory: UserInventory,
   missionId: string,
   date: Date = new Date(),
 ): MissionClaimResult | null {
@@ -84,16 +115,21 @@ export function claimMission(
   if (!mission) return null;
   if (!isMissionClaimable(state, mission)) return null;
 
-  const { economy: nextEconomy, pxGranted, jewelsGranted } = applyRewardToEconomy(
-    economy,
-    mission.reward,
-  );
+  const {
+    economy: nextEconomy,
+    inventory: nextInventory,
+    pxGranted,
+    jewelsGranted,
+    universalShardsGranted,
+  } = applyReward(economy, inventory, mission.reward);
 
   return {
     state: markClaimed(state, mission, date),
     economy: nextEconomy,
+    inventory: nextInventory,
     pxGranted,
     jewelsGranted,
+    universalShardsGranted,
     missionId,
   };
 }
@@ -117,6 +153,7 @@ export function listClaimableMissionsInCategory(
 function claimMissionList(
   state: MissionState,
   economy: UserEconomy,
+  inventory: UserInventory,
   claimable: MissionDefinition[],
   date: Date,
 ): MissionBulkClaimResult {
@@ -124,16 +161,26 @@ function claimMissionList(
     return {
       state,
       economy,
+      inventory,
       pxGranted: 0,
       jewelsGranted: 0,
+      universalShardsGranted: 0,
       missionIds: [],
     };
   }
 
   const totals = sumRewards(claimable.map((mission) => mission.reward));
   let nextEconomy = economy;
+  let nextInventory = inventory;
   if (totals.px > 0) nextEconomy = addFreePixels(nextEconomy, totals.px);
   if (totals.jewels > 0) nextEconomy = addJewels(nextEconomy, totals.jewels);
+  if (totals.universalShards > 0) {
+    nextInventory = addInventoryCount(
+      nextInventory,
+      'limitBreakUniversal',
+      totals.universalShards,
+    );
+  }
 
   let nextState = state;
   for (const mission of claimable) {
@@ -143,8 +190,10 @@ function claimMissionList(
   return {
     state: nextState,
     economy: nextEconomy,
+    inventory: nextInventory,
     pxGranted: totals.px,
     jewelsGranted: totals.jewels,
+    universalShardsGranted: totals.universalShards,
     missionIds: claimable.map((mission) => mission.id),
   };
 }
@@ -152,20 +201,22 @@ function claimMissionList(
 export function claimAllMissions(
   state: MissionState,
   economy: UserEconomy,
+  inventory: UserInventory,
   date: Date = new Date(),
 ): MissionBulkClaimResult {
   const claimable = listClaimableMissions(state);
-  return claimMissionList(state, economy, claimable, date);
+  return claimMissionList(state, economy, inventory, claimable, date);
 }
 
 export function claimMissionsInCategory(
   state: MissionState,
   economy: UserEconomy,
+  inventory: UserInventory,
   category: MissionCategory,
   date: Date = new Date(),
 ): MissionBulkClaimResult {
   const claimable = listClaimableMissionsInCategory(state, category);
-  return claimMissionList(state, economy, claimable, date);
+  return claimMissionList(state, economy, inventory, claimable, date);
 }
 
 /** 達成済みだが未受取があるか */

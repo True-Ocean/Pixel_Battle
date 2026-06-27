@@ -945,7 +945,8 @@ function App() {
     setDecks(nextDecks);
     decksRef.current = nextDecks;
     persistSave({ decks: nextDecks });
-  }, [persistSave]);
+    reportAndPersistMissionEvents([{ type: 'attribute_retouch' }]);
+  }, [persistSave, reportAndPersistMissionEvents]);
 
   const selectCardAttributeInDeck = useCallback(
     (
@@ -1313,23 +1314,30 @@ function App() {
         outcomeLine:
           outcomeKind === 'star' ? describeLimitBreakResult(target) : undefined,
       });
+      reportAndPersistMissionEvents([{ type: 'limit_break' }]);
     },
-    [persistSave],
+    [persistSave, reportAndPersistMissionEvents],
   );
 
   const reorderDeck = useCallback(
     (ordered: DeckLayout) => {
+      const deckIndex = activeDeckIndexRef.current;
+      const prevLayout = normalizeDeckLayout(decksRef.current[deckIndex] ?? []);
+      const prevIds = prevLayout.map((card) => card?.id ?? null);
+      const nextIds = ordered.map((card) => card?.id ?? null);
+      const changed = prevIds.some((id, index) => id !== nextIds[index]);
+
       setDecks((prevDecks) => {
-        const nextDecks = updateDeckAtIndex(
-          prevDecks,
-          activeDeckIndexRef.current,
-          ordered,
-        );
+        const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, ordered);
         persistSave({ decks: nextDecks });
         return nextDecks;
       });
+
+      if (changed) {
+        reportAndPersistMissionEvents([{ type: 'deck_reordered' }]);
+      }
     },
-    [persistSave],
+    [persistSave, reportAndPersistMissionEvents],
   );
 
   const reorderDeckAt = useCallback(
@@ -1640,7 +1648,7 @@ function App() {
   const finalizeHistoryRematchOutcome = useCallback(
     (outcome: BattleOutcome) => {
       const battleMissionEvents: Array<{ type: MissionEventType; amount?: number }> =
-        [{ type: 'battle_play' }];
+        [{ type: 'battle_play' }, { type: 'history_rematch_play' }];
       if (outcome.winner === 'player') {
         battleMissionEvents.push({ type: 'battle_win' });
       }
@@ -2255,17 +2263,37 @@ function App() {
     [clearHistoryRematch, resetHistoryRematchFlow],
   );
 
+  const handleBattleLogViewed = useCallback(() => {
+    reportAndPersistMissionEvents([{ type: 'battle_log_viewed' }]);
+  }, [reportAndPersistMissionEvents]);
+
+  const handleBattleGuideOpen = useCallback(() => {
+    reportAndPersistMissionEvents([{ type: 'attribute_battle_guide_viewed' }]);
+  }, [reportAndPersistMissionEvents]);
+
+  const handleHistoryOpponentCardView = useCallback(() => {
+    reportAndPersistMissionEvents([{ type: 'history_opponent_detail_viewed' }]);
+  }, [reportAndPersistMissionEvents]);
+
   const handleClaimMission = useCallback(
     (missionId: string) => {
       const result = claimMission(
         missionStateRef.current,
         economyRef.current,
+        inventoryRef.current,
         missionId,
       );
       if (!result) return;
       setMissionState(result.state);
       setEconomy(result.economy);
-      persistSave({ missionState: result.state, economy: result.economy });
+      setInventory(result.inventory);
+      economyRef.current = result.economy;
+      inventoryRef.current = result.inventory;
+      persistSave({
+        missionState: result.state,
+        economy: result.economy,
+        inventory: result.inventory,
+      });
     },
     [persistSave],
   );
@@ -2275,15 +2303,24 @@ function App() {
       const result = claimMissionsInCategory(
         missionStateRef.current,
         economyRef.current,
+        inventoryRef.current,
         category,
       );
       if (result.missionIds.length === 0) return null;
       setMissionState(result.state);
       setEconomy(result.economy);
-      persistSave({ missionState: result.state, economy: result.economy });
+      setInventory(result.inventory);
+      economyRef.current = result.economy;
+      inventoryRef.current = result.inventory;
+      persistSave({
+        missionState: result.state,
+        economy: result.economy,
+        inventory: result.inventory,
+      });
       return {
         pxGranted: result.pxGranted,
         jewelsGranted: result.jewelsGranted,
+        universalShardsGranted: result.universalShardsGranted,
         missionCount: result.missionIds.length,
       };
     },
@@ -2303,6 +2340,32 @@ function App() {
 
       if (target.kind === 'battleHub') {
         setScreen('battleHub');
+        return;
+      }
+
+      if (target.kind === 'records') {
+        setBattleEndDock(false);
+        clearHistoryRematch();
+        resetHistoryRematchFlow();
+        setScreen('records');
+        return;
+      }
+
+      if (target.kind === 'deckReorder') {
+        setDetailCardId(null);
+        setDeckReorderMode(true);
+        setScreen('deck');
+        return;
+      }
+
+      if (target.kind === 'deckCardDetail') {
+        setDeckReorderMode(false);
+        setScreen('deck');
+        const deck = normalizeDeckLayout(
+          decksRef.current[activeDeckIndexRef.current] ?? [],
+        );
+        const card = deck.find((slot) => slot != null && !isCardLost(slot));
+        setDetailCardId(card?.id ?? null);
         return;
       }
 
@@ -2451,6 +2514,7 @@ function App() {
             showLostCardDeckNotice={shouldShowLostCardDeckNoticeModal(adState)}
             onDismissLostCardDeckNoticeForToday={handleDismissLostCardDeckNoticeForToday}
             skipsCreativeAd={skipsCreativeAd(subscription)}
+            onBattleGuideOpen={handleBattleGuideOpen}
           />
         )}
         {screen === 'memoryAlbum' && (
@@ -2509,6 +2573,7 @@ function App() {
             canRematch={hasHistoryRematchDeck(decks, unlockedDeckCount)}
             onRequestRematch={requestHistoryRematch}
             onBack={closeRecords}
+            onOpponentCardView={handleHistoryOpponentCardView}
           />
         )}
         {screen === 'shop' && (
@@ -2624,6 +2689,7 @@ function App() {
             }
             newBattleDisabled={battleEndNewBattleDisabled}
             onBattleEndedChange={handleBattleEndedChange}
+            onBattleLogViewed={handleBattleLogViewed}
           />
         )}
       </main>
