@@ -69,7 +69,7 @@ export const SUBSCRIPTION_PLANS: readonly SubscriptionPlanDefinition[] = [
     monthlyTalismans: 1,
     label: 'ライトプラン',
     description:
-      'バトル・創作の CM 解除。勝利2倍 CM は任意のまま。毎月 1,000px・💎250・護符1枚。',
+      'バトルおよびカード編集時の CM 解除（報酬2倍 CM は任意のまま）',
   },
   {
     id: 'premium',
@@ -79,7 +79,7 @@ export const SUBSCRIPTION_PLANS: readonly SubscriptionPlanDefinition[] = [
     monthlyTalismans: 2,
     label: 'プレミアムプラン',
     description:
-      '全 CM 解除・常時バトル報酬2倍。毎月 2,000px・💎500・護符2枚。',
+      '全 CM 解除・常時バトル報酬2倍・カードノート機能利用可',
   },
 ] as const;
 

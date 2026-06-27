@@ -27,6 +27,7 @@ import {
   validateCardNameForCreation,
   applyUserNoteToCard,
   finalizeCardUserNote,
+  resolveCardUserNoteForPersist,
 } from '../card';
 import { AttributeCreateRouletteModal } from './AttributeCreateRouletteModal';
 import { getEditorHelp } from '../config/helpContent';
@@ -66,6 +67,7 @@ import { ToolStrip } from './ToolStrip';
 import { PixelCoinIcon } from './PixelCoinIcon';
 import { CardNoteEditModal } from './CardNoteEditModal';
 import { CardNoteIconButton } from './CardNoteIconButton';
+import { CardNotePremiumUpsellModal } from './CardNotePremiumUpsellModal';
 
 interface EditorScreenProps {
   deckCount: number;
@@ -73,6 +75,7 @@ interface EditorScreenProps {
   editTarget?: Card | null;
   freePixels?: number;
   jewels?: number;
+  canEditCardUserNote?: boolean;
   paletteShopUnlocks?: readonly number[];
   editorShopUnlocks?: readonly EditorShopUnlockId[];
   backLabel?: string;
@@ -87,6 +90,7 @@ interface EditorScreenProps {
   ) => void;
   onUnlockPaletteWithJewels?: (index: number) => string | null;
   onUnlockEditorFeatureWithJewels?: (feature: EditorShopUnlockId) => string | null;
+  onOpenShopSubscription?: () => void;
 }
 
 const MINI_PREVIEW_SIZE = 48;
@@ -127,6 +131,7 @@ export function EditorScreen({
   editTarget = null,
   freePixels = 0,
   jewels = 0,
+  canEditCardUserNote = false,
   paletteShopUnlocks = [],
   editorShopUnlocks = [],
   backLabel = 'マイデッキに戻る',
@@ -135,6 +140,7 @@ export function EditorScreen({
   onUpdated,
   onUnlockPaletteWithJewels,
   onUnlockEditorFeatureWithJewels,
+  onOpenShopSubscription,
 }: EditorScreenProps) {
   const isEditing = editTarget != null;
   const editCanvasSize = editTarget?.canvasSize ?? gridSize(editTarget?.pixels ?? []);
@@ -186,6 +192,7 @@ export function EditorScreen({
     useState<EditorShopUnlockId | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [noteEditOpen, setNoteEditOpen] = useState(false);
+  const [noteUpsellOpen, setNoteUpsellOpen] = useState(false);
   const [pendingCanvasUpgradeSize, setPendingCanvasUpgradeSize] =
     useState<number | null>(null);
   const isComposingNameRef = useRef(false);
@@ -378,6 +385,12 @@ export function EditorScreen({
     setName(sanitizeCardNameInput(raw));
   }, []);
 
+  const noteForPersist = resolveCardUserNoteForPersist(
+    canEditCardUserNote,
+    userNote,
+    editTarget?.userNote,
+  );
+
   const persistCard = (forceAttribute?: Attribute) => {
     setError(null);
     if (!isEditing && deckCount >= DECK_MAX) {
@@ -394,7 +407,7 @@ export function EditorScreen({
             userLevel,
             { paletteShopUnlocks },
           ),
-          userNote,
+          noteForPersist,
         );
         onUpdated?.(card);
       } else {
@@ -410,7 +423,7 @@ export function EditorScreen({
             canvasSize,
             ...(forceAttribute ? { forceAttribute } : {}),
           }),
-          userNote,
+          noteForPersist,
         );
         onCreated(card);
       }
@@ -499,7 +512,7 @@ export function EditorScreen({
           userLevel,
           { paletteShopUnlocks },
         ),
-        userNote,
+        noteForPersist,
       );
       const spentPx = getEditorSaveTotalPixelCost(saveCharges);
       setSaveConfirmPending({
@@ -548,7 +561,15 @@ export function EditorScreen({
     !isEditing ||
     !saveCharges ||
     canAffordEditorSave({ freePixels }, saveCharges);
-  const noteFilled = finalizeCardUserNote(userNote) != null;
+  const noteFilled = finalizeCardUserNote(noteForPersist) != null;
+
+  const handleNoteButtonPress = () => {
+    if (canEditCardUserNote) {
+      setNoteEditOpen(true);
+      return;
+    }
+    setNoteUpsellOpen(true);
+  };
 
   return (
     <section className="screen editor-screen">
@@ -670,9 +691,13 @@ export function EditorScreen({
               <CardNoteIconButton
                 filled={noteFilled}
                 ariaLabel={
-                  noteFilled ? 'カードノートを編集' : 'カードノートを追加'
+                  canEditCardUserNote
+                    ? noteFilled
+                      ? 'カードノートを編集'
+                      : 'カードノートを追加'
+                    : 'カードノート（プレミアム限定）'
                 }
-                onClick={() => setNoteEditOpen(true)}
+                onClick={handleNoteButtonPress}
               />
             </div>
           </label>
@@ -835,6 +860,12 @@ export function EditorScreen({
           initialValue={userNote}
           onSave={setUserNote}
           onClose={() => setNoteEditOpen(false)}
+        />
+      )}
+      {noteUpsellOpen && (
+        <CardNotePremiumUpsellModal
+          onClose={() => setNoteUpsellOpen(false)}
+          onOpenShop={() => onOpenShopSubscription?.()}
         />
       )}
     </section>

@@ -43,6 +43,8 @@ interface DeckCardDetailOverlayProps {
   showTalismanUi?: boolean;
   unusedTalismanCount?: number;
   onTalismanPress?: () => void;
+  /** ライト / プレ: 編集入室 CM スキップ（🎬 非表示） */
+  skipsCreativeAd?: boolean;
 }
 
 export function DeckCardDetailOverlay({
@@ -68,6 +70,7 @@ export function DeckCardDetailOverlay({
   showTalismanUi = false,
   unusedTalismanCount = 0,
   onTalismanPress,
+  skipsCreativeAd = false,
 }: DeckCardDetailOverlayProps) {
   const canAffordDelete = jewels >= JEWEL_COST_DELETE;
   const canRevive = canReviveLostCard(card);
@@ -225,7 +228,7 @@ export function DeckCardDetailOverlay({
           ) : (
             <>
               <button type="button" className="deck-card-detail-edit" onClick={onEdit}>
-                編集　🎬
+                {skipsCreativeAd ? '編集' : '編集　🎬'}
               </button>
               {showLimitBreak && (
                 <button

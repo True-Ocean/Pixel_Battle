@@ -84,6 +84,7 @@ export type {
   SubscriptionPlanButtonState,
 } from './shop';
 export {
+  canEditCardUserNote,
   devSetSubscriptionPlan,
   formatSubscriptionPlanLabel,
   getActiveSubscriptionPlan,

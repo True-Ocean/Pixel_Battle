@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   JEWEL_PACKS,
   SUBSCRIPTION_PLANS,
@@ -33,6 +33,7 @@ interface ShopScreenProps {
   inventory: UserInventory;
   shopPurchase: ShopPurchaseState;
   subscription: UserSubscription;
+  initialTab?: ShopTabId;
   purchaseMessage: ReactNode | null;
   onPurchaseJewelPack: (packId: JewelPackId) => void;
   onPurchaseTalisman: () => void;
@@ -55,6 +56,7 @@ export function ShopScreen({
   inventory: _inventory,
   shopPurchase,
   subscription,
+  initialTab = 'jewels',
   purchaseMessage,
   onPurchaseJewelPack,
   onPurchaseTalisman,
@@ -62,7 +64,11 @@ export function ShopScreen({
   onSubscribe,
   onDismissPurchaseMessage,
 }: ShopScreenProps) {
-  const [activeTab, setActiveTab] = useState<ShopTabId>('jewels');
+  const [activeTab, setActiveTab] = useState<ShopTabId>(initialTab);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
   const normalizedPurchase = useMemo(
     () => getUniversalShardPurchasesToday(shopPurchase),
     [shopPurchase],

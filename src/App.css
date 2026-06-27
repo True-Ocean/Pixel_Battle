@@ -6023,6 +6023,28 @@ button.battle-hub-deck-icon.is-move-target {
   border-color: rgba(15, 23, 42, 0.12);
 }
 
+.card-note-panel--upsell {
+  border-color: rgba(100, 108, 255, 0.28);
+}
+
+.card-note-upsell-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+
+.card-note-upsell-icon {
+  flex: 0 0 auto;
+  width: 1.35rem;
+  height: 1.35rem;
+  color: #4338ca;
+}
+
+.card-note-panel--upsell .card-note-title {
+  margin: 0;
+}
+
 .card-note-view-header {
   display: flex;
   align-items: center;

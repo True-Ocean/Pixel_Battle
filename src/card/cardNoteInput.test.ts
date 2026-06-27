@@ -4,6 +4,7 @@ import {
   applyUserNoteToCard,
   finalizeCardUserNote,
   hasCardUserNote,
+  resolveCardUserNoteForPersist,
   sanitizeCardUserNoteInput,
 } from './cardNoteInput';
 
@@ -63,5 +64,13 @@ describe('cardNoteInput', () => {
     const card = applyUserNoteToCard(makeCard(), '  新メモ\n2行目  ');
     expect(card.userNote).toBe('新メモ\n2行目');
     expect(hasCardUserNote(card)).toBe(true);
+  });
+
+  it('resolveCardUserNoteForPersist は非プレミアム時に既存ノートを維持する', () => {
+    expect(
+      resolveCardUserNoteForPersist(false, '変更しよう', '保存済み'),
+    ).toBe('保存済み');
+    expect(resolveCardUserNoteForPersist(false, '新規', undefined)).toBe('');
+    expect(resolveCardUserNoteForPersist(true, '  新規  ', undefined)).toBe('  新規  ');
   });
 });

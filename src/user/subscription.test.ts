@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canEditCardUserNote,
   devSetSubscriptionPlan,
   formatSubscriptionPlanLabel,
   getActiveSubscriptionPlan,
@@ -33,6 +34,12 @@ describe('subscription benefits', () => {
     expect(skipsBattleStartAd(subscription, NOW)).toBe(true);
     expect(skipsCreativeAd(subscription, NOW)).toBe(true);
     expect(hasPremiumAlwaysDouble(subscription, NOW)).toBe(true);
+    expect(canEditCardUserNote(subscription, NOW)).toBe(true);
+  });
+
+  it('light cannot edit card notes', () => {
+    const subscription = devSetSubscriptionPlan('light', NOW);
+    expect(canEditCardUserNote(subscription, NOW)).toBe(false);
   });
 
   it('none plan has no benefits', () => {
@@ -40,6 +47,7 @@ describe('subscription benefits', () => {
     expect(skipsBattleStartAd(subscription, NOW)).toBe(false);
     expect(skipsCreativeAd(subscription, NOW)).toBe(false);
     expect(hasPremiumAlwaysDouble(subscription, NOW)).toBe(false);
+    expect(canEditCardUserNote(subscription, NOW)).toBe(false);
     expect(formatSubscriptionPlanLabel(subscription, NOW)).toBe('未加入');
   });
 

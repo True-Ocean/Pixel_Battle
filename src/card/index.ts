@@ -28,6 +28,7 @@ export {
   applyUserNoteToCard,
   hasCardUserNote,
   formatCardUserNoteLimitLabel,
+  resolveCardUserNoteForPersist,
 } from './cardNoteInput';
 export { computeColorRatios, normalizePixelColor } from './colors';
 export {

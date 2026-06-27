@@ -52,3 +52,13 @@ export function applyUserNoteToCard(card: Card, raw: string): Card {
 export function formatCardUserNoteLimitLabel(): string {
   return `全角${CARD_USER_NOTE_MAX_LENGTH}文字まで`;
 }
+
+/** 保存時: 非プレミアムは既存ノートを維持（新規追加・変更不可） */
+export function resolveCardUserNoteForPersist(
+  canEdit: boolean,
+  draftNote: string,
+  existingNote?: string,
+): string {
+  if (!canEdit) return existingNote ?? '';
+  return draftNote;
+}

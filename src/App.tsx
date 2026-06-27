@@ -24,7 +24,7 @@ import {
 } from './mission';
 import type { MissionCategory, MissionEventType } from './mission';
 import { loadSave, resetBattleHistory, saveSave, SAVE_SCHEMA_VERSION } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
   unlockPaletteWithJewels,
@@ -37,7 +37,7 @@ import {
 import type { EditorShopUnlockId } from './config/editorShop';
 import { normalizePaletteShopUnlocks } from './config/paletteUnlock';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
-import type { JewelPackId, UniversalShardPackId } from './config/shop';
+import type { JewelPackId, ShopTabId, UniversalShardPackId } from './config/shop';
 import {
   createInitialShopPurchaseState,
   createInitialSubscription,
@@ -161,6 +161,7 @@ function App() {
   const [shopPurchaseMessage, setShopPurchaseMessage] = useState<ReactNode | null>(
     null,
   );
+  const [shopInitialTab, setShopInitialTab] = useState<ShopTabId>('jewels');
   const [missionCompleteToast, setMissionCompleteToast] = useState<string | null>(
     null,
   );
@@ -2185,6 +2186,16 @@ function App() {
     [subscription],
   );
 
+  const editorCanEditCardUserNote = useMemo(
+    () => canEditCardUserNote(subscription),
+    [subscription],
+  );
+
+  const openShopSubscriptionTab = useCallback(() => {
+    setShopInitialTab('subscription');
+    setScreen('shop');
+  }, []);
+
   const battleEndNewBattleDisabled = useMemo(() => {
     if (pendingLostRouletteOutcome != null) return true;
     if (pendingTalismanSave != null) return true;
@@ -2223,6 +2234,9 @@ function App() {
       resetHistoryRematchFlow();
       if (tab !== 'deck') {
         setDeckReorderMode(false);
+      }
+      if (tab === 'shop') {
+        setShopInitialTab('jewels');
       }
       setScreen(tab);
     },
@@ -2424,6 +2438,7 @@ function App() {
             onUnequipTalisman={unequipTalismanOnCard}
             showLostCardDeckNotice={shouldShowLostCardDeckNoticeModal(adState)}
             onDismissLostCardDeckNoticeForToday={handleDismissLostCardDeckNoticeForToday}
+            skipsCreativeAd={skipsCreativeAd(subscription)}
           />
         )}
         {screen === 'memoryAlbum' && (
@@ -2490,6 +2505,7 @@ function App() {
             inventory={inventory}
             shopPurchase={shopPurchase}
             subscription={subscription}
+            initialTab={shopInitialTab}
             purchaseMessage={shopPurchaseMessage}
             onPurchaseJewelPack={handlePurchaseJewelPack}
             onPurchaseTalisman={handlePurchaseTalisman}
@@ -2543,6 +2559,7 @@ function App() {
             editTarget={editingCard}
             freePixels={economy.freePixels}
             jewels={economy.jewels}
+            canEditCardUserNote={editorCanEditCardUserNote}
             paletteShopUnlocks={paletteShopUnlocks}
             editorShopUnlocks={editorShopUnlocks}
             backLabel={editorReturnToDetail ? '戻る' : 'マイデッキに戻る'}
@@ -2557,6 +2574,7 @@ function App() {
             }}
             onCreated={addCard}
             onUpdated={updateCard}
+            onOpenShopSubscription={openShopSubscriptionTab}
             onUnlockPaletteWithJewels={unlockPaletteWithJewelsHandler}
             onUnlockEditorFeatureWithJewels={unlockEditorFeatureWithJewelsHandler}
           />

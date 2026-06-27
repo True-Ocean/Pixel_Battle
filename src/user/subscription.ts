@@ -50,6 +50,14 @@ export function hasPremiumAlwaysDouble(
   return getActiveSubscriptionPlan(subscription, now) === 'premium';
 }
 
+/** プレ: カードノートの編集（閲覧はサブスク不問） */
+export function canEditCardUserNote(
+  subscription: UserSubscription,
+  now = Date.now(),
+): boolean {
+  return hasPremiumAlwaysDouble(subscription, now);
+}
+
 export function formatSubscriptionPlanLabel(
   subscription: UserSubscription,
   now = Date.now(),
