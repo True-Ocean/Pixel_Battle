@@ -10,10 +10,13 @@ if (!existsSync(sourcePath)) {
   process.exit(1);
 }
 
-/** Pixel-art friendly resize (nearest-neighbor). */
+const WHITE = { r: 255, g: 255, b: 255, alpha: 1 };
+
+/** Pixel-art friendly resize (nearest-neighbor).透過は白に合成。 */
 function resizeIcon(size) {
   return sharp(sourcePath)
     .resize(size, size, { kernel: sharp.kernel.nearest })
+    .flatten({ background: WHITE })
     .png();
 }
 
