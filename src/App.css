@@ -663,12 +663,6 @@
 
 /* --- 下部 Dock（メインメニュー） --- */
 
-.app:has(.formation-screen.is-battle-active) {
-  --app-dock-h: 3.65rem;
-  gap: 0.45rem;
-  padding-bottom: calc(var(--app-dock-h) + max(0.35rem, var(--safe-bottom)));
-}
-
 .app.has-dock {
   --app-dock-h: 3.65rem;
   gap: 0.45rem;
@@ -5731,10 +5725,10 @@ button.battle-hub-deck-icon.is-move-target {
   box-sizing: border-box;
   width: 100%;
   padding: 0.5rem 0.55rem;
-  border: 1px solid #0d9488;
+  border: 1px solid #2e7d32;
   border-radius: 8px;
-  background: #ecfdf5;
-  color: #0f766e;
+  background: #2e7d32;
+  color: #fff;
   font-size: 0.78rem;
   font-weight: 800;
   cursor: pointer;
@@ -5852,10 +5846,10 @@ button.battle-hub-deck-icon.is-move-target {
   box-sizing: border-box;
   min-height: 2.65rem;
   padding: 0.45rem 0.55rem;
-  border: 1px solid #0d9488;
+  border: 1px solid #2e7d32;
   border-radius: 8px;
-  background: #ecfdf5;
-  color: #0f766e;
+  background: #2e7d32;
+  color: #fff;
   font: inherit;
   font-size: 0.78rem;
   font-weight: 800;
@@ -6815,9 +6809,9 @@ button.battle-hub-deck-icon.is-move-target {
   justify-content: center;
   gap: 0.2rem;
   flex-wrap: wrap;
-  border: 1px solid #0d9488;
-  background: #ecfdf5;
-  color: #0f766e;
+  border: 1px solid #2e7d32;
+  background: #2e7d32;
+  color: #fff;
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -12240,16 +12234,30 @@ button.battle-card {
   box-sizing: border-box;
 }
 
-/* デッキ確認・バトル準備・戦闘: 元レイアウトを保ちつつブロック全体を縦中央に、カードを大きく */
+/* デッキ確認・バトル準備: 元レイアウトを保ちつつブロック全体を縦中央に、カードを大きく */
 .formation-screen.is-reveal-phase,
-.formation-screen.is-setup-phase,
-.formation-screen.is-battle-active {
+.formation-screen.is-setup-phase {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   --formation-card-h: min(8.85rem, calc((100dvh - 9.2rem) / 4.15));
   --formation-card-w: calc(var(--formation-card-h) * 5.25 / 7.75);
+}
+
+/* 戦闘中はバナー・ガイド・安全域を差し引いた高さに収める */
+.formation-screen.is-battle-active {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  --formation-battle-chrome: 16.5rem;
+  --formation-card-h: min(8.85rem, calc((100dvh - var(--formation-battle-chrome)) / 4));
+  --formation-card-w: calc(var(--formation-card-h) * 5.25 / 7.75);
+}
+
+.app.has-dock .formation-screen.is-battle-active {
+  --formation-battle-chrome: 20.5rem;
 }
 
 .formation-screen.is-reveal-phase .formation-battle-shell {
@@ -12710,14 +12718,18 @@ button.battle-card {
 }
 
 .formation-screen.is-battle-active .formation-battle-spacer {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   min-height: 0;
+  max-height: 0.5rem;
 }
 
 .formation-screen.is-battle-active .formation-battle-focus {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
 .formation-screen.is-battle-active .formation-board-battle {
@@ -12926,6 +12938,16 @@ button.battle-card {
 .formation-footer-reserve {
   pointer-events: none;
   visibility: hidden;
+  flex: 0 0 0;
+  height: 0;
+  min-height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.formation-footer-reserve button {
+  display: none;
 }
 
 .formation-screen.setup-reveal.is-battle-active {
