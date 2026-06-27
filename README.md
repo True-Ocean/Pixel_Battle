@@ -26,7 +26,7 @@ npm run dev
 2. 共有ボタン → **ホーム画面に追加**
 3. 追加したアイコンから起動すると、アドレスバーなしの全画面表示になる
 
-アイコンを差し替えるときは `public/favicon.svg` を更新して `npm run generate:pwa-icons` を実行する。本番ビルド（`npm run build`）では Service Worker も有効になる（HTTPS 環境でオフラインキャッシュなど）。
+アイコンを差し替えるときは `public/app-icon-source.png`（正方形推奨）を更新して `npm run generate:pwa-icons` を実行する。本番ビルド（`npm run build`）では Service Worker も有効になる（HTTPS 環境でオフラインキャッシュなど）。
 
 ## スクリプト
 

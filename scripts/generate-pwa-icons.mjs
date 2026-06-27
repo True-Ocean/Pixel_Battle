@@ -1,32 +1,30 @@
-import { readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import sharp from 'sharp';
 
 const root = resolve(import.meta.dirname, '..');
-const svg = readFileSync(resolve(root, 'public/favicon.svg'));
-const background = { r: 223, g: 227, b: 236, alpha: 1 };
+const sourcePath = resolve(root, 'public/app-icon-source.png');
 
-const sizes = [
+if (!existsSync(sourcePath)) {
+  console.error('Missing public/app-icon-source.png — place the master icon there first.');
+  process.exit(1);
+}
+
+/** Pixel-art friendly resize (nearest-neighbor). */
+function resizeIcon(size) {
+  return sharp(sourcePath)
+    .resize(size, size, { kernel: sharp.kernel.nearest })
+    .png();
+}
+
+const outputs = [
+  { name: 'favicon.png', size: 32 },
   { name: 'apple-touch-icon.png', size: 180 },
   { name: 'pwa-192x192.png', size: 192 },
   { name: 'pwa-512x512.png', size: 512 },
 ];
 
-for (const { name, size } of sizes) {
-  const padding = Math.round(size * 0.14);
-  const inner = size - padding * 2;
-
-  await sharp(svg)
-    .resize(inner, inner, { fit: 'contain', background })
-    .extend({
-      top: padding,
-      bottom: padding,
-      left: padding,
-      right: padding,
-      background,
-    })
-    .png()
-    .toFile(resolve(root, 'public', name));
-
-  console.log(`wrote public/${name}`);
+for (const { name, size } of outputs) {
+  await resizeIcon(size).toFile(resolve(root, 'public', name));
+  console.log(`wrote public/${name} (${size}x${size})`);
 }
