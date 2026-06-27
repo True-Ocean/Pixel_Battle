@@ -134,6 +134,14 @@ describe('loadSave BP recalc', () => {
     expect(stored.decks[0][0].bp).toBe(loaded.decks[0]![0]?.bp);
   });
 
+  it('bpCalcVersion が旧版ならロード時に BP を再計算し bpCalcVersion を更新する', () => {
+    saveWithLegacyCard(999, { bpCalcVersion: 1 });
+
+    const loaded = loadSave();
+    expect(loaded.bpCalcVersion).toBe(BP_CALC_VERSION);
+    expect(loaded.decks[0]![0]?.bp).not.toBe(999);
+  });
+
   it('bpCalcVersion が最新なら保存済み BP を維持する', () => {
     saveWithLegacyCard(432, { bpCalcVersion: BP_CALC_VERSION });
 

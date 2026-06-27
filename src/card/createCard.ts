@@ -122,7 +122,7 @@ export function deriveCardStats(
   const { trimmed, ratios } = validateDrawingInput(name, pixels, allowedColors);
   const attribute =
     options.forceAttribute ?? rollAttribute(userLevel, options.random);
-  const bpBlend = computeBpBlend(trimmed, pixels, ratios);
+  const bpBlend = computeBpBlend(pixels, ratios);
   const bp = computeCardBaseBp(bpBlend, userLevel, attribute);
 
   return { attribute, bp, ratios };
@@ -166,7 +166,7 @@ export function createCardFromDrawing(
     unlockedIndices,
     options.random,
   );
-  const bpBlend = computeBpBlend(finalName, normalized, ratios);
+  const bpBlend = computeBpBlend(normalized, ratios);
   const finalBp = computeBpFromBlend(bpBlend, userLevel, {
     attribute,
     rarity,
@@ -193,7 +193,7 @@ export function createCardFromDrawing(
   };
 }
 
-/** 絵・名前から基礎BPのみ算出（レア・★倍率なし） */
+/** 絵から基礎BPのみ算出（レア・★倍率なし） */
 export function getCardFoundationBp(
   card: Card,
   userLevel: number,
@@ -204,7 +204,7 @@ export function getCardFoundationBp(
   const ratios = computeColorRatios(card.pixels, size * size, allowedColors);
   if (!ratios) return card.bp;
 
-  const bpBlend = computeBpBlend(card.name.trim(), card.pixels, ratios);
+  const bpBlend = computeBpBlend(card.pixels, ratios);
   return computeCardBaseBp(bpBlend, userLevel, card.attribute);
 }
 

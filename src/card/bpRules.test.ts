@@ -76,6 +76,18 @@ describe('clampEditBp', () => {
   });
 });
 
+describe('computeNaturalCardBp', () => {
+  it('同じ絵なら名前が違っても BP は同じ', () => {
+    const base = createCardFromDrawing('旧名', fillGrid('#ff0000'), {
+      userLevel: 10,
+      forceAttribute: 'attack',
+      random: () => 0.42,
+    });
+    const renamed = { ...base, name: '新名' };
+    expect(computeNaturalCardBp(renamed, 10)).toBe(computeNaturalCardBp(base, 10));
+  });
+});
+
 describe('updateCardFromDrawing', () => {
   it('リネームのみでは BP を変えない', () => {
     const original = createCardFromDrawing('旧名テスト', fillGrid('#ff0000'), {

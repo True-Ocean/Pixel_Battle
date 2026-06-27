@@ -10,9 +10,9 @@ export function hashToUnit(seed: string, label: string): number {
   return (h >>> 0) / 0x1_0000_0000;
 }
 
-export function buildCardSeed(name: string, pixels: import('../types').PixelGrid): string {
-  const body = pixels
+/** BP ブレンド等、絵のみから決定論的に値を引くためのシード */
+export function buildPixelSeed(pixels: import('../types').PixelGrid): string {
+  return pixels
     .map((row) => row.map((c) => (c ?? '.').toLowerCase()).join(''))
     .join('|');
-  return `${name.trim()}\n${body}`;
 }

@@ -5,7 +5,7 @@ import { buildUnlockedColorSet } from '../config/paletteUnlock';
 import type { Card, PixelGrid } from '../types';
 import { computeColorRatios } from './colors';
 import type { ColorRatios } from './colors';
-import { buildCardSeed, hashToUnit } from './hash';
+import { buildPixelSeed, hashToUnit } from './hash';
 
 const FULL_PALETTE_COLOR_SET = new Set(
   PALETTE_16.map((color) => color.toLowerCase()),
@@ -72,11 +72,10 @@ export function countLimitBreaks(card: Pick<Card, 'stars'>): number {
 }
 
 export function computeBpBlend(
-  name: string,
   pixels: PixelGrid,
   ratios: { density: number },
 ): number {
-  const seed = buildCardSeed(name.trim(), pixels);
+  const seed = buildPixelSeed(pixels);
   const hashBp = hashToUnit(seed, 'hp');
   return ratios.density * 0.55 + hashBp * 0.45;
 }
@@ -113,12 +112,12 @@ export function computeNaturalCardBp(
     return Math.min(card.bp, ceiling);
   }
 
-  const bpBlend = computeBpBlend(card.name.trim(), card.pixels, ratios);
+  const bpBlend = computeBpBlend(card.pixels, ratios);
   return Math.min(computeBpFromBlend(bpBlend, userLevel, card), ceiling);
 }
 
 /** BP 計算式を変更したら +1（セーブ読み込み時の一括再計算トリガー） */
-export const BP_CALC_VERSION = 1;
+export const BP_CALC_VERSION = 2;
 
 /** ロード時: 現行式で BP を上書き（下がる場合もある） */
 export function applyLoadBpRecalc(

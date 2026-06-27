@@ -19,7 +19,7 @@ import {
   sanitizeCardNameInput,
   validateCardNameForCreation,
 } from './cardNameInput';
-import { buildCardSeed, hashToUnit } from './hash';
+import { buildPixelSeed, hashToUnit } from './hash';
 
 function fillGrid(color: string): ReturnType<typeof createEmptyGrid> {
   return createEmptyGrid().map((row) => row.map(() => color));
@@ -47,7 +47,7 @@ function buildBonusGrid(unlockedCount: number) {
 
 describe('hash', () => {
   it('同じシードなら同じ値', () => {
-    const s = buildCardSeed('test', createEmptyGrid());
+    const s = buildPixelSeed(createEmptyGrid());
     expect(hashToUnit(s, 'attack')).toBe(hashToUnit(s, 'attack'));
   });
 });
@@ -237,6 +237,22 @@ describe('createCardFromDrawing', () => {
     expect(nCard.rarity).toBe('N');
     expect(srCard.rarity).toBe('SR');
     expect(srCard.bp).toBeGreaterThan(nCard.bp);
+  });
+
+  it('同じ絵なら名前が違っても BP は同じ', () => {
+    const grid = fillGrid('#ff0000');
+    const a = createCardFromDrawing('名前A', grid, {
+      userLevel: 10,
+      forceAttribute: 'attack',
+      random: () => 0.42,
+    });
+    const b = createCardFromDrawing('名前B', grid, {
+      userLevel: 10,
+      forceAttribute: 'attack',
+      random: () => 0.42,
+    });
+    expect(a.bp).toBe(b.bp);
+    expect(a.rarity).toBe(b.rarity);
   });
 });
 
