@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { JEWEL_COST_DELETE } from '../config/economy';
 import type { Card } from '../types';
-import { BattleCommonRules } from './BattleCommonRules';
 import { DeckCardDetailCard } from './DeckCardDetailCard';
 import { HelpInlinePxIcon } from './HelpInlineEconomy';
 import { JewelAmount } from './JewelIcon';
@@ -62,7 +61,6 @@ export function MemoryAlbumDetailOverlay({
 
         <div className="deck-card-detail-scroll">
           <DeckCardDetailCard card={card} isLost={false} />
-          <BattleCommonRules />
         </div>
 
         <div className="deck-card-detail-actions deck-card-detail-actions--album">

@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { isCardLost } from '../card';
 import type { Card } from '../types';
-import { BattleCommonRules } from './BattleCommonRules';
 import { DeckCardDetailCard } from './DeckCardDetailCard';
 
 interface BattleHubCardDetailOverlayProps {
@@ -55,7 +54,6 @@ export function BattleHubCardDetailOverlay({
 
         <div className="deck-card-detail-scroll">
           <DeckCardDetailCard card={card} isLost={isCardLost(card)} />
-          <BattleCommonRules />
         </div>
 
         <div className="deck-card-detail-actions deck-card-detail-actions--battle-hub">

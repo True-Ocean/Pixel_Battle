@@ -1,14 +1,16 @@
-import type { CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { getAttributeMeta } from '../config/attributes';
+import type { BattleGuideTermId } from '../config/battleGuideCommon';
 import { canReviveLostCard } from '../card';
 import { calcFullReviveCost } from '../config/economy';
 import { getRarityMeta } from '../config/rarity';
 import type { Card } from '../types';
 import { isTalismanEquipped } from '../card';
 import { AttributeBadge } from './AttributeBadge';
-import { AttributeBattleGuide } from './AttributeBattleGuide';
+import { BattleTermGuideModal } from './BattleTermGuideModal';
 import { CardBattleRecord } from './CardBattleRecord';
 import { CardPreview } from './CardPreview';
+import { GuideTextWithTerms } from './GuideTextWithTerms';
 import { LimitBreakStars } from './LimitBreakStars';
 import { InlinePxCost } from './HelpInlineEconomy';
 import { RarityBadge } from './RarityBadge';
@@ -39,8 +41,16 @@ export function DeckCardDetailCard({
   onAttributeRetouch,
   onAttributeSelect,
 }: DeckCardDetailCardProps) {
+  const [attrDetailOpen, setAttrDetailOpen] = useState(false);
+  const [openTermId, setOpenTermId] = useState<BattleGuideTermId | null>(null);
   const rarityMeta = getRarityMeta(card.rarity);
   const attrMeta = getAttributeMeta(card.attribute);
+  const battleGuide = attrMeta.battleGuide.trim();
+
+  useEffect(() => {
+    setAttrDetailOpen(false);
+    setOpenTermId(null);
+  }, [card.id, card.attribute]);
 
   const cardStyle = {
     '--rarity-border': rarityMeta.rowBorder,
@@ -102,47 +112,88 @@ export function DeckCardDetailCard({
         </span>
       </div>
 
-      <div className="deck-detail-card-attr">
-        <div className="deck-detail-card-attr-icon-wrap">
-          <AttributeBadge attribute={card.attribute} size="deck" />
+      <div
+        className={[
+          'deck-detail-card-attr',
+          attrDetailOpen ? 'deck-detail-card-attr--expanded' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <div className="deck-detail-card-attr-main">
+          <div className="deck-detail-card-attr-icon-wrap">
+            <AttributeBadge attribute={card.attribute} size="deck" />
+          </div>
+          <p className="deck-detail-card-attr-desc">{attrMeta.description}</p>
+          {showAttributeEdit && onAttributeMenuToggle && (
+            <div className="deck-detail-card-attr-menu-wrap">
+              <button
+                type="button"
+                className="deck-detail-card-attr-menu-btn"
+                aria-label="属性変更"
+                aria-expanded={attributeMenuOpen}
+                onClick={onAttributeMenuToggle}
+              >
+                属性変更
+              </button>
+              {attributeMenuOpen && (
+                <div className="deck-detail-card-attr-menu" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="deck-detail-card-attr-menu-item"
+                    onClick={onAttributeRetouch}
+                  >
+                    属性リタッチ
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="deck-detail-card-attr-menu-item"
+                    onClick={onAttributeSelect}
+                  >
+                    属性セレクト
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <p className="deck-detail-card-attr-desc">{attrMeta.description}</p>
-        {showAttributeEdit && onAttributeMenuToggle && (
-          <div className="deck-detail-card-attr-menu-wrap">
+        {battleGuide && (
+          <>
             <button
               type="button"
-              className="deck-detail-card-attr-menu-btn"
-              aria-label="属性メニュー"
-              aria-expanded={attributeMenuOpen}
-              onClick={onAttributeMenuToggle}
+              className="deck-detail-card-attr-expand-btn"
+              aria-label={attrDetailOpen ? '詳しい説明を閉じる' : '詳しい説明を開く'}
+              aria-expanded={attrDetailOpen}
+              onClick={() => setAttrDetailOpen((open) => !open)}
             >
-              ▼
+              {attrDetailOpen ? '▲' : '▼'}
             </button>
-            {attributeMenuOpen && (
-              <div className="deck-detail-card-attr-menu" role="menu">
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="deck-detail-card-attr-menu-item"
-                  onClick={onAttributeRetouch}
-                >
-                  属性リタッチ
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="deck-detail-card-attr-menu-item"
-                  onClick={onAttributeSelect}
-                >
-                  属性セレクト
-                </button>
+            <div
+              className={[
+                'deck-detail-card-attr-detail-wrap',
+                attrDetailOpen ? 'deck-detail-card-attr-detail-wrap--open' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              <div className="deck-detail-card-attr-detail-inner">
+                <div className="deck-detail-card-attr-detail" role="note">
+                  <GuideTextWithTerms
+                    text={battleGuide}
+                    onTermPress={setOpenTermId}
+                  />
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          </>
         )}
       </div>
 
-      <AttributeBattleGuide attribute={card.attribute} />
+      {openTermId && (
+        <BattleTermGuideModal termId={openTermId} onClose={() => setOpenTermId(null)} />
+      )}
 
       <p className="deck-detail-card-record">
         <CardBattleRecord

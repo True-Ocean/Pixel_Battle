@@ -2622,6 +2622,70 @@ button.battle-hub-deck-icon.is-move-target {
   cursor: pointer;
 }
 
+.battle-term-guide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.battle-term-guide-panel {
+  width: min(100%, 20rem);
+  padding: 0.95rem 1rem 0.85rem;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+}
+
+.battle-term-guide-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.battle-term-guide-list {
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.battle-term-guide-item {
+  white-space: pre-line;
+}
+
+.battle-term-guide-item + .battle-term-guide-item {
+  margin-top: 0.35rem;
+}
+
+.battle-term-guide-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.85rem;
+}
+
+.battle-term-guide-close {
+  min-width: 5.5rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.battle-term-guide-close:hover {
+  background: #f1f5f9;
+}
+
 .help-panel-backdrop {
   position: fixed;
   inset: 0;
@@ -6248,15 +6312,83 @@ button.battle-hub-deck-icon.is-move-target {
     var(--deck-detail-attr-text) * var(--deck-detail-attr-text-lh) * var(--deck-detail-attr-icon-lines)
   );
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.15rem;
   min-height: calc(var(--deck-detail-attr-body-h) + 0.9rem);
-  padding: 0.45rem 0.55rem;
+  padding: 0.45rem 0.55rem 0.35rem;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-sizing: border-box;
+}
+
+.deck-detail-card-attr-main {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.deck-detail-card-attr-expand-btn {
+  align-self: center;
+  border: none;
+  background: transparent;
+  padding: 0.1rem 0.75rem 0;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #778;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.deck-detail-card-attr-detail-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+}
+
+.deck-detail-card-attr-detail-wrap--open {
+  grid-template-rows: 1fr;
+}
+
+.deck-detail-card-attr-detail-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.deck-detail-card-attr-detail {
+  padding: 0.35rem 0.1rem 0.15rem;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  color: #444;
+  white-space: pre-line;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.guide-term-link {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  line-height: inherit;
+  color: #2563eb;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.12em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.guide-term-link:hover {
+  color: #1d4ed8;
+}
+
+.guide-term-link:active {
+  color: #1e40af;
 }
 
 .deck-detail-card-attr-menu-wrap {
@@ -6268,9 +6400,10 @@ button.battle-hub-deck-icon.is-move-target {
   border: 1px solid rgba(0, 0, 0, 0.12);
   background: #fff;
   border-radius: 6px;
-  padding: 0.15rem 0.45rem;
+  padding: 0.25rem 0.5rem;
   font-size: 0.72rem;
-  line-height: 1;
+  line-height: 1.2;
+  white-space: nowrap;
   cursor: pointer;
   color: #444;
 }

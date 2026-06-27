@@ -21,7 +21,6 @@ import { AttributeSelectModal } from './AttributeSelectModal';
 import type { AttributeSelectOutcome } from './attributeSelectTypes';
 import { PixelCoinIcon } from './PixelCoinIcon';
 import { JewelAmount } from './JewelIcon';
-import { BattleCommonRules } from './BattleCommonRules';
 import { DeckCardDetailCard } from './DeckCardDetailCard';
 import { UniversalShardIcon } from './UniversalShardIcon';
 
@@ -203,7 +202,6 @@ export function DeckCardDetailOverlay({
               setSelectModalOpen(true);
             }}
           />
-          <BattleCommonRules />
         </div>
 
         {!isLost && limitBreakCap && (
