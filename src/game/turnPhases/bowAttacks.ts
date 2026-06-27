@@ -14,6 +14,7 @@ import {
   unitSnapshot,
 } from '../battleLogEvent';
 import type { AttackPlayback } from '../turnResult';
+import { battlePairKey } from './meleeAttacks';
 
 export interface BowAttackInput {
   side: BattleSide;
@@ -23,7 +24,11 @@ export interface BowAttackInput {
   target: BattleUnit;
 }
 
-export function collectBowAttacks(
+export type BowBattleResolution = BowAttackInput & {
+  bidirectional: boolean;
+};
+
+function collectBowAttackInputs(
   choices: { player: BattleActionChoice; cpu: BattleActionChoice },
   player: BattleUnit[],
   cpu: BattleUnit[],
@@ -61,6 +66,101 @@ export function collectBowAttacks(
       };
     })
     .filter((a): a is BowAttackInput => a != null);
+}
+
+export function collectBowBattles(
+  choices: { player: BattleActionChoice; cpu: BattleActionChoice },
+  player: BattleUnit[],
+  cpu: BattleUnit[],
+): Map<string, BowBattleResolution> {
+  const attackInputs = collectBowAttackInputs(choices, player, cpu);
+  const battles = new Map<string, BowBattleResolution>();
+
+  for (const attack of attackInputs) {
+    const key = battlePairKey(
+      attack.side,
+      attack.action.actorPosition,
+      attack.targetSide,
+      attack.action.targetPosition,
+    );
+    const existing = battles.get(key);
+    if (existing) {
+      existing.bidirectional = true;
+    } else {
+      battles.set(key, { ...attack, bidirectional: false });
+    }
+  }
+
+  return battles;
+}
+
+export function applyBowMutualStalemate(
+  state: BattleState,
+  player: BattleUnit[],
+  cpu: BattleUnit[],
+  attack: BowBattleResolution,
+): { state: BattleState; playback: AttackPlayback } {
+  let next = {
+    ...state,
+    player,
+    cpu,
+    log: [...state.log],
+    events: [...state.events],
+  };
+  const turn = getDisplayTurn(next);
+
+  const attackerBpFrom = attack.attacker.currentBp;
+  const bpFrom = attack.target.currentBp;
+
+  attack.attacker.bowArrowsRemaining -= 1;
+  attack.target.bowArrowsRemaining -= 1;
+
+  const playback: AttackPlayback = {
+    kind: 'bow',
+    fromSide: attack.side,
+    fromPosition: attack.action.actorPosition,
+    toSide: attack.targetSide,
+    toPosition: attack.action.targetPosition,
+    bidirectional: true,
+    damage: 0,
+    blocked: false,
+    bpFrom,
+    bpTo: attack.target.currentBp,
+    attackerDamage: 0,
+    attackerBpFrom,
+    attackerBpTo: attack.attacker.currentBp,
+    stateAfter: {
+      ...next,
+      player: player.map((u) => ({ ...u, poisonStacks: u.poisonStacks.map((s) => ({ ...s })) })),
+      cpu: cpu.map((u) => ({ ...u, poisonStacks: u.poisonStacks.map((s) => ({ ...s })) })),
+      log: [...next.log],
+      events: [...next.events],
+    },
+  };
+
+  next = appendLog(
+    next,
+    `${attack.attacker.name} ↔ ${attack.target.name}: 弓の矢が相殺（ノーダメージ）`,
+  );
+  next = pushBattleEvent(next, {
+    type: 'attack',
+    turn,
+    side: attack.side,
+    actionKind: 'bow',
+    actor: unitSnapshot(
+      attack.attacker,
+      attackerBpFrom,
+      attack.attacker.currentBp,
+    ),
+    target: unitSnapshot(attack.target, bpFrom, attack.target.currentBp),
+    damageToTarget: 0,
+    damageToActor: 0,
+    damage: 0,
+    actorId: attack.attacker.cardId,
+    targetId: attack.target.cardId,
+  });
+
+  return { state: next, playback };
 }
 
 export function applyBowAttack(

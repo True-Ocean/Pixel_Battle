@@ -600,6 +600,44 @@ describe('battle', () => {
     expect(state.player[0].currentBp).toBe(60);
   });
 
+  it('弓同士が互いに弓攻撃すると矢が相殺されノーダメージになる', () => {
+    const playerDeck = [
+      stubCard('弓P', 'bow', 70),
+      stubCard('P2', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('弓C', 'bow', 55),
+      stubCard('C2', 'attack', 50),
+      stubCard('C3', 'attack', 50),
+      stubCard('C4', 'attack', 50),
+      stubCard('C5', 'attack', 50),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'bowAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'bowAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+    }).state;
+
+    const playerBow = state.player.find((u) => u.name === '弓P')!;
+    const cpuBow = state.cpu.find((u) => u.name === '弓C')!;
+    expect(playerBow.currentBp).toBe(70);
+    expect(cpuBow.currentBp).toBe(55);
+    expect(playerBow.bowArrowsRemaining).toBe(1);
+    expect(cpuBow.bowArrowsRemaining).toBe(1);
+  });
+
   it('両攻撃は主対象へ近接＋副前衛へ55%無反撃', () => {
     const playerDeck = [
       stubCard('両', 'dual', 80),

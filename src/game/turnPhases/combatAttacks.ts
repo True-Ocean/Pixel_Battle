@@ -13,7 +13,7 @@ import {
   unitSnapshot,
 } from '../battleLogEvent';
 import type { AttackPlayback } from '../turnResult';
-import { applyBowAttack, collectBowAttacks } from './bowAttacks';
+import { applyBowAttack, applyBowMutualStalemate, collectBowBattles } from './bowAttacks';
 import { applyDualAttack, collectDualAttacks } from './dualAttacks';
 import {
   applyMeleeBattle,
@@ -93,7 +93,7 @@ export function resolveCombatAttacks(
     events: [...state.events],
   };
 
-  const bowInputs = collectBowAttacks(choices, player, cpu);
+  const bowBattles = [...collectBowBattles(choices, player, cpu).values()];
   const dualInputs = collectDualAttacks(choices, player, cpu);
   const stormInputs = collectStormAttacks(choices, player, cpu);
   const meleeBattles = [
@@ -114,9 +114,14 @@ export function resolveCombatAttacks(
   const resolvedMainPairs = new Set<string>();
 
   const jobs: AttackJob[] = [
-    ...bowInputs.map((input) =>
-      createAttackJob(input.attacker, input.target, 'bow', () => {
-        const result = applyBowAttack(next, player, cpu, input);
+    ...bowBattles.map((battle) =>
+      createAttackJob(battle.attacker, battle.target, 'bow', () => {
+        const result =
+          battle.bidirectional &&
+          battle.attacker.attribute === 'bow' &&
+          battle.target.attribute === 'bow'
+            ? applyBowMutualStalemate(next, player, cpu, battle)
+            : applyBowAttack(next, player, cpu, battle);
         next = result.state;
         return result.playback;
       }),
