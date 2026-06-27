@@ -3837,7 +3837,14 @@ button.battle-hub-deck-icon.is-move-target {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.deck-card-detail-actions--with-album .deck-card-detail-edit,
+.deck-card-detail-actions--with-album:not(.deck-card-detail-actions--with-limit-break)
+  .deck-card-detail-edit {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .deck-card-detail-actions--with-album .deck-card-detail-revive {
   grid-column: 1 / -1;
   display: inline-flex;
@@ -5757,6 +5764,110 @@ button.battle-hub-deck-icon.is-move-target {
   opacity: 0.45;
 }
 
+.deck-card-detail-limit-break-trigger-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.deck-card-detail-limit-break-trigger--pending {
+  opacity: 0.45;
+}
+
+.limit-break-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    max(0.5rem, env(safe-area-inset-top, 0px))
+    max(0.5rem, env(safe-area-inset-right, 0px))
+    max(0.5rem, env(safe-area-inset-bottom, 0px))
+    max(0.5rem, env(safe-area-inset-left, 0px));
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.limit-break-modal-panel {
+  width: min(100%, calc(var(--phone-shell-w, 26.5rem) - 1rem));
+  padding: 1rem 0.85rem 0.85rem;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.22);
+}
+
+.limit-break-modal-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f766e;
+  text-align: center;
+}
+
+.limit-break-modal-outcome {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  text-align: center;
+}
+
+.limit-break-modal-insufficient {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.limit-break-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.limit-break-modal-cancel {
+  min-height: 2.65rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.limit-break-modal-confirm {
+  box-sizing: border-box;
+  min-height: 2.65rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #0d9488;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #0f766e;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.limit-break-modal-confirm:disabled,
+.limit-break-modal-confirm--pending {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .graveyard-pick-confirm {
   box-sizing: border-box;
   width: 100%;
@@ -6616,6 +6727,7 @@ button.battle-hub-deck-icon.is-move-target {
 .deck-card-detail-revive,
 .deck-card-detail-downgrade-revive,
 .deck-card-detail-edit,
+.deck-card-detail-limit-break-trigger,
 .deck-card-detail-album,
 .deck-card-detail-delete,
 .deck-card-detail-close {
@@ -6694,6 +6806,20 @@ button.battle-hub-deck-icon.is-move-target {
   background: #646cff;
   color: #fff;
   font-weight: 600;
+}
+
+.deck-card-detail-limit-break-trigger {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  flex-wrap: wrap;
+  border: 1px solid #0d9488;
+  background: #ecfdf5;
+  color: #0f766e;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .deck-card-detail-delete {
