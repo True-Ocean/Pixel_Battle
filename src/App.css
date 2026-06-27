@@ -1584,15 +1584,20 @@ button.battle-hub-deck-icon.is-move-target {
   grid-template-columns: minmax(0, 1fr) 6.2rem 2.55rem;
   align-items: center;
   gap: 0.35rem;
+  min-height: 1.55rem;
+}
+
+.mission-card--beginner .mission-card-top {
+  min-height: calc(0.52rem * 1.15 + 0.04rem + 0.64rem * 1.2 * 2);
 }
 
 .mission-card-copy {
   min-width: 0;
-  min-height: 0.77rem;
+  min-height: calc(0.64rem * 1.2 * 2);
 }
 
 .mission-card--beginner .mission-card-copy {
-  min-height: 1.42rem;
+  min-height: calc(0.52rem * 1.15 + 0.04rem + 0.64rem * 1.2 * 2);
 }
 
 .mission-card-description {
@@ -1601,9 +1606,13 @@ button.battle-hub-deck-icon.is-move-target {
   font-weight: 600;
   line-height: 1.2;
   color: #334155;
+  min-height: calc(0.64rem * 1.2 * 2);
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .mission-card-rewards {
