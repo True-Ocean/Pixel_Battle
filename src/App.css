@@ -2635,6 +2635,42 @@ button.battle-hub-deck-icon.is-move-target {
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
 }
 
+.battle-term-guide-panel--compact {
+  width: min(100%, 16.5rem);
+  padding: 0.75rem 0.85rem 0.7rem;
+}
+
+.battle-term-guide-panel--compact .battle-term-guide-title {
+  margin-bottom: 0.4rem;
+  font-size: 0.92rem;
+}
+
+.battle-term-guide-panel--compact .battle-term-guide-list {
+  padding-left: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.battle-term-guide-panel--compact .battle-term-guide-item {
+  position: relative;
+  padding-left: 0.95rem;
+}
+
+.battle-term-guide-panel--compact .battle-term-guide-item::before {
+  content: '・';
+  position: absolute;
+  left: 0;
+}
+
+.battle-term-guide-panel--compact .battle-term-guide-item + .battle-term-guide-item {
+  margin-top: 0.15rem;
+}
+
+.battle-term-guide-panel--compact .battle-term-guide-actions {
+  margin-top: 0.65rem;
+}
+
 .battle-term-guide-title {
   margin: 0 0 0.55rem;
   font-size: 0.95rem;

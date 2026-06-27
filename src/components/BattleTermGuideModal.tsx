@@ -16,7 +16,12 @@ export function BattleTermGuideModal({ termId, onClose }: BattleTermGuideModalPr
   return createPortal(
     <div className="battle-term-guide-backdrop" onClick={onClose}>
       <div
-        className="battle-term-guide-panel"
+        className={[
+          'battle-term-guide-panel',
+          term.compact ? 'battle-term-guide-panel--compact' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

@@ -12,8 +12,9 @@ describe('attributes', () => {
   it('maps defense to 盾', () => {
     expect(getAttributeMeta('defense')).toEqual(ATTRIBUTE_META.defense);
     expect(ATTRIBUTE_META.defense.label).toBe('盾');
-    expect(ATTRIBUTE_META.defense.description).toContain('一度だけ盾を付与');
+    expect(ATTRIBUTE_META.defense.description).toContain('盾を持ち');
     expect(ATTRIBUTE_META.defense.battleGuide).toContain('盾付与');
+    expect(ATTRIBUTE_META.defense.battleGuide).not.toContain('敵の攻撃を1回無効');
   });
 
   it('全属性に戦い方ガイドがある', () => {
@@ -23,8 +24,9 @@ describe('attributes', () => {
   });
 
   it('弓属性の説明とガイド', () => {
-    expect(ATTRIBUTE_META.bow.description).toContain('2矢');
-    expect(ATTRIBUTE_META.bow.battleGuide).toContain('反撃を受けない');
-    expect(ATTRIBUTE_META.bow.battleGuide).toContain('2矢');
+    expect(ATTRIBUTE_META.bow.description).toContain('弓攻撃');
+    expect(ATTRIBUTE_META.bow.battleGuide).toContain('弓攻撃可能');
+    expect(ATTRIBUTE_META.bow.battleGuide).not.toContain('反撃を受けない');
+    expect(ATTRIBUTE_META.bow.battleGuide).not.toContain('2回まで');
   });
 });
