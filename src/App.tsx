@@ -23,7 +23,11 @@ import {
   getMissionChallengeTarget,
 } from './mission';
 import type { MissionCategory, MissionEventType } from './mission';
-import { hasAllAttributesCollected } from './mission/attributeCollection';
+import {
+  mergeMissionEventResults,
+  reportPermanentDeckWinAchievements,
+  syncPermanentOwnershipAchievements,
+} from './mission/permanentAchievementProgress';
 import { loadSave, saveSave, SAVE_SCHEMA_VERSION } from './storage';
 import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, setMemoryAlbumUnlockedRows, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
@@ -399,19 +403,38 @@ function App() {
     [persistSave],
   );
 
-  const reportAttributeCollectionIfComplete = useCallback(
-    (savePatch?: Omit<Parameters<typeof persistSave>[0], 'missionState'>) => {
-      if (
-        !hasAllAttributesCollected(decksRef.current, memoryAlbumRef.current)
-      ) {
-        return;
-      }
-      reportAndPersistMissionEvents(
-        [{ type: 'attribute_collection_complete' }],
-        savePatch,
+  const syncAndPersistOwnershipAchievements = useCallback(
+    (
+      savePatch?: Omit<Parameters<typeof persistSave>[0], 'missionState'>,
+      date: Date = new Date(),
+    ) => {
+      const userLevel = userRef.current?.level ?? 1;
+      const prev = missionStateRef.current;
+      const result = syncPermanentOwnershipAchievements(
+        prev,
+        decksRef.current,
+        memoryAlbumRef.current,
+        userLevel,
+        date,
       );
+      const missionChanged = result.state !== prev;
+      if (missionChanged) {
+        missionStateRef.current = result.state;
+        setMissionState(result.state);
+      }
+      if (savePatch || missionChanged) {
+        persistSave({
+          ...savePatch,
+          ...(missionChanged ? { missionState: result.state } : {}),
+        });
+      }
+      const toastMessage = formatMissionCompleteToastMessage(result.newlyCompleted);
+      if (toastMessage) {
+        setMissionCompleteToast(toastMessage);
+      }
+      return result;
     },
-    [reportAndPersistMissionEvents],
+    [persistSave],
   );
 
   useEffect(() => {
@@ -469,6 +492,11 @@ function App() {
   useEffect(() => {
     refreshMissionsForCurrentDate();
   }, [refreshMissionsForCurrentDate, screen, user]);
+
+  useEffect(() => {
+    if (!user || !isProfileComplete(user)) return;
+    syncAndPersistOwnershipAchievements();
+  }, [user, syncAndPersistOwnershipAchievements]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -826,10 +854,10 @@ function App() {
       });
       if (added) {
         reportAndPersistMissionEvents([{ type: 'card_created' }]);
-        reportAttributeCollectionIfComplete();
+        syncAndPersistOwnershipAchievements();
       }
     },
-    [reportAndPersistMissionEvents, reportAttributeCollectionIfComplete, updateActiveDeck],
+    [reportAndPersistMissionEvents, syncAndPersistOwnershipAchievements, updateActiveDeck],
   );
 
   const updateCard = useCallback(
@@ -980,8 +1008,8 @@ function App() {
     decksRef.current = nextDecks;
     persistSave({ decks: nextDecks });
     reportAndPersistMissionEvents([{ type: 'attribute_retouch' }]);
-    reportAttributeCollectionIfComplete();
-  }, [persistSave, reportAndPersistMissionEvents, reportAttributeCollectionIfComplete]);
+    syncAndPersistOwnershipAchievements();
+  }, [persistSave, reportAndPersistMissionEvents, syncAndPersistOwnershipAchievements]);
 
   const selectCardAttributeInDeck = useCallback(
     (
@@ -1026,7 +1054,7 @@ function App() {
       economyRef.current = spent;
       persistSave({ decks: nextDecks, economy: spent });
       reportAndPersistMissionEvents([{ type: 'attribute_selected' }]);
-      reportAttributeCollectionIfComplete();
+      syncAndPersistOwnershipAchievements();
       return {
         attribute,
         previousBp,
@@ -1035,7 +1063,7 @@ function App() {
         nextJewels: spent.jewels,
       };
     },
-    [persistSave, reportAndPersistMissionEvents, reportAttributeCollectionIfComplete],
+    [persistSave, reportAndPersistMissionEvents, syncAndPersistOwnershipAchievements],
   );
 
   const removeCardFromDeck = useCallback((id: string) => {
@@ -1151,10 +1179,10 @@ function App() {
       memoryAlbumRef.current = nextAlbum;
 
       reportAndPersistMissionEvents([{ type: 'memory_album_saved' }]);
-      reportAttributeCollectionIfComplete();
+      syncAndPersistOwnershipAchievements();
       return 'ok';
     },
-    [persistSave, removeCardFromDeck, reportAndPersistMissionEvents, reportAttributeCollectionIfComplete],
+    [persistSave, removeCardFromDeck, reportAndPersistMissionEvents, syncAndPersistOwnershipAchievements],
   );
 
   const unlockMemoryAlbumRowWithJewels = useCallback((): string | null => {
@@ -1294,8 +1322,9 @@ function App() {
       decksRef.current = nextDecks;
       economyRef.current = nextEconomy;
       reportAndPersistMissionEvents([{ type: 'card_revived' }]);
+      syncAndPersistOwnershipAchievements();
     },
-    [persistSave, reportAndPersistMissionEvents],
+    [persistSave, reportAndPersistMissionEvents, syncAndPersistOwnershipAchievements],
   );
 
   const limitBreakCard = useCallback(
@@ -1639,15 +1668,34 @@ function App() {
       );
       const lastBattleIndex =
         battleStartSnapshotRef.current?.deckIndex ?? deckIndex;
+      const playerDeck =
+        battleStartSnapshotRef.current?.playerDeck ??
+        getDeckCards(prevActiveDeck);
+      const battleUserLevel = nextUser?.level ?? prevUser?.level ?? 1;
       const battleMissionEvents: Array<{ type: MissionEventType; amount?: number }> =
         [{ type: 'battle_play' }];
       if (outcome.winner === 'player') {
         battleMissionEvents.push({ type: 'battle_win' }, { type: 'cpu_battle_win' });
       }
-      const missionResult = applyMissionEvents(
+      let missionResult = applyMissionEvents(
         missionStateRef.current,
         battleMissionEvents,
       );
+      if (outcome.winner === 'player') {
+        const deckWinResult = reportPermanentDeckWinAchievements(
+          missionResult.state,
+          playerDeck,
+          battleUserLevel,
+        );
+        missionResult = mergeMissionEventResults(missionResult, deckWinResult);
+      }
+      const ownershipResult = syncPermanentOwnershipAchievements(
+        missionResult.state,
+        nextDecks,
+        memoryAlbumRef.current,
+        battleUserLevel,
+      );
+      missionResult = mergeMissionEventResults(missionResult, ownershipResult);
       const nextMissionState = missionResult.state;
       if (nextMissionState !== missionStateRef.current) {
         missionStateRef.current = nextMissionState;
@@ -2322,11 +2370,14 @@ function App() {
 
   const handleClaimMission = useCallback(
     (missionId: string) => {
+      const userLevel = userRef.current?.level ?? 1;
       const result = claimMission(
         missionStateRef.current,
         economyRef.current,
         inventoryRef.current,
         missionId,
+        new Date(),
+        userLevel,
       );
       if (!result) return;
       setMissionState(result.state);
@@ -2345,11 +2396,14 @@ function App() {
 
   const handleClaimCategoryMissions = useCallback(
     (category: MissionCategory) => {
+      const userLevel = userRef.current?.level ?? 1;
       const result = claimMissionsInCategory(
         missionStateRef.current,
         economyRef.current,
         inventoryRef.current,
         category,
+        new Date(),
+        userLevel,
       );
       if (result.missionIds.length === 0) return null;
       setMissionState(result.state);
@@ -2450,7 +2504,10 @@ function App() {
     [clearHistoryRematch, resetHistoryRematchFlow],
   );
 
-  const missionUnclaimedCount = countUnclaimedMissions(missionState);
+  const missionUnclaimedCount = countUnclaimedMissions(
+    missionState,
+    user?.level ?? 1,
+  );
 
   const openSettings = useCallback(() => {
     if (isTabId(screen) || screen === 'records') {

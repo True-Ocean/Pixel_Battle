@@ -64,7 +64,7 @@ Production build enables the service worker (HTTPS recommended).
 ```
 src/
   types/            # Card, SaveData, ScreenId 等 / core types
-  config/           # balance, economy, missions, permanentMissions
+  config/           # balance, economy, missions, permanentMissions, permanentAchievements, …
   card/             # カード生成・BP・限界突破 / card creation & BP
   game/             # 戦闘ロジック・CPU / combat & CPU
   mission/          # ミッション進捗・受取・表示 / missions engine
@@ -112,10 +112,10 @@ See [`ECONOMY_SPEC.md`](docs/ECONOMY_SPEC.md) for full details.
 |---------------------|----------------|
 | **デイリー / Daily** | 6件・日計 **45 px + 💎1**（5/10/15 px 段階） |
 | **ウィークリー / Weekly** | 7件・週 **65 px + 💎10** |
-| **常設 / Permanent** | 12カウンター + 全属性コンプ。各カテゴリ **20〜200** から開始、tier cap 受取で **+100** 自動拡張。一覧は **カテゴリ1件表示** |
+| **常設 / Permanent** | **16 カウンタートラック**（10 刻みデフォルト、刻み可変）+ **属性達成型**（解放済 9 属性×所持/デッキ勝利）+ **R/SR 枚数カウンター**。tier cap **200** から、受取で **+100** 拡張。一覧は **トラック1件表示** |
 | **ビギナー / Beginner** | 12 STEP チュートリアル（順次解放） |
 
-定義: `src/config/missions.ts`, `src/config/permanentMissions.ts`  
+定義: `src/config/missions.ts`, `permanentMissions.ts`, `permanentRarityCounters.ts`, `permanentAchievements.ts`  
 Specs: [`PROTOTYPE §4.8`](docs/PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション)
 
 ### その他 / Other
@@ -132,7 +132,7 @@ Specs: [`PROTOTYPE §4.8`](docs/PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション
 - [x] カード作成・編集・デッキ / Card create, edit, deck  
 - [x] 戦闘エンジン・CPU 戦・Lost 経済連動 / Combat, CPU, Lost economy  
 - [x] 限界突破・ショップ・広告ゲート（モック） / Limit break, shop, ad gates  
-- [x] ミッション（デイリー / ウィークリー / 常設 tier cap / ビギナー12） / Missions  
+- [x] ミッション（デイリー / ウィークリー / 常設 tier cap・属性/レア度 / ビギナー12） / Missions  
 - [x] 経済リバランス（2026-06） / Economy rebalance (2026-06)  
 - [ ] 効果音（SE） / Sound effects  
 - [ ] オフライン対人（ゴースト） / Offline PvP (ghost decks)  

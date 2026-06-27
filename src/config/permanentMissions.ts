@@ -4,6 +4,8 @@ import type {
   MissionReward,
   MissionState,
 } from '../mission/types';
+import { getActivePermanentAchievementMissions } from './permanentAchievements';
+import { PERMANENT_RARITY_COUNTER_SPECS } from './permanentRarityCounters';
 
 /** 常設カウンター: 初回上限 */
 export const PERMANENT_INITIAL_TIER_CAP = 200;
@@ -11,14 +13,19 @@ export const PERMANENT_INITIAL_TIER_CAP = 200;
 /** 常設カウンター: 上限到達ごとに +100（200→300→400…） */
 export const PERMANENT_TIER_CAP_INCREMENT = 100;
 
-/** 常設カウンター: goal の刻み */
-export const PERMANENT_GOAL_STEP = 20;
+/** 常設カウンター: デフォルト goal の刻み */
+export const PERMANENT_GOAL_STEP = 10;
+
+/** jewel 報酬 milestone の刻み */
+export const PERMANENT_JEWEL_MILESTONE = 50;
 
 export interface PermanentCounterSpec {
   eventType: MissionEventType;
   idPrefix: string;
   title: (goal: number) => string;
   description: (goal: number) => string;
+  goalStep?: number;
+  rewardForGoal?: (goal: number) => MissionReward;
 }
 
 export const PERMANENT_COUNTER_SPECS: readonly PermanentCounterSpec[] = [
@@ -51,82 +58,88 @@ export const PERMANENT_COUNTER_SPECS: readonly PermanentCounterSpec[] = [
     idPrefix: 'permanent_limit_break',
     title: (goal) => `限界突破${goal}回`,
     description: (goal) => `限界突破を累計${goal}回行う`,
+    goalStep: 5,
   },
   {
     eventType: 'memory_album_saved',
     idPrefix: 'permanent_memory_album_saved',
     title: (goal) => `思い出${goal}枚`,
     description: (goal) => `思い出アルバムに累計${goal}枚保存する`,
+    goalStep: 1,
   },
   {
     eventType: 'card_revived',
     idPrefix: 'permanent_card_revived',
     title: (goal) => `復活${goal}回`,
     description: (goal) => `ロストカードを累計${goal}回復活させる`,
+    goalStep: 3,
   },
   {
     eventType: 'card_deleted',
     idPrefix: 'permanent_card_deleted',
     title: (goal) => `削除${goal}枚`,
     description: (goal) => `カードを累計${goal}枚削除する`,
+    goalStep: 5,
   },
   {
     eventType: 'card_renamed',
     idPrefix: 'permanent_card_renamed',
     title: (goal) => `リネーム${goal}回`,
     description: (goal) => `カード名を累計${goal}回変更して保存する`,
+    goalStep: 5,
   },
   {
     eventType: 'card_note_saved',
     idPrefix: 'permanent_card_note_saved',
     title: (goal) => `ノート${goal}枚`,
     description: (goal) => `累計${goal}枚のカードにノートを付ける`,
+    goalStep: 5,
   },
   {
     eventType: 'canvas_resized',
     idPrefix: 'permanent_canvas_resized',
     title: (goal) => `リサイズ${goal}回`,
     description: (goal) => `キャンバスサイズを変更して累計${goal}回保存する`,
+    goalStep: 5,
   },
   {
     eventType: 'attribute_selected',
     idPrefix: 'permanent_attribute_selected',
     title: (goal) => `属性セレクト${goal}回`,
     description: (goal) => `属性セレクトを累計${goal}回行う`,
+    goalStep: 5,
   },
+];
+
+export const ALL_PERMANENT_COUNTER_SPECS: readonly PermanentCounterSpec[] = [
+  ...PERMANENT_COUNTER_SPECS,
+  ...PERMANENT_RARITY_COUNTER_SPECS,
 ];
 
 const PERMANENT_COUNTER_SPEC_BY_PREFIX = new Map(
-  PERMANENT_COUNTER_SPECS.map((spec) => [spec.idPrefix, spec]),
+  ALL_PERMANENT_COUNTER_SPECS.map((spec) => [spec.idPrefix, spec]),
 );
 
-export const PERMANENT_COLLECTION_MISSION_ID = 'permanent_attribute_collection_all';
+export function getPermanentGoalStep(spec: PermanentCounterSpec): number {
+  return spec.goalStep ?? PERMANENT_GOAL_STEP;
+}
 
-const PERMANENT_COLLECTION_MISSIONS: readonly MissionDefinition[] = [
-  {
-    id: PERMANENT_COLLECTION_MISSION_ID,
-    category: 'permanent',
-    title: '全属性コンプリート',
-    description: '11属性すべてのカードを所持する',
-    eventType: 'attribute_collection_complete',
-    goal: 1,
-    reward: { jewels: 10 },
-  },
-];
-
-export function buildPermanentGoalsUpTo(maxGoal: number): number[] {
+export function buildPermanentGoalsUpTo(
+  maxGoal: number,
+  goalStep: number = PERMANENT_GOAL_STEP,
+): number[] {
   const goals: number[] = [];
-  for (let goal = PERMANENT_GOAL_STEP; goal <= maxGoal; goal += PERMANENT_GOAL_STEP) {
+  for (let goal = goalStep; goal <= maxGoal; goal += goalStep) {
     goals.push(goal);
   }
   return goals;
 }
 
 export function permanentRewardForGoal(goal: number): MissionReward {
-  if (goal % 100 === 0) {
+  if (goal % PERMANENT_JEWEL_MILESTONE === 0) {
     return { jewels: 10 };
   }
-  return { px: 20 };
+  return { px: 10 };
 }
 
 export function getPermanentCounterSpecByPrefix(
@@ -142,10 +155,11 @@ export function parsePermanentCounterMissionId(
   if (!match) return null;
   const idPrefix = match[1]!;
   const goal = Number(match[2]);
-  if (!Number.isFinite(goal) || goal <= 0 || goal % PERMANENT_GOAL_STEP !== 0) {
-    return null;
-  }
-  if (!PERMANENT_COUNTER_SPEC_BY_PREFIX.has(idPrefix)) return null;
+  if (!Number.isFinite(goal) || goal <= 0) return null;
+  const spec = PERMANENT_COUNTER_SPEC_BY_PREFIX.get(idPrefix);
+  if (!spec) return null;
+  const goalStep = getPermanentGoalStep(spec);
+  if (goal % goalStep !== 0) return null;
   return { idPrefix, goal };
 }
 
@@ -171,7 +185,7 @@ export function buildPermanentCounterMission(
     description: spec.description(goal),
     eventType: spec.eventType,
     goal,
-    reward: permanentRewardForGoal(goal),
+    reward: spec.rewardForGoal?.(goal) ?? permanentRewardForGoal(goal),
   };
 }
 
@@ -189,25 +203,23 @@ export function getActivePermanentCounterMissions(
   state: MissionState,
 ): MissionDefinition[] {
   const missions: MissionDefinition[] = [];
-  for (const spec of PERMANENT_COUNTER_SPECS) {
+  for (const spec of ALL_PERMANENT_COUNTER_SPECS) {
+    const goalStep = getPermanentGoalStep(spec);
     const tierCap = getPermanentTierCap(state, spec.idPrefix);
-    for (const goal of buildPermanentGoalsUpTo(tierCap)) {
+    for (const goal of buildPermanentGoalsUpTo(tierCap, goalStep)) {
       missions.push(buildPermanentCounterMission(spec, goal));
     }
   }
   return missions;
 }
 
-export function getPermanentCollectionMissions(): readonly MissionDefinition[] {
-  return PERMANENT_COLLECTION_MISSIONS;
-}
-
 export function getActivePermanentMissions(
   state: MissionState,
+  userLevel: number = 1,
 ): MissionDefinition[] {
   return [
     ...getActivePermanentCounterMissions(state),
-    ...PERMANENT_COLLECTION_MISSIONS,
+    ...getActivePermanentAchievementMissions(userLevel),
   ];
 }
 
@@ -215,9 +227,10 @@ function getPermanentCounterBaselineProgress(
   state: MissionState,
   idPrefix: string,
   upToCap: number,
+  goalStep: number,
 ): number {
   let max = 0;
-  for (const goal of buildPermanentGoalsUpTo(upToCap)) {
+  for (const goal of buildPermanentGoalsUpTo(upToCap, goalStep)) {
     const entry = state.entries[`${idPrefix}_${goal}`];
     if (entry) {
       max = Math.max(max, entry.progress);
@@ -237,6 +250,10 @@ export function expandPermanentTierCapAfterClaim(
   const parsed = parsePermanentCounterMissionId(mission.id);
   if (!parsed) return state;
 
+  const spec = getPermanentCounterSpecByPrefix(parsed.idPrefix);
+  if (!spec) return state;
+
+  const goalStep = getPermanentGoalStep(spec);
   const currentCap = getPermanentTierCap(state, parsed.idPrefix);
   if (parsed.goal !== currentCap) return state;
 
@@ -245,14 +262,11 @@ export function expandPermanentTierCapAfterClaim(
     state,
     parsed.idPrefix,
     currentCap,
+    goalStep,
   );
   const nextEntries = { ...state.entries };
 
-  for (
-    let goal = currentCap + PERMANENT_GOAL_STEP;
-    goal <= newCap;
-    goal += PERMANENT_GOAL_STEP
-  ) {
+  for (let goal = currentCap + goalStep; goal <= newCap; goal += goalStep) {
     const missionId = `${parsed.idPrefix}_${goal}`;
     if (nextEntries[missionId]) continue;
     const progress = Math.min(goal, baseline);

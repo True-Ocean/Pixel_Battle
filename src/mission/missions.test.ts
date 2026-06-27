@@ -101,7 +101,7 @@ describe('mission reset', () => {
     state = reportMissionEvent(state, 'cpu_battle_win', 5, monday).state;
 
     state = applyMissionResets(state, tuesday);
-    expect(state.entries.permanent_cpu_battle_win_20?.progress).toBe(5);
+    expect(state.entries.permanent_cpu_battle_win_10?.progress).toBe(5);
   });
 });
 

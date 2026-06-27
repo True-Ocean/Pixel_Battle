@@ -18,8 +18,12 @@ export function getMissionChallengeTarget(
     case 'cpu_battle_win':
     case 'battle_play':
     case 'battle_log_viewed':
+    case 'deck_win_with_attribute':
+    case 'deck_win_with_rarity':
       return { kind: 'battleHub' };
     case 'card_created':
+    case 'attribute_owned':
+    case 'rarity_owned':
       return { kind: 'createCard' };
     case 'card_edit_saved':
       return { kind: 'editCard' };
@@ -40,7 +44,6 @@ export function getMissionChallengeTarget(
     case 'card_note_saved':
     case 'canvas_resized':
     case 'attribute_selected':
-    case 'attribute_collection_complete':
       return { kind: 'deckCardDetail' };
     case 'app_open':
       return null;

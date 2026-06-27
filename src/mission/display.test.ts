@@ -83,58 +83,62 @@ describe('sortMissionsForDisplay', () => {
     ]);
   });
 
-  it('shows one next permanent mission per counter category', () => {
+  it('shows one next permanent mission per counter category and achievement track', () => {
     const state = createInitialMissionState(monday);
-    const permanent = getMissionsByCategory('permanent', state);
+    const permanent = getMissionsByCategory('permanent', state, 1);
 
     const visible = filterMissionsForDisplay(permanent, state, 'permanent');
-    expect(visible).toHaveLength(13);
     expect(visible.map((m) => m.id)).toEqual(
       expect.arrayContaining([
-        'permanent_cpu_battle_win_20',
-        'permanent_card_created_20',
-        'permanent_card_edit_saved_20',
-        'permanent_attribute_retouch_20',
-        'permanent_limit_break_20',
-        'permanent_memory_album_saved_20',
-        'permanent_card_revived_20',
-        'permanent_card_deleted_20',
-        'permanent_card_renamed_20',
-        'permanent_card_note_saved_20',
-        'permanent_canvas_resized_20',
-        'permanent_attribute_selected_20',
-        'permanent_attribute_collection_all',
+        'permanent_cpu_battle_win_10',
+        'permanent_card_created_10',
+        'permanent_limit_break_5',
+        'permanent_memory_album_saved_1',
+        'permanent_card_revived_3',
+        'permanent_own_rarity_r_1',
+        'permanent_win_with_rarity_r_1',
+        'permanent_own_rarity_sr_1',
+        'permanent_win_with_rarity_sr_1',
       ]),
     );
-    expect(visible.every((m) => m.goal === 20 || m.id === 'permanent_attribute_collection_all')).toBe(
-      true,
+    expect(
+      visible.find((mission) => mission.id.startsWith('permanent_own_attribute_')),
+    ).toBeUndefined();
+
+    const level6Permanent = getMissionsByCategory('permanent', state, 6);
+    const level6Visible = filterMissionsForDisplay(level6Permanent, state, 'permanent');
+    expect(level6Visible.map((m) => m.id)).toEqual(
+      expect.arrayContaining([
+        'permanent_own_attribute_power',
+        'permanent_win_with_attribute_power',
+      ]),
     );
 
     const withProgress = {
       ...state,
       entries: {
-        permanent_cpu_battle_win_20: {
-          progress: 20,
+        permanent_cpu_battle_win_10: {
+          progress: 10,
           completedAt: monday.toISOString(),
         },
-        permanent_cpu_battle_win_40: {
-          progress: 25,
+        permanent_cpu_battle_win_20: {
+          progress: 12,
         },
       },
     };
 
     expect(
-      filterMissionsForDisplay(permanent, withProgress, 'permanent').find(
-        (m) => m.id.startsWith('permanent_cpu_battle_win_'),
+      filterMissionsForDisplay(permanent, withProgress, 'permanent').find((m) =>
+        m.id.startsWith('permanent_cpu_battle_win_'),
       )?.id,
-    ).toBe('permanent_cpu_battle_win_20');
+    ).toBe('permanent_cpu_battle_win_10');
 
     const afterClaim = {
       ...withProgress,
       entries: {
         ...withProgress.entries,
-        permanent_cpu_battle_win_20: {
-          progress: 20,
+        permanent_cpu_battle_win_10: {
+          progress: 10,
           completedAt: monday.toISOString(),
           claimedAt: monday.toISOString(),
         },
@@ -142,9 +146,9 @@ describe('sortMissionsForDisplay', () => {
     };
 
     expect(
-      filterMissionsForDisplay(permanent, afterClaim, 'permanent').find(
-        (m) => m.id.startsWith('permanent_cpu_battle_win_'),
+      filterMissionsForDisplay(permanent, afterClaim, 'permanent').find((m) =>
+        m.id.startsWith('permanent_cpu_battle_win_'),
       )?.id,
-    ).toBe('permanent_cpu_battle_win_40');
+    ).toBe('permanent_cpu_battle_win_20');
   });
 });

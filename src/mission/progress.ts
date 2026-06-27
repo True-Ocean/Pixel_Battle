@@ -93,8 +93,11 @@ export function isMissionClaimable(
   return entry.completedAt != null && entry.claimedAt == null;
 }
 
-export function countUnclaimedMissions(state: MissionState): number {
-  return getMissionDefinitions(state).filter((mission) => {
+export function countUnclaimedMissions(
+  state: MissionState,
+  userLevel: number = 1,
+): number {
+  return getMissionDefinitions(state, userLevel).filter((mission) => {
     if (mission.category === 'beginner' && state.beginnerCompleted) return false;
     return isMissionClaimable(state, mission);
   }).length;

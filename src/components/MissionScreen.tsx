@@ -49,17 +49,19 @@ export function MissionScreen({
   );
 
   const unclaimedCount = useMemo(
-    () => countUnclaimedMissions(missionState),
-    [missionState],
+    () => countUnclaimedMissions(missionState, userLevel),
+    [missionState, userLevel],
   );
   const unclaimedByCategory = useMemo(
     () => ({
-      beginner: listClaimableMissionsInCategory(missionState, 'beginner').length,
-      daily: listClaimableMissionsInCategory(missionState, 'daily').length,
-      weekly: listClaimableMissionsInCategory(missionState, 'weekly').length,
-      permanent: listClaimableMissionsInCategory(missionState, 'permanent').length,
+      beginner: listClaimableMissionsInCategory(missionState, 'beginner', userLevel)
+        .length,
+      daily: listClaimableMissionsInCategory(missionState, 'daily', userLevel).length,
+      weekly: listClaimableMissionsInCategory(missionState, 'weekly', userLevel).length,
+      permanent: listClaimableMissionsInCategory(missionState, 'permanent', userLevel)
+        .length,
     }),
-    [missionState],
+    [missionState, userLevel],
   );
 
   useEffect(() => {
@@ -151,6 +153,7 @@ export function MissionScreen({
             <MissionListPanel
               category={categoryTab}
               missionState={missionState}
+              userLevel={userLevel}
               onClaim={onClaimMission}
               onBulkClaim={handleBulkClaim}
               onChallenge={onChallengeMission}

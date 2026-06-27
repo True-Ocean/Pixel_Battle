@@ -1,7 +1,5 @@
-import {
-  PERMANENT_COUNTER_SPECS,
-  PERMANENT_COLLECTION_MISSION_ID,
-} from '../config/permanentMissions';
+import { ALL_PERMANENT_COUNTER_SPECS } from '../config/permanentMissions';
+import { PERMANENT_ACHIEVEMENT_TRACK_IDS } from '../config/permanentAchievements';
 import type { MissionCategory, MissionDefinition, MissionState } from './types';
 import {
   getMissionProgress,
@@ -46,6 +44,20 @@ function pickPermanentCounterMission(
   return next ?? null;
 }
 
+/** 達成型: トラックごとに未受取を1件（受取済みトラックは非表示） */
+function pickPermanentAchievementMission(
+  missions: readonly MissionDefinition[],
+  state: MissionState,
+  trackId: string,
+): MissionDefinition | null {
+  const mission = missions.find((item) => item.displayTrackId === trackId);
+  if (!mission) return null;
+  if (isMissionClaimed(state, mission)) return null;
+
+  if (isMissionClaimable(state, mission)) return mission;
+  return mission;
+}
+
 /** 常設: 各カテゴリ1件（未受取達成分優先、なければ次の段階） */
 export function filterMissionsForDisplay(
   missions: readonly MissionDefinition[],
@@ -58,16 +70,14 @@ export function filterMissionsForDisplay(
 
   const picked: MissionDefinition[] = [];
 
-  for (const spec of PERMANENT_COUNTER_SPECS) {
+  for (const spec of ALL_PERMANENT_COUNTER_SPECS) {
     const mission = pickPermanentCounterMission(missions, state, spec.idPrefix);
     if (mission) picked.push(mission);
   }
 
-  const collection = missions.find(
-    (mission) => mission.id === PERMANENT_COLLECTION_MISSION_ID,
-  );
-  if (collection && !isMissionClaimed(state, collection)) {
-    picked.push(collection);
+  for (const trackId of PERMANENT_ACHIEVEMENT_TRACK_IDS) {
+    const mission = pickPermanentAchievementMission(missions, state, trackId);
+    if (mission) picked.push(mission);
   }
 
   return picked

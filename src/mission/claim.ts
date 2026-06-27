@@ -118,8 +118,9 @@ export function claimMission(
   inventory: UserInventory,
   missionId: string,
   date: Date = new Date(),
+  userLevel: number = 1,
 ): MissionClaimResult | null {
-  const mission = getMissionById(missionId, state);
+  const mission = getMissionById(missionId, state, userLevel);
   if (!mission) return null;
   if (!isMissionClaimable(state, mission)) return null;
 
@@ -143,8 +144,11 @@ export function claimMission(
 }
 
 /** 受取可能ミッション一覧 */
-export function listClaimableMissions(state: MissionState): MissionDefinition[] {
-  return getMissionDefinitions(state).filter((mission) => {
+export function listClaimableMissions(
+  state: MissionState,
+  userLevel: number = 1,
+): MissionDefinition[] {
+  return getMissionDefinitions(state, userLevel).filter((mission) => {
     if (mission.category === 'beginner' && state.beginnerCompleted) return false;
     return isMissionClaimable(state, mission);
   });
@@ -154,8 +158,11 @@ export function listClaimableMissions(state: MissionState): MissionDefinition[] 
 export function listClaimableMissionsInCategory(
   state: MissionState,
   category: MissionCategory,
+  userLevel: number = 1,
 ): MissionDefinition[] {
-  return listClaimableMissions(state).filter((mission) => mission.category === category);
+  return listClaimableMissions(state, userLevel).filter(
+    (mission) => mission.category === category,
+  );
 }
 
 function claimMissionList(
@@ -211,8 +218,9 @@ export function claimAllMissions(
   economy: UserEconomy,
   inventory: UserInventory,
   date: Date = new Date(),
+  userLevel: number = 1,
 ): MissionBulkClaimResult {
-  const claimable = listClaimableMissions(state);
+  const claimable = listClaimableMissions(state, userLevel);
   return claimMissionList(state, economy, inventory, claimable, date);
 }
 
@@ -222,12 +230,16 @@ export function claimMissionsInCategory(
   inventory: UserInventory,
   category: MissionCategory,
   date: Date = new Date(),
+  userLevel: number = 1,
 ): MissionBulkClaimResult {
-  const claimable = listClaimableMissionsInCategory(state, category);
+  const claimable = listClaimableMissionsInCategory(state, category, userLevel);
   return claimMissionList(state, economy, inventory, claimable, date);
 }
 
 /** 達成済みだが未受取があるか */
-export function hasUnclaimedRewards(state: MissionState): boolean {
-  return listClaimableMissions(state).length > 0;
+export function hasUnclaimedRewards(
+  state: MissionState,
+  userLevel: number = 1,
+): boolean {
+  return listClaimableMissions(state, userLevel).length > 0;
 }

@@ -24,7 +24,10 @@ export type MissionEventType =
   | 'card_note_saved'
   | 'canvas_resized'
   | 'attribute_selected'
-  | 'attribute_collection_complete';
+  | 'attribute_owned'
+  | 'deck_win_with_attribute'
+  | 'rarity_owned'
+  | 'deck_win_with_rarity';
 
 /** ミッション報酬 */
 export interface MissionReward {
@@ -32,6 +35,12 @@ export interface MissionReward {
   jewels?: number;
   /** 汎用かけら（限界突破素材） */
   universalShards?: number;
+}
+
+/** 常設達成型ミッションの追加条件 */
+export interface MissionCondition {
+  attribute?: import('../types').Attribute;
+  rarity?: import('../types').CardRarity;
 }
 
 /** ミッション定義（config） */
@@ -47,6 +56,10 @@ export interface MissionDefinition {
   unlockAfter?: string;
   /** ビギナーのみ: 表示順 */
   order?: number;
+  /** 常設達成型: 表示トラック（1トラック1件表示） */
+  displayTrackId?: string;
+  /** 常設達成型: 達成条件 */
+  condition?: MissionCondition;
 }
 
 /** 個別ミッションの進捗 */

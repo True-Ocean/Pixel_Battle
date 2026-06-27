@@ -3,10 +3,17 @@ import type { Attribute, Card, DeckLayout } from '../types';
 import { createInitialMemoryAlbum } from '../user/memoryAlbum';
 import {
   collectOwnedAttributes,
-  hasAllAttributesCollected,
+  collectOwnedRarities,
+  countRarityInDeck,
+  deckContainsAttribute,
+  deckContainsRarity,
 } from './attributeCollection';
 
-function card(id: string, attribute: Attribute): Card {
+function card(
+  id: string,
+  attribute: Attribute,
+  rarity: Card['rarity'] = 'N',
+): Card {
   return {
     id,
     name: id,
@@ -17,7 +24,7 @@ function card(id: string, attribute: Attribute): Card {
     wins: 0,
     losses: 0,
     reviveCount: 0,
-    rarity: 'N',
+    rarity,
     stars: 0,
     createdAt: '2026-01-01T00:00:00.000Z',
   };
@@ -38,28 +45,23 @@ describe('attributeCollection', () => {
     expect(owned.has('ninja')).toBe(false);
   });
 
-  it('detects when all 11 attributes are owned', () => {
-    const attributes: Attribute[] = [
-      'attack',
-      'defense',
-      'power',
-      'bow',
-      'dual',
-      'poison',
-      'heal',
-      'ice',
-      'storm',
-      'ninja',
-      'illuminate',
-    ];
-    const decks: DeckLayout[] = [
-      attributes.slice(0, 5).map((attribute, index) => card(`d${index}`, attribute)),
-    ];
+  it('collects rarities from all decks and memory album', () => {
+    const decks: DeckLayout[] = [[card('a', 'attack', 'R'), null, null, null, null]];
     const album = createInitialMemoryAlbum();
-    album.cards.push(
-      ...attributes.slice(5).map((attribute, index) => card(`a${index}`, attribute)),
-    );
+    album.cards.push(card('b', 'defense', 'SR'));
 
-    expect(hasAllAttributesCollected(decks, album)).toBe(true);
+    const owned = collectOwnedRarities(decks, album);
+    expect(owned.has('R')).toBe(true);
+    expect(owned.has('SR')).toBe(true);
+    expect(owned.has('UR')).toBe(false);
+  });
+
+  it('detects deck composition for attribute and rarity wins', () => {
+    const deck = [card('a', 'ice', 'SR'), card('b', 'attack', 'N')];
+    expect(deckContainsAttribute(deck, 'ice')).toBe(true);
+    expect(deckContainsAttribute(deck, 'poison')).toBe(false);
+    expect(deckContainsRarity(deck, 'SR')).toBe(true);
+    expect(deckContainsRarity(deck, 'R')).toBe(false);
+    expect(countRarityInDeck(deck, 'SR')).toBe(1);
   });
 });

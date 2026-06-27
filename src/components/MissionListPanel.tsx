@@ -10,6 +10,7 @@ import { MissionCard } from './MissionCard';
 interface MissionListPanelProps {
   category: MissionCategory;
   missionState: MissionState;
+  userLevel: number;
   onClaim: (missionId: string) => void;
   onBulkClaim: (category: MissionCategory) => void;
   onChallenge: (missionId: string) => void;
@@ -18,6 +19,7 @@ interface MissionListPanelProps {
 export function MissionListPanel({
   category,
   missionState,
+  userLevel,
   onClaim,
   onBulkClaim,
   onChallenge,
@@ -25,12 +27,16 @@ export function MissionListPanel({
   const missions = sortMissionsForDisplay(
     category === 'beginner'
       ? getBeginnerMissions()
-      : getMissionsByCategory(category, missionState),
+      : getMissionsByCategory(category, missionState, userLevel),
     missionState,
     category,
   );
   const reorderCompleted = category !== 'beginner';
-  const claimableCount = listClaimableMissionsInCategory(missionState, category).length;
+  const claimableCount = listClaimableMissionsInCategory(
+    missionState,
+    category,
+    userLevel,
+  ).length;
   const beginnerClaimedCount =
     category === 'beginner'
       ? missions.filter((mission) => isMissionClaimed(missionState, mission)).length

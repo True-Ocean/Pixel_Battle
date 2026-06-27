@@ -2,8 +2,8 @@
 
 | 項目 | 内容 |
 |------|------|
-| ドキュメント版 | 2.18 |
-| 最終更新 | 2026-06-27 |
+| ドキュメント版 | 2.19 |
+| 最終更新 | 2026-06-28 |
 | 関連 | [属性・戦闘効果仕様](./ATTRIBUTE_SPEC.md) / [効果音仕様](./SFX_SPEC.md) / [経済仕様](./ECONOMY_SPEC.md) / [経済ロードマップ](./ECONOMY_ROADMAP.md) |
 | 対象 | ウェブプロトタイプ（React + Vite + TypeScript） |
 | 本番想定 | Unity（クライアント）＋ API / DB（将来） |
@@ -357,9 +357,12 @@ src/
 | `card_deleted` | デッキ / 思い出アルバムから削除 | |
 | `card_revived` | ロストカード復活 | 復活は **1種類のみ**（降格復活なし） |
 | `memory_album_saved` | 思い出アルバムへ保存 | |
-| `attribute_collection_complete` | 全11属性をデッキ+アルバムで所持 | 1回達成 |
+| `attribute_owned` | デッキ+アルバムで **解放済み属性** を所持（同期） | 剣・盾は対象外。Lv 解放に連動 |
+| `deck_win_with_attribute` | **再戦以外** の勝利時、デッキに当該属性を含む | 履歴再戦勝利は対象外 |
+| `rarity_owned` | デッキ+アルバムで R/SR を **N 枚** 所持（同期・1 刻み） | `permanentRarityCounters.ts` |
+| `deck_win_with_rarity` | **再戦以外** の勝利時、デッキに R/SR を **N 枚** 含む（1 刻み） | 同上 |
 
-同一アクションは **デイリー / ウィークリー / 常設 / ビギナー** に同時反映（ビギナーは解放・進行条件を満たす場合のみ）。
+同一アクションは **デイリー / ウィークリー / 常設 / ビギナー** に同時反映（ビギナーは解放・進行条件を満たす場合のみ）。常設の属性・レア度系は **イベント加算ではなく状態同期**（[§4.8.5](#485-常設ミッション)）。
 
 #### 4.8.3 受取・UI
 
@@ -371,7 +374,8 @@ src/
 | 受取済み | デイリー/ウィークリー: **受取済**（グレー・リスト下部）。常設: **一覧から非表示** |
 | 達成トースト | 画面上部中央・4秒。「ミッション達成！報酬を受け取ろう」 |
 | 未受取バッジ | Dock ミッション / 画面内サブタブ |
-| 常設一覧 | **各カテゴリ1件** — 未受取達成分優先、なければ次段階。残り少ない順 |
+| 常設一覧 | **各トラック1件** — カウンター系・達成型とも未受取達成分優先、なければ次段階。残り少ない順 |
+| 説明文 | 全カテゴリ **最大2行** 表示（短い文も行高を統一） |
 
 #### 4.8.4 ビギナーミッション（チュートリアル）
 
@@ -386,12 +390,48 @@ src/
 
 | 項目 | 内容 |
 |------|------|
-| 定義 | `src/config/permanentMissions.ts` — 12 カウンター + 全属性コンプ |
-| 初期 tier | 各カテゴリ **20〜200**（20刻み） |
-| 自動拡張 | **200 / 300 / …** の cap ミッション **受取** で +100 段（220〜300 等）を追加 |
+| 構成 | **16 カウンタートラック** + **属性達成型**（解放済み 9 属性 × 所持/デッキ勝利） |
+| 定義 | `permanentMissions.ts`（標準カウンター）/ `permanentRarityCounters.ts`（R・SR）/ `permanentAchievements.ts`（属性達成型） |
+| 初期 tier cap | 各カウンタートラック **200** まで生成 |
+| 自動拡張 | cap ミッション **受取** で **+100** 段（例: CPU 勝利 cap 200 受取 → 210〜300 を追加） |
 | 永続化 | `missionState.permanentTierCaps`（idPrefix → cap） |
-| 報酬 | 通常段階 **px 20** / **100 の倍数** 段階 **💎 10** |
-| 表示 | [§4.8.3](#483-受取ui) — カテゴリごと次の1件のみ |
+| 表示 | [§4.8.3](#483-受取ui) — **トラックごと次の1件**。達成型は **受取済みトラック非表示** |
+
+**標準カウンター報酬**（`rewardForGoal` 未指定時）: 通常段階 **px 10** / **50 の倍数** 段階 **💎 10**
+
+##### 4.8.5.1 カウンタートラック（累計 or 状態同期）
+
+| idPrefix | 刻み | 進捗の意味 |
+|----------|------|------------|
+| `permanent_cpu_battle_win` | 10 | CPU 戦累計勝利 |
+| `permanent_card_created` | 10 | 累計作成枚数 |
+| `permanent_card_edit_saved` | 10 | 累計編集保存 |
+| `permanent_attribute_retouch` | 10 | 累計属性リタッチ |
+| `permanent_limit_break` | **5** | 累計限界突破 |
+| `permanent_memory_album_saved` | **1** | 累計アルバム保存 |
+| `permanent_card_revived` | **3** | 累計復活 |
+| `permanent_card_deleted` | **5** | 累計削除 |
+| `permanent_card_renamed` | **5** | 累計リネーム |
+| `permanent_card_note_saved` | **5** | 累計ノート付与 |
+| `permanent_canvas_resized` | **5** | 累計キャンバス変更保存 |
+| `permanent_attribute_selected` | **5** | 累計属性セレクト |
+| `permanent_own_rarity_r` | **1** | 現在所持 R 枚数（デッキ+アルバム）— 報酬 **px 10**/段 |
+| `permanent_win_with_rarity_r` | **1** | 再戦以外の勝利で R を N 枚含んだ最大 — 報酬 **px 20**/段 |
+| `permanent_own_rarity_sr` | **1** | 現在所持 SR 枚数 — 報酬 **💎 5**/段 |
+| `permanent_win_with_rarity_sr` | **1** | 再戦以外の勝利で SR を N 枚含んだ最大 — 報酬 **💎 10**/段 |
+
+レア度カウンターは `PERMANENT_RARITY_COUNTER_SPECS` に集約。**将来レア度追加時はここに行を足す**。
+
+##### 4.8.5.2 属性達成型（1 回達成・Lv 連動）
+
+| 種別 | 対象 | 解放 | 報酬 | 備考 |
+|------|------|------|------|------|
+| 属性所持 | `ATTRIBUTE_UNLOCK_SCHEDULE` の 9 属性 | 属性 Lv 解放時 | **px 10** | 剣・盾は **除外**（初期から所持のため） |
+| 属性デッキ勝利 | 同上 | 同上 | **💎 5** | **履歴再戦以外** の勝利のみ |
+
+全属性コンプリート（旧 `attribute_collection_complete`）は **廃止**。属性追加時はスケジュールに追記するだけでミッションが増える設計。
+
+**同期タイミング**: デッキ/アルバム変更・レベルアップ・アプリ読込（`syncPermanentOwnershipAchievements`）。バトル勝利時は `reportPermanentDeckWinAchievements`（`App.tsx` の通常 CPU 戦フローのみ）。
 
 #### 4.8.6 報酬概要（2026-06 時点・`missions.ts`）
 
@@ -406,8 +446,11 @@ src/
 | 用途 | パス |
 |------|------|
 | デイリー/ウィークリー/ビギナー | `src/config/missions.ts` |
-| 常設生成 | `src/config/permanentMissions.ts` |
-| 全属性コンプ判定 | `src/mission/attributeCollection.ts` |
+| 常設カウンター | `src/config/permanentMissions.ts` |
+| 常設レア度カウンター | `src/config/permanentRarityCounters.ts` |
+| 常設属性達成型 | `src/config/permanentAchievements.ts` |
+| 属性・レア度判定 | `src/mission/attributeCollection.ts` |
+| 達成型同期 | `src/mission/permanentAchievementProgress.ts` |
 | エンジン | `src/mission/{progress,claim,reset,navigation,display,toast}.ts` |
 | 永続化 | `src/user/missionState.ts`（`permanentTierCaps` 含む） |
 | UI | `MissionScreen`, `MissionCard`, `MissionListPanel`, … |
@@ -1357,7 +1400,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | `CLASH_MS.exit` | 530 | ターン演出終了待機 (ms) |
 | `SAVE_SCHEMA_VERSION` | **1** | セーブスキーマ（`src/storage/index.ts`。フィールド正規化で移行） |
 | `MISSION_TOAST_AUTO_DISMISS_MS` | 4000 | 達成トースト表示時間 |
-| ミッション報酬 | — | デイリー/ウィークリー/ビギナー: `missions.ts`、常設: `permanentMissions.ts`（[§4.8](#48-ミッション)） |
+| ミッション報酬 | — | デイリー/ウィークリー/ビギナー: `missions.ts`、常設: `permanentMissions.ts` 等（[§4.8.5](#485-常設ミッション)） |
 
 ---
 
@@ -1390,7 +1433,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 - メール・パスワード認証
 - 課金拡張
 - **ユーザーレベル上限の引き上げ** — `MAX_USER_LEVEL` を 50 超にする際は [§5.7](#57-キャンバスサイズとレベル解放) に従い **キャンバス上限も L≡3 帯で +2px 拡張**（`canvasUnlock.ts` とセット更新）。§11 草案属性とあわせて検討
-- **ミッション拡張** — 常設カテゴリ追加・達成演出・ショップ連動など（[§4.8](#48-ミッション) デイリー/ウィークリー/常設 tier 拡張は **2026-06 実装済**）
+- **ミッション拡張** — 達成演出・ショップ連動など（[§4.8](#48-ミッション) のデイリー/ウィークリー/常設 tier・属性/レア度トラックは **2026-06 実装済**）
 
 ---
 
@@ -1443,7 +1486,8 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | 45 | 経済バランス | 💎30/Lv・各種コスト5倍。無課金必須💎は主に削除（5💎）。属性セレクトが主な💎シンク |
 | 46 | px 創作コスト | レベルアップ100px・属性リタッチ300px・リネーム200px（名前変更保存のたび） |
 | 57 | ミッション経済 | デイリー5/10/15px、ウィークリー整理、バトル勝利px×0.5、Lv報酬100px+💎10 |
-| 58 | 常設ミッション | 12カテゴリ×tier cap 200→自動+100、カテゴリ1件表示、全属性コンプ |
+| 58 | 常設ミッション | 16 カウンタートラック（刻み可変・10 デフォルト）+ 属性達成型 9×2。tier cap 200→+100。全属性コンプ廃止 |
+| 60 | 常設ミッション再設計 | 10 刻み・50 刻み💎・属性/レア度トラック・再戦除外デッキ勝利。説明文2行表示 |
 | 47 | オフライン対人 | ゴーストデッキ優先。レベル・戦力マッチ＋`rescaleDeckBp`補正。オンライン対人は後段（ECONOMY §13） |
 | 48 | Dock 構成 | マイデッキ / **ミッション** / バトル（中央）/ ショップ / 所持品。戦績はバトルハブ 📊 |
 | 49 | ミッション | デイリー・ウィークリー・常設（tier cap 自動拡張）・ビギナー12 STEP。JST リセット・カテゴリ別一括受取 |
@@ -1464,6 +1508,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.19 | 2026-06-28 | §4.8 常設ミッション再設計 — 16 カウンター（刻み可変）・属性/レア度トラック・全属性コンプ廃止。§4.8.3 説明2行。決定履歴 #60 |
 | 2.18 | 2026-06-27 | 監査反映 — §11 敗北・ロスト（仮ロスト廃止）。§4.2/§4.3 Lost UI・💎削除。§6.2 型を `src/types` 整合・`SAVE_SCHEMA_VERSION=1`。定数表から `PROTOTYPE_FAKE_LOSS` 削除。盾付与は自分可 |
 | 2.17 | 2026-06-27 | §4.3.1 詳細説明・用語モーダル・カードノート閲覧。§4.4 ノート編集。§9.1 UI 表記（潜伏・照射）。§12.5 config 参照。決定履歴 #57〜59 |
 | 2.16 | 2026-06-21 | §5.7 / §14.5 — ユーザーレベル上限引き上げ時はキャンバス上限も L≡3 帯で連動拡張する方針を明記 |

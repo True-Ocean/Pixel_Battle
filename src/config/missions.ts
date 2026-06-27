@@ -2,8 +2,8 @@ import type { MissionDefinition, MissionState } from '../mission/types';
 import {
   buildPermanentCounterMissionById,
   getActivePermanentMissions,
-  getPermanentCollectionMissions,
 } from './permanentMissions';
+import { buildPermanentAchievementById } from './permanentAchievements';
 
 /** デイリー・ウィークリー・ビギナー（常設は state に応じて動的生成） */
 export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
@@ -268,29 +268,34 @@ const MISSION_BY_ID = new Map<string, MissionDefinition>(
 
 export function getMissionDefinitions(
   state: MissionState,
+  userLevel: number = 1,
 ): MissionDefinition[] {
-  return [...MISSION_DEFINITIONS, ...getActivePermanentMissions(state)];
+  return [...MISSION_DEFINITIONS, ...getActivePermanentMissions(state, userLevel)];
 }
 
 export function getMissionById(
   id: string,
   state?: MissionState,
+  userLevel: number = 1,
 ): MissionDefinition | undefined {
   const staticMission = MISSION_BY_ID.get(id);
   if (staticMission) return staticMission;
   const permanentMission = buildPermanentCounterMissionById(id);
-  if (!permanentMission) return undefined;
-  if (!state) return permanentMission;
-  const active = getActivePermanentMissions(state);
+  if (permanentMission) return permanentMission;
+  const achievementMission = buildPermanentAchievementById(id);
+  if (achievementMission) return achievementMission;
+  if (!state) return undefined;
+  const active = getActivePermanentMissions(state, userLevel);
   return active.find((mission) => mission.id === id);
 }
 
 export function getMissionsByCategory(
   category: MissionDefinition['category'],
   state?: MissionState,
+  userLevel: number = 1,
 ): MissionDefinition[] {
   if (category === 'permanent') {
-    return state ? getActivePermanentMissions(state) : getPermanentCollectionMissions();
+    return state ? getActivePermanentMissions(state, userLevel) : [];
   }
   return MISSION_DEFINITIONS.filter((mission) => mission.category === category);
 }
