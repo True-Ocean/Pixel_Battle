@@ -15,7 +15,6 @@ import {
 import type { MissionEventType } from '../mission';
 import { applyMissionResets, getMissionWeekKey, hasMissionPeriodExpired } from '../mission/reset';
 import {
-  isCurrentBeginnerMission,
   isMissionClaimable,
 } from '../mission/progress';
 
@@ -124,7 +123,9 @@ describe('mission progress and claim', () => {
     ], monday);
     expect(result.state.entries.daily_cpu_battle_win_1?.progress).toBe(1);
     expect(result.state.entries.weekly_cpu_battle_win_10?.progress).toBe(1);
-    expect(result.newlyCompleted.map((m) => m.id)).toEqual(['daily_cpu_battle_win_1']);
+    expect(result.newlyCompleted.map((m) => m.id).sort()).toEqual(
+      ['beginner_battle_play', 'beginner_battle_win', 'daily_cpu_battle_win_1'].sort(),
+    );
   });
 
   it('counts cpu and rematch wins separately for daily missions', () => {
@@ -243,9 +244,9 @@ describe('mission progress and claim', () => {
     const inventory = createInitialInventory();
     const bulk = claimAllMissions(state, economy, inventory, monday);
     expect(bulk.missionIds.sort()).toEqual(
-      ['daily_card_edit', 'daily_login'].sort(),
+      ['beginner_edit_card', 'daily_card_edit', 'daily_login'].sort(),
     );
-    expect(bulk.pxGranted).toBe(10);
+    expect(bulk.pxGranted).toBe(110);
     expect(bulk.jewelsGranted).toBe(0);
     expect(isMissionClaimable(bulk.state, getMissionById('daily_login')!)).toBe(false);
   });
@@ -263,16 +264,38 @@ describe('mission progress and claim', () => {
     expect(isMissionClaimable(bulk.state, getMissionById('beginner_create_card')!)).toBe(false);
   });
 
-  it('unlocks beginner missions sequentially after claim', () => {
+  it('tracks all beginner missions in parallel', () => {
+    let state = createInitialMissionState(monday);
+
+    state = reportMissionEvent(state, 'card_edit_saved', 1, monday).state;
+    expect(state.entries.beginner_edit_card?.completedAt).toBeTruthy();
+
+    state = reportMissionEvent(state, 'card_created', 1, monday).state;
+    expect(state.entries.beginner_create_card?.completedAt).toBeTruthy();
+    expect(state.entries.beginner_fill_deck?.progress).toBe(1);
+  });
+
+  it('allows claiming beginner missions in any order', () => {
     let state = createInitialMissionState(monday);
     let economy = createInitialEconomy();
     let inventory = createInitialInventory();
 
     state = reportMissionEvent(state, 'card_edit_saved', 1, monday).state;
-    expect(state.entries.beginner_edit_card).toBeUndefined();
-
     state = reportMissionEvent(state, 'card_created', 1, monday).state;
-    expect(state.entries.beginner_create_card?.completedAt).toBeTruthy();
+
+    const claimEdit = claimMission(
+      state,
+      economy,
+      inventory,
+      'beginner_edit_card',
+      monday,
+    )!;
+    expect(claimEdit).toBeTruthy();
+    expect(claimEdit.pxGranted).toBe(100);
+
+    state = claimEdit.state;
+    economy = claimEdit.economy;
+    inventory = claimEdit.inventory;
 
     const claimCreate = claimMission(
       state,
@@ -281,33 +304,8 @@ describe('mission progress and claim', () => {
       'beginner_create_card',
       monday,
     )!;
-    state = claimCreate.state;
-    economy = claimCreate.economy;
-    inventory = claimCreate.inventory;
-
-    state = reportMissionEvent(state, 'card_edit_saved', 1, monday).state;
-    expect(state.entries.beginner_edit_card).toBeUndefined();
-
-    state = reportMissionEvent(state, 'card_created', 4, monday).state;
-    expect(state.entries.beginner_fill_deck?.progress).toBe(4);
-  });
-
-  it('tracks the single active beginner mission', () => {
-    let state = createInitialMissionState(monday);
-    const create = getMissionById('beginner_create_card')!;
-    const fillDeck = getMissionById('beginner_fill_deck')!;
-
-    expect(isCurrentBeginnerMission(state, create)).toBe(true);
-    expect(isCurrentBeginnerMission(state, fillDeck)).toBe(false);
-
-    state = reportMissionEvent(state, 'card_created', 1, monday).state;
-    expect(isCurrentBeginnerMission(state, create)).toBe(true);
-
-    const economy = createInitialEconomy();
-    const inventory = createInitialInventory();
-    state = claimMission(state, economy, inventory, 'beginner_create_card', monday)!.state;
-    expect(isCurrentBeginnerMission(state, create)).toBe(false);
-    expect(isCurrentBeginnerMission(state, fillDeck)).toBe(true);
+    expect(claimCreate).toBeTruthy();
+    expect(claimCreate.pxGranted).toBe(150);
   });
 
   it('marks beginnerCompleted when all beginner missions are claimed', () => {

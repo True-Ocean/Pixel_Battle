@@ -52,9 +52,7 @@ export interface MissionDefinition {
   eventType: MissionEventType;
   goal: number;
   reward: MissionReward;
-  /** ビギナーのみ: 前ミッション ID（受取済みで解放） */
-  unlockAfter?: string;
-  /** ビギナーのみ: 表示順 */
+  /** ビギナーのみ: 表示順（おすすめの流れ） */
   order?: number;
   /** 常設達成型: 表示トラック（1トラック1件表示） */
   displayTrackId?: string;

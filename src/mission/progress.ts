@@ -28,18 +28,9 @@ function isBeginnerTrackComplete(state: MissionState): boolean {
   return missions.every((mission) => getEntry(state, mission.id).claimedAt != null);
 }
 
-function isBeginnerMissionUnlocked(
-  mission: MissionDefinition,
-  state: MissionState,
-): boolean {
-  if (!mission.unlockAfter) return true;
-  return getEntry(state, mission.unlockAfter).claimedAt != null;
-}
-
 function isMissionActive(mission: MissionDefinition, state: MissionState): boolean {
   if (mission.category === 'beginner') {
-    if (state.beginnerCompleted || isBeginnerTrackComplete(state)) return false;
-    return isBeginnerMissionUnlocked(mission, state);
+    return !state.beginnerCompleted && !isBeginnerTrackComplete(state);
   }
   return true;
 }
@@ -175,34 +166,4 @@ export function applyMissionEvents(
 /** ビギナータブを表示するか */
 export function shouldShowBeginnerMissions(state: MissionState): boolean {
   return !state.beginnerCompleted && !isBeginnerTrackComplete(state);
-}
-
-/** ビギナーミッションが現在進行可能か（1件ずつ） */
-export function isCurrentBeginnerMission(
-  state: MissionState,
-  mission: MissionDefinition,
-): boolean {
-  if (mission.category !== 'beginner') return false;
-  if (!shouldShowBeginnerMissions(state)) return false;
-  if (!isBeginnerMissionUnlocked(mission, state)) return false;
-  if (isMissionClaimed(state, mission)) return false;
-  if (isMissionCompleted(state, mission)) return true;
-
-  const missions = getBeginnerMissions();
-  for (const candidate of missions) {
-    if (!isBeginnerMissionUnlocked(candidate, state)) continue;
-    if (!isMissionClaimed(state, candidate)) {
-      return candidate.id === mission.id;
-    }
-  }
-  return false;
-}
-
-export function isBeginnerMissionLocked(
-  state: MissionState,
-  mission: MissionDefinition,
-): boolean {
-  if (mission.category !== 'beginner') return false;
-  if (!shouldShowBeginnerMissions(state)) return false;
-  return !isBeginnerMissionUnlocked(mission, state);
 }

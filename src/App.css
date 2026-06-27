@@ -1542,21 +1542,6 @@ button.battle-hub-deck-icon.is-move-target {
   background: #f8faff;
 }
 
-.mission-card--current {
-  border-color: #818cf8;
-  background: #f5f7ff;
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.12);
-}
-
-.mission-card-step {
-  margin: 0 0 0.04rem;
-  font-size: 0.52rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: #6366f1;
-  line-height: 1.15;
-}
-
 .mission-beginner-intro {
   display: flex;
   align-items: baseline;
@@ -1587,17 +1572,9 @@ button.battle-hub-deck-icon.is-move-target {
   min-height: 1.55rem;
 }
 
-.mission-card--beginner .mission-card-top {
-  min-height: calc(0.52rem * 1.15 + 0.04rem + 0.64rem * 1.2 * 2);
-}
-
 .mission-card-copy {
   min-width: 0;
   min-height: calc(0.64rem * 1.2 * 2);
-}
-
-.mission-card--beginner .mission-card-copy {
-  min-height: calc(0.52rem * 1.15 + 0.04rem + 0.64rem * 1.2 * 2);
 }
 
 .mission-card-description {

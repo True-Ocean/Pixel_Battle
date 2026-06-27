@@ -59,7 +59,7 @@ export function MissionListPanel({
       {category === 'beginner' && (
         <div className="mission-beginner-intro">
           <p className="mission-beginner-intro-text">
-            順番に挑戦してクリアしよう
+            上から順がおすすめの流れです
           </p>
           <p className="mission-beginner-intro-meta muted">
             {beginnerClaimedCount} / {missions.length} 受取済み

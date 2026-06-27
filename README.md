@@ -113,7 +113,7 @@ See [`ECONOMY_SPEC.md`](docs/ECONOMY_SPEC.md) for full details.
 | **デイリー / Daily** | 6件・日計 **45 px + 💎1**（5/10/15 px 段階） |
 | **ウィークリー / Weekly** | 7件・週 **65 px + 💎10** |
 | **常設 / Permanent** | **16 カウンタートラック**（10 刻みデフォルト、刻み可変）+ **属性達成型**（解放済 9 属性×所持/デッキ勝利）+ **R/SR 枚数カウンター**。tier cap **200** から、受取で **+100** 拡張。一覧は **トラック1件表示** |
-| **ビギナー / Beginner** | 12 STEP チュートリアル（順次解放） |
+| **ビギナー / Beginner** | 12 件チュートリアル（全件同時進行・order はおすすめ順） |
 
 定義: `src/config/missions.ts`, `permanentMissions.ts`, `permanentRarityCounters.ts`, `permanentAchievements.ts`  
 Specs: [`PROTOTYPE §4.8`](docs/PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション)

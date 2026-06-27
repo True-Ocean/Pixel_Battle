@@ -17,11 +17,9 @@ export {
 export {
   countUnclaimedMissions,
   getMissionProgress,
-  isCurrentBeginnerMission,
   isMissionClaimable,
   isMissionClaimed,
   isMissionCompleted,
-  isBeginnerMissionLocked,
   applyMissionEvents,
   reportMissionEvent,
   shouldShowBeginnerMissions,

@@ -1,10 +1,7 @@
 import type { MissionDefinition } from '../mission/types';
 import { canShowMissionChallenge } from '../mission/navigation';
-import { getBeginnerMissions } from '../config/missions';
 import {
   getMissionProgress,
-  isBeginnerMissionLocked,
-  isCurrentBeginnerMission,
   isMissionClaimable,
   isMissionClaimed,
   isMissionCompleted,
@@ -26,39 +23,26 @@ export function MissionCard({
   onChallenge,
 }: MissionCardProps) {
   const entry = getMissionProgress(missionState, mission);
-  const isBeginner = mission.category === 'beginner';
-  const locked = isBeginnerMissionLocked(missionState, mission);
   const claimed = isMissionClaimed(missionState, mission);
   const claimable = isMissionClaimable(missionState, mission);
   const completed = isMissionCompleted(missionState, mission);
-  const isCurrent =
-    isBeginner && isCurrentBeginnerMission(missionState, mission);
   const progressPercent = Math.min(
     100,
     Math.round((entry.progress / mission.goal) * 100),
   );
-  const showProgress = !claimed && !locked;
+  const showProgress = !claimed;
   const showChallenge =
-    !locked &&
     !claimed &&
     !claimable &&
     !completed &&
-    canShowMissionChallenge(mission.eventType) &&
-    (!isBeginner || isCurrent);
-  const stepLabel =
-    isBeginner && mission.order != null
-      ? `STEP ${mission.order}/${getBeginnerMissions().length}`
-      : null;
+    canShowMissionChallenge(mission.eventType);
 
   return (
     <li
       className={[
         'mission-card',
-        isBeginner ? 'mission-card--beginner' : '',
-        locked ? 'mission-card--locked' : '',
         claimed ? 'mission-card--claimed' : '',
         claimable ? 'mission-card--claimable' : '',
-        isCurrent ? 'mission-card--current' : '',
         showChallenge ? 'mission-card--challengeable' : '',
       ]
         .filter(Boolean)
@@ -67,7 +51,6 @@ export function MissionCard({
     >
       <div className="mission-card-top">
         <div className="mission-card-copy">
-          {stepLabel && <p className="mission-card-step">{stepLabel}</p>}
           <p className="mission-card-description">{mission.description}</p>
         </div>
         <MissionRewardChips reward={mission.reward} className="mission-card-rewards" />
