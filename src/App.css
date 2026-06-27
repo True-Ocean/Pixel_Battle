@@ -9321,14 +9321,6 @@ button.battle-hub-deck-icon.is-move-target {
   min-height: 0;
 }
 
-/* 戦闘中〜終了画面まで、ドック出現後と同じカードサイズを維持 */
-.formation-screen.is-battle-active {
-  --formation-card-h: min(
-    7.85rem,
-    calc((100dvh - 12.5rem - var(--app-dock-h, 3.65rem)) / 4.15)
-  );
-}
-
 .formation-screen.has-end-actions .formation-battle-body {
   pointer-events: none;
 }
@@ -11935,23 +11927,27 @@ button.battle-card {
 }
 
 .formation-screen .formation-slot.is-frameless .battle-card-name {
-  font-size: calc(var(--formation-card-w) * 0.13);
+  /* CARD_NAME_MAX_LENGTH（全角10）が横パディング込みで収まるよう card 幅比で算出 */
+  font-size: calc(var(--formation-card-w) / 11.5);
   font-weight: 800;
-  line-height: 1.15;
-  min-height: calc(var(--formation-card-w) * 0.16);
+  line-height: 1.1;
+  min-height: calc(var(--formation-card-w) * 0.11);
   color: #333;
   text-align: center;
-  padding: 0 calc(var(--formation-card-w) * 0.04);
+  padding: 0 calc(var(--formation-card-w) * 0.035);
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
-/* デッキ確認: 元レイアウトを保ちつつブロック全体を縦中央に、カードを大きく */
-.formation-screen.is-reveal-phase {
+/* デッキ確認・バトル準備・戦闘: 元レイアウトを保ちつつブロック全体を縦中央に、カードを大きく */
+.formation-screen.is-reveal-phase,
+.formation-screen.is-setup-phase,
+.formation-screen.is-battle-active {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  --formation-card-h: min(7.85rem, calc((100dvh - 12.5rem) / 4.15));
+  --formation-card-h: min(8.85rem, calc((100dvh - 9.2rem) / 4.15));
   --formation-card-w: calc(var(--formation-card-h) * 5.25 / 7.75);
 }
 
@@ -12087,8 +12083,30 @@ button.battle-card {
 .formation-match-complete-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
+  width: 100%;
+  position: relative;
+  min-height: 2.1rem;
+}
+
+.formation-match-complete-row > .formation-match-complete-label {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.formation-match-complete-row > .formation-reveal-countdown {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
+
+.formation-match-complete-actions {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .formation-match-complete-label {
@@ -12108,6 +12126,34 @@ button.battle-card {
   font-variant-numeric: tabular-nums;
   color: #4338ca;
   pointer-events: none;
+  flex-shrink: 0;
+}
+
+.formation-cancel-match-btn--compact {
+  flex-shrink: 0;
+  width: auto;
+  min-height: unset;
+  padding: 0.2rem 0.36rem;
+  font-size: 0.58rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.formation-cancel-match-btn--compact .formation-cancel-match-btn-label {
+  font-size: 0.58rem;
+}
+
+.formation-cancel-match-btn--compact .formation-cancel-match-btn-inner {
+  gap: 0.16rem;
+}
+
+.formation-cancel-match-btn--compact .formation-cancel-match-coin {
+  width: 0.66rem;
+  height: 0.66rem;
+}
+
+.formation-cancel-match-btn--compact .formation-cancel-match-cost-value {
+  font-size: 0.58rem;
 }
 
 .formation-screen.is-reveal-phase .setup-actions.formation-actions {
@@ -12250,11 +12296,7 @@ button.battle-card {
 
 /* バトル準備（フェーズ2）: 自分の配置のみ中央に大きく表示 */
 .formation-screen.is-setup-phase {
-  flex: 1;
-  min-height: 0;
   overflow: hidden;
-  --formation-card-h: min(7.85rem, calc((100dvh - 11rem) / 3.35));
-  --formation-card-w: calc(var(--formation-card-h) * 5.25 / 7.75);
 }
 
 .formation-screen.is-setup-phase .formation-battle-shell {
@@ -12316,7 +12358,7 @@ button.battle-card {
 }
 
 .formation-screen.is-setup-phase .formation-setup-player-zone .formation-row {
-  gap: calc(var(--formation-card-w) * 0.1);
+  gap: calc(var(--formation-card-w) * 0.08);
 }
 
 .formation-screen.is-setup-phase .formation-setup-player-zone .formation-row-front {
@@ -12324,7 +12366,7 @@ button.battle-card {
 }
 
 .formation-screen.is-setup-phase .formation-setup-player-zone .formation-field {
-  gap: 0.14rem;
+  gap: 0.1rem;
 }
 
 .formation-screen.is-setup-phase .formation-zone .formation-hand-player {
@@ -12341,10 +12383,7 @@ button.battle-card {
 
 /* 戦闘中（フェーズ3） */
 .formation-screen.is-battle-active {
-  flex: 1;
-  min-height: 0;
   overflow: hidden;
-  --formation-card-w: calc(var(--formation-card-h) * 5.25 / 7.75);
 }
 
 .formation-screen.is-battle-active .formation-battle-shell {

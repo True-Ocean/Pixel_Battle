@@ -454,6 +454,7 @@ function FormationDeckReveal({
   isSearchingOpponent = false,
   revealCountdown,
   revealCountdownLabel = 'マッチング完了',
+  cancelMatchButton,
 }: {
   playerSlots: Record<BoardPosition, Card | null>;
   cpuSlots: Record<BoardPosition, Card | null>;
@@ -462,6 +463,7 @@ function FormationDeckReveal({
   isSearchingOpponent?: boolean;
   revealCountdown: number;
   revealCountdownLabel?: string;
+  cancelMatchButton?: React.ReactNode;
 }) {
   const searchingIdentity: BattleZoneIdentity = {
     name: '？？？',
@@ -538,6 +540,9 @@ function FormationDeckReveal({
             >
               {revealCountdown}
             </div>
+            {cancelMatchButton != null && (
+              <div className="formation-match-complete-actions">{cancelMatchButton}</div>
+            )}
           </div>
         )}
       </div>
@@ -1800,11 +1805,6 @@ export function BattleSetupScreen({
     );
   }
 
-  const showMatchActionRow =
-    onCancelMatch != null &&
-    (phase === 'reveal' ||
-      (enableOpponentMatching && phase === 'matching'));
-
   const handleCancelMatchRequest = () => {
     if (phase !== 'reveal' || !onCancelMatch) return;
     if (!cancelMatchShowsCost) {
@@ -1857,6 +1857,33 @@ export function BattleSetupScreen({
                 playerIdentity={resolvedPlayerIdentity}
                 isSearchingOpponent={phase === 'matching'}
                 revealCountdown={revealCountdown}
+                cancelMatchButton={
+                  phase === 'reveal' && onCancelMatch != null ? (
+                    <button
+                      type="button"
+                      className="formation-cancel-match-btn formation-cancel-match-btn--compact"
+                      onClick={handleCancelMatchRequest}
+                      disabled={cancelMatchShowsCost && cancelMatchDisabled}
+                      aria-label={
+                        cancelMatchShowsCost
+                          ? `キャンセル ${cancelMatchCostPx}ピクセルコイン`
+                          : 'キャンセル'
+                      }
+                    >
+                      <span className="formation-cancel-match-btn-inner">
+                        <span className="formation-cancel-match-btn-label">キャンセル</span>
+                        {cancelMatchShowsCost && (
+                          <>
+                            <PixelCoinIcon className="formation-cancel-match-coin" />
+                            <span className="formation-cancel-match-cost-value">
+                              {cancelMatchCostPx}
+                            </span>
+                          </>
+                        )}
+                      </span>
+                    </button>
+                  ) : undefined
+                }
               />
               <div className="formation-reveal-spacer" aria-hidden />
             </>
@@ -1871,42 +1898,6 @@ export function BattleSetupScreen({
           )}
         </div>
 
-        {showMatchActionRow && (
-          <div
-            className={`actions setup-actions formation-actions formation-actions-row formation-actions-row--single${
-              phase === 'matching' ? ' formation-actions-row--reserved' : ''
-            }`}
-          >
-            <button
-              type="button"
-              className="formation-cancel-match-btn"
-              onClick={handleCancelMatchRequest}
-              disabled={
-                phase === 'matching' ||
-                (cancelMatchShowsCost && cancelMatchDisabled)
-              }
-              aria-hidden={phase === 'matching'}
-              tabIndex={phase === 'matching' ? -1 : undefined}
-              aria-label={
-                cancelMatchShowsCost
-                  ? `キャンセル ${cancelMatchCostPx}ピクセルコイン`
-                  : 'キャンセル'
-              }
-            >
-              <span className="formation-cancel-match-btn-inner">
-                <span className="formation-cancel-match-btn-label">キャンセル</span>
-                {cancelMatchShowsCost && (
-                  <>
-                    <PixelCoinIcon className="formation-cancel-match-coin" />
-                    <span className="formation-cancel-match-cost-value">
-                      {cancelMatchCostPx}
-                    </span>
-                  </>
-                )}
-              </span>
-            </button>
-          </div>
-        )}
         {phase === 'setup' && (
           <div className="actions setup-actions formation-actions">
             <button type="button" className="primary" onClick={handleMainButton}>

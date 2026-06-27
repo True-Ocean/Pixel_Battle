@@ -24,7 +24,7 @@ export const BACK_SIZE = 3;
 export const FIELD_SIZE = 3;
 export const SETUP_TIME_LIMIT_SEC = 30;
 /** マッチング完了後、バトル準備画面へ自動遷移するまでの秒数 */
-export const MATCH_REVEAL_COUNTDOWN_SEC = 3;
+export const MATCH_REVEAL_COUNTDOWN_SEC = 5;
 export const CPU_RANDOM_ACTION = true;
 
 /** 属性決定: 色スコア vs hash */
