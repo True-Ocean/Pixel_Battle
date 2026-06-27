@@ -18,6 +18,10 @@ interface LevelUpRewardIconProps {
   level: number;
 }
 
+function formatCanvasUnlockLabel(canvasSize: number): string {
+  return `キャンバス${canvasSize}×${canvasSize}解放`;
+}
+
 function rewardAriaLabel(reward: LevelUpRewardEntry): string {
   if (reward.kind === 'attribute' && reward.attribute) {
     return `${getAttributeMeta(reward.attribute).label}属性解放`;
@@ -29,7 +33,7 @@ function rewardAriaLabel(reward: LevelUpRewardEntry): string {
     return 'お絵描きツール解放';
   }
   if (reward.kind === 'canvas' && reward.canvasSize != null) {
-    return `キャンバスサイズ：${reward.canvasSize} × ${reward.canvasSize}`;
+    return formatCanvasUnlockLabel(reward.canvasSize);
   }
   if (reward.kind === 'deck_unlock' && reward.deckUnlockLabel) {
     return reward.deckUnlockLabel;
@@ -122,7 +126,7 @@ export function LevelUpRewardIcon({ reward, level }: LevelUpRewardIconProps) {
     return (
       <span className="level-reward-chip level-reward-chip--text" title={aria}>
         <span className="level-reward-chip-text">
-          キャンバスサイズ：{reward.canvasSize} × {reward.canvasSize}
+          {formatCanvasUnlockLabel(reward.canvasSize)}
         </span>
       </span>
     );

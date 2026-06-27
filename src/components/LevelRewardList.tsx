@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { MAX_USER_LEVEL } from '../config/balance';
 import type { LevelUpRewardKind } from '../config/progressionUnlocks';
 import { getLevelUpRewardsAtLevel } from '../config/progressionUnlocks';
@@ -18,8 +19,29 @@ const HIDDEN_REWARD_KINDS = new Set<LevelUpRewardKind>([
 ]);
 
 export function LevelRewardList({ userLevel }: LevelRewardListProps) {
+  const listRef = useRef<HTMLUListElement>(null);
+  const scrollTargetLevel = Math.max(2, Math.min(userLevel, MAX_USER_LEVEL));
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    const targetRow = list.querySelector<HTMLElement>(
+      `[data-level="${scrollTargetLevel}"]`,
+    );
+    if (!targetRow) return;
+
+    requestAnimationFrame(() => {
+      targetRow.scrollIntoView({ block: 'center', behavior: 'auto' });
+    });
+  }, [scrollTargetLevel]);
+
   return (
-    <ul className="level-reward-list" aria-label="レベル報酬一覧">
+    <ul
+      ref={listRef}
+      className="level-reward-list"
+      aria-label="レベル報酬一覧"
+    >
       {LEVELS.map((level) => {
         const isEarned = level <= userLevel;
         const rewards = getLevelUpRewardsAtLevel(level).filter(
@@ -29,6 +51,7 @@ export function LevelRewardList({ userLevel }: LevelRewardListProps) {
         return (
           <li
             key={level}
+            data-level={level}
             className={`level-reward-row${isEarned ? ' is-earned' : ''}`}
             aria-label={`レベル${level}${isEarned ? ' 獲得済み' : ''}`}
           >
