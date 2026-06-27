@@ -1,5 +1,5 @@
 import { REVIVE_CAP } from '../config/economy';
-import type { Card, CardRarity, CardStatus } from '../types';
+import type { Card, CardStatus } from '../types';
 
 export function normalizeCardStatus(status: unknown): CardStatus {
   return status === 'lost' ? 'lost' : 'active';
@@ -32,28 +32,11 @@ export function isReviveCapReached(card: Card): boolean {
   return card.reviveCount >= REVIVE_CAP;
 }
 
-/** @deprecated 降格復活は廃止 */
-export function canDowngradeRevive(_card: Card): boolean {
-  return false;
-}
-
-/** @deprecated 降格復活は廃止 */
-export function getDowngradedRarity(rarity: CardRarity): CardRarity | null {
-  if (rarity === 'SR') return 'R';
-  if (rarity === 'R') return 'N';
-  return null;
-}
-
 /** ロストカードを復活（active 化 + reviveCount +1） */
-export function applyCardFullRevive(card: Card): Card {
+export function applyCardRevive(card: Card): Card {
   if (!canReviveLostCard(card)) return card;
   return {
     ...markCardActive(card),
     reviveCount: card.reviveCount + 1,
   };
-}
-
-/** @deprecated 降格復活は廃止 */
-export function applyCardDowngradeRevive(card: Card, _userLevel: number): Card {
-  return card;
 }

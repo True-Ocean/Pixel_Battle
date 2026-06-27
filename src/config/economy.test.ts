@@ -11,7 +11,7 @@ import {
   PIXELS_PER_SURVIVOR,
   calcCardDeleteRefundPixels,
   calcColorDiversityMultiplier,
-  calcFullReviveCost,
+  calcReviveCost,
   calcGraveyardPixelReward,
   calcGraveyardShardReward,
   calcLostCardDeleteRewards,
@@ -40,7 +40,6 @@ import {
   canAffordDeckUnlock,
   calcCanvasUpgradeCost,
   getCardRenameCount,
-  isFirstCardRename,
   PIXEL_COST_RENAME,
   JEWEL_COST_DECK_UNLOCK,
   pickWeightedLostCard,
@@ -146,23 +145,23 @@ describe('calcLevelUpTalismanGrant', () => {
   });
 });
 
-describe('calcFullReviveCost', () => {
+describe('calcReviveCost', () => {
   it('uses floor(painted × 3 × rarity × stars); min 1 when unpainted', () => {
     const filled = Array.from({ length: 16 }, () =>
       Array.from({ length: 16 }, () => '#ff0000'),
     );
     const card256 = makeCard(filled);
-    expect(calcFullReviveCost(card256)).toBe(768);
+    expect(calcReviveCost(card256)).toBe(768);
 
     const srStars3 = makeCard(filled, { rarity: 'SR', stars: 3 });
-    expect(calcFullReviveCost(srStars3)).toBe(
+    expect(calcReviveCost(srStars3)).toBe(
       Math.floor(256 * 3 * 1.6 * 1.5),
     );
 
     const empty = makeCard(
       Array.from({ length: 4 }, () => Array.from({ length: 4 }, () => null)),
     );
-    expect(calcFullReviveCost(empty)).toBe(1);
+    expect(calcReviveCost(empty)).toBe(1);
   });
 });
 
@@ -293,8 +292,6 @@ describe('lost economy helpers', () => {
   it('tracks card rename count and affordability', () => {
     expect(getCardRenameCount({})).toBe(0);
     expect(getCardRenameCount({ renameCount: 2 })).toBe(2);
-    expect(isFirstCardRename(0)).toBe(true);
-    expect(isFirstCardRename(1)).toBe(false);
     expect(canAffordCardRename({ freePixels: PIXEL_COST_RENAME })).toBe(true);
     expect(canAffordCardRename({ freePixels: PIXEL_COST_RENAME - 1 })).toBe(
       false,

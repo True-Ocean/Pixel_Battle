@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
 import { canReviveLostCard, computeDeckPower, isCardLost, isTalismanEquipped, type LimitBreakShardSpendPlan } from '../card';
 import {
-  calcFullReviveCost,
+  calcReviveCost,
   calcLostCardDeleteRewards,
   type CardDeleteOutcome,
   JEWEL_COST_DELETE,
@@ -261,7 +261,7 @@ function DeckCardRowBody({ card }: { card: Card }) {
 }
 
 function ReviveConfirmMessage({ card }: { card: Card }) {
-  const reviveCost = calcFullReviveCost(card);
+  const reviveCost = calcReviveCost(card);
   return (
     <span className="confirm-dialog-message-body">
       <span className="confirm-dialog-message-line">
@@ -506,7 +506,7 @@ export function DeckScreen({
   const handleReviveRequest = useCallback(() => {
     if (!selectedCard || !isCardLost(selectedCard)) return;
     if (!canReviveLostCard(selectedCard)) return;
-    if (freePixels < calcFullReviveCost(selectedCard)) return;
+    if (freePixels < calcReviveCost(selectedCard)) return;
     setPendingRevive(selectedCard);
   }, [freePixels, selectedCard]);
 
@@ -1195,7 +1195,7 @@ export function DeckScreen({
           isLost={selectedIsLost}
           userLevel={userLevel}
           freePixels={freePixels}
-          reviveCost={calcFullReviveCost(selectedCard)}
+          reviveCost={calcReviveCost(selectedCard)}
           attributeShardCount={
             inventory.limitBreakShards[selectedCard.attribute] ?? 0
           }

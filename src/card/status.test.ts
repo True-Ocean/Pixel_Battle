@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Card } from '../types';
 import {
-  applyCardFullRevive,
+  applyCardRevive,
   canReviveLostCard,
   isCardLost,
   isReviveCapReached,
@@ -56,17 +56,17 @@ describe('card lost helpers', () => {
   it('fully revives lost cards up to cap', () => {
     const lost = markCardLost(card({ reviveCount: 2 }));
     expect(canReviveLostCard(lost)).toBe(true);
-    const revived = applyCardFullRevive(lost);
+    const revived = applyCardRevive(lost);
     expect(revived.status).toBe('active');
     expect(revived.reviveCount).toBe(3);
     expect(canReviveLostCard(revived)).toBe(false);
     expect(isReviveCapReached(revived)).toBe(true);
-    expect(applyCardFullRevive(revived)).toBe(revived);
+    expect(applyCardRevive(revived)).toBe(revived);
   });
 
   it('blocks revive at cap', () => {
     const lost = markCardLost(card({ reviveCount: 3, status: 'lost' }));
     expect(canReviveLostCard(lost)).toBe(false);
-    expect(applyCardFullRevive(lost)).toBe(lost);
+    expect(applyCardRevive(lost)).toBe(lost);
   });
 });

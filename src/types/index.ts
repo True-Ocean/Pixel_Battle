@@ -44,7 +44,7 @@ export interface Card {
   status?: CardStatus;
   /** 護符装備（ロスト1回免れ。装備時に inventory から消費） */
   talismanEquipped?: boolean;
-  /** 有償リネームの実行回数（0 = 初回リネームは px） */
+  /** 有償リネームの累計回数（名前変更保存のたび +1） */
   renameCount?: number;
   /** ユーザーが付けたメモ（改行可・全角100文字相当まで） */
   userNote?: string;

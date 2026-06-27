@@ -6,7 +6,7 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX, USER_INITIAL_LEVEL } from '.
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardFullRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, hasCardUserNote, type LimitBreakShardSpendPlan } from './card';
+import { applyCardSurvivalRecords, applyCardRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, hasCardUserNote, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
@@ -53,7 +53,7 @@ import {
   normalizeUserSubscription,
 } from './user/shop';
 import {
-  calcFullReviveCost,
+  calcReviveCost,
   calcGraveyardShardReward,
   calcLostCardDeleteRewards,
   calcSurvivorPixelsForBattleVictory,
@@ -1279,12 +1279,12 @@ function App() {
       const target = prevLayout.find((card) => card?.id === id);
       if (!target || !isCardLost(target) || !canReviveLostCard(target)) return;
 
-      const cost = calcFullReviveCost(target);
+      const cost = calcReviveCost(target);
       const nextEconomy = spendFreePixels(economyRef.current, cost);
       if (!nextEconomy) return;
 
       const nextLayout = prevLayout.map((card) =>
-        card?.id === id ? applyCardFullRevive(card) : card,
+        card?.id === id ? applyCardRevive(card) : card,
       );
       const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
 

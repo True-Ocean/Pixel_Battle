@@ -249,7 +249,7 @@ function calcReviveCostFromSlope(
 }
 
 /** 復活に必要な px（塗り×3 × 現レア × ★） */
-export function calcFullReviveCost(card: Card): number {
+export function calcReviveCost(card: Card): number {
   return calcReviveCostFromSlope(card, card.rarity, card.stars);
 }
 
@@ -414,10 +414,6 @@ export function getCardRenameCount(card: Pick<Card, 'renameCount'>): number {
     return 0;
   }
   return Math.floor(count);
-}
-
-export function isFirstCardRename(renameCount: number): boolean {
-  return Math.max(0, Math.floor(renameCount)) === 0;
 }
 
 export function canAffordCardRename(economy: { freePixels: number }): boolean {

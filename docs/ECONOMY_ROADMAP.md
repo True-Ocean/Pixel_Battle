@@ -39,7 +39,7 @@
 | 操作 | 支払い | 備考 |
 |------|--------|------|
 | **復活** | px（カードごと） | `floor(塗り×3×レア倍率×★倍率)`。塗り0は最低1px。**上限3回**（`REVIVE_CAP`） |
-| ~~**降格復活**~~ | — | **廃止**（2026-06-20） |
+| ~~**降格復活**~~ | — | **廃止**（2026-06-20・コード削除済 2026-06-27） |
 | **思い出アルバムに保存** | **無償** | デッキから除去→閲覧専用アーカイブ。返還なし |
 | **思い出アルバム行解放** | **💎 1,000 / 行** | +5枠。上限なし |
 | **アルバムから削除** | **💎 5** | px・かけら返還（デッキ削除と同式） |
@@ -72,7 +72,9 @@
 
 | 操作 | コスト | 備考 |
 |------|--------|------|
-| レベルアップ | **300 px** / 回 | `LEVEL_UP_PIXEL_REWARD` |
+| レベルアップ | **100 px** / 回 | `LEVEL_UP_PIXEL_REWARD` |
+| レベルアップ💎 | **10** / 回 | `JEWELS_PER_LEVEL` |
+| バトル勝利 px | **×0.5** | `BATTLE_VICTORY_PX_MULTIPLIER` |
 | 属性リタッチ | **300 px** / 回 | 属性ランダム変更（§8.4） |
 | リネーム | **200 px** / 回 | 名前変更保存時。属性は不変（§8.2） |
 | キャンバス拡大 | **新²−旧²** px | 編集保存時（§8.2） |
@@ -137,9 +139,9 @@
 | 領域 | 状態 |
 |------|------|
 | Lost / 復活 / 削除返還 | ✅ プロトタイプ実装済み（`economy.ts`, `status.ts`, デッキ UI） |
-| **復活 px（塗り式）** | ✅ `calcFullReviveCost(card)` |
+| **復活 px（塗り式）** | ✅ `calcReviveCost(card)` |
 | **復活上限（3回）** | ✅ `REVIVE_CAP`, `canReviveCard`, 表示 `復活 n/3` |
-| **降格復活** | ❌ **廃止**（2026-06-20） |
+| **降格復活** | ❌ **廃止**（2026-06-20・関連コード削除 2026-06-27） |
 | **思い出アルバム** | ✅ 保存・閲覧・行解放・アルバム削除（`MemoryAlbumScreen`, `memoryAlbum.ts`） |
 | **px 創作コスト** | ✅ レベルアップ **300** / リタッチ **300** / リネーム **200**（`economy.ts`） |
 | **削除（💎＋返還）** | ✅ `JEWEL_COST_DELETE=5`、`calcLostCardDeleteRewards`、二段階確認 UI |
@@ -173,7 +175,7 @@
 | デッキ3〜 💎 解放 | ✅ `unlockDeckWithJewels()`・`canUnlockDeckSlotWithJewels`・`DeckUnlockModal`（フェーズ3） |
 | 💎 不足→ショップ誘導 | **不採用**（deep link は実装しない） |
 | **サブスク特典（§11.5）** | ✅ ライト CM 解除・プレ常時2倍（**フェーズ9 完了**） |
-| **ミッション MVP** | ✅ `MissionScreen`・JST 日次/週次リセット・達成トースト/未受取バッジ（[PROTOTYPE §4.8](./PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション)） |
+| **ミッション** | ✅ デイリー6/ウィークリー7/常設 tier cap/ビギナー12 STEP（[PROTOTYPE §4.8](./PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション)） |
 | **BGM** | ✅ `bgmPlayer` / `soundEnabled` / 設定画面トグル（[PROTOTYPE §4.10](./PROTOTYPE_DEVELOPMENT_SPEC.md#410-サウンドbgm)） |
 | **ヘルプ** | ✅ バトルハブ/エディタ ? モーダル・マイデッキ初回案内（[PROTOTYPE §4.9](./PROTOTYPE_DEVELOPMENT_SPEC.md#49-ヘルプ初回案内)） |
 | **照属性（Lv46）** | ✅ 戦闘実装（[ATTRIBUTE_SPEC §4.11](./ATTRIBUTE_SPEC.md#411-照illuminate実装済み)） |
@@ -537,7 +539,9 @@ flowchart TD
 | `SUB_PREMIUM_MONTHLY` | **800円** | 2000px / 500💎 / 護符2 |
 | `REVIVE_PAINTED_MULTIPLIER` | 3 | 復活 px |
 | `REVIVE_CAP` | 3 | 1枚あたり px 復活上限 |
-| `LEVEL_UP_PIXEL_REWARD` | **300** | 毎レベル |
+| `LEVEL_UP_PIXEL_REWARD` | **100** | 毎レベル |
+| `JEWELS_PER_LEVEL` | **10** | 毎レベル |
+| `BATTLE_VICTORY_PX_MULTIPLIER` | **0.5** | バトル勝利 px |
 | `PIXEL_COST_ATTRIBUTE_RETOUCH` | 300 | 属性リタッチ1回 |
 | `JEWEL_COST_PALETTE_SHOP_TIER2` | **100** | 薄色系8色（💎支払い） |
 | `PIXEL_COST_PALETTE_SHOP_TIER2` | 2200 | 薄色系8色（px支払い） |
@@ -634,7 +638,7 @@ flowchart TD
 - [x] **ShopScreen**: **3タブ**（💎 / アイテム / サブスク）。パレット・ツールは編集画面
 - [x] **勝利2倍**: **EXP・px・かけら** すべて2倍
 - [x] **CPU 戦広告**: **3回に1回**（~~1日10戦 cap~~ 廃止）
-- [x] **px 創作コスト**: レベルアップ **300px** / 属性リタッチ **300px** / リネーム **200px**（px 統一）
+- [x] **px 創作コスト**: レベルアップ **100px** / 属性リタッチ **300px** / リネーム **200px**（名前変更保存のたび）
 - [x] レベル報酬: **💎30/Lv**、L≡4 **汎用かけら×20**、L20,30,40,50 **護符×1**
 - [x] 日次リセットのタイムゾーン（**JST 固定**）
 - [x] 限界突破 UI: かけら不足時は非表示、専用・汎用をステッパーで内訳選択

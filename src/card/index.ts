@@ -63,11 +63,8 @@ export { rollAttribute, getAttributeRollWeights, ATTRIBUTE_ROLL_RECENT_BOOST } f
 export { computeCardPower, computeDeckPower, attributePowerConfig } from './power';
 export { applyCardSurvivalRecords, recordCardRevive } from './battleRecord';
 export {
-  applyCardDowngradeRevive,
-  applyCardFullRevive,
-  canDowngradeRevive,
+  applyCardRevive,
   canReviveLostCard,
-  getDowngradedRarity,
   isCardActive,
   isCardLost,
   isReviveCapReached,

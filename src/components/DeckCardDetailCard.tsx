@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { getAttributeMeta } from '../config/attributes';
 import type { BattleGuideTermId } from '../config/battleGuideCommon';
 import { canReviveLostCard, hasCardUserNote } from '../card';
-import { calcFullReviveCost } from '../config/economy';
+import { calcReviveCost } from '../config/economy';
 import { getRarityMeta } from '../config/rarity';
 import type { Card } from '../types';
 import { isTalismanEquipped } from '../card';
@@ -238,7 +238,7 @@ export function DeckCardDetailCard({
             <>
               復活（
               <InlinePxCost
-                amount={calcFullReviveCost(card)}
+                amount={calcReviveCost(card)}
                 className="deck-detail-inline-px"
                 iconClassName="deck-detail-inline-px-icon"
               />
