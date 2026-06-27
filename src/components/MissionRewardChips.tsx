@@ -21,22 +21,18 @@ export function MissionRewardChips({ reward, className }: MissionRewardChipsProp
       ]
         .filter(Boolean)
         .join(' ')}
-      aria-label={[
-        hasPx ? `${reward.px!.toLocaleString()}px` : null,
-        hasJewels ? `ジュエル${reward.jewels!.toLocaleString()}` : null,
-      ]
-        .filter(Boolean)
-        .join('、')}
     >
       <div className="mission-reward-chip-slot mission-reward-chip-slot--px">
         {hasPx ? (
           <span className="mission-reward-chip mission-reward-chip--px">
             <PixelCoinIcon className="mission-reward-chip-icon" aria-hidden="true" />
+            <span className="sr-only">ピクセルコイン</span>
             <span>{reward.px!.toLocaleString()}</span>
           </span>
         ) : hasJewels ? (
           <span className="mission-reward-chip mission-reward-chip--jewels">
             <JewelIcon className="mission-reward-chip-icon" aria-hidden="true" />
+            <span className="sr-only">ジュエル</span>
             <span>{reward.jewels!.toLocaleString()}</span>
           </span>
         ) : null}
@@ -45,6 +41,7 @@ export function MissionRewardChips({ reward, className }: MissionRewardChipsProp
         <div className="mission-reward-chip-slot mission-reward-chip-slot--jewels">
           <span className="mission-reward-chip mission-reward-chip--jewels">
             <JewelIcon className="mission-reward-chip-icon" aria-hidden="true" />
+            <span className="sr-only">ジュエル</span>
             <span>{reward.jewels!.toLocaleString()}</span>
           </span>
         </div>

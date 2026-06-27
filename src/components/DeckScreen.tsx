@@ -29,6 +29,7 @@ import { CardPreview } from './CardPreview';
 import { CardDeleteResultModal } from './CardDeleteResultModal';
 import { CardDeckDispositionDialog, MemoryAlbumFullDialog, MEMORY_ALBUM_SAVE_CONFIRM_MESSAGE } from './MemoryAlbumDialogs';
 import { ConfirmDialog } from './ConfirmDialog';
+import { InlinePxCost } from './HelpInlineEconomy';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
 import type { AttributeSelectOutcome } from './attributeSelectTypes';
 import type { AttributeRetouchResult } from './AttributeRetouchModal';
@@ -256,9 +257,21 @@ function DeckCardRowBody({ card }: { card: Card }) {
   );
 }
 
-function formatReviveConfirmMessage(card: Card): string {
+function ReviveConfirmMessage({ card }: { card: Card }) {
   const reviveCost = calcFullReviveCost(card);
-  return `「${card.name}」を復活させます。${reviveCost.toLocaleString()}pxを消費します。`;
+  return (
+    <span className="confirm-dialog-message-body">
+      <span className="confirm-dialog-message-line">
+        「{card.name}」を復活させます。
+        <InlinePxCost
+          amount={reviveCost}
+          className="confirm-dialog-px-reward"
+          iconClassName="confirm-dialog-coin-icon"
+        />
+        を消費します。
+      </span>
+    </span>
+  );
 }
 
 function DeleteConfirmMessage({ card }: { card: Card }) {
@@ -1258,7 +1271,7 @@ export function DeckScreen({
         open={pendingRevive != null}
         title="復活しますか？"
         message={
-          pendingRevive ? formatReviveConfirmMessage(pendingRevive) : ''
+          pendingRevive ? <ReviveConfirmMessage card={pendingRevive} /> : ''
         }
         confirmLabel="復活する"
         cancelLabel="キャンセル"

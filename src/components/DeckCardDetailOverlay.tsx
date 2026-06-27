@@ -136,9 +136,9 @@ export function DeckCardDetailOverlay({
     attributeShardCount === 0 && universalShardCount >= shardsRequired;
   const reviveAriaLabel = !canRevive
     ? '復活上限に達しています'
-    : canAffordRevive
-      ? `復活 ${reviveCost.toLocaleString()}px`
-      : `復活 ${reviveCost.toLocaleString()}px 必要・不足`;
+    : !canAffordRevive
+      ? `復活 ${reviveCost.toLocaleString()} 必要・不足`
+      : undefined;
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -343,7 +343,11 @@ export function DeckCardDetailOverlay({
                   onClick={onReviveLost}
                 >
                   <span className="deck-card-detail-revive-label">復活</span>
-                  <PixelCoinIcon className="deck-card-detail-revive-coin" />
+                  <PixelCoinIcon
+                    className="deck-card-detail-revive-coin"
+                    aria-hidden="true"
+                  />
+                  <span className="sr-only">ピクセルコイン</span>
                   <span className="deck-card-detail-revive-cost">
                     {reviveCost.toLocaleString()}
                   </span>

@@ -10,6 +10,7 @@ import { AttributeBattleGuide } from './AttributeBattleGuide';
 import { CardBattleRecord } from './CardBattleRecord';
 import { CardPreview } from './CardPreview';
 import { LimitBreakStars } from './LimitBreakStars';
+import { InlinePxCost } from './HelpInlineEconomy';
 import { RarityBadge } from './RarityBadge';
 import { TalismanCardBadge } from './TalismanCardBadge';
 
@@ -154,9 +155,19 @@ export function DeckCardDetailCard({
       {isLost && (
         <p className="deck-detail-card-lost-note">
           バトルに出せません。
-          {canReviveLostCard(card)
-            ? `復活（${calcFullReviveCost(card).toLocaleString()}px）・思い出アルバムに保存・削除`
-            : '思い出アルバムへの保存か削除'}
+          {canReviveLostCard(card) ? (
+            <>
+              復活（
+              <InlinePxCost
+                amount={calcFullReviveCost(card)}
+                className="deck-detail-inline-px"
+                iconClassName="deck-detail-inline-px-icon"
+              />
+              ）・思い出アルバムに保存・削除
+            </>
+          ) : (
+            '思い出アルバムへの保存か削除'
+          )}
           から選べます。
         </p>
       )}

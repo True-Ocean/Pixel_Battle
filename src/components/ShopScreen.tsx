@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   JEWEL_PACKS,
   SUBSCRIPTION_PLANS,
@@ -33,7 +33,7 @@ interface ShopScreenProps {
   inventory: UserInventory;
   shopPurchase: ShopPurchaseState;
   subscription: UserSubscription;
-  purchaseMessage: string | null;
+  purchaseMessage: ReactNode | null;
   onPurchaseJewelPack: (packId: JewelPackId) => void;
   onPurchaseTalisman: () => void;
   onPurchaseUniversalShard: (packId: UniversalShardPackId) => void;
@@ -105,7 +105,8 @@ export function ShopScreen({
       {purchaseMessage != null && (
         <div className="shop-toast" role="status">
           <p className="shop-toast-message">
-            {JEWEL_PACK_PURCHASE_TOAST_RE.test(purchaseMessage) && (
+            {typeof purchaseMessage === 'string' &&
+              JEWEL_PACK_PURCHASE_TOAST_RE.test(purchaseMessage) && (
               <JewelIcon className="shop-toast-jewel-icon" />
             )}
             <span>{purchaseMessage}</span>
@@ -265,7 +266,7 @@ export function ShopScreen({
                 <ul className="shop-plan-grants">
                   <li>
                     <PixelCoinIcon className="shop-plan-grant-icon" aria-hidden />
-                    {plan.monthlyPixels.toLocaleString()}px / 月
+                    {plan.monthlyPixels.toLocaleString()} / 月
                   </li>
                   <li>
                     <JewelIcon className="shop-plan-grant-icon" aria-hidden />

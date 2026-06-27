@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { cloneGrid, createEmptyGrid, gridSize, resizeGrid, upscaleGridToFit } from '../canvas';
 import {
   applyRedo,
@@ -39,6 +39,7 @@ import { CanvasSizePicker } from './CanvasSizePicker';
 import { CardPreview } from './CardPreview';
 import { ColorPalette } from './ColorPalette';
 import { ConfirmDialog } from './ConfirmDialog';
+import { inlinePxShortageError } from './HelpInlineEconomy';
 import { EditorFeatureUnlockModal } from './EditorFeatureUnlockModal';
 import { EditorCanvasViewport } from './EditorCanvasViewport';
 import { EditorSaveBpConfirmModal } from './EditorSaveBpConfirmModal';
@@ -156,7 +157,7 @@ export function EditorScreen({
   const [tool, setTool] = useState<EditorToolId>('pen');
   const blockDrawingRef = useRef(false);
   const pixelCanvasRef = useRef<PixelCanvasHandle>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReactNode>(null);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
   const [pendingCreateAttribute, setPendingCreateAttribute] =
     useState<Attribute | null>(null);
@@ -468,7 +469,7 @@ export function EditorScreen({
 
     if (!canAffordEditorSave({ freePixels }, saveCharges)) {
       const totalPx = getEditorSaveTotalPixelCost(saveCharges);
-      setError(`px が ${totalPx.toLocaleString()} 不足しています。`);
+      setError(inlinePxShortageError(totalPx));
       return;
     }
 

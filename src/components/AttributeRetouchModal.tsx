@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { getAttributeMeta } from '../config/attributes';
 import { getUnlockedAttributes } from '../config/attributeUnlock';
@@ -31,7 +31,7 @@ interface AttributeRetouchModalProps {
   userLevel: number;
   freePixels: number;
   onClose: () => void;
-  onRetouch: () => AttributeRetouchResult | { error: string };
+  onRetouch: () => AttributeRetouchResult | { error: ReactNode };
   onCommitRetouch: () => void;
 }
 
@@ -44,10 +44,10 @@ export function AttributeRetouchModal({
   onCommitRetouch,
 }: AttributeRetouchModalProps) {
   const [phase, setPhase] = useState<RetouchPhase>('confirm');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReactNode>(null);
   const [displayAttribute, setDisplayAttribute] = useState<Attribute>('attack');
   const [result, setResult] = useState<AttributeRetouchResult | null>(null);
-  const [retouchAgainError, setRetouchAgainError] = useState<string | null>(null);
+  const [retouchAgainError, setRetouchAgainError] = useState<ReactNode>(null);
   const spinTimerRef = useRef<number | null>(null);
   const confirmedTimerRef = useRef<number | null>(null);
 

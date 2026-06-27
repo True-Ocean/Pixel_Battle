@@ -5,7 +5,6 @@ import {
   calcGraveyardShardReward,
   calcSurvivorPixels,
 } from '../config/economy';
-import { getAttributeMeta } from '../config/attributes';
 import { getRarityMeta } from '../config/rarity';
 import type { Attribute, Card } from '../types';
 import { AttributeBadge } from './AttributeBadge';
@@ -19,13 +18,9 @@ interface GraveyardPickModalProps {
   graveyardCards: Card[];
   expGain: number;
   showVictoryDoubleAd?: boolean;
+  alwaysDoubleRewards?: boolean;
   onPick: (card: Card, options?: { doubleRewards?: boolean }) => void;
   onRequestVictoryDoubleAd?: (card: Card) => void;
-}
-
-function formatShardRewardAria(attribute: Attribute, count: number): string {
-  const label = getAttributeMeta(attribute).label;
-  return count > 1 ? `${label}のかけら${count}個` : `${label}のかけら`;
 }
 
 function ShardReward({
@@ -42,7 +37,7 @@ function ShardReward({
         className="graveyard-pick-shard-badge"
       />
       <span className="graveyard-pick-shard-label">
-        のかけら{count > 1 ? `${count.toLocaleString()}個` : ''}
+        {count.toLocaleString()}個
       </span>
     </span>
   );
@@ -57,7 +52,8 @@ function PixelReward({
 }) {
   return (
     <span className="graveyard-pick-px-reward">
-      <PixelCoinIcon className={iconClassName} />
+      <PixelCoinIcon className={iconClassName} aria-hidden="true" />
+      <span className="sr-only">ピクセルコイン</span>
       {amount.toLocaleString()}
     </span>
   );
@@ -78,11 +74,16 @@ function ExpReward({
   );
 }
 
+function RewardDoubleBadge() {
+  return <span className="graveyard-pick-reward-double">× 2</span>;
+}
+
 export function GraveyardPickModal({
   survivorCards,
   graveyardCards,
   expGain,
   showVictoryDoubleAd = false,
+  alwaysDoubleRewards = false,
   onPick,
   onRequestVictoryDoubleAd,
 }: GraveyardPickModalProps) {
@@ -117,9 +118,7 @@ export function GraveyardPickModal({
   const graveyardPixels = selected ? calcGraveyardPixelReward(selected) : 0;
   const graveyardShards = selected ? calcGraveyardShardReward(selected) : 0;
   const totalPixels = survivorPixels + graveyardPixels;
-  const confirmAriaLabel = selected
-    ? `報酬 ${expGain}EXP、${totalPixels}px、${formatShardRewardAria(selected.attribute, graveyardShards)}をゲット`
-    : '戦利品を選んでください';
+  const confirmAriaLabel = selected ? undefined : '戦利品を選んでください';
 
   return createPortal(
     <div className="graveyard-pick-backdrop">
@@ -210,16 +209,19 @@ export function GraveyardPickModal({
                 amount={expGain}
                 iconClassName="graveyard-pick-exp-icon graveyard-pick-exp-icon--confirm"
               />
+              {alwaysDoubleRewards && <RewardDoubleBadge />}
               <span className="graveyard-pick-reward-sep">,</span>
               <PixelReward
                 amount={totalPixels}
                 iconClassName="graveyard-pick-coin-icon graveyard-pick-coin-icon--confirm"
               />
+              {alwaysDoubleRewards && <RewardDoubleBadge />}
               <span className="graveyard-pick-reward-sep">,</span>
               <ShardReward
                 attribute={selected.attribute}
                 count={graveyardShards}
               />
+              {alwaysDoubleRewards && <RewardDoubleBadge />}
               <span className="graveyard-pick-confirm-get">ゲット！</span>
             </span>
           ) : (

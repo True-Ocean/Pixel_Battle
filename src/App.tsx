@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { AdState, Attribute, Card, MemoryAlbumState, MissionState, ScreenId, ShopPurchaseState, SubscriptionPlan, UserProfile, UserEconomy, UserInventory, UserSubscription, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { isAttributeUnlockedAtLevel } from './config/attributeUnlock';
@@ -68,6 +68,11 @@ import { CardDeleteResultModal } from './components/CardDeleteResultModal';
 import { LevelUpModal } from './components/LevelUpModal';
 import { LimitBreakSuccessModal } from './components/LimitBreakSuccessModal';
 import { GraveyardPickModal } from './components/GraveyardPickModal';
+import {
+  HelpInlinePxIcon,
+  InlinePxCost,
+  inlinePxShortageError,
+} from './components/HelpInlineEconomy';
 import { LostRouletteModal } from './components/LostRouletteModal';
 import { TalismanSaveModal } from './components/TalismanSaveModal';
 import { AppTitle } from './components/AppTitle';
@@ -152,7 +157,7 @@ function App() {
   const [missionState, setMissionState] = useState<MissionState>(() =>
     applyMissionResets(initialSave.missionState ?? createInitialMissionState()),
   );
-  const [shopPurchaseMessage, setShopPurchaseMessage] = useState<string | null>(
+  const [shopPurchaseMessage, setShopPurchaseMessage] = useState<ReactNode | null>(
     null,
   );
   const [missionCompleteToast, setMissionCompleteToast] = useState<string | null>(
@@ -416,12 +421,23 @@ function App() {
       shopPurchase: ShopPurchaseState;
       subscription: UserSubscription;
       message: string;
+      messagePixelCost?: number;
     }) => {
       setEconomy(result.economy);
       setInventory(result.inventory);
       setShopPurchase(result.shopPurchase);
       setSubscription(result.subscription);
-      setShopPurchaseMessage(result.message);
+      setShopPurchaseMessage(
+        result.messagePixelCost != null ? (
+          <>
+            {result.message}（
+            <InlinePxCost amount={result.messagePixelCost} />
+            ）
+          </>
+        ) : (
+          result.message
+        ),
+      );
       persistSave({
         economy: result.economy,
         inventory: result.inventory,
@@ -455,7 +471,7 @@ function App() {
       subscriptionRef.current,
     );
     if (result) applyShopPurchaseResult(result);
-    else setShopPurchaseMessage('px が足りません。');
+    else setShopPurchaseMessage(<><HelpInlinePxIcon />が足りません。</>);
   }, [applyShopPurchaseResult]);
 
   const handlePurchaseUniversalShard = useCallback(
@@ -468,7 +484,7 @@ function App() {
         packId,
       );
       if (result) applyShopPurchaseResult(result);
-      else setShopPurchaseMessage('購入できません（px 不足または本日の上限）。');
+      else setShopPurchaseMessage(<>購入できません（<HelpInlinePxIcon />不足または本日の上限）。</>);
     },
     [applyShopPurchaseResult],
   );
@@ -817,7 +833,7 @@ function App() {
           previousFreePixels: number;
           nextFreePixels: number;
         }
-      | { error: string } => {
+      | { error: ReactNode } => {
       const deckIndex = activeDeckIndexRef.current;
       const prevDecks = decksRef.current;
       const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
@@ -833,7 +849,7 @@ function App() {
       );
       if (!spent) {
         return {
-          error: `px が ${PIXEL_COST_ATTRIBUTE_RETOUCH.toLocaleString()} 不足しています。`,
+          error: inlinePxShortageError(PIXEL_COST_ATTRIBUTE_RETOUCH),
         };
       }
 
@@ -2113,6 +2129,11 @@ function App() {
     [subscription, user],
   );
 
+  const graveyardAlwaysDoubleRewards = useMemo(
+    () => hasPremiumAlwaysDouble(subscription),
+    [subscription],
+  );
+
   const subscriptionPlanLabel = useMemo(
     () => formatSubscriptionPlanLabel(subscription),
     [subscription],
@@ -2647,6 +2668,7 @@ function App() {
           graveyardCards={resolveGraveyardLootCards(pendingGraveyardOutcome)}
           expGain={pendingBattleExpGain}
           showVictoryDoubleAd={showGraveyardVictoryDoubleAd}
+          alwaysDoubleRewards={graveyardAlwaysDoubleRewards}
           onPick={handleGraveyardPick}
           onRequestVictoryDoubleAd={handleRequestGraveyardVictoryDoubleAd}
         />

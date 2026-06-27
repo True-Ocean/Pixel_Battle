@@ -144,6 +144,7 @@ export interface ShopPurchaseResult {
   shopPurchase: ShopPurchaseState;
   subscription: UserSubscription;
   message: string;
+  messagePixelCost?: number;
 }
 
 export type SubscriptionPlanButtonState =
@@ -236,7 +237,8 @@ export function mockPurchaseTalisman(
     inventory: addInventoryCount(inventory, 'talisman', 1),
     shopPurchase,
     subscription,
-    message: `護符を1枚購入しました（${SHOP_TALISMAN_PX.toLocaleString()}px）`,
+    message: '護符を1枚購入しました',
+    messagePixelCost: SHOP_TALISMAN_PX,
   };
 }
 
@@ -270,7 +272,8 @@ export function mockPurchaseUniversalShardPack(
       shopShardPurchasesToday: { ...counts, [packId]: 1 },
     },
     subscription,
-    message: `汎用かけら${shards}個を購入しました（${pack.pixelCost.toLocaleString()}px）`,
+    message: `汎用かけら${shards}個を購入しました`,
+    messagePixelCost: pack.pixelCost,
   };
 }
 

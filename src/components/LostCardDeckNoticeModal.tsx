@@ -21,7 +21,7 @@ export function LostCardDeckNoticeModal({ onConfirm }: LostCardDeckNoticeModalPr
         onClick={(event) => event.stopPropagation()}
       >
         <p id="lost-card-deck-notice-message" className="lost-card-deck-notice-message">
-          このカードは通常のバトルには出せませんが、バトル履歴からの再戦は可能です。
+          ロストカードは、復活しない限り通常のバトルには出せませんが、バトル履歴からの再戦は可能です。
         </p>
         <label className="lost-card-deck-notice-dismiss">
           <input

@@ -4,6 +4,7 @@ import { JEWEL_COST_DELETE } from '../config/economy';
 import type { Card } from '../types';
 import { BattleCommonRules } from './BattleCommonRules';
 import { DeckCardDetailCard } from './DeckCardDetailCard';
+import { HelpInlinePxIcon } from './HelpInlineEconomy';
 import { JewelAmount } from './JewelIcon';
 
 interface MemoryAlbumDetailOverlayProps {
@@ -99,7 +100,9 @@ export function MemoryAlbumDetailOverlay({
           >
             <h2 className="confirm-dialog-title">思い出アルバムから削除しますか？</h2>
             <p className="confirm-dialog-message">
-              「{card.name}」を思い出アルバムから削除します。px と属性かけらが返還されます。
+              「{card.name}」を思い出アルバムから削除します。
+              <HelpInlinePxIcon />
+              と属性かけらが返還されます。
             </p>
             <div className="confirm-dialog-actions">
               <button

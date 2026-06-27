@@ -61,9 +61,9 @@ export function UserProfileBar({
             <div
               className="user-profile-currency-track user-profile-currency-track--pixels"
               role="status"
-              aria-label={`px ${freePixels.toLocaleString()}`}
             >
-              <PixelCoinIcon className="user-profile-coin-icon" />
+              <PixelCoinIcon className="user-profile-coin-icon" aria-hidden="true" />
+              <span className="sr-only">ピクセルコイン</span>
               <span className="user-profile-currency-value">
                 {freePixels.toLocaleString()}
               </span>
@@ -71,9 +71,9 @@ export function UserProfileBar({
             <div
               className="user-profile-currency-track user-profile-currency-track--jewels"
               role="status"
-              aria-label={`ジュエル ${jewels.toLocaleString()}`}
             >
-              <JewelIcon className="user-profile-coin-icon user-profile-jewel-icon" />
+              <JewelIcon className="user-profile-coin-icon user-profile-jewel-icon" aria-hidden="true" />
+              <span className="sr-only">ジュエル</span>
               <span className="user-profile-currency-value">
                 {jewels.toLocaleString()}
               </span>

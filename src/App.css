@@ -2734,6 +2734,32 @@ button.battle-hub-deck-icon.is-move-target {
   line-height: 1;
 }
 
+.inline-economy-px-shortage {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  vertical-align: middle;
+}
+
+.inline-economy-px-shortage-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.deck-detail-inline-px {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+  vertical-align: middle;
+}
+
+.deck-detail-inline-px-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+}
+
 .help-panel-actions {
   display: flex;
   justify-content: center;
@@ -5372,6 +5398,11 @@ button.battle-hub-deck-icon.is-move-target {
 
 .graveyard-pick-reward-sep {
   margin: 0 0.05rem;
+}
+
+.graveyard-pick-reward-double {
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .graveyard-pick-list {
