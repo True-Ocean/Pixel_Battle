@@ -9,6 +9,12 @@ export {
   CardCreationError,
 } from './createCard';
 export {
+  clampEditBp,
+  computeNaturalCardBp,
+  getCardBpCeiling,
+  rescaleCardBp,
+} from './bpRules';
+export {
   sanitizeCardNameInput,
   finalizeCardNameForCreation,
   validateCardNameForCreation,

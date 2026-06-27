@@ -1,7 +1,6 @@
 import {
   PALETTE_16,
   USER_INITIAL_LEVEL,
-  applyRarityToBp,
   computeCardBaseBp,
 } from '../config/balance';
 import {
@@ -13,7 +12,6 @@ import { gridSize } from '../canvas';
 import type { Attribute, Card, PixelGrid } from '../types';
 import { computeColorRatios, normalizePixelColor } from './colors';
 import type { ColorRatios } from './colors';
-import { buildCardSeed, hashToUnit } from './hash';
 import { rollAttribute } from './rollAttribute';
 import { rollRarity } from './rarity';
 import { createId } from '../utils/createId';
@@ -21,7 +19,15 @@ import {
   finalizeCardNameForCreation,
   validateCardNameForCreation,
 } from './cardNameInput';
-import { calcLimitBreakBpGain } from '../config/economy';
+import {
+  clampEditBp,
+  computeBpBlend,
+  computeBpFromBlend,
+  computeNaturalCardBp,
+  getCardBpCeiling,
+  pixelGridsEqual,
+  rescaleCardBp,
+} from './bpRules';
 
 export interface CardDraft {
   attribute: Attribute;
@@ -103,16 +109,6 @@ function resolvePaletteUnlock(
   };
 }
 
-function computeBpBlend(
-  trimmed: string,
-  pixels: PixelGrid,
-  ratios: ColorRatios,
-): number {
-  const seed = buildCardSeed(trimmed, pixels);
-  const hashBp = hashToUnit(seed, 'hp');
-  return ratios.density * 0.55 + hashBp * 0.45;
-}
-
 export function deriveCardStats(
   name: string,
   pixels: PixelGrid,
@@ -170,7 +166,12 @@ export function createCardFromDrawing(
     unlockedIndices,
     options.random,
   );
-  const finalBp = applyRarityToBp(bp, attribute, rarity, userLevel);
+  const bpBlend = computeBpBlend(finalName, normalized, ratios);
+  const finalBp = computeBpFromBlend(bpBlend, userLevel, {
+    attribute,
+    rarity,
+    stars: 0,
+  });
 
   const canvasSize = options.canvasSize ?? gridSize(normalized);
 
@@ -207,47 +208,25 @@ export function getCardFoundationBp(
   return computeCardBaseBp(bpBlend, userLevel, card.attribute);
 }
 
-/**
- * レアリティと★数から、累計の限界突破回数を返す。
- * N★0=0, N★1=1, N★2=2, N★3=3
- * R★0=4 (N★3→R昇格で+1), R★1=5, ...
- * SR★0=8, SR★1=9, ...
- */
-function countLimitBreaks(card: Pick<Card, 'rarity' | 'stars'>): number {
-  const rarityOffset: Record<string, number> = { N: 0, R: 4, SR: 8, UR: 12 };
-  return (rarityOffset[card.rarity] ?? 0) + card.stars;
-}
-
-/** 既存カードの BP をユーザーレベルに合わせて再算出（絵・属性・レア・限界突破済みBPを維持） */
+/** 既存カードの BP をユーザーレベルに合わせて再算出 */
 export function recalculateCardBp(
   card: Card,
   userLevel: number,
   paletteShopUnlocks: readonly number[] = [],
+  options?: { previousLevel?: number },
 ): number {
-  const size = gridSize(card.pixels);
-  const allowedColors = buildUnlockedColorSet(userLevel, paletteShopUnlocks);
-  const ratios = computeColorRatios(card.pixels, size * size, allowedColors);
-  if (!ratios) return card.bp;
-
-  const bpBlend = computeBpBlend(card.name.trim(), card.pixels, ratios);
-  const baseBp = computeCardBaseBp(bpBlend, userLevel, card.attribute);
-  const rarityBp = applyRarityToBp(baseBp, card.attribute, card.rarity, userLevel);
-
-  const limitBreakCount = countLimitBreaks(card);
-  if (limitBreakCount === 0) return rarityBp;
-
-  const gainPerBreak = calcLimitBreakBpGain(baseBp);
-  return rarityBp + gainPerBreak * limitBreakCount;
+  return rescaleCardBp(card, userLevel, paletteShopUnlocks, options);
 }
 
 export function rescaleDeckBp(
   deck: Card[],
   userLevel: number,
   paletteShopUnlocks: readonly number[] = [],
+  options?: { previousLevel?: number },
 ): Card[] {
   return deck.map((card) => ({
     ...card,
-    bp: recalculateCardBp(card, userLevel, paletteShopUnlocks),
+    bp: rescaleCardBp(card, userLevel, paletteShopUnlocks, options),
   }));
 }
 
@@ -262,31 +241,32 @@ export function updateCardFromDrawing(
     paletteShopUnlocks?: readonly number[];
   } = {},
 ): Card {
+  const nameError = validateCardNameForCreation(name);
+  if (nameError) {
+    throw new CardCreationError(nameError);
+  }
+  const finalName = finalizeCardNameForCreation(name);
+
   const { allowedColors } = resolvePaletteUnlock(userLevel, paletteUnlock);
   const normalized = normalizeGrid(pixels, allowedColors);
-  const { trimmed, ratios } = validateDrawingInput(
-    name,
-    normalized,
-    allowedColors,
-  );
-  const bpBlend = computeBpBlend(trimmed, normalized, ratios);
-  const baseBp = computeCardBaseBp(bpBlend, userLevel, existing.attribute);
-  const rarityBp = applyRarityToBp(
-    baseBp,
-    existing.attribute,
-    existing.rarity,
-    userLevel,
-  );
+  validateDrawingInput(finalName, normalized, allowedColors);
 
-  const limitBreakCount = countLimitBreaks(existing);
-  const bp =
-    limitBreakCount > 0
-      ? rarityBp + calcLimitBreakBpGain(baseBp) * limitBreakCount
-      : rarityBp;
+  const imageUnchanged = pixelGridsEqual(existing.pixels, normalized);
+  const bp = imageUnchanged
+    ? existing.bp
+    : clampEditBp(
+        existing.bp,
+        computeNaturalCardBp(
+          { ...existing, name: finalName, pixels: normalized },
+          userLevel,
+          paletteUnlock.paletteShopUnlocks ?? [],
+        ),
+        getCardBpCeiling(existing, userLevel),
+      );
 
   return {
     ...existing,
-    name: trimmed,
+    name: finalName,
     pixels: normalized,
     canvasSize: gridSize(normalized),
     bp,

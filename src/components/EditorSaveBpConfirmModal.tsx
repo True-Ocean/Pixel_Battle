@@ -11,13 +11,14 @@ interface EditorSaveBpConfirmModalProps {
   nextFreePixels?: number;
   previousJewels?: number;
   nextJewels?: number;
-  onClose: () => void;
+  onConfirm: () => void;
+  onCancel: () => void;
 }
 
 function formatBpChangeMessage(delta: number): string {
-  if (delta > 0) return 'BPが増加しました。';
-  if (delta < 0) return 'BPが減少しました。';
-  return 'BPに変化はありませんでした。';
+  if (delta > 0) return 'BPが増加します。';
+  if (delta < 0) return 'BPが減少します。';
+  return 'BPに変化はありません。';
 }
 
 export function EditorSaveBpConfirmModal({
@@ -28,7 +29,8 @@ export function EditorSaveBpConfirmModal({
   nextFreePixels,
   previousJewels,
   nextJewels,
-  onClose,
+  onConfirm,
+  onCancel,
 }: EditorSaveBpConfirmModalProps) {
   const bpDelta = nextBp - previousBp;
 
@@ -57,7 +59,7 @@ export function EditorSaveBpConfirmModal({
   }, []);
 
   return createPortal(
-    <div className="limit-break-success-backdrop" onClick={onClose}>
+    <div className="limit-break-success-backdrop" onClick={onCancel}>
       <div
         className="limit-break-success-panel editor-save-bp-confirm-panel"
         role="dialog"
@@ -103,9 +105,23 @@ export function EditorSaveBpConfirmModal({
             next={nextJewels}
           />
         )}
-        <button type="button" className="limit-break-success-close" onClick={onClose}>
-          OK
-        </button>
+        <p className="editor-save-bp-confirm-question">よろしいですか？</p>
+        <div className="editor-save-bp-confirm-actions">
+          <button
+            type="button"
+            className="editor-save-bp-confirm-back"
+            onClick={onCancel}
+          >
+            戻る
+          </button>
+          <button
+            type="button"
+            className="limit-break-success-close editor-save-bp-confirm-ok"
+            onClick={onConfirm}
+          >
+            OK
+          </button>
+        </div>
       </div>
     </div>,
     document.body,

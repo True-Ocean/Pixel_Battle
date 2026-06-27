@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import type { AdState, Attribute, Card, MemoryAlbumState, MissionState, ScreenId, ShopPurchaseState, SubscriptionPlan, UserProfile, UserEconomy, UserInventory, UserSubscription, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { isAttributeUnlockedAtLevel } from './config/attributeUnlock';
-import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX } from './config/balance';
+import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX, USER_INITIAL_LEVEL } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
@@ -23,7 +23,7 @@ import {
   getMissionChallengeTarget,
 } from './mission';
 import type { MissionCategory, MissionEventType } from './mission';
-import { loadSave, resetBattleHistory, saveSave } from './storage';
+import { loadSave, resetBattleHistory, saveSave, SAVE_SCHEMA_VERSION } from './storage';
 import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
@@ -330,7 +330,7 @@ function App() {
         setMissionState(missionStateToSave);
       }
       saveSave({
-        schemaVersion: initialSave.schemaVersion,
+        schemaVersion: SAVE_SCHEMA_VERSION,
         user: next.user !== undefined ? next.user : user,
         economy: next.economy ?? economyRef.current,
         inventory: next.inventory ?? inventoryRef.current,
@@ -362,7 +362,7 @@ function App() {
           : {}),
       });
     },
-    [activeDeckIndex, adState, deckIntroSeen, decks, economy, inventory, lastBattleDeckIndex, missionState, paletteShopUnlocks, shopPurchase, soundEnabled, subscription, talismanStarterGranted, unlockedDeckCount, user, initialSave.schemaVersion],
+    [activeDeckIndex, adState, deckIntroSeen, decks, economy, inventory, lastBattleDeckIndex, missionState, paletteShopUnlocks, shopPurchase, soundEnabled, subscription, talismanStarterGranted, unlockedDeckCount, user],
   );
 
   const reportAndPersistMissionEvents = useCallback(
@@ -1539,6 +1539,7 @@ function App() {
             cards,
             newLevel,
             paletteShopUnlocksRef.current,
+            { previousLevel: prevUser?.level ?? USER_INITIAL_LEVEL },
           );
           const normalized = normalizeDeckLayout(deck);
           let cursor = 0;
@@ -1724,7 +1725,7 @@ function App() {
 
   const handleResetBattleRecords = useCallback(() => {
     const next = resetBattleHistory({
-      schemaVersion: initialSave.schemaVersion,
+      schemaVersion: SAVE_SCHEMA_VERSION,
       user,
       economy,
       inventory,
@@ -1746,7 +1747,6 @@ function App() {
     deckNames,
     decks,
     economy,
-    initialSave.schemaVersion,
     inventory,
     lastBattleDeckIndex,
     persistSave,
@@ -1784,6 +1784,7 @@ function App() {
           cards,
           clamped,
           paletteShopUnlocksRef.current,
+          { previousLevel: currentUser.level },
         );
         const next = normalizeDeckLayout(deck);
         let cursor = 0;

@@ -263,7 +263,7 @@ describe('rescaleDeckBp', () => {
 });
 
 describe('updateCardFromDrawing', () => {
-  it('IDと戦績・属性・レアを維持してBPのみ再算出', () => {
+  it('IDと戦績・属性・レアを維持してBPを再算出', () => {
     const original = createCardFromDrawing('旧名', fillGrid('#ff0000'), {
       userLevel: 1,
     });
@@ -286,7 +286,7 @@ describe('updateCardFromDrawing', () => {
     expect(updated.rarity).toBe(original.rarity);
     expect(updated.stars).toBe(original.stars);
     expect(updated.reviveCount).toBe(original.reviveCount);
-    expect(updated.bp).toBeGreaterThan(original.bp);
+    expect(updated.bp).toBeGreaterThanOrEqual(original.bp);
   });
 
   it('編集保存でも解放済みの色を保持する', () => {

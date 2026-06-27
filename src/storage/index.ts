@@ -33,7 +33,7 @@ import {
   normalizeMemoryAlbum,
 } from '../user/memoryAlbum';
 import { normalizeEditorShopUnlocks } from '../config/editorShop';
-import { normalizePaletteShopUnlocks, migratePaletteShopUnlocksForSchema } from '../config/paletteUnlock';
+import { normalizePaletteShopUnlocks } from '../config/paletteUnlock';
 import {
   createInitialMissionState,
   normalizeMissionState,
@@ -49,18 +49,7 @@ import {
 import { normalizeSoundEnabled } from '../user/preferences';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
-export const SAVE_SCHEMA_VERSION = 8;
-
-function readPaletteShopUnlocks(
-  raw: unknown,
-  schemaVersion: number,
-): number[] {
-  return migratePaletteShopUnlocksForSchema(
-    raw,
-    schemaVersion,
-    SAVE_SCHEMA_VERSION,
-  );
-}
+export const SAVE_SCHEMA_VERSION = 1;
 
 function emptySave(): SaveData {
   return {
@@ -84,19 +73,12 @@ function emptySave(): SaveData {
   };
 }
 
-function migrateMemoryAlbumCards(
-  raw: unknown,
-  userLevel: number,
-  paletteShopUnlocks: readonly number[],
-): MemoryAlbumState {
+function parseMemoryAlbumCards(raw: unknown): MemoryAlbumState {
   const album = normalizeMemoryAlbum(raw);
   const cards = album.cards
-    .map((entry) =>
-      migrateCard(entry as unknown as Record<string, unknown>),
-    )
+    .map((entry) => parseCard(entry as unknown as Record<string, unknown>))
     .filter((card): card is Card => card != null);
-  const rescaled = rescaleDeckBp(cards, userLevel, paletteShopUnlocks);
-  return { ...album, cards: rescaled };
+  return { ...album, cards };
 }
 
 function parseRarity(value: unknown): CardRarity {
@@ -111,7 +93,7 @@ function parseStars(value: unknown): CardStars {
   return 0;
 }
 
-function migrateCard(raw: Record<string, unknown>): Card | null {
+function parseCard(raw: Record<string, unknown>): Card | null {
   if (typeof raw.id !== 'string' || typeof raw.name !== 'string') return null;
   if (!Array.isArray(raw.pixels)) return null;
   const bp =
@@ -186,7 +168,7 @@ function anyDeckBpChanged(before: DeckLayout[], after: DeckLayout[]): boolean {
   return after.some((deck, index) => deckBpChanged(before[index] ?? [], deck));
 }
 
-function migrateDeck(deck: unknown[]): DeckLayout {
+function parseDeck(deck: unknown[]): DeckLayout {
   const slots = Array.from({ length: DECK_MAX }, () => null) as DeckLayout;
   const hasExplicitNull = deck.some((item) => item === null);
   for (let i = 0; i < Math.min(deck.length, DECK_MAX); i++) {
@@ -196,7 +178,7 @@ function migrateDeck(deck: unknown[]): DeckLayout {
       continue;
     }
     if (item && typeof item === 'object') {
-      slots[i] = migrateCard(item as Record<string, unknown>);
+      slots[i] = parseCard(item as Record<string, unknown>);
     }
   }
   if (hasExplicitNull || deck.length === DECK_MAX) {
@@ -205,26 +187,26 @@ function migrateDeck(deck: unknown[]): DeckLayout {
   return normalizeDeckLayout(getDeckCards(slots));
 }
 
-function migrateDecks(parsed: Record<string, unknown>): DeckLayout[] {
+function parseDecks(parsed: Record<string, unknown>): DeckLayout[] {
   if (Array.isArray(parsed.decks)) {
     const slots = createEmptyDeckSlots();
     for (let i = 0; i < DECK_SLOT_COUNT; i++) {
       const raw = parsed.decks[i];
       if (Array.isArray(raw)) {
-        slots[i] = migrateDeck(raw);
+        slots[i] = parseDeck(raw);
       }
     }
     return slots;
   }
   if (Array.isArray(parsed.deck)) {
     const slots = createEmptyDeckSlots();
-    slots[0] = migrateDeck(parsed.deck);
+    slots[0] = parseDeck(parsed.deck);
     return slots;
   }
   return createEmptyDeckSlots();
 }
 
-function migrateBattleHistory(raw: unknown): BattleHistoryEntry[] {
+function parseBattleHistory(raw: unknown): BattleHistoryEntry[] {
   if (!Array.isArray(raw)) return [];
   const entries: BattleHistoryEntry[] = [];
   for (const item of raw) {
@@ -237,10 +219,10 @@ function migrateBattleHistory(raw: unknown): BattleHistoryEntry[] {
     if (typeof record.opponentDeckPower !== 'number') continue;
     if (typeof record.playerDeckPower !== 'number') continue;
     if (!Array.isArray(record.opponentDeck)) continue;
-    const opponentDeck = getDeckCards(migrateDeck(record.opponentDeck));
+    const opponentDeck = getDeckCards(parseDeck(record.opponentDeck));
     if (opponentDeck.length === 0) continue;
     const playerDeckRaw = Array.isArray(record.playerDeck)
-      ? getDeckCards(migrateDeck(record.playerDeck))
+      ? getDeckCards(parseDeck(record.playerDeck))
       : undefined;
     const playerLevel =
       typeof record.playerLevel === 'number'
@@ -345,7 +327,7 @@ function rescaleAllDecks(
   });
 }
 
-export function applyProgressionMigrations(save: SaveData): SaveData {
+export function normalizeSaveData(save: SaveData): SaveData {
   let next: SaveData = {
     ...save,
     schemaVersion: SAVE_SCHEMA_VERSION,
@@ -382,23 +364,31 @@ export function applyProgressionMigrations(save: SaveData): SaveData {
   return next;
 }
 
-function shouldPersistMigration(
+function shouldRewriteSaveOnLoad(
   parsed: Record<string, unknown>,
-  migrated: SaveData,
-  beforeDecks: DeckLayout[],
-  afterDecks: DeckLayout[],
+  normalized: SaveData,
+  options: {
+    preferSaved: boolean;
+    userLevelChanged: boolean;
+    userExpChanged: boolean;
+    decksRescaled: boolean;
+    decksBpChanged: boolean;
+    inventoryDevFilled: boolean;
+  },
 ): boolean {
-  const parsedVersion =
-    typeof parsed.schemaVersion === 'number' ? parsed.schemaVersion : 0;
-  if (parsedVersion < SAVE_SCHEMA_VERSION) return true;
+  if (parsed.schemaVersion !== SAVE_SCHEMA_VERSION) return true;
+  if (options.userLevelChanged || options.userExpChanged) return true;
+  if (options.decksRescaled && options.decksBpChanged) return true;
+  if (parsed.devPreferSavedLevel === true && !options.preferSaved) return true;
+  if (options.inventoryDevFilled) return true;
   if (
-    migrated.user &&
-    migrated.user.level >= 10 &&
+    normalized.user &&
+    normalized.user.level >= 10 &&
     (typeof parsed.unlockedDeckCount !== 'number' || parsed.unlockedDeckCount < 2)
   ) {
     return true;
   }
-  return anyDeckBpChanged(beforeDecks, afterDecks);
+  return false;
 }
 
 export function loadSave(): SaveData {
@@ -406,16 +396,16 @@ export function loadSave(): SaveData {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return emptySave();
     const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const hasLegacyDeck = Array.isArray(parsed.deck);
     const hasDecks = Array.isArray(parsed.decks);
-    if (!hasLegacyDeck && !hasDecks) return emptySave();
+    const hasLegacyDeck = Array.isArray(parsed.deck);
+    if (!hasDecks && !hasLegacyDeck) return emptySave();
 
     const user = normalizeUserProfile(parsed.user);
     const economy = normalizeUserEconomy(parsed.economy);
     const inventory = applyDevInventoryFill(normalizeUserInventory(parsed.inventory));
     const adState = normalizeAdState(parsed.adState);
-    const decks = normalizeDeckSlots(migrateDecks(parsed));
-    const battleHistory = migrateBattleHistory(parsed.battleHistory);
+    const decks = normalizeDeckSlots(parseDecks(parsed));
+    const battleHistory = parseBattleHistory(parsed.battleHistory);
     const { activeDeckIndex, lastBattleDeckIndex, unlockedDeckCount, deckNames } =
       normalizeSaveFields(parsed, decks);
     const { devPreferSavedLevel, devFileOverrideLevel } = parseDevSaveFields(parsed);
@@ -424,15 +414,12 @@ export function loadSave(): SaveData {
       DEV_USER_LEVEL_OVERRIDE,
       devFileOverrideLevel,
     );
-
-    const parsedVersion =
-      typeof parsed.schemaVersion === 'number' ? parsed.schemaVersion : 0;
-    const paletteShopUnlocks = readPaletteShopUnlocks(
-      parsed.paletteShopUnlocks,
-      parsedVersion,
+    const paletteShopUnlocks = normalizePaletteShopUnlocks(parsed.paletteShopUnlocks);
+    const inventoryDevFilled = !inventoryMatchesDevFill(
+      normalizeUserInventory(parsed.inventory),
     );
 
-    const baseSave = applyProgressionMigrations({
+    const baseSave = normalizeSaveData({
       schemaVersion: SAVE_SCHEMA_VERSION,
       user,
       economy,
@@ -446,11 +433,7 @@ export function loadSave(): SaveData {
       battleHistory,
       talismanStarterGranted: parsed.talismanStarterGranted === true,
       paletteShopUnlocks,
-      memoryAlbum: migrateMemoryAlbumCards(
-        parsed.memoryAlbum,
-        user?.level ?? USER_INITIAL_LEVEL,
-        paletteShopUnlocks,
-      ),
+      memoryAlbum: parseMemoryAlbumCards(parsed.memoryAlbum),
       shopPurchase: normalizeShopPurchaseState(parsed.shopPurchase),
       subscription: normalizeUserSubscription(parsed.subscription),
       missionState: applyMissionResets(
@@ -470,24 +453,26 @@ export function loadSave(): SaveData {
       const rescale = shouldRescaleDeckForDev() || preferSaved;
       const finalDecks = rescale
         ? rescaleAllDecks(
-            decks,
+            baseSave.decks,
             devAdjusted.level,
             paletteShopUnlocks,
           )
-        : decks;
-      const finalSave = applyProgressionMigrations({
+        : baseSave.decks;
+      const finalSave = normalizeSaveData({
         ...baseSave,
         user: devAdjusted,
         decks: finalDecks,
         ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
       });
       if (
-        devAdjusted.level !== user.level ||
-        devAdjusted.exp !== user.exp ||
-        (rescale && anyDeckBpChanged(decks, finalDecks)) ||
-        (parsed.devPreferSavedLevel === true && !preferSaved) ||
-        !inventoryMatchesDevFill(normalizeUserInventory(parsed.inventory)) ||
-        shouldPersistMigration(parsed, finalSave, decks, finalDecks)
+        shouldRewriteSaveOnLoad(parsed, finalSave, {
+          preferSaved,
+          userLevelChanged: devAdjusted.level !== user.level,
+          userExpChanged: devAdjusted.exp !== user.exp,
+          decksRescaled: rescale,
+          decksBpChanged: anyDeckBpChanged(baseSave.decks, finalDecks),
+          inventoryDevFilled,
+        })
       ) {
         saveSave(finalSave);
       }
@@ -495,8 +480,15 @@ export function loadSave(): SaveData {
     }
 
     if (
-      !inventoryMatchesDevFill(normalizeUserInventory(parsed.inventory)) ||
-      shouldPersistMigration(parsed, baseSave, decks, decks)
+      inventoryDevFilled ||
+      shouldRewriteSaveOnLoad(parsed, baseSave, {
+        preferSaved,
+        userLevelChanged: false,
+        userExpChanged: false,
+        decksRescaled: false,
+        decksBpChanged: false,
+        inventoryDevFilled,
+      })
     ) {
       saveSave(baseSave);
     }

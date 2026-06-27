@@ -161,7 +161,8 @@ export function EditorScreen({
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
   const [pendingCreateAttribute, setPendingCreateAttribute] =
     useState<Attribute | null>(null);
-  const [saveBpResult, setSaveBpResult] = useState<{
+  const [saveConfirmPending, setSaveConfirmPending] = useState<{
+    card: Card;
     cardName: string;
     previousBp: number;
     nextBp: number;
@@ -169,6 +170,8 @@ export function EditorScreen({
     nextFreePixels: number;
     previousJewels: number;
     nextJewels: number;
+    saveCharges: ReturnType<typeof calcEditorSaveCharges>;
+    nameChanged: boolean;
   } | null>(null);
   const [canvasUpgradeOpen, setCanvasUpgradeOpen] = useState(false);
   const [paletteUnlockIndex, setPaletteUnlockIndex] = useState<number | null>(
@@ -483,9 +486,9 @@ export function EditorScreen({
         userLevel,
         { paletteShopUnlocks },
       );
-      onUpdated?.(card, { saveCharges, nameChanged });
       const spentPx = getEditorSaveTotalPixelCost(saveCharges);
-      setSaveBpResult({
+      setSaveConfirmPending({
+        card,
         cardName: card.name,
         previousBp,
         nextBp: card.bp,
@@ -493,15 +496,24 @@ export function EditorScreen({
         nextFreePixels: freePixels - spentPx,
         previousJewels: jewels,
         nextJewels: jewels,
+        saveCharges,
+        nameChanged,
       });
     } catch (e) {
       setError(e instanceof CardCreationError ? e.message : '保存に失敗しました');
     }
   };
 
-  const handleSaveBpResultClose = () => {
-    setSaveBpResult(null);
+  const handleSaveConfirm = () => {
+    if (!saveConfirmPending) return;
+    const { card, saveCharges, nameChanged } = saveConfirmPending;
+    setSaveConfirmPending(null);
+    onUpdated?.(card, { saveCharges, nameChanged });
     onBack();
+  };
+
+  const handleSaveCancel = () => {
+    setSaveConfirmPending(null);
   };
 
   const originalName =
@@ -619,7 +631,7 @@ export function EditorScreen({
                 readOnly={
                   confirmCreateOpen ||
                   pendingCreateAttribute != null ||
-                  saveBpResult != null
+                  saveConfirmPending != null
                 }
                 onCompositionStart={() => {
                   isComposingNameRef.current = true;
@@ -703,16 +715,17 @@ export function EditorScreen({
         </button>
       </div>
 
-      {saveBpResult != null && (
+      {saveConfirmPending != null && (
         <EditorSaveBpConfirmModal
-          cardName={saveBpResult.cardName}
-          previousBp={saveBpResult.previousBp}
-          nextBp={saveBpResult.nextBp}
-          previousFreePixels={saveBpResult.previousFreePixels}
-          nextFreePixels={saveBpResult.nextFreePixels}
-          previousJewels={saveBpResult.previousJewels}
-          nextJewels={saveBpResult.nextJewels}
-          onClose={handleSaveBpResultClose}
+          cardName={saveConfirmPending.cardName}
+          previousBp={saveConfirmPending.previousBp}
+          nextBp={saveConfirmPending.nextBp}
+          previousFreePixels={saveConfirmPending.previousFreePixels}
+          nextFreePixels={saveConfirmPending.nextFreePixels}
+          previousJewels={saveConfirmPending.previousJewels}
+          nextJewels={saveConfirmPending.nextJewels}
+          onConfirm={handleSaveConfirm}
+          onCancel={handleSaveCancel}
         />
       )}
       {canvasUpgradeOpen && pendingCanvasUpgradeSize != null && (

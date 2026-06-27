@@ -5232,6 +5232,43 @@ button.battle-hub-deck-icon.is-move-target {
   color: #dc2626;
 }
 
+.editor-save-bp-confirm-question {
+  margin: 0.85rem 0 0.75rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #475569;
+  text-align: center;
+}
+
+.editor-save-bp-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.editor-save-bp-confirm-back,
+.editor-save-bp-confirm-ok {
+  width: 100%;
+  min-height: 2.65rem;
+}
+
+.editor-save-bp-confirm-back {
+  box-sizing: border-box;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #f8fafc;
+  color: #475569;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.editor-save-bp-confirm-back:hover {
+  background: #f1f5f9;
+}
+
 .economy-balance-change {
   margin: 0.15rem 0 0;
 }
