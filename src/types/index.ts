@@ -171,6 +171,8 @@ export interface UserSubscription {
 export interface SaveData {
   /** セーブ形式（0=legacy, 1=freePixels, 2=jewels+inventory+adState） */
   schemaVersion?: number;
+  /** ロード時 BP 再計算済みの計算式バージョン（未設定=再計算未適用） */
+  bpCalcVersion?: number;
   user: UserProfile | null;
   economy?: UserEconomy;
   inventory?: UserInventory;

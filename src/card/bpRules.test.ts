@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { gridSize } from '../canvas';
 import { createCardFromDrawing, updateCardFromDrawing } from './createCard';
 import {
+  applyLoadBpRecalc,
   clampEditBp,
   computeNaturalCardBp,
   getCardBpCeiling,
@@ -45,6 +46,18 @@ describe('getCardBpCeiling', () => {
     const ceiling = getCardBpCeiling(sr, 20);
     expect(ceiling).toBeGreaterThan(0);
     expect(clampEditBp(100, 9999, ceiling)).toBe(ceiling);
+  });
+});
+
+describe('applyLoadBpRecalc', () => {
+  it('legacy 高 BP を現行式で上書きする', () => {
+    const card = createCardFromDrawing('legacy', fillGrid('#ff0000'), {
+      userLevel: 40,
+    });
+    const legacy = { ...card, bp: card.bp + 200 };
+    const recalced = applyLoadBpRecalc(legacy, 40);
+    expect(recalced.bp).toBe(computeNaturalCardBp(card, 40));
+    expect(recalced.bp).toBeLessThan(legacy.bp);
   });
 });
 

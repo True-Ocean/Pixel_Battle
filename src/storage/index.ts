@@ -1,5 +1,5 @@
 import type { BattleHistoryEntry, Card, CardRarity, CardStars, MemoryAlbumState, SaveData } from '../types';
-import { rescaleDeckBp } from '../card';
+import { applyLoadBpRecalc, BP_CALC_VERSION, rescaleDeckBp } from '../card';
 import {
   clampDeckSlotIndex,
   clampUnlockedDeckCount,
@@ -50,6 +50,38 @@ import { normalizeSoundEnabled } from '../user/preferences';
 
 const STORAGE_KEY = 'dot5-battle-save-v1';
 export const SAVE_SCHEMA_VERSION = 1;
+export { BP_CALC_VERSION };
+
+function parseStoredBpCalcVersion(raw: unknown): number {
+  return typeof raw === 'number' && Number.isFinite(raw) ? Math.floor(raw) : 0;
+}
+
+function needsBpRecalc(storedVersion: number): boolean {
+  return storedVersion !== BP_CALC_VERSION;
+}
+
+function recalcSaveCardBp(save: SaveData): SaveData {
+  const userLevel = save.user?.level ?? USER_INITIAL_LEVEL;
+  const paletteShopUnlocks = save.paletteShopUnlocks ?? [];
+  const memoryAlbum = save.memoryAlbum ?? createInitialMemoryAlbum();
+  return {
+    ...save,
+    decks: save.decks.map((deck) =>
+      normalizeDeckLayout(deck).map((card) =>
+        card == null
+          ? null
+          : applyLoadBpRecalc(card, userLevel, paletteShopUnlocks),
+      ),
+    ),
+    memoryAlbum: {
+      ...memoryAlbum,
+      cards: memoryAlbum.cards.map((card) =>
+        applyLoadBpRecalc(card, userLevel, paletteShopUnlocks),
+      ),
+    },
+    bpCalcVersion: BP_CALC_VERSION,
+  };
+}
 
 function emptySave(): SaveData {
   return {
@@ -374,8 +406,10 @@ function shouldRewriteSaveOnLoad(
     decksRescaled: boolean;
     decksBpChanged: boolean;
     inventoryDevFilled: boolean;
+    bpRecalcApplied: boolean;
   },
 ): boolean {
+  if (options.bpRecalcApplied) return true;
   if (parsed.schemaVersion !== SAVE_SCHEMA_VERSION) return true;
   if (options.userLevelChanged || options.userExpChanged) return true;
   if (options.decksRescaled && options.decksBpChanged) return true;
@@ -419,7 +453,10 @@ export function loadSave(): SaveData {
       normalizeUserInventory(parsed.inventory),
     );
 
-    const baseSave = normalizeSaveData({
+    const storedBpCalcVersion = parseStoredBpCalcVersion(parsed.bpCalcVersion);
+    const bpRecalcApplied = needsBpRecalc(storedBpCalcVersion);
+
+    let baseSave = normalizeSaveData({
       schemaVersion: SAVE_SCHEMA_VERSION,
       user,
       economy,
@@ -441,8 +478,15 @@ export function loadSave(): SaveData {
       ),
       soundEnabled: normalizeSoundEnabled(parsed.soundEnabled),
       deckIntroSeen: parsed.deckIntroSeen === true,
+      ...(typeof parsed.bpCalcVersion === 'number'
+        ? { bpCalcVersion: Math.floor(parsed.bpCalcVersion) }
+        : {}),
       ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
     });
+
+    if (bpRecalcApplied) {
+      baseSave = recalcSaveCardBp(baseSave);
+    }
 
     if (user) {
       const devAdjusted = resolveDevUserProfileOnLoad(user, {
@@ -472,6 +516,7 @@ export function loadSave(): SaveData {
           decksRescaled: rescale,
           decksBpChanged: anyDeckBpChanged(baseSave.decks, finalDecks),
           inventoryDevFilled,
+          bpRecalcApplied,
         })
       ) {
         saveSave(finalSave);
@@ -488,6 +533,7 @@ export function loadSave(): SaveData {
         decksRescaled: false,
         decksBpChanged: false,
         inventoryDevFilled,
+        bpRecalcApplied,
       })
     ) {
       saveSave(baseSave);
@@ -546,6 +592,11 @@ function mergeWithStoredSave(data: SaveData): SaveData {
           ? stored.deckNames.filter(
               (name): name is string => typeof name === 'string',
             )
+          : undefined),
+      bpCalcVersion:
+        data.bpCalcVersion ??
+        (typeof stored.bpCalcVersion === 'number'
+          ? Math.floor(stored.bpCalcVersion)
           : undefined),
     };
   } catch {
@@ -608,6 +659,9 @@ export function saveSave(data: SaveData): void {
     payload.devPreferSavedLevel = true;
     payload.devFileOverrideLevel =
       merged.devFileOverrideLevel ?? DEV_USER_LEVEL_OVERRIDE ?? null;
+  }
+  if (typeof merged.bpCalcVersion === 'number') {
+    payload.bpCalcVersion = Math.floor(merged.bpCalcVersion);
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }

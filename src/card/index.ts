@@ -9,6 +9,8 @@ export {
   CardCreationError,
 } from './createCard';
 export {
+  BP_CALC_VERSION,
+  applyLoadBpRecalc,
   clampEditBp,
   computeNaturalCardBp,
   getCardBpCeiling,

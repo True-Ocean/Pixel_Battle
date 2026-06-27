@@ -117,6 +117,21 @@ export function computeNaturalCardBp(
   return Math.min(computeBpFromBlend(bpBlend, userLevel, card), ceiling);
 }
 
+/** BP 計算式を変更したら +1（セーブ読み込み時の一括再計算トリガー） */
+export const BP_CALC_VERSION = 1;
+
+/** ロード時: 現行式で BP を上書き（下がる場合もある） */
+export function applyLoadBpRecalc(
+  card: Card,
+  userLevel: number,
+  paletteShopUnlocks: readonly number[] = [],
+): Card {
+  return {
+    ...card,
+    bp: computeNaturalCardBp(card, userLevel, paletteShopUnlocks),
+  };
+}
+
 /** 編集保存: 下振れなし・上限まで（上限超えの legacy BP は上限で floor） */
 export function clampEditBp(
   previousBp: number,
