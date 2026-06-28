@@ -6,6 +6,7 @@ import {
   clampEditBp,
   computeNaturalCardBp,
   getCardBpCeiling,
+  getCardBpCeilingAtLevel,
   rescaleCardBp,
 } from './bpRules';
 
@@ -149,7 +150,7 @@ describe('rescaleCardBp', () => {
     expect(rescaled).toBeGreaterThanOrEqual(boosted.bp);
   });
 
-  it('上限付近の BP はレベルアップ後も上限に対する位置を維持する', () => {
+  it('上限付近の BP はレベルアップ後も仮上限に対する位置を維持し、本当の上限まで余白を残す', () => {
     const card = createCardFromDrawing('prog', fillGrid('#ff0000'), {
       userLevel: 30,
     });
@@ -158,11 +159,56 @@ describe('rescaleCardBp', () => {
 
     const rescaled = rescaleCardBp(nearCap, 35, [], { previousLevel: 30 });
     const ceiling35 = getCardBpCeiling(card, 35);
-    const expectedProgress = Math.round(ceiling35 * ((ceiling30 - 9) / ceiling30));
+    const virtualCap = Math.round((ceiling30 + ceiling35) / 2);
+    const expectedProgress = Math.round(virtualCap * ((ceiling30 - 9) / ceiling30));
 
     expect(rescaled).toBeGreaterThanOrEqual(nearCap.bp);
     expect(rescaled).toBeGreaterThanOrEqual(expectedProgress - 1);
-    expect(rescaled).toBeLessThanOrEqual(ceiling35);
+    expect(rescaled).toBeLessThan(ceiling35);
+  });
+
+  it('旧レベル上限ぴったりの BP はレベルアップ後も本当の上限まで伸びしろを残す', () => {
+    const card = createCardFromDrawing('cap', fillGrid('#ff0000'), {
+      userLevel: 40,
+      forceAttribute: 'attack',
+    });
+    const ceiling40 = getCardBpCeiling(card, 40);
+    const atCap = { ...card, bp: ceiling40 };
+
+    const rescaled = rescaleCardBp(atCap, 41, [], { previousLevel: 40 });
+    const ceiling41 = getCardBpCeiling(card, 41);
+    const virtualCap = Math.round((ceiling40 + ceiling41) / 2);
+
+    expect(rescaled).toBe(virtualCap);
+    expect(rescaled).toBeLessThan(ceiling41);
+  });
+
+  it('Lv49→Lv50 でも仮上限により編集余地を残す', () => {
+    const card = createCardFromDrawing('max', fillGrid('#ff0000'), {
+      userLevel: 49,
+      forceAttribute: 'attack',
+    });
+    const ceiling49 = getCardBpCeiling(card, 49);
+    const atCap = { ...card, bp: ceiling49 };
+
+    const rescaled = rescaleCardBp(atCap, 50, [], { previousLevel: 49 });
+    const ceiling50 = getCardBpCeiling(card, 50);
+    const virtualCap = Math.round((ceiling49 + ceiling50) / 2);
+
+    expect(rescaled).toBe(virtualCap);
+    expect(rescaled).toBeLessThan(ceiling50);
+  });
+
+  it('getCardBpCeilingAtLevel は MAX 超のレベルを線形外挿する', () => {
+    const card = createCardFromDrawing('future', fillGrid('#ff0000'), {
+      userLevel: 50,
+      forceAttribute: 'attack',
+    });
+    const ceiling50 = getCardBpCeiling(card, 50);
+    const ceiling51 = getCardBpCeilingAtLevel(card, 51);
+
+    expect(ceiling51).toBeGreaterThan(ceiling50);
+    expect(getCardBpCeilingAtLevel(card, 100)).toBeGreaterThan(ceiling51);
   });
 
   it('previousLevel なしでは natural BP を返す', () => {

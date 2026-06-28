@@ -238,12 +238,20 @@ function clampUserLevel(userLevel: number): number {
   return Math.max(USER_INITIAL_LEVEL, Math.min(MAX_USER_LEVEL, userLevel));
 }
 
-/** 属性別のユーザーレベル基準BP（例: Lv10 攻撃=100, 防御=85） */
-export function getUserBaseBp(
+function resolveUserLevelForBp(
+  userLevel: number,
+  capAtMaxUserLevel: boolean,
+): number {
+  const floored = Math.max(USER_INITIAL_LEVEL, userLevel);
+  return capAtMaxUserLevel ? Math.min(MAX_USER_LEVEL, floored) : floored;
+}
+
+function getUserBaseBpInternal(
   userLevel: number,
   attribute: Attribute,
+  capAtMaxUserLevel: boolean,
 ): number {
-  const level = clampUserLevel(userLevel);
+  const level = resolveUserLevelForBp(userLevel, capAtMaxUserLevel);
   const attackBase = level * USER_BP_PER_LEVEL;
   if (attribute === 'defense') return Math.round(attackBase * DEFENSE_BP_RATIO);
   if (attribute === 'power') return Math.round(attackBase * POWER_BP_RATIO);
@@ -256,16 +264,66 @@ export function getUserBaseBp(
   return attackBase;
 }
 
+/** 属性別のユーザーレベル基準BP（例: Lv10 攻撃=100, 防御=85） */
+export function getUserBaseBp(
+  userLevel: number,
+  attribute: Attribute,
+): number {
+  return getUserBaseBpInternal(userLevel, attribute, true);
+}
+
+/**
+ * MAX_USER_LEVEL を超えるレベルでも線形延長した基準BP。
+ * 将来のレベル上限拡張や仮上限の先読み用。
+ */
+export function getUserBaseBpAtLevel(
+  userLevel: number,
+  attribute: Attribute,
+): number {
+  return getUserBaseBpInternal(userLevel, attribute, false);
+}
+
+function getCardBaseBpRangeInternal(
+  userLevel: number,
+  attribute: Attribute,
+  capAtMaxUserLevel: boolean,
+): { min: number; max: number } {
+  const center = getUserBaseBpInternal(userLevel, attribute, capAtMaxUserLevel);
+  return {
+    min: Math.round(center * (1 - CARD_BP_SPREAD)),
+    max: Math.round(center * (1 + CARD_BP_SPREAD)),
+  };
+}
+
 /** カード個別BP（レア適用前）のレンジ */
 export function getCardBaseBpRange(
   userLevel: number,
   attribute: Attribute,
 ): { min: number; max: number } {
-  const center = getUserBaseBp(userLevel, attribute);
-  return {
-    min: Math.round(center * (1 - CARD_BP_SPREAD)),
-    max: Math.round(center * (1 + CARD_BP_SPREAD)),
-  };
+  return getCardBaseBpRangeInternal(userLevel, attribute, true);
+}
+
+/** MAX_USER_LEVEL 超も線形延長した基礎BPレンジ */
+export function getCardBaseBpRangeAtLevel(
+  userLevel: number,
+  attribute: Attribute,
+): { min: number; max: number } {
+  return getCardBaseBpRangeInternal(userLevel, attribute, false);
+}
+
+function computeCardBaseBpInternal(
+  bpBlend: number,
+  userLevel: number,
+  attribute: Attribute,
+  capAtMaxUserLevel: boolean,
+): number {
+  const blend = Math.min(1, Math.max(0, bpBlend));
+  const { min, max } = getCardBaseBpRangeInternal(
+    userLevel,
+    attribute,
+    capAtMaxUserLevel,
+  );
+  return Math.round(min + (max - min) * blend);
 }
 
 /** bpBlend（0〜1）とユーザーレベルからカード基礎BPを算出 */
@@ -274,9 +332,34 @@ export function computeCardBaseBp(
   userLevel: number,
   attribute: Attribute,
 ): number {
-  const blend = Math.min(1, Math.max(0, bpBlend));
-  const { min, max } = getCardBaseBpRange(userLevel, attribute);
-  return Math.round(min + (max - min) * blend);
+  return computeCardBaseBpInternal(bpBlend, userLevel, attribute, true);
+}
+
+export function computeCardBaseBpAtLevel(
+  bpBlend: number,
+  userLevel: number,
+  attribute: Attribute,
+): number {
+  return computeCardBaseBpInternal(bpBlend, userLevel, attribute, false);
+}
+
+function applyRarityToBpInternal(
+  baseBp: number,
+  attribute: Attribute,
+  rarity: CardRarity,
+  userLevel: number,
+  capAtMaxUserLevel: boolean,
+): number {
+  const { min, max } = getCardBaseBpRangeInternal(
+    userLevel,
+    attribute,
+    capAtMaxUserLevel,
+  );
+  const mult = RARITY_BP_MULTIPLIER[rarity];
+  const scaled = Math.round(baseBp * mult);
+  const rarityMin = Math.round(min * mult);
+  const rarityMax = Math.round(max * mult);
+  return Math.min(rarityMax, Math.max(rarityMin, scaled));
 }
 
 export function applyRarityToBp(
@@ -285,12 +368,16 @@ export function applyRarityToBp(
   rarity: CardRarity,
   userLevel: number = USER_INITIAL_LEVEL,
 ): number {
-  const { min, max } = getCardBaseBpRange(userLevel, attribute);
-  const mult = RARITY_BP_MULTIPLIER[rarity];
-  const scaled = Math.round(baseBp * mult);
-  const rarityMin = Math.round(min * mult);
-  const rarityMax = Math.round(max * mult);
-  return Math.min(rarityMax, Math.max(rarityMin, scaled));
+  return applyRarityToBpInternal(baseBp, attribute, rarity, userLevel, true);
+}
+
+export function applyRarityToBpAtLevel(
+  baseBp: number,
+  attribute: Attribute,
+  rarity: CardRarity,
+  userLevel: number,
+): number {
+  return applyRarityToBpInternal(baseBp, attribute, rarity, userLevel, false);
 }
 
 /** カード戦力: BP × bpWeight + flatBonus（属性ごと） */

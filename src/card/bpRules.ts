@@ -1,5 +1,12 @@
 import { gridSize } from '../canvas';
-import { applyRarityToBp, computeCardBaseBp, PALETTE_16 } from '../config/balance';
+import {
+  applyRarityToBp,
+  applyRarityToBpAtLevel,
+  computeCardBaseBp,
+  computeCardBaseBpAtLevel,
+  MAX_USER_LEVEL,
+  PALETTE_16,
+} from '../config/balance';
 import { calcLimitBreakBpGain } from '../config/economy';
 import { buildUnlockedColorSet } from '../config/paletteUnlock';
 import type { Card, PixelGrid } from '../types';
@@ -101,6 +108,47 @@ export function getCardBpCeiling(
   return computeBpFromBlend(1, userLevel, card);
 }
 
+function computeBpFromBlendAtLevel(
+  bpBlend: number,
+  userLevel: number,
+  card: Pick<Card, 'attribute' | 'rarity' | 'stars'>,
+): number {
+  const baseBp = computeCardBaseBpAtLevel(bpBlend, userLevel, card.attribute);
+  const rarityBp = applyRarityToBpAtLevel(
+    baseBp,
+    card.attribute,
+    card.rarity,
+    userLevel,
+  );
+  const limitBreakCount = countLimitBreaks(card);
+  if (limitBreakCount === 0) return rarityBp;
+  return rarityBp + calcLimitBreakBpGain(baseBp) * limitBreakCount;
+}
+
+/**
+ * 任意レベルの BP 上限。MAX_USER_LEVEL 超は線形外挿（将来の上限拡張に備える）。
+ */
+export function getCardBpCeilingAtLevel(
+  card: Pick<Card, 'attribute' | 'rarity' | 'stars'>,
+  userLevel: number,
+): number {
+  if (userLevel <= MAX_USER_LEVEL) {
+    return getCardBpCeiling(card, userLevel);
+  }
+  return computeBpFromBlendAtLevel(1, userLevel, card);
+}
+
+/** レベルアップ時の仮上限: 旧レベルと新レベルの ceiling の中間 */
+function getLevelUpVirtualCap(
+  card: Pick<Card, 'attribute' | 'rarity' | 'stars'>,
+  previousLevel: number,
+  userLevel: number,
+): number {
+  const previousCeiling = getCardBpCeilingAtLevel(card, previousLevel);
+  const nextCeiling = getCardBpCeilingAtLevel(card, userLevel);
+  return Math.round((previousCeiling + nextCeiling) / 2);
+}
+
 export function computeNaturalCardBp(
   card: Card,
   userLevel: number,
@@ -148,7 +196,8 @@ export interface RescaleCardBpOptions {
 
 /**
  * ユーザーレベルに合わせて BP を再算出。
- * previousLevel < userLevel のときは上限に対する位置を維持し、BP を下げない。
+ * previousLevel < userLevel のときは旧上限に対する比率を仮上限へ引き継ぎ、BP を下げない。
+ * 仮上限は旧・新レベル ceiling の中間とし、編集で伸ばせる余白を残す。
  */
 export function rescaleCardBp(
   card: Card,
@@ -157,27 +206,26 @@ export function rescaleCardBp(
   options: RescaleCardBpOptions = {},
 ): number {
   const previousLevel = options.previousLevel;
-  const newNatural = computeNaturalCardBp(card, userLevel, paletteShopUnlocks);
   const newCeiling = getCardBpCeiling(card, userLevel);
 
   if (
     previousLevel == null ||
     userLevel <= previousLevel
   ) {
-    return newNatural;
+    return computeNaturalCardBp(card, userLevel, paletteShopUnlocks);
   }
 
   const oldBp = card.bp;
   const oldCeiling = getCardBpCeiling(card, previousLevel);
   if (oldBp > oldCeiling) {
-    return Math.min(newCeiling, newNatural);
+    return Math.min(newCeiling, oldBp);
   }
 
+  const virtualCap = getLevelUpVirtualCap(card, previousLevel, userLevel);
   const progress = oldCeiling > 0 ? Math.min(1, oldBp / oldCeiling) : 1;
-  const progressBp = Math.round(newCeiling * progress);
+  const progressBp = Math.round(virtualCap * progress);
 
-  const candidate = Math.min(newCeiling, Math.max(newNatural, progressBp));
-  return Math.min(newCeiling, Math.max(oldBp, candidate));
+  return Math.min(newCeiling, Math.max(oldBp, progressBp));
 }
 
 export function pixelGridsEqual(a: PixelGrid, b: PixelGrid): boolean {
