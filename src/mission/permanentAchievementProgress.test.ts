@@ -69,6 +69,32 @@ describe('permanentAchievementProgress', () => {
     expect(result.state.entries.permanent_own_rarity_r_2?.progress).toBe(2);
   });
 
+  it('returns the same state when ownership sync is repeated without changes', () => {
+    const state = createInitialMissionState(monday);
+    const decks = [
+      [
+        card({ id: 'r1', attribute: 'attack', rarity: 'R' }),
+        null,
+        null,
+        null,
+        null,
+      ],
+    ];
+    const album = createInitialMemoryAlbum();
+
+    const first = syncPermanentOwnershipAchievements(state, decks, album, 1, monday);
+    const second = syncPermanentOwnershipAchievements(
+      first.state,
+      decks,
+      album,
+      1,
+      monday,
+    );
+
+    expect(second.state).toBe(first.state);
+    expect(second.newlyCompleted).toEqual([]);
+  });
+
   it('completes rarity deck win counter missions from battle deck composition', () => {
     const state = createInitialMissionState(monday);
     const deck = [

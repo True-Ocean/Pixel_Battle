@@ -843,6 +843,10 @@ function rectEdgeToward(
   };
 }
 
+function roundLayoutCoord(value: number): number {
+  return Math.round(value);
+}
+
 function FormationArrowLayer({
   boardRef,
   slotRefs,
@@ -856,14 +860,68 @@ function FormationArrowLayer({
     (ArrowLine & { x1: number; y1: number; x2: number; y2: number })[]
   >([]);
 
+  const linesKey = lines.map((line) => line.key).join('|');
+
   useLayoutEffect(() => {
     const board = boardRef.current;
     if (!board || lines.length === 0) {
-      setSegments([]);
+      setSegments((prev) => (prev.length === 0 ? prev : []));
       return;
     }
 
-    const measure = () => {
+    const boardRect = board.getBoundingClientRect();
+    const next = lines
+      .map((line) => {
+        const from = slotRefs.current[`${line.fromSide}:${line.fromPosition}`];
+        const to = slotRefs.current[`${line.toSide}:${line.toPosition}`];
+        if (!from || !to) return null;
+        const fromRect = from.getBoundingClientRect();
+        const toRect = to.getBoundingClientRect();
+        const fromCenterX = fromRect.left + fromRect.width / 2 - boardRect.left;
+        const fromCenterY = fromRect.top + fromRect.height / 2 - boardRect.top;
+        const toCenterX = toRect.left + toRect.width / 2 - boardRect.left;
+        const toCenterY = toRect.top + toRect.height / 2 - boardRect.top;
+        const fromEdge = rectEdgeToward(
+          fromRect,
+          boardRect,
+          toCenterX,
+          toCenterY,
+        );
+        const toEdge = rectEdgeToward(
+          toRect,
+          boardRect,
+          fromCenterX,
+          fromCenterY,
+        );
+        return {
+          ...line,
+          x1: roundLayoutCoord(fromEdge.x),
+          y1: roundLayoutCoord(fromEdge.y),
+          x2: roundLayoutCoord(toEdge.x),
+          y2: roundLayoutCoord(toEdge.y),
+        };
+      })
+      .filter((line): line is NonNullable<typeof line> => line != null);
+    setSegments((prev) =>
+      prev.length === next.length &&
+      prev.every(
+        (segment, index) =>
+          segment.key === next[index]?.key &&
+          segment.x1 === next[index]?.x1 &&
+          segment.y1 === next[index]?.y1 &&
+          segment.x2 === next[index]?.x2 &&
+          segment.y2 === next[index]?.y2,
+      )
+        ? prev
+        : next,
+    );
+  }, [boardRef, slotRefs, linesKey]);
+
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board || lines.length === 0) return;
+
+    const frame = window.requestAnimationFrame(() => {
       const boardRect = board.getBoundingClientRect();
       const next = lines
         .map((line) => {
@@ -890,20 +948,29 @@ function FormationArrowLayer({
           );
           return {
             ...line,
-            x1: fromEdge.x,
-            y1: fromEdge.y,
-            x2: toEdge.x,
-            y2: toEdge.y,
+            x1: roundLayoutCoord(fromEdge.x),
+            y1: roundLayoutCoord(fromEdge.y),
+            x2: roundLayoutCoord(toEdge.x),
+            y2: roundLayoutCoord(toEdge.y),
           };
         })
         .filter((line): line is NonNullable<typeof line> => line != null);
-      setSegments(next);
-    };
-
-    measure();
-    const frame = window.requestAnimationFrame(measure);
+      setSegments((prev) =>
+        prev.length === next.length &&
+        prev.every(
+          (segment, index) =>
+            segment.key === next[index]?.key &&
+            segment.x1 === next[index]?.x1 &&
+            segment.y1 === next[index]?.y1 &&
+            segment.x2 === next[index]?.x2 &&
+            segment.y2 === next[index]?.y2,
+        )
+          ? prev
+          : next,
+      );
+    });
     return () => window.cancelAnimationFrame(frame);
-  }, [boardRef, slotRefs, lines]);
+  }, [boardRef, slotRefs, linesKey]);
 
   if (segments.length === 0) return null;
 
@@ -1019,14 +1086,46 @@ function FormationDamageLayer({
     (DamageMarker & { x: number; y: number })[]
   >([]);
 
+  const markersKey = markers.map((marker) => marker.key).join('|');
+
   useLayoutEffect(() => {
     const board = boardRef.current;
     if (!board || markers.length === 0) {
-      setLabels([]);
+      setLabels((prev) => (prev.length === 0 ? prev : []));
       return;
     }
 
-    const measure = () => {
+    const boardRect = board.getBoundingClientRect();
+    const next = markers
+      .map((marker) => {
+        const slot = slotRefs.current[`${marker.side}:${marker.position}`];
+        if (!slot) return null;
+        const slotRect = slot.getBoundingClientRect();
+        return {
+          ...marker,
+          x: roundLayoutCoord(slotRect.left + slotRect.width / 2 - boardRect.left),
+          y: roundLayoutCoord(slotRect.top + slotRect.height / 2 - boardRect.top),
+        };
+      })
+      .filter((marker): marker is NonNullable<typeof marker> => marker != null);
+    setLabels((prev) =>
+      prev.length === next.length &&
+      prev.every(
+        (label, index) =>
+          label.key === next[index]?.key &&
+          label.x === next[index]?.x &&
+          label.y === next[index]?.y,
+      )
+        ? prev
+        : next,
+    );
+  }, [boardRef, slotRefs, markersKey]);
+
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board || markers.length === 0) return;
+
+    const frame = window.requestAnimationFrame(() => {
       const boardRect = board.getBoundingClientRect();
       const next = markers
         .map((marker) => {
@@ -1035,18 +1134,25 @@ function FormationDamageLayer({
           const slotRect = slot.getBoundingClientRect();
           return {
             ...marker,
-            x: slotRect.left + slotRect.width / 2 - boardRect.left,
-            y: slotRect.top + slotRect.height / 2 - boardRect.top,
+            x: roundLayoutCoord(slotRect.left + slotRect.width / 2 - boardRect.left),
+            y: roundLayoutCoord(slotRect.top + slotRect.height / 2 - boardRect.top),
           };
         })
         .filter((marker): marker is NonNullable<typeof marker> => marker != null);
-      setLabels(next);
-    };
-
-    measure();
-    const frame = window.requestAnimationFrame(measure);
+      setLabels((prev) =>
+        prev.length === next.length &&
+        prev.every(
+          (label, index) =>
+            label.key === next[index]?.key &&
+            label.x === next[index]?.x &&
+            label.y === next[index]?.y,
+        )
+          ? prev
+          : next,
+      );
+    });
     return () => window.cancelAnimationFrame(frame);
-  }, [boardRef, slotRefs, markers]);
+  }, [boardRef, slotRefs, markersKey]);
 
   if (labels.length === 0) return null;
 
@@ -1107,165 +1213,176 @@ function BattleBoard({
   const shieldLines = battle.playback?.shields ?? [];
   const healLines = battle.playback?.heals ?? [];
   const illuminateLines = battle.playback?.illuminates ?? [];
-  const arrowLines: ArrowLine[] = [
-    ...(battle.playback?.phase === 'heal'
-      ? healLines.map((line, index) => ({
-          key: `heal-${index}-${line.side}-${line.fromPosition}-${line.toPosition}`,
-          kind: 'heal' as const,
-          fromSide: line.side,
-          fromPosition: line.fromPosition,
-          toSide: line.side,
-          toPosition: line.toPosition,
-        }))
-      : []),
-    ...(battle.playback?.phase === 'illuminate'
-      ? illuminateLines.map((line, index) => ({
-          key: `illuminate-${index}-${line.side}-${line.fromPosition}-${line.toPosition}`,
-          kind: 'illuminate' as const,
-          fromSide: line.side,
-          fromPosition: line.fromPosition,
-          toSide: line.side === 'player' ? ('cpu' as const) : ('player' as const),
-          toPosition: line.toPosition,
-        }))
-      : []),
-    ...(battle.playback?.phase === 'shield'
-      ? shieldLines.map((line, index) => ({
-          key: `shield-${index}-${line.side}-${line.fromPosition}-${line.toPosition}`,
-          kind: 'shield' as const,
-          fromSide: line.side,
-          fromPosition: line.fromPosition,
-          toSide: line.side,
-          toPosition: line.toPosition,
-        }))
-      : []),
-    ...(activeAttack
-      ? activeAttack.bidirectional
-        ? [
+  const arrowLines = useMemo((): ArrowLine[] => {
+    const lines: ArrowLine[] = [
+      ...(battle.playback?.phase === 'heal'
+        ? healLines.map((line, index) => ({
+            key: `heal-${index}-${line.side}-${line.fromPosition}-${line.toPosition}`,
+            kind: 'heal' as const,
+            fromSide: line.side,
+            fromPosition: line.fromPosition,
+            toSide: line.side,
+            toPosition: line.toPosition,
+          }))
+        : []),
+      ...(battle.playback?.phase === 'illuminate'
+        ? illuminateLines.map((line, index) => ({
+            key: `illuminate-${index}-${line.side}-${line.fromPosition}-${line.toPosition}`,
+            kind: 'illuminate' as const,
+            fromSide: line.side,
+            fromPosition: line.fromPosition,
+            toSide: line.side === 'player' ? ('cpu' as const) : ('player' as const),
+            toPosition: line.toPosition,
+          }))
+        : []),
+      ...(battle.playback?.phase === 'shield'
+        ? shieldLines.map((line, index) => ({
+            key: `shield-${index}-${line.side}-${line.fromPosition}-${line.toPosition}`,
+            kind: 'shield' as const,
+            fromSide: line.side,
+            fromPosition: line.fromPosition,
+            toSide: line.side,
+            toPosition: line.toPosition,
+          }))
+        : []),
+      ...(activeAttack
+        ? activeAttack.bidirectional
+          ? [
+              {
+                key: 'attack-reciprocal',
+                kind: 'attack' as const,
+                fromSide: activeAttack.fromSide,
+                fromPosition: activeAttack.fromPosition,
+                toSide: activeAttack.toSide,
+                toPosition: activeAttack.toPosition,
+                bidirectional: true,
+              },
+            ]
+          : [
             {
-              key: 'attack-reciprocal',
+              key: `attack-${activeAttack.fromSide}-${activeAttack.fromPosition}-${activeAttack.toSide}-${activeAttack.toPosition}`,
               kind: 'attack' as const,
               fromSide: activeAttack.fromSide,
               fromPosition: activeAttack.fromPosition,
               toSide: activeAttack.toSide,
               toPosition: activeAttack.toPosition,
-              bidirectional: true,
             },
           ]
-        : [
-          {
-            key: `attack-${activeAttack.fromSide}-${activeAttack.fromPosition}-${activeAttack.toSide}-${activeAttack.toPosition}`,
-            kind: 'attack' as const,
-            fromSide: activeAttack.fromSide,
-            fromPosition: activeAttack.fromPosition,
-            toSide: activeAttack.toSide,
-            toPosition: activeAttack.toPosition,
-          },
-        ]
-      : []),
-    ...((activeAttack?.kind === 'dual' || activeAttack?.kind === 'storm') &&
-    activeAttack.secondaryToPosition != null
-      ? [
-          {
-            key: `attack-secondary-${activeAttack.fromSide}-${activeAttack.fromPosition}-${activeAttack.toSide}-${activeAttack.secondaryToPosition}`,
-            kind: 'attack-secondary' as const,
-            fromSide: activeAttack.fromSide,
-            fromPosition: activeAttack.fromPosition,
-            toSide: activeAttack.toSide,
-            toPosition: activeAttack.secondaryToPosition,
-          },
-        ]
-      : []),
-  ];
-  const damageMarkers: DamageMarker[] = [];
-  if (
-    battle.effectivePhase === 'turnStartPoison' &&
-    battle.turnStartPlayback?.poisonSubPhase === 'damage'
-  ) {
-    for (const dot of battle.turnStartPlayback.poisonDots) {
-      damageMarkers.push({
-        key: `poison-${dot.side}-${dot.position}`,
-        side: dot.side,
-        position: dot.position,
-        label: `−${dot.damage}`,
-        kind: 'poison',
-      });
-    }
-  }
-  if (
-    battle.playback?.phase === 'heal' &&
-    battle.playback.healSubPhase === 'damage'
-  ) {
-    for (const heal of healLines) {
-      const debuffLabel = [
-        heal.poisonStacksCleared > 0 ? '毒解消' : null,
-        heal.freezeCleared ? '凍結解消' : null,
-      ]
-        .filter((part): part is string => part != null)
-        .join('・');
-      if (heal.amount > 0) {
-        damageMarkers.push({
-          key: `heal-${heal.side}-${heal.toPosition}`,
-          side: heal.side,
-          position: heal.toPosition,
-          label: `+${heal.amount}`,
-          kind: 'heal',
-        });
-      } else if (debuffLabel) {
-        damageMarkers.push({
-          key: `heal-${heal.side}-${heal.toPosition}`,
-          side: heal.side,
-          position: heal.toPosition,
-          label: debuffLabel,
-          kind: 'heal',
+        : []),
+      ...((activeAttack?.kind === 'dual' || activeAttack?.kind === 'storm') &&
+      activeAttack.secondaryToPosition != null
+        ? [
+            {
+              key: `attack-secondary-${activeAttack.fromSide}-${activeAttack.fromPosition}-${activeAttack.toSide}-${activeAttack.secondaryToPosition}`,
+              kind: 'attack-secondary' as const,
+              fromSide: activeAttack.fromSide,
+              fromPosition: activeAttack.fromPosition,
+              toSide: activeAttack.toSide,
+              toPosition: activeAttack.secondaryToPosition,
+            },
+          ]
+        : []),
+    ];
+    return lines;
+  }, [activeAttack, battle.playback]);
+  const damageMarkers = useMemo((): DamageMarker[] => {
+    const markers: DamageMarker[] = [];
+    if (
+      battle.effectivePhase === 'turnStartPoison' &&
+      battle.turnStartPlayback?.poisonSubPhase === 'damage'
+    ) {
+      for (const dot of battle.turnStartPlayback.poisonDots) {
+        markers.push({
+          key: `poison-${dot.side}-${dot.position}`,
+          side: dot.side,
+          position: dot.position,
+          label: `−${dot.damage}`,
+          kind: 'poison',
         });
       }
     }
-  }
-  if (battle.playback?.phase === 'illuminate') {
-    for (const illuminate of illuminateLines) {
-      damageMarkers.push({
-        key: `illuminate-${illuminate.side}-${illuminate.toPosition}`,
-        side: illuminate.side === 'player' ? 'cpu' : 'player',
-        position: illuminate.toPosition,
-        label: 'ステルス解除',
-        kind: 'illuminate',
-      });
+    if (
+      battle.playback?.phase === 'heal' &&
+      battle.playback.healSubPhase === 'damage'
+    ) {
+      for (const heal of healLines) {
+        const debuffLabel = [
+          heal.poisonStacksCleared > 0 ? '毒解消' : null,
+          heal.freezeCleared ? '凍結解消' : null,
+        ]
+          .filter((part): part is string => part != null)
+          .join('・');
+        if (heal.amount > 0) {
+          markers.push({
+            key: `heal-${heal.side}-${heal.toPosition}`,
+            side: heal.side,
+            position: heal.toPosition,
+            label: `+${heal.amount}`,
+            kind: 'heal',
+          });
+        } else if (debuffLabel) {
+          markers.push({
+            key: `heal-${heal.side}-${heal.toPosition}`,
+            side: heal.side,
+            position: heal.toPosition,
+            label: debuffLabel,
+            kind: 'heal',
+          });
+        }
+      }
     }
-  }
-  if (
-    activeAttack &&
-    battle.playback?.phase === 'attack' &&
-    battle.playback.attackSubPhase === 'damage'
-  ) {
-    if (activeAttack.attackerDamage > 0) {
-      damageMarkers.push({
-        key: `attacker-${activeAttack.fromSide}-${activeAttack.fromPosition}`,
-        side: activeAttack.fromSide,
-        position: activeAttack.fromPosition,
-        label: `−${activeAttack.attackerDamage}`,
-      });
-    }
-    if (activeAttack.damage > 0) {
-      damageMarkers.push({
-        key: `target-${activeAttack.toSide}-${activeAttack.toPosition}`,
-        side: activeAttack.toSide,
-        position: activeAttack.toPosition,
-        label: `−${activeAttack.damage}`,
-      });
+    if (battle.playback?.phase === 'illuminate') {
+      for (const illuminate of illuminateLines) {
+        markers.push({
+          key: `illuminate-${illuminate.side}-${illuminate.toPosition}`,
+          side: illuminate.side === 'player' ? 'cpu' : 'player',
+          position: illuminate.toPosition,
+          label: 'ステルス解除',
+          kind: 'illuminate',
+        });
+      }
     }
     if (
-      (activeAttack.kind === 'dual' || activeAttack.kind === 'storm') &&
-      activeAttack.secondaryToPosition != null &&
-      (activeAttack.secondaryDamage ?? 0) > 0
+      activeAttack &&
+      battle.playback?.phase === 'attack' &&
+      battle.playback.attackSubPhase === 'damage'
     ) {
-      damageMarkers.push({
-        key: `secondary-${activeAttack.toSide}-${activeAttack.secondaryToPosition}`,
-        side: activeAttack.toSide,
-        position: activeAttack.secondaryToPosition,
-        label: `−${activeAttack.secondaryDamage}`,
-      });
+      if (activeAttack.attackerDamage > 0) {
+        markers.push({
+          key: `attacker-${activeAttack.fromSide}-${activeAttack.fromPosition}`,
+          side: activeAttack.fromSide,
+          position: activeAttack.fromPosition,
+          label: `−${activeAttack.attackerDamage}`,
+        });
+      }
+      if (activeAttack.damage > 0) {
+        markers.push({
+          key: `target-${activeAttack.toSide}-${activeAttack.toPosition}`,
+          side: activeAttack.toSide,
+          position: activeAttack.toPosition,
+          label: `−${activeAttack.damage}`,
+        });
+      }
+      if (
+        (activeAttack.kind === 'dual' || activeAttack.kind === 'storm') &&
+        activeAttack.secondaryToPosition != null &&
+        (activeAttack.secondaryDamage ?? 0) > 0
+      ) {
+        markers.push({
+          key: `secondary-${activeAttack.toSide}-${activeAttack.secondaryToPosition}`,
+          side: activeAttack.toSide,
+          position: activeAttack.secondaryToPosition,
+          label: `−${activeAttack.secondaryDamage}`,
+        });
+      }
     }
-  }
+    return markers;
+  }, [
+    activeAttack,
+    battle.effectivePhase,
+    battle.playback,
+    battle.turnStartPlayback,
+  ]);
   const registerSlot = useCallback(
     (side: 'cpu' | 'player', position: BoardPosition) =>
       (el: HTMLButtonElement | null) => {

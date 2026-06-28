@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface AnimatedBpProps {
   from: number;
@@ -19,32 +19,40 @@ export function AnimatedBp({
   onComplete,
 }: AnimatedBpProps) {
   const [display, setDisplay] = useState(active ? from : to);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     if (!active) {
-      setDisplay(to);
+      setDisplay((prev) => (prev === to ? prev : to));
       return;
     }
 
-    setDisplay(from);
+    setDisplay((prev) => (prev === from ? prev : from));
     const duration = 480;
     const start = performance.now();
     let frame = 0;
+    let cancelled = false;
 
     const tick = (now: number) => {
+      if (cancelled) return;
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - (1 - t) ** 2;
-      setDisplay(Math.round(from + (to - from) * eased));
+      const next = Math.round(from + (to - from) * eased);
+      setDisplay((prev) => (prev === next ? prev : next));
       if (t < 1) {
         frame = requestAnimationFrame(tick);
       } else {
-        onComplete?.();
+        onCompleteRef.current?.();
       }
     };
 
     frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [active, from, to, onComplete]);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [active, from, to]);
 
   const damage = active && to < from;
   const wounded = maxBp != null && display < maxBp;

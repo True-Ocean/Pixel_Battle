@@ -3,7 +3,12 @@ import type { CSSProperties, KeyboardEvent, TransitionEvent } from 'react';
 import { loadAppData } from '../app/loadAppData';
 import { AppTitle } from './AppTitle';
 
-const TITLE_BG_URL = '/title-bg.svg';
+function resolvePublicAssetUrl(path: string): string {
+  const base = import.meta.env.BASE_URL;
+  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
+
+const TITLE_BG_URL = resolvePublicAssetUrl('title-bg.svg');
 const MIN_DISPLAY_MS = 2000;
 const FADE_MS = 450;
 

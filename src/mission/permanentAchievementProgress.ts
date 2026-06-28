@@ -101,12 +101,14 @@ function syncPermanentRarityOwnershipCounters(
       if (!isPermanentCounterProgressable(entry)) continue;
 
       const progress = Math.min(goal, ownedCount);
-      if (progress <= entry.progress && entry.completedAt != null) continue;
-
       const completedAt =
         progress >= goal && entry.completedAt == null
           ? date.toISOString()
           : entry.completedAt;
+
+      if (progress === entry.progress && completedAt === entry.completedAt) {
+        continue;
+      }
 
       if (completedAt && entry.completedAt == null) {
         newlyCompleted.push(mission);
