@@ -26,6 +26,7 @@ export function getVisibleHelpSections(
 }
 
 export { getBattleHubHelp } from './battleHubHelp';
+export { getBattleHistoryHelp } from './battleHistoryHelp';
 
 function HelpDefinedItem({
   label,
