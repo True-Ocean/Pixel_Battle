@@ -291,7 +291,8 @@ src/
 | 項目 | 内容 |
 |------|------|
 | 画面上部タイトル | **「バトル準備」「バトル！」は表示しない**（アプリ共通ヘッダも非表示） |
-| 中央ガイダンス | 盤面中央の **1行帯**（ピンク〜紫のグラデーション）。ターン・操作ヒントを `TURN N：…` 形式で1行表示 |
+| 中央ガイダンス | 盤面中央の **1行帯**（ピンク〜紫のグラデーション）。**matching / reveal / battle** 共通で **3列グリッド**（`formation-guide-battle--grid`）。ターン・操作ヒントは `TURN N：…` 形式で1行 |
+| 盤面レイアウト（play） | **matching・reveal・battle** は `FormationPlayLayout`（`formation-battle-body-inner` → `formation-battle-focus` → `formation-board-play`）で **カード寸法・縦位置を統一**（`is-play-phase`）。**setup** は別レイアウト（`formation-setup-body`） |
 | 準備時の文言例 | `バトル準備：タップでカードを自由に入れ替え` |
 | バトル時の文言例 | `TURN 1：カードを選択` / `TURN 3：攻撃先か盾先を選択` / `TURN 8：バトル終了！` |
 | スロット枠 | 配置中はカードありスロットの枠を非表示（初期は5枚ランダム配置済み）。バトル中も同様 |
@@ -300,7 +301,7 @@ src/
 | 防御・前衛の操作 | **行動ボタンは置かない**。行動カード選択後、**敵前衛タップ＝攻撃**、**盾なし味方タップ＝盾付与** |
 | 試合終了 | 中央は `TURN N：バトル終了！` のみ。**WIN / LOSE は各陣営エリア中央に大きく重ね表示**（上＝敵、下＝味方）。対人戦では各クライアントの上下を「自分／相手」に割り当てる |
 | 終了後操作 | ガイダンス帯を **3列グリッド**（終了前も同レイアウトで左右に予約スロット）。**新規バトル**（履歴再戦は **もう一度対戦**）/ 中央ガイダンス（ターン文言＋履歴再戦勝利時は **+N px** インライン）/ **バトルログ** |
-| Dock（終了時） | 試合終了で下部 Dock を表示するが、**戦闘中は main の padding と `--formation-battle-chrome` を Dock 非表示時と同一**（Dock は `position: fixed` で重ねる）。通常 CPU 戦・履歴再戦共通 |
+| Dock（終了時） | 試合終了で下部 Dock を表示するが、**戦闘中は main の padding と `--formation-battle-chrome` を Dock 非表示時と同一**（Dock は `position: fixed` で重ねる）。`formation-battle-focus` に **`--formation-battle-dock-clearance` 分の下余白**を常時確保し、味方バナーが Dock と重ならないよう盤面を上寄せ。通常 CPU 戦・履歴再戦共通 |
 | 報酬・ロストモーダル | WIN/LOSE 表示後 **1.5秒**（`BATTLE_OUTCOME_HOLD_MS`）待ってから墓地選択・ロスト抽選等を表示 |
 
 ### 4.6 戦績・バトル履歴
@@ -937,8 +938,8 @@ interface UserAuth {
 
 | フェーズ | 内容 |
 |----------|------|
-| **matching** | 相手探索演出（**2〜4秒** ランダム、`rollMatchingDurationMs`）。敵スロットは空、オーバーレイ「対戦相手を探しています」。**キャンセル不可** |
-| **reveal** | マッチング完了後、敵5枚をスロットに **即表示**。中央に **5秒カウントダウン**（`MATCH_REVEAL_COUNTDOWN_SEC`）。ラベル「マッチング完了、バトル準備まで残り N 秒」。右端に **キャンセル**（**25px**、`BATTLE_MATCH_CANCEL_COST`。コンパクトボタン） |
+| **matching** | 相手探索演出（**2〜4秒** ランダム、`rollMatchingDurationMs`）。敵スロットは空、オーバーレイ「対戦相手を探しています」。ガイド帯は **3列グリッド**・中央に「マッチング中」。**キャンセル不可** |
+| **reveal** | マッチング完了後、敵5枚をスロットに **即表示**。ガイド帯は **3列グリッド**（`formation-guide-battle--reveal-countdown` で左右列を拡幅）— **左「マッチング完了」** / **中央カウントダウン**（`MATCH_REVEAL_COUNTDOWN_SEC`＝**5秒**）/ **右キャンセル**（**25px**、`BATTLE_MATCH_CANCEL_COST`、1行表示）。aria-label は「マッチング完了、バトル準備まで残り N 秒」 |
 | **setup** | 従来の配置フェーズ（§7.1） |
 | **battle** | バトル本編 |
 
@@ -1318,10 +1319,11 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 
 #### 戦闘準備・戦闘画面
 
+- **matching / reveal / battle** は `BattleSetupScreen` の `FormationPlayLayout` で盤面ラッパーを共通化し、CSS クラス **`is-play-phase`** でカード寸法（`--formation-battle-chrome: 16.5rem`）・Dock 下余白（`--formation-battle-dock-clearance`）・ガイド3列グリッドを統一する。**setup** のみ `formation-setup-body` の別レイアウト。
 - 戦闘準備・戦闘中は画面上部の「バトル準備」「バトル！」タイトルおよびアプリ共通ヘッダを **非表示** とする。
 - 中央ガイダンスは **1行帯**（ピンク〜紫グラデーション、左右アクセントライン）。`TURN N：操作ヒント` 形式で常に1行。
 - 準備フェーズは盤面を `formation-setup-body` でスクロール可能にし、下部の **準備完了** は固定。
-- バトル終了後はガイダンス帯に **新規バトル** / **バトルログ** を表示し、下部 **Dock** も出す。戦闘中・終了直後とも **カード寸法と main 高さは Dock 非表示時と同一**（Dock は fixed で重ねる。`is-battle-active` 中は `has-dock` の padding を無効化）。
+- バトル終了後はガイダンス帯に **新規バトル** / **バトルログ** を表示し、下部 **Dock** も出す。戦闘中・終了直後とも **カード寸法は同一**（Dock は fixed で重ねる。`is-play-phase` 中は `has-dock` の padding を無効化し、`formation-battle-focus` の下余白で Dock 重なりを回避）。
 - スロット枠は配置中のみ点線表示。双方配置完了後およびバトル中は、カードありスロットの枠を非表示（`is-frameless`）。
 - 試合終了時、中央は `バトル終了！`、各陣営エリア（`formation-field-cpu` / `formation-field-player`）に WIN/LOSE を重ねる。
 
@@ -1547,7 +1549,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | 51 | ミッション通知 | 達成時トースト（上部中央・4秒）。未受取バッジは Dock + 画面内（選択中タブ含む） |
 | 52 | BGM | 画面別 BGM 切替・設定 ON/OFF・スマホ unlock 対応（§4.10） |
 | 53 | 照属性 | Lv46 解放・能動潜伏解除（照射）・癒と盾の間に解決（ATTRIBUTE_SPEC §4.11） |
-| 54 | マッチング UI | 通常 CPU: 2〜4秒探索 → **5秒** reveal。キャンセル 25px（右端コンパクト）。履歴再戦は探索スキップ（§7.0 / §11.4） |
+| 54 | マッチング UI | 通常 CPU: 2〜4秒探索 → **5秒** reveal（3列ガイド: 完了ラベル / カウントダウン / キャンセル）。履歴再戦は探索スキップ（§7.0 / §11.4） |
 | 55 | ヘルプ | バトルハブ/エディタ/バトル履歴 ? モーダル・マイデッキ初回案内（§4.9） |
 | 61 | 設定画面 | アカウント／**サブスク・課金** セクション分割（§4.11） |
 | 56 | SE 仕様 | [SFX_SPEC.md](./SFX_SPEC.md) v1（9種・未実装） |
@@ -1558,6 +1560,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | 62 | 安定性 | 常設所持系同期 idempotent・バトル演出 DOM オーバーレイ更新ガード・`BASE_URL` 静的アセット・Oswald フォント URL（§2.4 / §4.8.5.3 / §12.6） |
 | 63 | レベルアップ BP | **仮上限** = `round((ceiling(L旧)+ceiling(L新))/2)`。比率引き継ぎで BP を下げない。既存セーブは次回レベルアップのみ（§5.5） |
 | 64 | バトル終了 UI | Dock 表示でも戦闘エリア寸法固定。ガイド3列グリッド常時。WIN/LOSE 後 **1.5秒** でモーダル（§4.5 / §8.7） |
+| 65 | 盤面レイアウト統一 | `FormationPlayLayout` + `is-play-phase` で matching/reveal/battle を同一ラッパー・カード寸法・Dock 下余白に（§4.5 / §7.0 / §12.6） |
 
 ---
 
@@ -1565,6 +1568,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.25 | 2026-06-28 | §4.5 / §7.0 / §12.6 — `FormationPlayLayout`・`is-play-phase` で matching/reveal/battle 盤面統一。Dock 下余白・reveal 3列ガイド。決定履歴 #65 |
 | 2.24 | 2026-06-28 | §4.5 / §8.7 / §12.6 バトル終了 UI（Dock 重ね・3列グリッド・1.5秒モーダル遅延）。§5.5 レベルアップ BP 仮上限。§7.0 / §11.4 / §13 定数（reveal **5秒**）。決定履歴 #63〜64 |
 | 2.23 | 2026-06-28 | §2.4 静的アセット・§4.8.5 所持系同期 idempotent・§12.6 演出オーバーレイ実装ガード。決定履歴 #62 |
 | 2.22 | 2026-06-28 | §4.11 サブスク・課金をアカウントから独立セクションに分割 |
