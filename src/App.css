@@ -4235,10 +4235,6 @@ button.battle-hub-deck-icon.is-move-target {
   pointer-events: none;
 }
 
-.memory-album-expansion-row--spaced {
-  margin-top: 0.65rem;
-}
-
 .memory-album-expansion-row:not(.memory-album-expansion-row--inactive):hover
   .memory-album-expansion-slot-btn:not(:disabled) {
   border-color: #646cff;

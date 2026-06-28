@@ -80,11 +80,9 @@ function MemoryAlbumCardRow({
 }
 
 function MemoryAlbumExpansionSlot({
-  isFirstAfterUnlocked,
   enabled,
   onClick,
 }: {
-  isFirstAfterUnlocked: boolean;
   enabled: boolean;
   onClick: () => void;
 }) {
@@ -93,7 +91,6 @@ function MemoryAlbumExpansionSlot({
       className={[
         'memory-album-row',
         'memory-album-expansion-row',
-        isFirstAfterUnlocked ? 'memory-album-expansion-row--spaced' : '',
         enabled ? '' : 'memory-album-expansion-row--inactive',
       ]
         .filter(Boolean)
@@ -171,9 +168,6 @@ export function MemoryAlbumScreen({
           return (
             <MemoryAlbumExpansionSlot
               key={`expand-${rowIndex}`}
-              isFirstAfterUnlocked={
-                rowIndex === album.unlockedRows && album.unlockedRows === 1
-              }
               enabled={isNextExpansion}
               onClick={() => {
                 if (!isNextExpansion) return;
