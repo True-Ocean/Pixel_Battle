@@ -29,6 +29,8 @@ export const FIELD_SIZE = 3;
 export const SETUP_TIME_LIMIT_SEC = 30;
 /** マッチング完了後、バトル準備画面へ自動遷移するまでの秒数 */
 export const MATCH_REVEAL_COUNTDOWN_SEC = 5;
+/** WIN/LOSE 表示から報酬・ロストモーダルまでの待機 (ms) */
+export const BATTLE_OUTCOME_HOLD_MS = 1500;
 export const CPU_RANDOM_ACTION = true;
 
 /** 属性決定: 色スコア vs hash */

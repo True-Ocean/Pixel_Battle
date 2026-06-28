@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import type { AdState, Attribute, Card, MemoryAlbumState, MissionState, ScreenId, ShopPurchaseState, SubscriptionPlan, UserProfile, UserEconomy, UserInventory, UserSubscription, BattleOutcome, BattleHistoryEntry } from './types';
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { isAttributeUnlockedAtLevel } from './config/attributeUnlock';
-import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX, USER_INITIAL_LEVEL } from './config/balance';
+import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX, USER_INITIAL_LEVEL, BATTLE_OUTCOME_HOLD_MS } from './config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
@@ -278,6 +278,9 @@ function App() {
     playerDeck: Card[];
     playerLevel: number;
   } | null>(null);
+  const battleOutcomeHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const settingsReturnScreenRef = useRef<ScreenId>('deck');
   userRef.current = user;
   economyRef.current = economy;
@@ -302,6 +305,26 @@ function App() {
   const devFileOverrideLevelRef = useRef<number | null | undefined>(
     initialSave.devFileOverrideLevel,
   );
+
+  const clearBattleOutcomeHoldTimer = useCallback(() => {
+    if (battleOutcomeHoldTimerRef.current != null) {
+      window.clearTimeout(battleOutcomeHoldTimerRef.current);
+      battleOutcomeHoldTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleBattleOutcomeModal = useCallback(
+    (showModal: () => void) => {
+      clearBattleOutcomeHoldTimer();
+      battleOutcomeHoldTimerRef.current = window.setTimeout(() => {
+        battleOutcomeHoldTimerRef.current = null;
+        showModal();
+      }, BATTLE_OUTCOME_HOLD_MS);
+    },
+    [clearBattleOutcomeHoldTimer],
+  );
+
+  useEffect(() => () => clearBattleOutcomeHoldTimer(), [clearBattleOutcomeHoldTimer]);
 
   const persistSave = useCallback(
     (next: {
@@ -652,6 +675,7 @@ function App() {
 
   const goToBattleSetup = useCallback(
     (deckIndex?: number) => {
+      clearBattleOutcomeHoldTimer();
       clearHistoryRematch();
       resetHistoryRematchFlow();
       const level = user?.level ?? 1;
@@ -693,7 +717,7 @@ function App() {
       setBattleEndDock(false);
       setScreen('battleSetup');
     },
-    [clearHistoryRematch, resetHistoryRematchFlow, persistSave, user?.level],
+    [clearBattleOutcomeHoldTimer, clearHistoryRematch, resetHistoryRematchFlow, persistSave, user?.level],
   );
 
   const requestGoToBattleSetup = useCallback(
@@ -713,6 +737,7 @@ function App() {
   );
 
   const handleCancelBattleMatch = useCallback(() => {
+    clearBattleOutcomeHoldTimer();
     const nextEconomy = spendFreePixels(
       economyRef.current,
       BATTLE_MATCH_CANCEL_COST,
@@ -727,15 +752,16 @@ function App() {
     setBattleSetupKey((key) => key + 1);
     setBattleHubResetKey((key) => key + 1);
     setScreen('battleHub');
-  }, [clearHistoryRematch, persistSave]);
+  }, [clearBattleOutcomeHoldTimer, clearHistoryRematch, persistSave]);
 
   const handleCancelHistoryRematch = useCallback(() => {
+    clearBattleOutcomeHoldTimer();
     setBattleEndDock(false);
     clearHistoryRematch();
     resetHistoryRematchFlow();
     setBattleSetupKey((key) => key + 1);
     setScreen('records');
-  }, [clearHistoryRematch, resetHistoryRematchFlow]);
+  }, [clearBattleOutcomeHoldTimer, clearHistoryRematch, resetHistoryRematchFlow]);
 
   const continueHistoryRematch = useCallback(
     (entry: BattleHistoryEntry) => {
@@ -1787,7 +1813,7 @@ function App() {
         outcome.winner === 'player' &&
         outcome.defeatedCpuCards.length > 0
       ) {
-        setPendingGraveyardOutcome(outcome);
+        scheduleBattleOutcomeModal(() => setPendingGraveyardOutcome(outcome));
         return;
       }
       if (
@@ -1802,12 +1828,16 @@ function App() {
           finalizeBattleOutcome(outcome, {});
           return;
         }
-        setPendingLostRouletteOutcome(outcome);
+        scheduleBattleOutcomeModal(() => setPendingLostRouletteOutcome(outcome));
         return;
       }
       finalizeBattleOutcome(outcome, {});
     },
-    [finalizeBattleOutcome, finalizeHistoryRematchOutcome],
+    [
+      finalizeBattleOutcome,
+      finalizeHistoryRematchOutcome,
+      scheduleBattleOutcomeModal,
+    ],
   );
 
   const handleGraveyardPick = useCallback(
@@ -2350,6 +2380,7 @@ function App() {
 
   const selectTab = useCallback(
     (tab: TabId) => {
+      clearBattleOutcomeHoldTimer();
       setBattleEndDock(false);
       clearHistoryRematch();
       resetHistoryRematchFlow();
@@ -2361,7 +2392,7 @@ function App() {
       }
       setScreen(tab);
     },
-    [clearHistoryRematch, resetHistoryRematchFlow],
+    [clearBattleOutcomeHoldTimer, clearHistoryRematch, resetHistoryRematchFlow],
   );
 
   const handleBattleLogViewed = useCallback(() => {
