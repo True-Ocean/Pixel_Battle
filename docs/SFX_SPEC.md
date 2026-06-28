@@ -261,7 +261,7 @@ public/
 | 項目 | 内容 |
 |------|------|
 | 形式 | **mp3**（BGM と統一） |
-| 配信 | `import.meta.env.BASE_URL` 経由（`bgmPlayer` と同パターン） |
+| 配信 | `import.meta.env.BASE_URL` 経由（`bgmPlayer` と同パターン。[PROTOTYPE §2.4](./PROTOTYPE_DEVELOPMENT_SPEC.md#24-静的アセットと公開パス)） |
 | PWA | `vite.config.ts` の `includeAssets` / `globPatterns` に `audio/sfx/*.mp3` を追加 |
 
 ### 7.3 設定マスタ（案）

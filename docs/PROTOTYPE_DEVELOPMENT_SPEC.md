@@ -2,7 +2,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| ドキュメント版 | 2.19 |
+| ドキュメント版 | 2.23 |
 | 最終更新 | 2026-06-28 |
 | 関連 | [属性・戦闘効果仕様](./ATTRIBUTE_SPEC.md) / [効果音仕様](./SFX_SPEC.md) / [経済仕様](./ECONOMY_SPEC.md) / [経済ロードマップ](./ECONOMY_ROADMAP.md) |
 | 対象 | ウェブプロトタイプ（React + Vite + TypeScript） |
@@ -102,6 +102,15 @@ src/
 ```
 
 **原則**: `game/` と `card/` は React に依存しない関数・型のみとし、Unity（C#）移植時は仕様書 + テストケースを参照して再実装する。
+
+### 2.4 静的アセットと公開パス
+
+| 項目 | 内容 |
+|------|------|
+| `base` | `vite.config.ts` の `base: '/Pixel_Battle/'`（GitHub Pages 等のサブパス配信） |
+| `public/` 参照 | ルート絶対パス（例: `/title-bg.svg`）は **使わない**。`import.meta.env.BASE_URL` 経由で解決する（`src/audio/bgmPlayer.ts`・`TitleScreen.tsx` と同パターン） |
+| 外部フォント | `index.html` で Google Fonts（Oswald）。**weight 700（通常体）のみ**使用。`ital,wght@1,700` 等の italic 単独指定 URL は API が 400 を返すため不可 |
+| フォント用途 | 準備フェーズ・reveal カウントダウン数字（`font-weight: 700`。italic は未使用） |
 
 ---
 
@@ -435,6 +444,17 @@ src/
 
 **同期タイミング**: デッキ/アルバム変更・レベルアップ・アプリ読込（`syncPermanentOwnershipAchievements`）。バトル勝利時は `reportPermanentDeckWinAchievements`（`App.tsx` の通常 CPU 戦フローのみ）。
 
+**同期の不変条件（idempotent）**: 入力（デッキ・アルバム・ユーザーレベル）が変わらない限り、所持系同期は **同じ `MissionState` 参照** を返す。各エントリは `progress` と `completedAt` が前回と同一なら更新しない。起動時 effect 等での `setMissionState` → 永続化 → effect 再実行ループを防ぐ。
+
+##### 4.8.5.3 実装上の注意（所持系同期）
+
+| 項目 | 内容 |
+|------|------|
+| 実装 | `syncPermanentRarityOwnershipCounters`（`permanentAchievementProgress.ts`） |
+| 判定 | 各 mission エントリで `progress === entry.progress && completedAt === entry.completedAt` ならスキップ |
+| テスト | 同一入力で 2 回 sync しても `state` 参照が変わらないこと（`permanentAchievementProgress.test.ts`） |
+| 呼び出し側 | `App.tsx` の `syncAndPersistOwnershipAchievements` は `result.state !== prev` のときのみ `setMissionState` / 永続化 |
+
 #### 4.8.6 報酬概要（2026-06 時点・`missions.ts`）
 
 **デイリー**（6件・日計 **45 px + 💎1**）: ログイン 5 / CPU 1勝 5 / 3勝 10 / 5勝 15+💎1 / 編集 5 / 履歴再戦勝利 5
@@ -452,7 +472,7 @@ src/
 | 常設レア度カウンター | `src/config/permanentRarityCounters.ts` |
 | 常設属性達成型 | `src/config/permanentAchievements.ts` |
 | 属性・レア度判定 | `src/mission/attributeCollection.ts` |
-| 達成型同期 | `src/mission/permanentAchievementProgress.ts` |
+| 達成型同期 | `src/mission/permanentAchievementProgress.ts`（所持系は idempotent。§4.8.5.3） |
 | エンジン | `src/mission/{progress,claim,reset,navigation,display,toast}.ts` |
 | 永続化 | `src/user/missionState.ts`（`permanentTierCaps` 含む） |
 | UI | `MissionScreen`, `MissionCard`, `MissionListPanel`, … |
@@ -1337,6 +1357,17 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
    - **BPカウントダウン中は攻撃矢印を非表示** にする（ダメージ表示フェーズでのみ表示）。
    - ダメージ表示は矢印レイヤーより上の専用レイヤーに描画し、矢印に隠れないようにする。
 
+   **React 実装（`BattleSetupScreen`）**
+
+   | 項目 | 内容 |
+   |------|------|
+   | 矢印 | `FormationArrowLayer` — DOM 計測で端点座標を SVG 描画 |
+   | ダメージ | `FormationDamageLayer` — スロット中央にフロート表示 |
+   | 演出データ | `arrowLines` / `damageMarkers` は `useMemo` で参照を安定化 |
+   | 座標更新 | `getBoundingClientRect` の結果は **整数 px に丸め**。前回と同一なら `setState` しない |
+   | 計測タイミング | 初回は `useLayoutEffect`、描画後の再計測は `useEffect` + 1 回 `requestAnimationFrame` |
+   | BP 演出 | `AnimatedBp` — rAF ティックで同値更新をスキップ。`onComplete` は ref 経由（effect 再起動防止） |
+
 4. **その他**
    - 処理中のカードは揺れエフェクトを付ける。
    - バトルログは画面に出さない。内部ログ・構造化イベントはリプレイ用に維持する。
@@ -1519,12 +1550,15 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | 58 | 属性詳細 UI | battleGuide 簡潔化・用語タップモーダル（ATTRIBUTE_SPEC §2.5） |
 | 59 | サブスク UI | プラン説明から月次付与の重複文言を削除。アップグレード時月次差分は全量一括（ECONOMY §12.1.1） |
 
+| 62 | 安定性 | 常設所持系同期 idempotent・バトル演出 DOM オーバーレイ更新ガード・`BASE_URL` 静的アセット・Oswald フォント URL（§2.4 / §4.8.5.3 / §12.6） |
+
 ---
 
 ## 改訂履歴
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.23 | 2026-06-28 | §2.4 静的アセット・§4.8.5 所持系同期 idempotent・§12.6 演出オーバーレイ実装ガード。決定履歴 #62 |
 | 2.22 | 2026-06-28 | §4.11 サブスク・課金をアカウントから独立セクションに分割 |
 | 2.21 | 2026-06-28 | §4.11 テスト指標（課金累計・広告視聴）をアカウント欄で全ユーザー閲覧可に |
 | 2.20 | 2026-06-28 | §4.6 バトル履歴ヘルプ・§4.9 拡張・§4.11 設定画面（アカウント並び・テスト指標）。決定履歴 #61 |
