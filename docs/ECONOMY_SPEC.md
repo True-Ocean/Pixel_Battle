@@ -178,7 +178,7 @@ px = floor(√塗り数 × K × 色係数)
 | 広告 | **3回に1回**、ルールモーダル後・**デッキ選択の前** にモックリワード広告（[§11.4](#114-履歴再戦モック)） |
 | デッキ選択 | 通常 CPU 戦と同一 UI（`BattleDeckSelectScreen`）。**5枚揃い** なら **ロストカード含め** 出撃可（`deckReadinessMode="historyRematch"`） |
 | 相手デッキ | 履歴の **カード構成は維持**。**BP のみ** 現在のユーザーレベルで再計算（`prepareHistoryOpponentDeck`） |
-| マッチング演出 | **相手探索（matching）はスキップ**（相手確定済み）。**3秒 reveal カウントダウンは実施**（敵5枚は即スロット表示）。キャンセル **px 不要** |
+| マッチング演出 | **相手探索（matching）はスキップ**（相手確定済み）。**5秒 reveal カウントダウンは実施**（敵5枚は即スロット表示）。キャンセル **px 不要** |
 | 履歴追記 | **しない** |
 | 戦績 | カード `wins` / `losses`・ユーザー戦績は **更新しない** |
 | EXP | **加算しない** |
@@ -538,6 +538,7 @@ SR★3 --(4回目)--> UR★0  （UR 実装後）
 | イベント | BP |
 |----------|-----|
 | ★アップ・レア昇格 | **均等加算**（`LIMIT_BREAK_BP_GAIN_RATE` × 基礎BP、1回ごとに同じ増加量） |
+| **ユーザーレベルアップ** | デッキ全カードを `rescaleCardBp`。**仮上限**（旧・新レベル `ceiling` の中間）へ旧上限に対する比率を引き継ぎ。既存セーブは **次回レベルアップ時のみ**（`BP_CALC_VERSION` 据え置き。[PROTOTYPE §5.5](./PROTOTYPE_DEVELOPMENT_SPEC.md#55-bp-決定)） |
 | ~~降格復活~~ | ~~降格後レアの基礎 BP へ再計算~~（**廃止** — 2026-06-20） |
 
 - 基礎 BP は `getCardFoundationBp`（色バランス + hash、レア・★適用前）。限界突破のたびに `round(基礎BP × 0.03)` を加算（最低1）。
@@ -1500,6 +1501,7 @@ floor( 塗りマス数 × REVIVE_PAINTED_MULTIPLIER × レア倍率 × ★倍率
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.18 | 2026-06-28 | §9.4 ユーザーレベルアップ時の BP 再計算（仮上限方式）。§4.1.2 reveal **5秒** |
 | 2.17 | 2026-06-28 | §15.2 — テスト指標を設定アカウント欄で全ユーザー閲覧可に変更（[PROTOTYPE §4.11](./PROTOTYPE_DEVELOPMENT_SPEC.md#411-設定画面)） |
 | 2.16 | 2026-06-28 | §15.2 — テスト期間用 `mockLifetimeSpendYen` / `mockAdsWatchedTotal`。設定画面表示は [PROTOTYPE §4.11](./PROTOTYPE_DEVELOPMENT_SPEC.md#411-設定画面) |
 | 2.15 | 2026-06-28 | §18 — 常設ミッション再設計は [PROTOTYPE §4.8.5](./PROTOTYPE_DEVELOPMENT_SPEC.md#485-常設ミッション) を参照 |

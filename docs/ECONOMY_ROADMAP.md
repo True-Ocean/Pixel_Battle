@@ -134,7 +134,7 @@
 
 ---
 
-## 2. 現状（2026-06-27 時点）
+## 2. 現状（2026-06-28 時点）
 
 | 領域 | 状態 |
 |------|------|
@@ -182,6 +182,8 @@
 | **照属性（Lv46）** | ✅ 戦闘実装（[ATTRIBUTE_SPEC §4.11](./ATTRIBUTE_SPEC.md#411-照illuminate実装済み)） |
 | **効果音（SE）** | 仕様のみ — [SFX_SPEC.md](./SFX_SPEC.md) v1（9種・**未実装**） |
 | **UI ナビ** | Dock 再構成（マイデッキ/ミッション/バトル/ショップ/所持品）。戦績はバトルハブ 📊（[PROTOTYPE #48](./PROTOTYPE_DEVELOPMENT_SPEC.md#15-決定履歴サマリ)） |
+| **レベルアップ BP 再計算** | ✅ 仮上限方式（`rescaleCardBp`・既存セーブは次回レベルアップ時適用。[PROTOTYPE §5.5](./PROTOTYPE_DEVELOPMENT_SPEC.md#55-bp-決定)） |
+| **バトル終了 UI** | ✅ Dock 表示時も戦闘エリア寸法固定・ガイド3列グリッド・WIN/LOSE 後 1.5秒でモーダル（[PROTOTYPE §4.5](./PROTOTYPE_DEVELOPMENT_SPEC.md#45-戦闘準備戦闘画面-ui)） |
 
 ---
 
