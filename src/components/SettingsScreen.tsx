@@ -35,6 +35,8 @@ export interface SettingsScreenProps {
   universalShardCount: number;
   talismanCount: number;
   subscriptionLabel: string;
+  mockLifetimeSpendYen?: number;
+  mockAdsWatchedTotal?: number;
   soundEnabled: boolean;
   onSoundEnabledChange: (enabled: boolean) => void;
   onBack?: () => void;
@@ -92,13 +94,15 @@ function SettingsRow({
   label,
   value,
   hint,
+  devMetric = false,
 }: {
   label: string;
   value?: string;
   hint?: string;
+  devMetric?: boolean;
 }) {
   return (
-    <div className="settings-row">
+    <div className={`settings-row${devMetric ? ' settings-row--dev-metric' : ''}`}>
       <span className="settings-row-label">{label}</span>
       <span className="settings-row-value">
         {value ?? hint}
@@ -261,6 +265,8 @@ export function SettingsScreen({
   universalShardCount,
   talismanCount,
   subscriptionLabel,
+  mockLifetimeSpendYen = 0,
+  mockAdsWatchedTotal = 0,
   soundEnabled,
   onSoundEnabledChange,
   onBack,
@@ -545,12 +551,11 @@ export function SettingsScreen({
       <div className="settings-scroll">
         <SettingsSection title="アカウント" compact>
           <SettingsRow label="ユーザー名" value={user.username} />
-          <SettingsRow label="レベル" value={`Lv.${user.level}`} />
           <SettingsRow
             label="戦績"
             value={`${user.battleWins}勝 ${user.battleLosses}敗`}
           />
-          <SettingsRow label="サブスク" value={subscriptionLabel} />
+          <SettingsRow label="レベル" value={`Lv.${user.level}`} />
           <div className="settings-progress-wrap">
             <div className="settings-progress-label">
               {isMaxLevel ? 'レベル上限' : `次のレベルまで ${percent}%`}
@@ -568,6 +573,21 @@ export function SettingsScreen({
               />
             </div>
           </div>
+          <SettingsRow label="サブスク" value={subscriptionLabel} />
+          {isDev && (
+            <>
+              <SettingsRow
+                devMetric
+                label="課金額累計（テスト）"
+                value={`${mockLifetimeSpendYen.toLocaleString()}円`}
+              />
+              <SettingsRow
+                devMetric
+                label="広告視聴回数（テスト）"
+                value={`${mockAdsWatchedTotal.toLocaleString()}回`}
+              />
+            </>
+          )}
         </SettingsSection>
 
         {isDev && (

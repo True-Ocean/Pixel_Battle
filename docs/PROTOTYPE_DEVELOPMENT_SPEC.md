@@ -301,6 +301,7 @@ src/
 | サブタブ | **バトル履歴** / ランキング（準備中） |
 | 一覧 | 直近 **20件**（`BATTLE_HISTORY_MAX`）。相手デッキのサムネ5枚は **レアリティ枠色** 付き |
 | 詳細 | 対戦日時・勝敗・戦力・相手デッキ5枚。「**もう一度対戦する**」で履歴再戦フローへ |
+| ヘルプ | **バトル履歴**サブタブ選択時のみ右上 **?** → `getBattleHistoryHelp()`（[§4.9](#49-ヘルプ初回案内)）。ランキングタブでは非表示 |
 | 記録対象 | **通常 CPU 戦のみ**（履歴再戦は追記しない） |
 | 実装 | `battleHistory.ts`, `BattleHistoryList`, `BattleHistoryDetailOverlay` |
 
@@ -461,9 +462,10 @@ src/
 | 項目 | 内容 |
 |------|------|
 | バトルハブ | 右上 **?**（`HelpInfoButton`）→ `HelpPanelModal`。内容は `getBattleHubHelp(userLevel)`（[§4.7](#47-バトルハブデッキ選択) の流れ・Lost 等。Lv ゲート付きセクションあり） |
+| バトル履歴 | **バトル履歴**サブタブ時のみ右上 **?** → `getBattleHistoryHelp()`（一覧・対戦詳細の見方。再戦ルールは再戦開始モーダル側） |
 | エディタ | 右上 **?** → `getEditorHelp(isEditing)`（新規/編集で文言切替） |
 | マイデッキ初回 | 初回訪問時 `DeckIntroModal`（5枚未満でも表示可）。閉じると `deckIntroSeen: true` を永続化 |
-| 定義 | `src/config/helpContent.ts` |
+| 定義 | `src/config/helpContent.ts`, `battleHubHelp.tsx`, `battleHistoryHelp.ts` |
 | 実装 | `HelpInfoButton.tsx`, `HelpPanelModal.tsx`, `DeckIntroModal.tsx` |
 
 ### 4.10 サウンド（BGM）
@@ -475,6 +477,16 @@ src/
 | 設定 | 設定画面 **BGM** トグル → `SaveData.soundEnabled`（デフォルト OFF）。ON で BGM 再生 |
 | 自動再生 | 初回 `pointerdown` / `keydown` で `unlock()`。設定 ON 時はユーザー操作の同期コンテキスト内でも再生（スマホ対応） |
 | SE | [SFX_SPEC.md](./SFX_SPEC.md) 参照（v1 未実装） |
+
+### 4.11 設定画面
+
+| 項目 | 内容 |
+|------|------|
+| 入口 | ヘッダー三本線メニュー → **設定**（`SettingsScreen`） |
+| アカウント | 表示順: **ユーザー名** → **戦績** → **レベル** → EXP バー → **サブスク**（読取専用ラベル） |
+| その他 | **BGM** トグル。通知・アカウント連携・利用規約は準備中プレースホルダ |
+| 開発（DEV のみ） | レベル/通貨/スロット/サブスク切替・所持品・お絵描き解放・カード操作 等 |
+| テスト指標（DEV のみ） | アカウント欄末尾 — **課金額累計**（`shopPurchase.mockLifetimeSpendYen`・円建てモック購入のみ）/ **広告視聴回数**（`adState.mockAdsWatchedTotal`・`MockRewardAdModal` 視聴完了）。**リリース前に削除予定** |
 
 ---
 
@@ -838,6 +850,8 @@ interface SaveData {
 |------------|------|
 | `soundEnabled?` | BGM ON/OFF（省略時 **false**）。`normalizeSoundEnabled` |
 | `deckIntroSeen?` | マイデッキ初回案内（`DeckIntroModal`）を表示済みか |
+| `shopPurchase.mockLifetimeSpendYen?` | **DEV テスト用** — モック現金課金累計（円） |
+| `adState.mockAdsWatchedTotal?` | **DEV テスト用** — モック広告視聴完了累計 |
 
 **EXP・レベルアップ（`src/user/level.ts`）**
 
@@ -1497,7 +1511,8 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | 52 | BGM | 画面別 BGM 切替・設定 ON/OFF・スマホ unlock 対応（§4.10） |
 | 53 | 照属性 | Lv46 解放・能動潜伏解除（照射）・癒と盾の間に解決（ATTRIBUTE_SPEC §4.11） |
 | 54 | マッチング UI | 通常 CPU: 2〜4秒探索 → 3秒 reveal。キャンセル 25px。履歴再戦は探索スキップ（§7.0 / §11.4） |
-| 55 | ヘルプ | バトルハブ/エディタ ? モーダル・マイデッキ初回案内（§4.9） |
+| 55 | ヘルプ | バトルハブ/エディタ/バトル履歴 ? モーダル・マイデッキ初回案内（§4.9） |
+| 61 | 設定アカウント | 戦績→レベル順・サブスク末尾。DEV: 課金累計・広告視聴回数（§4.11） |
 | 56 | SE 仕様 | [SFX_SPEC.md](./SFX_SPEC.md) v1（9種・未実装） |
 | 57 | カードノート | プレミアム編集・全員閲覧。全角100文字（ECONOMY §8.5） |
 | 58 | 属性詳細 UI | battleGuide 簡潔化・用語タップモーダル（ATTRIBUTE_SPEC §2.5） |
@@ -1509,6 +1524,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.20 | 2026-06-28 | §4.6 バトル履歴ヘルプ・§4.9 拡張・§4.11 設定画面（アカウント並び・DEV テスト指標）。決定履歴 #61 |
 | 2.19 | 2026-06-28 | §4.8 常設ミッション再設計 — 16 カウンター（刻み可変）・属性/レア度トラック・全属性コンプ廃止。§4.8.3 説明2行。決定履歴 #60 |
 | 2.18 | 2026-06-27 | 監査反映 — §11 敗北・ロスト（仮ロスト廃止）。§4.2/§4.3 Lost UI・💎削除。§6.2 型を `src/types` 整合・`SAVE_SCHEMA_VERSION=1`。定数表から `PROTOTYPE_FAKE_LOSS` 削除。盾付与は自分可 |
 | 2.17 | 2026-06-27 | §4.3.1 詳細説明・用語モーダル・カードノート閲覧。§4.4 ノート編集。§9.1 UI 表記（潜伏・照射）。§12.5 config 参照。決定履歴 #57〜59 |

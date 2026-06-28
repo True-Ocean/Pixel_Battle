@@ -68,6 +68,10 @@ export function normalizeAdState(raw: unknown, date: Date = new Date()): AdState
     lostCardDeckNoticeDismissedDayKey === todayKey
       ? todayKey
       : undefined;
+  const mockAdsWatchedTotal =
+    candidate.mockAdsWatchedTotal !== undefined
+      ? normalizeNonNegativeInt(candidate.mockAdsWatchedTotal)
+      : undefined;
 
   return {
     hasEverCompletedBattleDeck,
@@ -81,6 +85,9 @@ export function normalizeAdState(raw: unknown, date: Date = new Date()): AdState
       ? { lostCardDeckNoticeDismissedDayKey: lostCardNoticeDismissedToday }
       : {}),
     ...(creativeAdCounter != null ? { creativeAdCounter } : {}),
+    ...(mockAdsWatchedTotal != null && mockAdsWatchedTotal > 0
+      ? { mockAdsWatchedTotal }
+      : {}),
   };
 }
 
@@ -130,4 +137,16 @@ export function isNormalBattleAdsEnabledAtUserLevel(userLevel: number): boolean 
 /** 次のバトル開始でリワード広告が必要か（通常・履歴再戦共通・3回に1回） */
 export function shouldRequireBattleStartAd(battleStarts: number): boolean {
   return (battleStarts + 1) % 3 === 0;
+}
+
+export function getMockAdsWatchedTotal(adState: AdState): number {
+  return normalizeNonNegativeInt(adState.mockAdsWatchedTotal);
+}
+
+/** 開発テスト用: モック広告の視聴完了を1回記録 */
+export function recordMockAdWatched(adState: AdState): AdState {
+  return {
+    ...adState,
+    mockAdsWatchedTotal: getMockAdsWatchedTotal(adState) + 1,
+  };
 }

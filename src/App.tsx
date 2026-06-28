@@ -11,7 +11,7 @@ import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { createInitialMissionState } from './user/missionState';
-import { getBattlesDayKey } from './user/adState';
+import { getBattlesDayKey, getMockAdsWatchedTotal, recordMockAdWatched } from './user/adState';
 import { applyMissionResets, hasMissionPeriodExpired } from './mission/reset';
 import {
   applyMissionEvents,
@@ -55,6 +55,7 @@ import {
   mockSubscribe,
   normalizeShopPurchaseState,
   normalizeUserSubscription,
+  getMockLifetimeSpendYen,
 } from './user/shop';
 import {
   calcReviveCost,
@@ -402,6 +403,13 @@ function App() {
     },
     [persistSave],
   );
+
+  const recordMockAdWatchedAndPersist = useCallback(() => {
+    const next = recordMockAdWatched(adStateRef.current);
+    adStateRef.current = next;
+    setAdState(next);
+    persistSave({ adState: next });
+  }, [persistSave]);
 
   const syncAndPersistOwnershipAchievements = useCallback(
     (
@@ -2709,6 +2717,8 @@ function App() {
             universalShardCount={inventory.limitBreakUniversal}
             talismanCount={inventory.talisman}
             subscriptionLabel={subscriptionPlanLabel}
+            mockLifetimeSpendYen={getMockLifetimeSpendYen(shopPurchase)}
+            mockAdsWatchedTotal={getMockAdsWatchedTotal(adState)}
             soundEnabled={soundEnabled}
             onSoundEnabledChange={handleSoundEnabledChange}
             onBack={closeSettings}
@@ -2829,6 +2839,7 @@ function App() {
           title="バトル開始のための広告視聴"
           message="3回に1回、バトル開始前にリワード広告の視聴が必要です（モック）"
           onComplete={() => {
+            recordMockAdWatchedAndPersist();
             setBattleStartPendingAd((pending) => {
               if (pending?.kind === 'normal') {
                 goToBattleSetup(pending.deckIndex);
@@ -2846,6 +2857,7 @@ function App() {
           title="報酬2倍のための広告視聴"
           message="広告視聴後、このバトルの EXP・コイン・かけら報酬が2倍になります（モック）"
           onComplete={() => {
+            recordMockAdWatchedAndPersist();
             setGraveyardVictoryDoubleCard((card) => {
               if (card) {
                 handleGraveyardPick(card, { doubleRewards: true });
@@ -2861,6 +2873,7 @@ function App() {
           title="編集のための広告視聴"
           message="広告視聴後、カード編集画面へ進みます（モック）"
           onComplete={() => {
+            recordMockAdWatchedAndPersist();
             setCardEditPendingAd((card) => {
               if (card) {
                 setEditingCard(card);

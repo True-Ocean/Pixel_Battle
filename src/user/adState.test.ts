@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   createInitialAdState,
   getBattlesDayKey,
+  getMockAdsWatchedTotal,
   isNormalBattleAdsEnabledAtUserLevel,
   normalizeAdState,
+  recordMockAdWatched,
   shouldRequireBattleStartAd,
   shouldShowHistoryRematchRulesModal,
   shouldShowLostCardDeckNoticeModal,
@@ -128,5 +130,13 @@ describe('ad state', () => {
         date,
       ),
     ).toBe(true);
+  });
+
+  it('records mock ad watch total', () => {
+    const adState = createInitialAdState();
+    const once = recordMockAdWatched(adState);
+    expect(getMockAdsWatchedTotal(once)).toBe(1);
+    const twice = recordMockAdWatched(once);
+    expect(getMockAdsWatchedTotal(twice)).toBe(2);
   });
 });

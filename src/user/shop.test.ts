@@ -11,6 +11,7 @@ import { createInitialEconomy, createInitialInventory } from '../user';
 import {
   applyDueSubscriptionGrants,
   canPurchaseUniversalShardPackToday,
+  getMockLifetimeSpendYen,
   mockPurchaseJewelPack,
   mockPurchaseTalisman,
   mockPurchaseUniversalShardPack,
@@ -277,5 +278,16 @@ describe('mockPurchaseJewelPack', () => {
     );
     expect(result.shopPurchase.jewelPack200FirstBonusUsed).toBe(true);
     expect(result.economy.jewels).toBe(200);
+  });
+
+  it('accumulates mock lifetime spend in yen', () => {
+    const result = mockPurchaseJewelPack(
+      createInitialEconomy(),
+      createInitialInventory(),
+      { mockLifetimeSpendYen: 500 },
+      { plan: 'none' },
+      'pack200',
+    );
+    expect(getMockLifetimeSpendYen(result.shopPurchase)).toBe(700);
   });
 });

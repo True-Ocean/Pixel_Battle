@@ -168,7 +168,7 @@
 | レベルアップ UI | ✅ px 数値→アイコン、💎 **合計30/Lv** 表示、L≡4 かけら・L20+ 護符を追加報酬リストに表示 |
 | デッキ選択 UI | ✅ 常時2行ヒント、通常戦の黄色注意削除 |
 | ヘッダーメニュー | ✅ 三本線を `user-profile-bar` 内に配置 |
-| 開発メニュー | ✅ 設定画面 — 「すべてのかけらを100個にする」、**色パレット（ショップ追加分）全解放/未解放** |
+| 開発メニュー | ✅ 設定画面 — 「すべてのかけらを100個にする」、**色パレット（ショップ追加分）全解放/未解放**、**DEV テスト指標**（課金累計・広告視聴回数 — [PROTOTYPE §4.11](./PROTOTYPE_DEVELOPMENT_SPEC.md#411-設定画面)） |
 | 広告（創作保存ゲート） | ❌ `hasEverCompletedBattleDeck` 未使用。編集入室前暫定広告のみ |
 | **追加色パレット** | ✅ `PaletteUnlockModal`・`paletteShopUnlocks`。**編集画面**から購入 |
 | ショップ画面 | ✅ **3タブ**（💎 / アイテム / サブスク）・モック購入（**2026-06-20 完了**） |
@@ -177,7 +177,7 @@
 | **サブスク特典（§11.5）** | ✅ ライト CM 解除・プレ常時2倍（**フェーズ9 完了**） |
 | **ミッション** | ✅ デイリー6/ウィークリー7/常設 16 カウンター+属性・R/SR トラック/ビギナー12 STEP（[PROTOTYPE §4.8](./PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション)） |
 | **BGM** | ✅ `bgmPlayer` / `soundEnabled` / 設定画面トグル（[PROTOTYPE §4.10](./PROTOTYPE_DEVELOPMENT_SPEC.md#410-サウンドbgm)） |
-| **ヘルプ** | ✅ バトルハブ/エディタ ? モーダル・マイデッキ初回案内（[PROTOTYPE §4.9](./PROTOTYPE_DEVELOPMENT_SPEC.md#49-ヘルプ初回案内)） |
+| **ヘルプ** | ✅ バトルハブ/エディタ/バトル履歴 ? モーダル・マイデッキ初回案内（[PROTOTYPE §4.9](./PROTOTYPE_DEVELOPMENT_SPEC.md#49-ヘルプ初回案内)） |
 | **照属性（Lv46）** | ✅ 戦闘実装（[ATTRIBUTE_SPEC §4.11](./ATTRIBUTE_SPEC.md#411-照illuminate実装済み)） |
 | **効果音（SE）** | 仕様のみ — [SFX_SPEC.md](./SFX_SPEC.md) v1（9種・**未実装**） |
 | **UI ナビ** | Dock 再構成（マイデッキ/ミッション/バトル/ショップ/所持品）。戦績はバトルハブ 📊（[PROTOTYPE #48](./PROTOTYPE_DEVELOPMENT_SPEC.md#15-決定履歴サマリ)） |

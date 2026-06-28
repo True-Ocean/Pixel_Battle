@@ -981,9 +981,11 @@ interface AdState {
   hasEverCompletedBattleDeck: boolean;
   battlesToday: number;
   battlesDayKey: string;      // "YYYY-MM-DD"（JST）
+  battleStarts?: number;        // 3回に1回広告判定（通常・履歴再戦共通）
   creativeAdCounter?: number; // ライト用
-  historyRematchStarts?: number; // 履歴再戦開始回数（§11.4）
-  historyRematchRulesDismissedDayKey?: string; // 再戦ルール非表示の JST 日次キー
+  historyRematchRulesDismissedDayKey?: string;
+  lostCardDeckNoticeDismissedDayKey?: string;
+  mockAdsWatchedTotal?: number; // DEV テスト用 — モック広告視聴完了累計
 }
 
 interface UserSubscription {
@@ -995,7 +997,8 @@ interface UserSubscription {
 interface ShopPurchaseState {
   jewelPack200FirstBonusUsed?: boolean;
   shopShardPurchasesDayKey?: string;  // JST "YYYY-MM-DD"
-  shopShardPurchasesToday?: { tier10?: number; tier25?: number; tier55?: number };
+  shopShardPurchasesToday?: { shard10?: number; shard25?: number; shard55?: number };
+  mockLifetimeSpendYen?: number;    // DEV テスト用 — モック現金課金累計（円）
 }
 ```
 
@@ -1497,6 +1500,7 @@ floor( 塗りマス数 × REVIVE_PAINTED_MULTIPLIER × レア倍率 × ★倍率
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.16 | 2026-06-28 | §15.2 — DEV テスト用 `mockLifetimeSpendYen` / `mockAdsWatchedTotal`。設定画面表示は [PROTOTYPE §4.11](./PROTOTYPE_DEVELOPMENT_SPEC.md#411-設定画面) |
 | 2.15 | 2026-06-28 | §18 — 常設ミッション再設計は [PROTOTYPE §4.8.5](./PROTOTYPE_DEVELOPMENT_SPEC.md#485-常設ミッション) を参照 |
 | 2.14 | 2026-06-27 | 経済リバランス — Lv報酬100px+💎10、バトル勝利px×0.5。§6.3 降格復活記述整理・`calcReviveCost`。ミッション拡張は PROTOTYPE §4.8 |
 | 2.13 | 2026-06-27 | 監査反映 — §1.2・§17 仮ロスト廃止・経済移行完了。§9.2 実装済み。§15.3 `SAVE_SCHEMA_VERSION=1`。§18 フェーズ10完了。§16.7 仮ロスト注記削除。旧 schema v2〜v8 表記を整理 |

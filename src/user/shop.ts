@@ -56,6 +56,36 @@ export function normalizeShopPurchaseState(raw: unknown): ShopPurchaseState {
       : {}),
     ...(shopShardPurchasesDayKey != null ? { shopShardPurchasesDayKey } : {}),
     ...(shopShardPurchasesToday != null ? { shopShardPurchasesToday } : {}),
+    ...(normalizeMockLifetimeSpendYen(candidate.mockLifetimeSpendYen) > 0
+      ? {
+          mockLifetimeSpendYen: normalizeMockLifetimeSpendYen(
+            candidate.mockLifetimeSpendYen,
+          ),
+        }
+      : {}),
+  };
+}
+
+function normalizeMockLifetimeSpendYen(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    return 0;
+  }
+  return Math.floor(value);
+}
+
+export function getMockLifetimeSpendYen(shopPurchase: ShopPurchaseState): number {
+  return normalizeMockLifetimeSpendYen(shopPurchase.mockLifetimeSpendYen);
+}
+
+export function addMockLifetimeSpendYen(
+  shopPurchase: ShopPurchaseState,
+  yen: number,
+): ShopPurchaseState {
+  const delta = normalizeMockLifetimeSpendYen(yen);
+  if (delta <= 0) return shopPurchase;
+  return {
+    ...shopPurchase,
+    mockLifetimeSpendYen: getMockLifetimeSpendYen(shopPurchase) + delta,
   };
 }
 
@@ -218,7 +248,7 @@ export function mockPurchaseJewelPack(
   return {
     economy: addJewels(economy, jewels),
     inventory,
-    shopPurchase: nextShopPurchase,
+    shopPurchase: addMockLifetimeSpendYen(nextShopPurchase, pack.priceYen),
     subscription,
     message: `${jewels.toLocaleString()} を獲得しました（${pack.priceYen}円・モック）`,
   };
@@ -361,7 +391,7 @@ export function mockSubscribe(
       ok: true,
       result: {
         ...granted,
-        shopPurchase,
+        shopPurchase: addMockLifetimeSpendYen(shopPurchase, upgradePriceYen),
         subscription: {
           plan: 'premium',
           expiresAt: subscription.expiresAt,
@@ -382,7 +412,7 @@ export function mockSubscribe(
     ok: true,
     result: {
       ...granted,
-      shopPurchase,
+      shopPurchase: addMockLifetimeSpendYen(shopPurchase, plan.priceYen),
       subscription: {
         plan: planId,
         expiresAt,
