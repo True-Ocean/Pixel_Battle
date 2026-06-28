@@ -447,6 +447,27 @@ function FormationMatchingMessage() {
   );
 }
 
+/** マッチング・reveal・バトル共通の盤面ラッパー（縦位置・カード寸法を統一） */
+function FormationPlayLayout({
+  children,
+  boardRef,
+}: {
+  children: React.ReactNode;
+  boardRef?: React.RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div className="formation-battle-body-inner">
+      <div className="formation-battle-spacer" aria-hidden />
+      <div className="formation-battle-focus">
+        <div ref={boardRef} className="formation-board formation-board-play">
+          {children}
+        </div>
+      </div>
+      <div className="formation-battle-spacer" aria-hidden />
+    </div>
+  );
+}
+
 function FormationDeckReveal({
   playerSlots,
   cpuSlots,
@@ -476,7 +497,7 @@ function FormationDeckReveal({
     : opponentIdentity;
 
   return (
-    <div className="formation-reveal-stack">
+    <>
       <div className="formation-zone formation-zone-cpu">
         <FormationZoneBanner identity={resolvedOpponentIdentity} side="cpu" />
         <div
@@ -522,7 +543,9 @@ function FormationDeckReveal({
       </div>
 
       <div
-        className="formation-guide formation-guide-reveal"
+        className={`formation-guide formation-guide-battle formation-guide-battle--grid${
+          isSearchingOpponent ? '' : ' formation-guide-battle--reveal-countdown'
+        }`}
         aria-label={
           isSearchingOpponent
             ? 'マッチング中'
@@ -530,10 +553,24 @@ function FormationDeckReveal({
         }
       >
         {isSearchingOpponent ? (
-          <span className="formation-match-complete-label">マッチング中</span>
+          <>
+            <span
+              className="battle-end-actions-slot battle-end-actions-slot--reserve"
+              aria-hidden
+            />
+            <div className="formation-hint formation-guide-line">
+              <span className="formation-match-complete-label">マッチング中</span>
+            </div>
+            <span
+              className="battle-end-actions-slot battle-end-actions-slot--reserve"
+              aria-hidden
+            />
+          </>
         ) : (
-          <div className="formation-match-complete-row">
-            <span className="formation-match-complete-label">{revealCountdownLabel}</span>
+          <>
+            <span className="formation-match-complete-label formation-guide-match-label">
+              {revealCountdownLabel}
+            </span>
             <div
               className="formation-reveal-countdown"
               aria-live="polite"
@@ -541,10 +578,13 @@ function FormationDeckReveal({
             >
               {revealCountdown}
             </div>
-            {cancelMatchButton != null && (
-              <div className="formation-match-complete-actions">{cancelMatchButton}</div>
+            {cancelMatchButton ?? (
+              <span
+                className="battle-end-actions-slot battle-end-actions-slot--reserve"
+                aria-hidden
+              />
             )}
-          </div>
+          </>
         )}
       </div>
 
@@ -579,7 +619,7 @@ function FormationDeckReveal({
           <FormationZoneBanner identity={playerIdentity} side="player" />
         )}
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1434,22 +1474,19 @@ function BattleBoard({
   ]);
 
   return (
-    <div className="formation-battle-body-inner">
-      <div className="formation-battle-spacer" aria-hidden />
-      <div className="formation-battle-focus">
-        <div ref={boardRef} className="formation-board formation-board-battle">
-          <FormationArrowLayer
-            boardRef={boardRef}
-            slotRefs={slotRefs}
-            lines={arrowLines}
-          />
-          <FormationDamageLayer
-            boardRef={boardRef}
-            slotRefs={slotRefs}
-            markers={damageMarkers}
-          />
+    <FormationPlayLayout boardRef={boardRef}>
+      <FormationArrowLayer
+        boardRef={boardRef}
+        slotRefs={slotRefs}
+        lines={arrowLines}
+      />
+      <FormationDamageLayer
+        boardRef={boardRef}
+        slotRefs={slotRefs}
+        markers={damageMarkers}
+      />
 
-          <div className="formation-zone formation-zone-cpu">
+      <div className="formation-zone formation-zone-cpu">
             <FormationZoneBanner identity={opponentIdentity} side="cpu" />
             <div className="formation-field formation-field-cpu">
               <div className="formation-row formation-row-back">
@@ -1568,10 +1605,7 @@ function BattleBoard({
               <FormationZoneBanner identity={playerIdentity} side="player" />
             )}
           </div>
-        </div>
-      </div>
-      <div className="formation-battle-spacer" aria-hidden />
-    </div>
+    </FormationPlayLayout>
   );
 }
 
@@ -1956,14 +1990,17 @@ export function BattleSetupScreen({
     onCancelMatch?.();
   };
 
+  const isPlayPhase =
+    phase === 'matching' || phase === 'reveal' || phase === 'battle';
+
   return (
     <section
       ref={formationScreenRef}
-      className={`screen setup-reveal formation-screen${phase === 'matching' ? ' is-matching-phase is-reveal-phase' : ''}${phase === 'reveal' ? ' is-reveal-phase' : ''}${phase === 'setup' ? ' is-setup-phase' : ''}${phase === 'battle' ? ' is-battle-active' : ''}${battleSubView === 'log' ? ' is-battle-log' : ''}${battleEnded ? ' has-end-actions' : ''}`}
+      className={`screen setup-reveal formation-screen${phase === 'matching' ? ' is-matching-phase is-reveal-phase' : ''}${phase === 'reveal' ? ' is-reveal-phase' : ''}${phase === 'setup' ? ' is-setup-phase' : ''}${phase === 'battle' ? ' is-battle-active' : ''}${isPlayPhase ? ' is-play-phase' : ''}${battleSubView === 'log' ? ' is-battle-log' : ''}${battleEnded ? ' has-end-actions' : ''}`}
     >
       <div className="formation-battle-shell">
         <div
-          className={`formation-battle-body${phase === 'reveal' || phase === 'matching' ? ' formation-reveal-body' : ''}${phase === 'battle' ? ' formation-battle-play-body' : ''}`}
+          className={`formation-battle-body${isPlayPhase ? ' formation-battle-play-body' : ''}`}
         >
           {phase === 'battle' ? (
             <BattleSession
@@ -1986,8 +2023,7 @@ export function BattleSetupScreen({
               }}
             />
           ) : phase === 'reveal' || phase === 'matching' ? (
-            <>
-              <div className="formation-reveal-spacer" aria-hidden />
+            <FormationPlayLayout>
               <FormationDeckReveal
                 playerSlots={playerSlots}
                 cpuSlots={cpuSlots}
@@ -1999,7 +2035,7 @@ export function BattleSetupScreen({
                   phase === 'reveal' && onCancelMatch != null ? (
                     <button
                       type="button"
-                      className="formation-cancel-match-btn formation-cancel-match-btn--compact"
+                      className="formation-cancel-match-btn formation-cancel-match-btn--compact formation-cancel-match-btn--grid"
                       onClick={handleCancelMatchRequest}
                       disabled={cancelMatchShowsCost && cancelMatchDisabled}
                       aria-label={
@@ -2023,8 +2059,7 @@ export function BattleSetupScreen({
                   ) : undefined
                 }
               />
-              <div className="formation-reveal-spacer" aria-hidden />
-            </>
+            </FormationPlayLayout>
           ) : (
             <FormationBoardSetup
               timeLeft={timeLeft}

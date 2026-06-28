@@ -12746,8 +12746,7 @@ button.battle-card {
   box-sizing: border-box;
 }
 
-/* デッキ確認・バトル準備: 元レイアウトを保ちつつブロック全体を縦中央に、カードを大きく */
-.formation-screen.is-reveal-phase,
+/* デッキ確認・バトル準備（setup のみ別レイアウト） */
 .formation-screen.is-setup-phase {
   flex: 1;
   min-height: 0;
@@ -12757,18 +12756,20 @@ button.battle-card {
   --formation-card-w: calc(var(--formation-card-h) * 5.25 / 7.75);
 }
 
-/* 戦闘中はバナー・ガイド・安全域を差し引いた高さに収める */
-.formation-screen.is-battle-active {
+/* マッチング・reveal・バトル共通（カード寸法・縦位置・Dock 余白） */
+.formation-screen.is-play-phase {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   --formation-battle-chrome: 16.5rem;
+  --formation-battle-dock-clearance: calc(var(--app-dock-h, 3.65rem) + max(0.35rem, var(--safe-bottom)));
   --formation-card-h: min(8.85rem, calc((100dvh - var(--formation-battle-chrome)) / 4));
   --formation-card-w: calc(var(--formation-card-h) * 5.25 / 7.75);
 }
 
-.formation-screen.is-reveal-phase .formation-battle-shell {
+.formation-screen.is-play-phase .formation-battle-shell {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -12776,7 +12777,15 @@ button.battle-card {
   overflow: hidden;
 }
 
-.formation-screen.is-reveal-phase .formation-reveal-body {
+.formation-screen.is-play-phase .formation-battle-play-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.formation-screen.is-play-phase .formation-battle-body-inner {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -12784,37 +12793,42 @@ button.battle-card {
   overflow: hidden;
 }
 
-.formation-screen.is-reveal-phase .formation-reveal-spacer {
-  flex: 1 1 0;
+.formation-screen.is-play-phase .formation-battle-spacer {
+  flex: 0 1 auto;
   min-height: 0;
+  max-height: 0.5rem;
 }
 
-.formation-screen.is-reveal-phase .formation-reveal-stack {
-  flex: 0 0 auto;
+.formation-screen.is-play-phase .formation-battle-focus {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: var(--formation-battle-dock-clearance);
+  box-sizing: border-box;
+}
+
+.formation-screen.is-play-phase .formation-board-play {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  align-items: stretch;
 }
 
-.formation-screen.is-reveal-phase .formation-zone-cpu,
-.formation-screen.is-battle-active .formation-zone-cpu {
+.formation-screen.is-play-phase .formation-zone-cpu {
   padding: 0 0 0.28rem;
   gap: 0;
   overflow: hidden;
 }
 
-.formation-screen.is-reveal-phase .formation-zone-player,
-.formation-screen.is-setup-phase .formation-zone-player,
-.formation-screen.is-battle-active .formation-zone-player {
+.formation-screen.is-play-phase .formation-zone-player {
   padding: 0.28rem 0 0;
   gap: 0;
   overflow: hidden;
 }
 
-.formation-screen.is-reveal-phase .formation-zone .formation-zone-banner,
-.formation-screen.is-setup-phase .formation-zone .formation-zone-banner,
-.formation-screen.is-battle-active .formation-zone .formation-zone-banner {
+.formation-screen.is-play-phase .formation-zone .formation-zone-banner {
   min-height: auto;
   width: 100%;
   padding: 0.28rem 0.55rem;
@@ -12827,103 +12841,190 @@ button.battle-card {
   border-radius: 0;
 }
 
-.formation-screen.is-reveal-phase .formation-zone-cpu .formation-zone-banner-cpu,
-.formation-screen.is-battle-active .formation-zone-cpu .formation-zone-banner-cpu {
+.formation-screen.is-play-phase .formation-zone-cpu .formation-zone-banner-cpu {
   margin-bottom: 0.34rem;
   justify-content: flex-start;
   text-align: left;
   background: linear-gradient(90deg, #be185d 0%, #e11d74 32%, #ffa8c8 100%);
 }
 
-.formation-screen.is-reveal-phase .formation-zone-player .formation-zone-banner-player,
-.formation-screen.is-setup-phase .formation-zone-player .formation-zone-banner-player,
-.formation-screen.is-battle-active .formation-zone-player .formation-zone-banner-player {
+.formation-screen.is-play-phase .formation-zone-player .formation-zone-banner-player {
   margin-top: 0.34rem;
   justify-content: flex-end;
   text-align: right;
   background: linear-gradient(90deg, #b8a0ff 0%, #7c3aed 68%, #5b21b6 100%);
 }
 
-.formation-screen.is-reveal-phase .formation-zone-cpu .formation-field-cpu,
-.formation-screen.is-battle-active .formation-zone-cpu .formation-field-cpu {
+.formation-screen.is-play-phase .formation-zone-cpu .formation-field-cpu {
   padding: 0.08rem 0.2rem 0;
 }
 
-.formation-screen.is-reveal-phase .formation-zone-player .formation-field-player,
-.formation-screen.is-setup-phase .formation-zone-player .formation-field-player,
-.formation-screen.is-battle-active .formation-zone-player .formation-field-player {
+.formation-screen.is-play-phase .formation-zone-player .formation-field-player {
   padding: 0 0.2rem 0.08rem;
 }
 
-.formation-screen.is-reveal-phase .formation-reveal-stack > .formation-zone-banner {
-  min-height: auto;
-  padding: 0.12rem 0.4rem;
-  margin: 0;
-}
-
-.formation-screen.is-reveal-phase .formation-reveal-stack > .formation-zone-banner-cpu {
-  margin-bottom: 0.04rem;
-}
-
-.formation-screen.is-reveal-phase .formation-reveal-stack > .formation-zone-banner-player {
-  margin-top: 0.04rem;
-}
-
-.formation-screen.is-reveal-phase .formation-reveal {
-  gap: 0;
-}
-
-.formation-screen.is-reveal-phase .formation-board-reveal {
-  gap: 0.14rem;
-}
-
-.formation-screen.is-reveal-phase .formation-field {
+.formation-screen.is-play-phase .formation-zone .formation-field {
   gap: 0.1rem;
 }
 
-.formation-screen.is-reveal-phase .formation-row {
+.formation-screen.is-play-phase .formation-zone .formation-row {
   gap: calc(var(--formation-card-w) * 0.08);
 }
 
-.formation-screen.is-reveal-phase .formation-row-front {
+.formation-screen.is-play-phase .formation-zone .formation-row-front {
   padding-inline: calc(var(--formation-card-w) * 0.45);
 }
 
-.formation-screen.is-reveal-phase .formation-guide-reveal {
-  position: static;
-  transform: none;
+.formation-screen.is-play-phase .formation-guide-battle {
   flex-shrink: 0;
-  z-index: 4;
-  margin: 0.12rem 0;
-}
-
-.formation-match-complete-row {
-  display: flex;
   align-items: center;
+}
+
+.formation-screen.is-play-phase .formation-guide.formation-guide-battle--grid {
+  display: grid;
+  grid-template-columns: min(5.35rem, 27vw) minmax(0, 1fr) min(5.35rem, 27vw);
+  align-items: center;
+  gap: 0.2rem;
+  box-sizing: border-box;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.16rem 0.2rem;
+}
+
+/* マッチング完了カウントダウン: 左右ラベル・キャンセルを1行で収める幅 */
+.formation-screen.is-play-phase .formation-guide.formation-guide-battle--grid.formation-guide-battle--reveal-countdown {
+  grid-template-columns: min(7rem, 36vw) minmax(0, 1fr) min(7.75rem, 38vw);
+}
+
+.formation-screen.is-play-phase .formation-guide-battle--grid .formation-guide-match-label {
+  justify-self: start;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.formation-screen.is-play-phase .formation-guide-battle--grid .formation-reveal-countdown {
+  justify-self: center;
+}
+
+.formation-screen.is-play-phase .formation-guide-battle--grid .battle-end-actions-btn,
+.formation-screen.is-play-phase .formation-guide-battle--grid .battle-end-actions-slot--reserve,
+.formation-screen.is-play-phase .formation-guide-battle--grid .formation-cancel-match-btn--grid {
+  justify-self: center;
+}
+
+.formation-screen.is-play-phase .formation-guide-battle--grid .formation-cancel-match-btn--grid {
+  box-sizing: border-box;
   width: 100%;
-  position: relative;
-  min-height: 2.1rem;
+  max-width: 100%;
+  min-height: 2.2rem;
+  padding: 0.1rem 0.12rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.1;
+  cursor: pointer;
+  overflow: hidden;
 }
 
-.formation-match-complete-row > .formation-match-complete-label {
-  position: relative;
-  z-index: 1;
+.formation-screen.is-play-phase .formation-guide-battle--grid .formation-cancel-match-btn--grid:disabled {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.formation-screen.is-play-phase .formation-guide-battle--grid .formation-cancel-match-btn--grid .formation-cancel-match-btn-inner {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.14rem;
+  max-width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.formation-screen.is-play-phase .formation-guide-battle--grid .formation-cancel-match-btn--grid .formation-cancel-match-btn-label {
+  font-size: 0.62rem;
+  line-height: 1.1;
   flex-shrink: 0;
 }
 
-.formation-match-complete-row > .formation-reveal-countdown {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 0;
+.formation-screen.is-play-phase .formation-guide-battle--grid .formation-cancel-match-btn--grid .formation-cancel-match-coin {
+  width: 0.68rem;
+  height: 0.68rem;
+  flex-shrink: 0;
 }
 
-.formation-match-complete-actions {
-  position: relative;
-  z-index: 1;
+.formation-screen.is-play-phase .formation-guide-battle--grid .formation-cancel-match-btn--grid .formation-cancel-match-cost-value {
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
   flex-shrink: 0;
-  margin-left: auto;
+}
+
+.formation-screen.is-play-phase .formation-guide-battle--grid .formation-guide-line {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  justify-self: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.28;
+  text-align: center;
+}
+
+.formation-screen.is-play-phase .formation-guide-battle--grid .formation-cancel-match-btn--compact:not(.formation-cancel-match-btn--grid) {
+  width: min(5.35rem, 27vw);
+  max-width: min(5.35rem, 27vw);
+  min-height: 2.2rem;
+  padding: 0.2rem 0.24rem;
+}
+
+.battle-end-actions-slot--reserve {
+  flex: 0 0 min(5.35rem, 27vw);
+  width: min(5.35rem, 27vw);
+  max-width: min(5.35rem, 27vw);
+  min-height: 2.2rem;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.formation-screen.is-setup-phase .formation-zone-player {
+  padding: 0.28rem 0 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.formation-screen.is-setup-phase .formation-zone .formation-zone-banner {
+  min-height: auto;
+  width: 100%;
+  padding: 0.28rem 0.55rem;
+  margin: 0;
+  flex-shrink: 0;
+  color: #ffffff;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(15, 18, 30, 0.22);
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.formation-screen.is-setup-phase .formation-zone-player .formation-zone-banner-player {
+  margin-top: 0.34rem;
+  justify-content: flex-end;
+  text-align: right;
+  background: linear-gradient(90deg, #b8a0ff 0%, #7c3aed 68%, #5b21b6 100%);
+}
+
+.formation-screen.is-setup-phase .formation-zone-player .formation-field-player {
+  padding: 0 0.2rem 0.08rem;
 }
 
 .formation-match-complete-label {
@@ -13198,96 +13299,6 @@ button.battle-card {
   padding-bottom: 0.15rem;
 }
 
-/* 戦闘中（フェーズ3） */
-.formation-screen.is-battle-active {
-  overflow: hidden;
-}
-
-.formation-screen.is-battle-active .formation-battle-shell {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.formation-screen.is-battle-active .formation-battle-play-body {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.formation-screen.is-battle-active .formation-battle-body-inner {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.formation-screen.is-battle-active .formation-battle-spacer {
-  flex: 0 1 auto;
-  min-height: 0;
-  max-height: 0.5rem;
-}
-
-.formation-screen.is-battle-active .formation-battle-focus {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.formation-screen.is-battle-active .formation-board-battle {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.formation-screen.is-battle-active .formation-guide-battle {
-  flex-shrink: 0;
-  align-items: center;
-}
-
-.formation-screen.is-battle-active .formation-guide.formation-guide-battle--grid {
-  display: grid;
-  grid-template-columns: min(5.35rem, 27vw) minmax(0, 1fr) min(5.35rem, 27vw);
-  align-items: center;
-  gap: 0.2rem;
-  box-sizing: border-box;
-  height: 2.75rem;
-  min-height: 2.75rem;
-  padding: 0.16rem 0.2rem;
-}
-
-.formation-screen.is-battle-active .formation-guide-battle--grid .battle-end-actions-btn,
-.formation-screen.is-battle-active .formation-guide-battle--grid .battle-end-actions-slot--reserve {
-  justify-self: center;
-}
-
-.formation-screen.is-battle-active .formation-guide-battle--grid .formation-guide-line {
-  width: auto;
-  max-width: 100%;
-  min-width: 0;
-  justify-self: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.28;
-  text-align: center;
-}
-
-.battle-end-actions-slot--reserve {
-  flex: 0 0 min(5.35rem, 27vw);
-  width: min(5.35rem, 27vw);
-  max-width: min(5.35rem, 27vw);
-  min-height: 2.2rem;
-  visibility: hidden;
-  pointer-events: none;
-}
-
 .formation-screen.is-battle-active .formation-guide-battle--ended .formation-guide-line--ended {
   display: flex;
   flex-direction: row;
@@ -13319,18 +13330,6 @@ button.battle-card {
     animation: none;
     opacity: 1;
   }
-}
-
-.formation-screen.is-battle-active .formation-zone .formation-field {
-  gap: 0.1rem;
-}
-
-.formation-screen.is-battle-active .formation-zone .formation-row {
-  gap: calc(var(--formation-card-w) * 0.08);
-}
-
-.formation-screen.is-battle-active .formation-zone .formation-row-front {
-  padding-inline: calc(var(--formation-card-w) * 0.45);
 }
 
 .formation-screen.is-battle-active .formation-slot.battle-formation-slot.is-subtle-empty {
