@@ -1481,54 +1481,58 @@ function BattleBoard({
           </div>
 
           <div
-            className={`formation-guide formation-guide-battle${
+            className={`formation-guide formation-guide-battle formation-guide-battle--grid${
               showOutcome && endActions ? ' formation-guide-battle--ended' : ''
             }${isPromotePhase ? ' formation-guide-battle--promote' : ''}`}
           >
             {showOutcome && endActions ? (
-              <>
-                <button
-                  type="button"
-                  className="battle-end-actions-btn battle-end-actions-btn--primary"
-                  disabled={endActions.newBattleDisabled}
-                  onClick={endActions.onNewBattle}
-                >
-                  {endActions.newBattleLabel}
-                </button>
-                <div className="formation-hint formation-guide-line formation-guide-line--ended">
-                  {formatBattleGuideLine(
-                    battle.turnLabel,
-                    battle.hint,
-                    result,
-                  )}
-                  {endActions.historyRematchRewardPixels != null &&
-                    endActions.historyRematchRewardPixels > 0 && (
-                      <span className="battle-end-history-reward-amount" role="status">
-                        +{endActions.historyRematchRewardPixels.toLocaleString()}
-                        <PixelCoinIcon className="battle-end-history-reward-coin" />
-                      </span>
-                    )}
-                </div>
-                <button
-                  type="button"
-                  className="battle-end-actions-btn battle-end-actions-btn--secondary"
-                  onClick={endActions.onOpenLog}
-                >
-                  バトルログ
-                </button>
-              </>
-            ) : (
-              <div
-                className={`formation-hint formation-guide-line${
-                  isPromotePhase ? ' formation-guide-line--promote' : ''
-                }`}
+              <button
+                type="button"
+                className="battle-end-actions-btn battle-end-actions-btn--primary"
+                disabled={endActions.newBattleDisabled}
+                onClick={endActions.onNewBattle}
               >
-                {formatBattleGuideLine(
-                  battle.turnLabel,
-                  battle.hint,
-                  showOutcome ? result : null,
+                {endActions.newBattleLabel}
+              </button>
+            ) : (
+              <span
+                className="battle-end-actions-slot battle-end-actions-slot--reserve"
+                aria-hidden
+              />
+            )}
+            <div
+              className={`formation-hint formation-guide-line${
+                showOutcome && endActions ? ' formation-guide-line--ended' : ''
+              }${isPromotePhase ? ' formation-guide-line--promote' : ''}`}
+            >
+              {formatBattleGuideLine(
+                battle.turnLabel,
+                battle.hint,
+                showOutcome ? result : null,
+              )}
+              {showOutcome &&
+                endActions &&
+                endActions.historyRematchRewardPixels != null &&
+                endActions.historyRematchRewardPixels > 0 && (
+                  <span className="battle-end-history-reward-amount" role="status">
+                    +{endActions.historyRematchRewardPixels.toLocaleString()}
+                    <PixelCoinIcon className="battle-end-history-reward-coin" />
+                  </span>
                 )}
-              </div>
+            </div>
+            {showOutcome && endActions ? (
+              <button
+                type="button"
+                className="battle-end-actions-btn battle-end-actions-btn--secondary"
+                onClick={endActions.onOpenLog}
+              >
+                バトルログ
+              </button>
+            ) : (
+              <span
+                className="battle-end-actions-slot battle-end-actions-slot--reserve"
+                aria-hidden
+              />
             )}
           </div>
 
