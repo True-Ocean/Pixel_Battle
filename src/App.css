@@ -3510,13 +3510,6 @@ button.battle-hub-deck-icon.is-move-target {
   text-align: right;
 }
 
-.settings-row--dev-metric .settings-row-label,
-.settings-row--dev-metric .settings-row-value {
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: #94a3b8;
-}
-
 .settings-row-toggle {
   align-items: center;
 }

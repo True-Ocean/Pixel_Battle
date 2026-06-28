@@ -143,7 +143,7 @@ export function getMockAdsWatchedTotal(adState: AdState): number {
   return normalizeNonNegativeInt(adState.mockAdsWatchedTotal);
 }
 
-/** 開発テスト用: モック広告の視聴完了を1回記録 */
+/** テスト期間用: モック広告の視聴完了を1回記録 */
 export function recordMockAdWatched(adState: AdState): AdState {
   return {
     ...adState,

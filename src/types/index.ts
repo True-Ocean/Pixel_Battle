@@ -92,7 +92,7 @@ export interface AdState {
   historyRematchRulesDismissedDayKey?: string;
   /** ロストカード案内モーダルを非表示にした日（JST "YYYY-MM-DD"） */
   lostCardDeckNoticeDismissedDayKey?: string;
-  /** 開発テスト用: モック広告の視聴完了累計 */
+  /** テスト期間用: モック広告の視聴完了累計 */
   mockAdsWatchedTotal?: number;
 }
 
@@ -160,7 +160,7 @@ export interface ShopPurchaseState {
   shopShardPurchasesToday?: Partial<
     Record<'shard10' | 'shard25' | 'shard55', number>
   >;
-  /** 開発テスト用: モック現金課金の累計（円） */
+  /** テスト期間用: モック現金課金の累計（円） */
   mockLifetimeSpendYen?: number;
 }
 
