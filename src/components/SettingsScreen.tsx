@@ -1,4 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import type { User } from '@supabase/supabase-js';
+import {
+  linkEmailToCurrentUser,
+  resolveAccountEmail,
+  signInWithEmailMagicLink,
+  signOutAccount,
+  subscribeAuthState,
+  isAnonymousUser,
+  isEmailLinkedUser,
+} from '../auth';
 import {
   DECK_SLOT_COUNT,
   DECK_SLOT_INITIAL_UNLOCKED,
@@ -10,6 +20,7 @@ import {
   MEMORY_ALBUM_MAX_EXPANSION_ROWS,
 } from '../config/economy';
 import { clampUnlockedDeckCount } from '../deckSlots';
+import { isSupabaseConfigured } from '../supabase/client';
 import { getLevelProgress } from '../user';
 import type { SubscriptionPlan, UserProfile } from '../types';
 
@@ -67,7 +78,6 @@ interface PlaceholderRow {
 
 const FUTURE_ROWS: PlaceholderRow[] = [
   { label: '通知設定', hint: '準備中' },
-  { label: 'アカウント連携', hint: '準備中' },
   { label: '利用規約', hint: '準備中' },
 ];
 
@@ -251,6 +261,139 @@ function SettingsDevNotices({ messages }: { messages: (string | null)[] }) {
         </p>
       ))}
     </div>
+  );
+}
+
+function AccountLinkSection() {
+  const configured = isSupabaseConfigured();
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const [emailInput, setEmailInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => subscribeAuthState(setAuthUser), []);
+
+  const linked = isEmailLinkedUser(authUser);
+  const email = resolveAccountEmail(authUser);
+  const anonymous = isAnonymousUser(authUser);
+
+  const runAction = async (
+    action: (email: string) => Promise<{ ok: boolean; message?: string; error?: string }>,
+  ) => {
+    setBusy(true);
+    setNotice(null);
+    setError(null);
+    const result = await action(emailInput);
+    setBusy(false);
+    if (result.ok) {
+      setNotice(result.message ?? '完了しました');
+      return;
+    }
+    setError(result.error ?? '失敗しました');
+  };
+
+  if (!configured) {
+    return (
+      <SettingsSection title="アカウント連携" compact>
+        <p className="settings-section-note muted">
+          Supabase が未設定のため、アカウント連携は利用できません。
+        </p>
+      </SettingsSection>
+    );
+  }
+
+  return (
+    <SettingsSection title="アカウント連携" compact>
+      <p className="settings-section-note muted">
+        メールで連携すると、機種変更やホーム画面の削除後も進行を復元できます（クラウド同期は次のフェーズで有効化）。
+      </p>
+      <SettingsRow
+        label="状態"
+        value={
+          linked
+            ? `連携済み（${email}）`
+            : anonymous
+              ? '端末のみ（未連携）'
+              : authUser
+                ? 'ログイン中'
+                : '未ログイン'
+        }
+      />
+      {linked ? (
+        <div className="settings-account-actions">
+          <button
+            type="button"
+            className="settings-account-btn"
+            disabled={busy}
+            onClick={() => {
+              void (async () => {
+                setBusy(true);
+                setNotice(null);
+                setError(null);
+                const result = await signOutAccount();
+                setBusy(false);
+                if (result.ok) setNotice(result.message);
+                else setError(result.error);
+              })();
+            }}
+          >
+            ログアウト
+          </button>
+        </div>
+      ) : (
+        <div className="settings-account-form">
+          <label className="settings-account-label" htmlFor="settings-account-email">
+            メールアドレス
+          </label>
+          <input
+            id="settings-account-email"
+            type="email"
+            className="settings-account-input"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={emailInput}
+            disabled={busy}
+            onChange={(event) => setEmailInput(event.target.value)}
+          />
+          <div className="settings-account-actions">
+            <button
+              type="button"
+              className="settings-account-btn settings-account-btn--primary"
+              disabled={busy || emailInput.trim().length === 0}
+              onClick={() => {
+                void runAction(linkEmailToCurrentUser);
+              }}
+            >
+              この端末を連携
+            </button>
+            <button
+              type="button"
+              className="settings-account-btn"
+              disabled={busy || emailInput.trim().length === 0}
+              onClick={() => {
+                void runAction(signInWithEmailMagicLink);
+              }}
+            >
+              ログイン（復元用）
+            </button>
+          </div>
+          <p className="settings-section-note muted">
+            「この端末を連携」は今の進行をメールに紐づけます。「ログイン」はすでに連携済みのメールで入り直します。
+          </p>
+        </div>
+      )}
+      {notice && (
+        <p className="settings-account-notice" role="status">
+          {notice}
+        </p>
+      )}
+      {error && (
+        <p className="settings-account-error" role="alert">
+          {error}
+        </p>
+      )}
+    </SettingsSection>
   );
 }
 
@@ -576,6 +719,8 @@ export function SettingsScreen({
             </div>
           </div>
         </SettingsSection>
+
+        <AccountLinkSection />
 
         <SettingsSection title="サブスク・課金" compact>
           <SettingsRow label="サブスク" value={subscriptionLabel} />

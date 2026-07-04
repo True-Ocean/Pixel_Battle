@@ -22,9 +22,12 @@ export function getSupabaseClient(): SupabaseClient | null {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: false,
+        /** マジックリンク戻り時に URL からセッションを復元する */
+        detectSessionInUrl: true,
+        flowType: 'pkce',
       },
     });
+
   }
   return client;
 }

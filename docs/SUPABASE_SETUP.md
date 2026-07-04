@@ -38,6 +38,37 @@ https://supabase.com/dashboard/project/YOUR_PROJECT_REF/auth/providers
 2. リポジトリの `supabase/migrations/001_public_ghost_decks.sql` の内容をすべて貼り付け
 3. **Run** で実行
 4. **すでに 001 を実行済み**のプロジェクトでは、続けて `002_public_ghost_decks_record.sql` も実行する（対人戦の勝敗表示用）
+5. アカウント連携（クラウドセーブ）を使う場合は `003_player_saves.sql` も実行する（**実行済みならスキップ**）
+
+## 3.1 アカウント連携用の Auth URL（メールマジックリンク）
+
+1. **Authentication** → **URL Configuration**
+2. **Site URL**（本番）:
+
+```text
+https://true-ocean.github.io/Pixel_Battle/
+```
+
+3. **Redirect URLs** に本番と開発を追加:
+
+```text
+https://true-ocean.github.io/Pixel_Battle/**
+http://localhost:5173/**
+```
+
+4. **Authentication** → **Providers** → **Email** が ON であること（マジックリンク用）
+
+クラウドセーブ API は `src/cloudSave/`（`fetchPlayerSave` / `upsertPlayerSave`）。
+
+### アカウント連携（メールマジックリンク）
+
+1. 上記 URL Configuration と Email Provider が済んでいること
+2. アプリの **設定 → アカウント連携**
+3. **この端末を連携**: 匿名セッションにメールを紐づけ（`user_id` 維持・公開デッキの owner もそのまま）
+4. 届いたメールのリンクを開くと連携完了
+5. **ログイン（復元用）**: すでに連携済みのメールで別端末から入るとき（クラウド同期は後続フェーズ）
+
+実装: `src/auth/`（`linkEmailToCurrentUser` / `signInWithEmailMagicLink` / `signOutAccount`）
 
 ## 4. アプリに接続情報を渡す
 

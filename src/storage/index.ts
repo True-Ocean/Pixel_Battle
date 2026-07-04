@@ -429,124 +429,129 @@ function shouldRewriteSaveOnLoad(
   return false;
 }
 
+export type HydratedSave = {
+  save: SaveData;
+  shouldRewrite: boolean;
+};
+
+/**
+ * localStorage / クラウドの JSON オブジェクトから SaveData を復元する（副作用なし）。
+ * デッキ配列が無いなど不正な場合は null。
+ */
+export function hydrateSaveFromParsed(
+  parsed: Record<string, unknown>,
+): HydratedSave | null {
+  const hasDecks = Array.isArray(parsed.decks);
+  const hasLegacyDeck = Array.isArray(parsed.deck);
+  if (!hasDecks && !hasLegacyDeck) return null;
+
+  const user = normalizeUserProfile(parsed.user);
+  const economy = normalizeUserEconomy(parsed.economy);
+  const inventory = applyDevInventoryFill(normalizeUserInventory(parsed.inventory));
+  const adState = normalizeAdState(parsed.adState);
+  const decks = normalizeDeckSlots(parseDecks(parsed));
+  const battleHistory = parseBattleHistory(parsed.battleHistory);
+  const { activeDeckIndex, lastBattleDeckIndex, unlockedDeckCount, deckNames } =
+    normalizeSaveFields(parsed, decks);
+  const { devPreferSavedLevel, devFileOverrideLevel } = parseDevSaveFields(parsed);
+  const preferSaved = effectiveDevPreferSavedLevel(
+    devPreferSavedLevel === true,
+    DEV_USER_LEVEL_OVERRIDE,
+    devFileOverrideLevel,
+  );
+  const paletteShopUnlocks = normalizePaletteShopUnlocks(parsed.paletteShopUnlocks);
+  const inventoryDevFilled = !inventoryMatchesDevFill(
+    normalizeUserInventory(parsed.inventory),
+  );
+
+  const storedBpCalcVersion = parseStoredBpCalcVersion(parsed.bpCalcVersion);
+  const bpRecalcApplied = needsBpRecalc(storedBpCalcVersion);
+
+  let baseSave = normalizeSaveData({
+    schemaVersion: SAVE_SCHEMA_VERSION,
+    user,
+    economy,
+    inventory,
+    adState,
+    decks,
+    activeDeckIndex,
+    lastBattleDeckIndex,
+    unlockedDeckCount,
+    deckNames,
+    battleHistory,
+    talismanStarterGranted: parsed.talismanStarterGranted === true,
+    paletteShopUnlocks,
+    memoryAlbum: parseMemoryAlbumCards(parsed.memoryAlbum),
+    shopPurchase: normalizeShopPurchaseState(parsed.shopPurchase),
+    subscription: normalizeUserSubscription(parsed.subscription),
+    missionState: applyMissionResets(normalizeMissionState(parsed.missionState)),
+    soundEnabled: normalizeSoundEnabled(parsed.soundEnabled),
+    deckIntroSeen: parsed.deckIntroSeen === true,
+    publishedDeckSlots: normalizePublishedDeckSlots(parsed.publishedDeckSlots),
+    publishedDeckRemoteIds: normalizePublishedDeckRemoteIds(
+      parsed.publishedDeckRemoteIds,
+    ),
+    ...(typeof parsed.bpCalcVersion === 'number'
+      ? { bpCalcVersion: Math.floor(parsed.bpCalcVersion) }
+      : {}),
+    ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
+  });
+
+  if (bpRecalcApplied) {
+    baseSave = recalcSaveCardBp(baseSave);
+  }
+
+  if (user) {
+    const devAdjusted = resolveDevUserProfileOnLoad(user, {
+      fileOverrideLevel: DEV_USER_LEVEL_OVERRIDE,
+      preferSavedLevel: preferSaved,
+      savedFileOverrideLevel: devFileOverrideLevel,
+    });
+    const rescale = shouldRescaleDeckForDev() || preferSaved;
+    const finalDecks = rescale
+      ? rescaleAllDecks(baseSave.decks, devAdjusted.level, paletteShopUnlocks)
+      : baseSave.decks;
+    const finalSave = normalizeSaveData({
+      ...baseSave,
+      user: devAdjusted,
+      decks: finalDecks,
+      ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
+    });
+    const shouldRewrite = shouldRewriteSaveOnLoad(parsed, finalSave, {
+      preferSaved,
+      userLevelChanged: devAdjusted.level !== user.level,
+      userExpChanged: devAdjusted.exp !== user.exp,
+      decksRescaled: rescale,
+      decksBpChanged: anyDeckBpChanged(baseSave.decks, finalDecks),
+      inventoryDevFilled,
+      bpRecalcApplied,
+    });
+    return { save: finalSave, shouldRewrite };
+  }
+
+  const shouldRewrite =
+    inventoryDevFilled ||
+    shouldRewriteSaveOnLoad(parsed, baseSave, {
+      preferSaved,
+      userLevelChanged: false,
+      userExpChanged: false,
+      decksRescaled: false,
+      decksBpChanged: false,
+      inventoryDevFilled,
+      bpRecalcApplied,
+    });
+  return { save: baseSave, shouldRewrite };
+}
+
 export function loadSave(): SaveData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return emptySave();
     const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const hasDecks = Array.isArray(parsed.decks);
-    const hasLegacyDeck = Array.isArray(parsed.deck);
-    if (!hasDecks && !hasLegacyDeck) return emptySave();
-
-    const user = normalizeUserProfile(parsed.user);
-    const economy = normalizeUserEconomy(parsed.economy);
-    const inventory = applyDevInventoryFill(normalizeUserInventory(parsed.inventory));
-    const adState = normalizeAdState(parsed.adState);
-    const decks = normalizeDeckSlots(parseDecks(parsed));
-    const battleHistory = parseBattleHistory(parsed.battleHistory);
-    const { activeDeckIndex, lastBattleDeckIndex, unlockedDeckCount, deckNames } =
-      normalizeSaveFields(parsed, decks);
-    const { devPreferSavedLevel, devFileOverrideLevel } = parseDevSaveFields(parsed);
-    const preferSaved = effectiveDevPreferSavedLevel(
-      devPreferSavedLevel === true,
-      DEV_USER_LEVEL_OVERRIDE,
-      devFileOverrideLevel,
-    );
-    const paletteShopUnlocks = normalizePaletteShopUnlocks(parsed.paletteShopUnlocks);
-    const inventoryDevFilled = !inventoryMatchesDevFill(
-      normalizeUserInventory(parsed.inventory),
-    );
-
-    const storedBpCalcVersion = parseStoredBpCalcVersion(parsed.bpCalcVersion);
-    const bpRecalcApplied = needsBpRecalc(storedBpCalcVersion);
-
-    let baseSave = normalizeSaveData({
-      schemaVersion: SAVE_SCHEMA_VERSION,
-      user,
-      economy,
-      inventory,
-      adState,
-      decks,
-      activeDeckIndex,
-      lastBattleDeckIndex,
-      unlockedDeckCount,
-      deckNames,
-      battleHistory,
-      talismanStarterGranted: parsed.talismanStarterGranted === true,
-      paletteShopUnlocks,
-      memoryAlbum: parseMemoryAlbumCards(parsed.memoryAlbum),
-      shopPurchase: normalizeShopPurchaseState(parsed.shopPurchase),
-      subscription: normalizeUserSubscription(parsed.subscription),
-      missionState: applyMissionResets(
-        normalizeMissionState(parsed.missionState),
-      ),
-      soundEnabled: normalizeSoundEnabled(parsed.soundEnabled),
-      deckIntroSeen: parsed.deckIntroSeen === true,
-      publishedDeckSlots: normalizePublishedDeckSlots(parsed.publishedDeckSlots),
-      publishedDeckRemoteIds: normalizePublishedDeckRemoteIds(
-        parsed.publishedDeckRemoteIds,
-      ),
-      ...(typeof parsed.bpCalcVersion === 'number'
-        ? { bpCalcVersion: Math.floor(parsed.bpCalcVersion) }
-        : {}),
-      ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
-    });
-
-    if (bpRecalcApplied) {
-      baseSave = recalcSaveCardBp(baseSave);
-    }
-
-    if (user) {
-      const devAdjusted = resolveDevUserProfileOnLoad(user, {
-        fileOverrideLevel: DEV_USER_LEVEL_OVERRIDE,
-        preferSavedLevel: preferSaved,
-        savedFileOverrideLevel: devFileOverrideLevel,
-      });
-      const rescale = shouldRescaleDeckForDev() || preferSaved;
-      const finalDecks = rescale
-        ? rescaleAllDecks(
-            baseSave.decks,
-            devAdjusted.level,
-            paletteShopUnlocks,
-          )
-        : baseSave.decks;
-      const finalSave = normalizeSaveData({
-        ...baseSave,
-        user: devAdjusted,
-        decks: finalDecks,
-        ...buildDevSaveFields(preferSaved, devFileOverrideLevel),
-      });
-      if (
-        shouldRewriteSaveOnLoad(parsed, finalSave, {
-          preferSaved,
-          userLevelChanged: devAdjusted.level !== user.level,
-          userExpChanged: devAdjusted.exp !== user.exp,
-          decksRescaled: rescale,
-          decksBpChanged: anyDeckBpChanged(baseSave.decks, finalDecks),
-          inventoryDevFilled,
-          bpRecalcApplied,
-        })
-      ) {
-        saveSave(finalSave);
-      }
-      return finalSave;
-    }
-
-    if (
-      inventoryDevFilled ||
-      shouldRewriteSaveOnLoad(parsed, baseSave, {
-        preferSaved,
-        userLevelChanged: false,
-        userExpChanged: false,
-        decksRescaled: false,
-        decksBpChanged: false,
-        inventoryDevFilled,
-        bpRecalcApplied,
-      })
-    ) {
-      saveSave(baseSave);
-    }
-    return baseSave;
+    const hydrated = hydrateSaveFromParsed(parsed);
+    if (!hydrated) return emptySave();
+    if (hydrated.shouldRewrite) saveSave(hydrated.save);
+    return hydrated.save;
   } catch {
     return emptySave();
   }
@@ -618,72 +623,78 @@ function mergeWithStoredSave(data: SaveData): SaveData {
   }
 }
 
-export function saveSave(data: SaveData): void {
-  const merged = mergeWithStoredSave(data);
+/** SaveData を localStorage / クラウド共通の JSON 形にする */
+export function serializeSaveForStorage(data: SaveData): Record<string, unknown> {
   const payload: Record<string, unknown> = {
-    schemaVersion: merged.schemaVersion ?? SAVE_SCHEMA_VERSION,
-    user: merged.user,
-    economy: merged.economy ?? createInitialEconomy(),
-    inventory: merged.inventory ?? createInitialInventory(),
-    adState: merged.adState ?? createInitialAdState(),
-    decks: normalizeDeckSlots(merged.decks).map((deck) => deck.slice(0, DECK_MAX)),
-    activeDeckIndex: clampDeckSlotIndex(merged.activeDeckIndex),
+    schemaVersion: data.schemaVersion ?? SAVE_SCHEMA_VERSION,
+    user: data.user,
+    economy: data.economy ?? createInitialEconomy(),
+    inventory: data.inventory ?? createInitialInventory(),
+    adState: data.adState ?? createInitialAdState(),
+    decks: normalizeDeckSlots(data.decks).map((deck) => deck.slice(0, DECK_MAX)),
+    activeDeckIndex: clampDeckSlotIndex(data.activeDeckIndex),
     lastBattleDeckIndex: clampDeckSlotIndex(
-      merged.lastBattleDeckIndex ?? merged.activeDeckIndex,
+      data.lastBattleDeckIndex ?? data.activeDeckIndex,
     ),
-    unlockedDeckCount: clampUnlockedDeckCount(merged.unlockedDeckCount),
-    deckNames: merged.deckNames,
-    battleHistory: merged.battleHistory ?? [],
+    unlockedDeckCount: clampUnlockedDeckCount(data.unlockedDeckCount),
+    deckNames: data.deckNames,
+    battleHistory: data.battleHistory ?? [],
   };
-  if (merged.talismanStarterGranted === true) {
+  if (data.talismanStarterGranted === true) {
     payload.talismanStarterGranted = true;
   }
-  const paletteShopUnlocks = normalizePaletteShopUnlocks(merged.paletteShopUnlocks);
+  const paletteShopUnlocks = normalizePaletteShopUnlocks(data.paletteShopUnlocks);
   if (paletteShopUnlocks.length > 0) {
     payload.paletteShopUnlocks = paletteShopUnlocks;
   }
-  const editorShopUnlocks = normalizeEditorShopUnlocks(merged.editorShopUnlocks);
+  const editorShopUnlocks = normalizeEditorShopUnlocks(data.editorShopUnlocks);
   if (editorShopUnlocks.length > 0) {
     payload.editorShopUnlocks = editorShopUnlocks;
   }
-  payload.memoryAlbum = normalizeMemoryAlbum(merged.memoryAlbum);
-  const shopPurchase = normalizeShopPurchaseState(merged.shopPurchase);
+  payload.memoryAlbum = normalizeMemoryAlbum(data.memoryAlbum);
+  const shopPurchase = normalizeShopPurchaseState(data.shopPurchase);
   if (
     shopPurchase.jewelPack200FirstBonusUsed === true ||
     shopPurchase.shopShardPurchasesDayKey != null
   ) {
     payload.shopPurchase = shopPurchase;
   }
-  const subscription = normalizeUserSubscription(merged.subscription);
+  const subscription = normalizeUserSubscription(data.subscription);
   if (subscription.plan !== 'none') {
     payload.subscription = subscription;
   }
   payload.missionState = applyMissionResets(
-    normalizeMissionState(merged.missionState),
+    normalizeMissionState(data.missionState),
   );
-  if (merged.soundEnabled === true) {
+  if (data.soundEnabled === true) {
     payload.soundEnabled = true;
-  } else if (merged.soundEnabled === false) {
+  } else if (data.soundEnabled === false) {
     payload.soundEnabled = false;
   }
-  if (merged.deckIntroSeen === true) {
+  if (data.deckIntroSeen === true) {
     payload.deckIntroSeen = true;
   }
-  payload.publishedDeckSlots = normalizePublishedDeckSlots(
-    merged.publishedDeckSlots,
-  );
+  payload.publishedDeckSlots = normalizePublishedDeckSlots(data.publishedDeckSlots);
   payload.publishedDeckRemoteIds = normalizePublishedDeckRemoteIds(
-    merged.publishedDeckRemoteIds,
+    data.publishedDeckRemoteIds,
   );
-  if (merged.devPreferSavedLevel === true) {
+  if (data.devPreferSavedLevel === true) {
     payload.devPreferSavedLevel = true;
     payload.devFileOverrideLevel =
-      merged.devFileOverrideLevel ?? DEV_USER_LEVEL_OVERRIDE ?? null;
+      data.devFileOverrideLevel ?? DEV_USER_LEVEL_OVERRIDE ?? null;
   }
-  if (typeof merged.bpCalcVersion === 'number') {
-    payload.bpCalcVersion = Math.floor(merged.bpCalcVersion);
+  if (typeof data.bpCalcVersion === 'number') {
+    payload.bpCalcVersion = Math.floor(data.bpCalcVersion);
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  return payload;
+}
+
+export function saveSave(data: SaveData): void {
+  const merged = mergeWithStoredSave(data);
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(serializeSaveForStorage(merged)),
+  );
 }
 
 /** バトル履歴のみ削除（他のセーブデータは維持） */

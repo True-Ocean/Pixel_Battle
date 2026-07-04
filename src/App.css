@@ -3827,6 +3827,69 @@ button.battle-hub-deck-icon.is-move-target {
   line-height: 1.4;
 }
 
+.settings-account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.settings-account-label {
+  font-size: 0.78rem;
+  color: #334155;
+}
+
+.settings-account-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.85rem;
+}
+
+.settings-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.settings-account-btn {
+  border: 1px solid #94a3b8;
+  background: #f8fafc;
+  color: #0f172a;
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-account-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.settings-account-btn--primary {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+
+.settings-account-notice,
+.settings-account-error {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.settings-account-notice {
+  color: #166534;
+}
+
+.settings-account-error {
+  color: #b91c1c;
+}
+
 .settings-row {
   display: flex;
   align-items: center;
