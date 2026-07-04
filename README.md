@@ -136,7 +136,7 @@ Specs: [`PROTOTYPE §4.8`](docs/PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション
 - [x] ミッション（デイリー / ウィークリー / 常設 tier cap・属性/レア度 / ビギナー12） / Missions  
 - [x] 経済リバランス（2026-06） / Economy rebalance (2026-06)  
 - [ ] 効果音（SE） / Sound effects  
-- [ ] オフライン対人（ゴースト） / Offline PvP (ghost decks)  
+- [ ] オフライン対人（公開デッキ一覧・BP 補正） / Offline PvP (public decks + BP rescale)  
 
 ---
 
