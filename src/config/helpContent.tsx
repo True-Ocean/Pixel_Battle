@@ -138,6 +138,7 @@ export function getEditorHelp(isEditing: boolean): HelpTopic {
         items: [
           <>
             カード名を変えて保存 … <HelpInlinePxCost amount={PIXEL_COST_RENAME} />
+            （プレミアム会員は無料）
           </>,
           <>
             キャンバス拡大 … 拡大した分の <HelpInlinePxIcon />

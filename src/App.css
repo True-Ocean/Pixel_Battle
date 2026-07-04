@@ -5054,22 +5054,36 @@ button.battle-hub-deck-icon.is-move-target {
   margin: 0.35rem 0 0.45rem;
   font-size: 0.76rem;
   line-height: 1.45;
+  white-space: pre-line;
 }
 
 .shop-plan-grants {
-  list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
   font-size: 0.78rem;
 }
 
-.shop-plan-grants li {
-  display: flex;
+.shop-plan-grant-label {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #334155;
+}
+
+.shop-plan-grant-amounts {
+  display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.45rem;
+}
+
+.shop-plan-grant-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
 }
 
 .shop-plan-grant-icon {

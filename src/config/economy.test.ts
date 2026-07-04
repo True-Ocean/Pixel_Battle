@@ -364,6 +364,15 @@ describe('lost economy helpers', () => {
       pendingCanvasSize: 16,
     });
     expect(unchanged.renamePixelCost).toBe(0);
+
+    const freeRename = calcEditorSaveCharges({
+      nameChanged: true,
+      editCanvasSize: 16,
+      pendingCanvasSize: 16,
+      renameFree: true,
+    });
+    expect(freeRename.renamePixelCost).toBe(0);
+    expect(canAffordEditorSave({ freePixels: 0 }, freeRename)).toBe(true);
   });
 
   it('checks attribute retouch and select affordability', () => {

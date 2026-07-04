@@ -76,6 +76,7 @@ interface EditorScreenProps {
   freePixels?: number;
   jewels?: number;
   canEditCardUserNote?: boolean;
+  canRenameCardForFree?: boolean;
   paletteShopUnlocks?: readonly number[];
   editorShopUnlocks?: readonly EditorShopUnlockId[];
   backLabel?: string;
@@ -133,6 +134,7 @@ export function EditorScreen({
   freePixels = 0,
   jewels = 0,
   canEditCardUserNote = false,
+  canRenameCardForFree = false,
   paletteShopUnlocks = [],
   editorShopUnlocks = [],
   backLabel = 'マイデッキに戻る',
@@ -495,6 +497,7 @@ export function EditorScreen({
       nameChanged,
       editCanvasSize,
       pendingCanvasSize: canvasSize,
+      renameFree: canRenameCardForFree,
     });
 
     if (!canAffordEditorSave({ freePixels }, saveCharges)) {
@@ -556,6 +559,7 @@ export function EditorScreen({
         nameChanged,
         editCanvasSize,
         pendingCanvasSize: canvasSize,
+        renameFree: canRenameCardForFree,
       })
     : null;
   const canvasUpgradePx = saveCharges?.canvasUpgradePx ?? 0;

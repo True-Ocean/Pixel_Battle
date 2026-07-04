@@ -58,6 +58,14 @@ export function canEditCardUserNote(
   return hasPremiumAlwaysDouble(subscription, now);
 }
 
+/** プレ: カード名変更（リネーム）の px コスト免除 */
+export function canRenameCardForFree(
+  subscription: UserSubscription,
+  now = Date.now(),
+): boolean {
+  return hasPremiumAlwaysDouble(subscription, now);
+}
+
 export function formatSubscriptionPlanLabel(
   subscription: UserSubscription,
   now = Date.now(),

@@ -452,8 +452,11 @@ export function calcEditorSaveCharges(params: {
   nameChanged: boolean;
   editCanvasSize: number;
   pendingCanvasSize: number;
+  /** プレミアム会員など、リネーム px を免除する場合 */
+  renameFree?: boolean;
 }): EditorSaveCharges {
-  const renamePixelCost = params.nameChanged ? PIXEL_COST_RENAME : 0;
+  const renamePixelCost =
+    params.nameChanged && !params.renameFree ? PIXEL_COST_RENAME : 0;
   return {
     canvasUpgradePx: calcCanvasUpgradeCost(
       params.editCanvasSize,

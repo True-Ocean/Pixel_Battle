@@ -269,20 +269,23 @@ export function ShopScreen({
                   </p>
                 </div>
                 <p className="shop-plan-description muted">{plan.description}</p>
-                <ul className="shop-plan-grants">
-                  <li>
-                    <PixelCoinIcon className="shop-plan-grant-icon" aria-hidden />
-                    {plan.monthlyPixels.toLocaleString()} / 月
-                  </li>
-                  <li>
-                    <JewelIcon className="shop-plan-grant-icon" aria-hidden />
-                    {plan.monthlyJewels.toLocaleString()} / 月
-                  </li>
-                  <li>
-                    <TalismanIcon className="shop-plan-grant-icon" aria-hidden />
-                    護符 {plan.monthlyTalismans} / 月
-                  </li>
-                </ul>
+                <p className="shop-plan-grants">
+                  <span className="shop-plan-grant-label">毎月一括受取報酬</span>
+                  <span className="shop-plan-grant-amounts">
+                    <span className="shop-plan-grant-item">
+                      <PixelCoinIcon className="shop-plan-grant-icon" aria-hidden />
+                      {plan.monthlyPixels.toLocaleString()}
+                    </span>
+                    <span className="shop-plan-grant-item">
+                      <JewelIcon className="shop-plan-grant-icon" aria-hidden />
+                      {plan.monthlyJewels.toLocaleString()}
+                    </span>
+                    <span className="shop-plan-grant-item">
+                      <TalismanIcon className="shop-plan-grant-icon" aria-hidden />
+                      {plan.monthlyTalismans}
+                    </span>
+                  </span>
+                </p>
                 <button
                   type="button"
                   className="shop-buy-btn shop-buy-btn--plan"

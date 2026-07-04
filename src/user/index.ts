@@ -86,6 +86,7 @@ export type {
 } from './shop';
 export {
   canEditCardUserNote,
+  canRenameCardForFree,
   devSetSubscriptionPlan,
   formatSubscriptionPlanLabel,
   getActiveSubscriptionPlan,
