@@ -43,9 +43,9 @@ export function ConfirmDialog({
         <h2 id="confirm-dialog-title" className="confirm-dialog-title">
           {title}
         </h2>
-        <p id="confirm-dialog-message" className="confirm-dialog-message">
+        <div id="confirm-dialog-message" className="confirm-dialog-message">
           {message}
-        </p>
+        </div>
         <div className="confirm-dialog-actions">
           <button type="button" className="confirm-dialog-cancel" onClick={onCancel}>
             {cancelLabel}

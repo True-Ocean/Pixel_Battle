@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyGrid, resizeGrid, upscaleGridToFit } from './index';
+import {
+  createEmptyGrid,
+  resizeGrid,
+  resizeGridCentered,
+  upscaleGridToFit,
+} from './index';
 
 describe('resizeGrid', () => {
   it('copies pixels top-left when growing', () => {
@@ -12,6 +17,30 @@ describe('resizeGrid', () => {
     expect(next[0]![0]).toBe('#f00');
     expect(next[1]![1]).toBe('#0f0');
     expect(next[3]![3]).toBeNull();
+  });
+});
+
+describe('resizeGridCentered', () => {
+  it('centers pixels when growing', () => {
+    const grid = [
+      ['#f00', null],
+      [null, '#0f0'],
+    ];
+    const next = resizeGridCentered(grid, 4);
+    expect(next.length).toBe(4);
+    // offset = floor((4-2)/2) = 1
+    expect(next[1]![1]).toBe('#f00');
+    expect(next[2]![2]).toBe('#0f0');
+    expect(next[0]![0]).toBeNull();
+    expect(next[3]![3]).toBeNull();
+  });
+
+  it('falls back to resizeGrid when shrinking', () => {
+    const grid = [
+      ['#f00', '#0f0'],
+      ['#00f', null],
+    ];
+    expect(resizeGridCentered(grid, 2)).toEqual(grid);
   });
 });
 

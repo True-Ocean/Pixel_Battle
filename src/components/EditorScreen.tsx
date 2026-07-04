@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { cloneGrid, createEmptyGrid, gridSize, resizeGrid, upscaleGridToFit } from '../canvas';
+import {
+  cloneGrid,
+  createEmptyGrid,
+  gridSize,
+  resizeGrid,
+  resizeGridCentered,
+  upscaleGridToFit,
+} from '../canvas';
 import {
   applyRedo,
   applyUndo,
@@ -98,6 +105,32 @@ interface EditorScreenProps {
 const MINI_PREVIEW_SIZE = 48;
 const DEV_MODE = import.meta.env.DEV;
 
+type CanvasUpgradeMode = 'fit' | 'topLeft' | 'center';
+
+const CANVAS_UPGRADE_MODES: {
+  id: CanvasUpgradeMode;
+  label: string;
+}[] = [
+  { id: 'fit', label: '適度にフィット' },
+  { id: 'topLeft', label: '現状維持（左上基準）' },
+  { id: 'center', label: '現状維持（中央配置）' },
+];
+
+function applyCanvasUpgradeMode(
+  pixels: PixelGrid,
+  newSize: number,
+  mode: CanvasUpgradeMode,
+): PixelGrid {
+  switch (mode) {
+    case 'fit':
+      return upscaleGridToFit(pixels, newSize);
+    case 'topLeft':
+      return resizeGrid(pixels, newSize);
+    case 'center':
+      return resizeGridCentered(pixels, newSize);
+  }
+}
+
 const DEV_ATTRIBUTE_OPTIONS = (
   Object.keys(ATTRIBUTE_META) as Attribute[]
 ).map((attribute) => ({
@@ -189,6 +222,8 @@ export function EditorScreen({
     canvasResized: boolean;
   } | null>(null);
   const [canvasUpgradeOpen, setCanvasUpgradeOpen] = useState(false);
+  const [canvasUpgradeMode, setCanvasUpgradeMode] =
+    useState<CanvasUpgradeMode>('center');
   const [paletteUnlockIndex, setPaletteUnlockIndex] = useState<number | null>(
     null,
   );
@@ -347,12 +382,14 @@ export function EditorScreen({
             canvasSize: baseline.canvasSize,
           });
         }
+        setCanvasUpgradeMode('center');
         setPendingCanvasUpgradeSize(nextSize);
         setCanvasUpgradeOpen(true);
         return;
       }
 
       if (nextSize > currentSize) {
+        setCanvasUpgradeMode('center');
         setPendingCanvasUpgradeSize(nextSize);
         setCanvasUpgradeOpen(true);
         return;
@@ -370,9 +407,10 @@ export function EditorScreen({
   const handleConfirmCanvasUpgrade = () => {
     if (pendingCanvasUpgradeSize == null) return;
     applyEditorChange({
-      pixels: upscaleGridToFit(
+      pixels: applyCanvasUpgradeMode(
         editorSnapshotRef.current.pixels,
         pendingCanvasUpgradeSize,
+        canvasUpgradeMode,
       ),
       canvasSize: pendingCanvasUpgradeSize,
     });
@@ -787,17 +825,52 @@ export function EditorScreen({
         <ConfirmDialog
           open={canvasUpgradeOpen}
           title="キャンバスサイズ拡大"
+          className="canvas-upgrade-dialog"
           message={
             <>
-              {editCanvasSize}×{editCanvasSize} から{' '}
-              {pendingCanvasUpgradeSize}×{pendingCanvasUpgradeSize}{' '}
-              に拡大します。
-              <br />
-              イメージは新しいサイズに合わせて適度にフィットされます。
-              <br />
-              保存する前であれば、サイズ選択から元のサイズに戻せます。
-              <br />
-              拡大した画像を保存すると、元のサイズには戻せません。
+              <span className="confirm-dialog-message-body">
+                <span className="confirm-dialog-message-line">
+                  {editCanvasSize}×{editCanvasSize} から{' '}
+                  {pendingCanvasUpgradeSize}×{pendingCanvasUpgradeSize}{' '}
+                  に拡大します。
+                </span>
+                <span className="confirm-dialog-message-line">
+                  保存する前であれば、サイズ選択から元のサイズに戻せます。
+                </span>
+                <span className="confirm-dialog-message-line">
+                  拡大した画像を保存すると、元のサイズには戻せません。
+                </span>
+              </span>
+              <fieldset className="canvas-upgrade-mode">
+                <legend className="canvas-upgrade-mode-legend">
+                  現在のイメージをどうしますか？
+                </legend>
+                <div
+                  className="canvas-upgrade-mode-options"
+                  role="radiogroup"
+                  aria-label="イメージの扱い"
+                >
+                  {CANVAS_UPGRADE_MODES.map((mode) => (
+                    <label
+                      key={mode.id}
+                      className={`canvas-upgrade-mode-option${
+                        canvasUpgradeMode === mode.id
+                          ? ' canvas-upgrade-mode-option--selected'
+                          : ''
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="canvas-upgrade-mode"
+                        value={mode.id}
+                        checked={canvasUpgradeMode === mode.id}
+                        onChange={() => setCanvasUpgradeMode(mode.id)}
+                      />
+                      <span>{mode.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
             </>
           }
           confirmLabel="拡大する"

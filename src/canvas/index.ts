@@ -73,6 +73,24 @@ export function resizeGrid(pixels: PixelGrid, newSize: number): PixelGrid {
   return next;
 }
 
+/** キャンバス拡大時: 既存ピクセルを中央基準で新グリッドへコピー（縮小は左上基準） */
+export function resizeGridCentered(pixels: PixelGrid, newSize: number): PixelGrid {
+  const oldSize = pixels.length;
+  const targetSize = Math.max(1, Math.floor(newSize));
+  if (targetSize <= oldSize) {
+    return resizeGrid(pixels, targetSize);
+  }
+
+  const next = createEmptyGrid(targetSize);
+  const offset = Math.floor((targetSize - oldSize) / 2);
+  for (let r = 0; r < oldSize; r++) {
+    for (let c = 0; c < oldSize; c++) {
+      next[r + offset]![c + offset] = pixels[r]?.[c] ?? null;
+    }
+  }
+  return next;
+}
+
 /** キャンバス拡大時: 最近傍で引き伸ばし、新サイズ全体にフィット */
 export function upscaleGridToFit(pixels: PixelGrid, newSize: number): PixelGrid {
   const oldSize = pixels.length;
