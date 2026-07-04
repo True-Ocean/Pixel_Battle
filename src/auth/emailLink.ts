@@ -55,7 +55,7 @@ export function formatAuthError(message: string): AuthActionResult {
       ok: false,
       reason: 'email_already_registered',
       error:
-        'このメールは既に認証登録済みです。「この端末を連携」ではなく「ログイン（復元用）」を使ってください。連携解除は端末の表示を外すだけで、クラウド上のアカウントは消えません。',
+        'このメールは登録済みです。「ログイン（復元用）」を使ってください。',
     };
   }
   return {
@@ -69,11 +69,10 @@ function authErrorResult(error: { message?: string } | null | undefined): AuthAc
   return formatAuthError(error?.message?.trim() || '認証に失敗しました');
 }
 
-const OTP_SENT_MESSAGE =
-  '確認コードをメールで送信しました。下の欄にコードを入力してください（メール内のリンクは開かなくて大丈夫です）。';
+const OTP_SENT_MESSAGE = 'メール内の確認コードを入力';
 
 /**
- * メール連携の準備（確認コード付きメールを送る）。
+ * メールアドレス連携の準備（確認コード付きメールを送る）。
  * updateUser のメール変更通知はリンクのみでコードが無いため、
  * OTP メールになる signInWithOtp を使う（PWA でコード入力するため）。
  * 完了には verifyEmailOtp(..., 'link') が必要。
@@ -275,7 +274,7 @@ export async function verifyEmailOtp(
           ok: true,
           message:
             purpose === 'link'
-              ? 'メール連携が完了しました'
+              ? 'メールアドレス連携が完了しました'
               : 'ログインしました',
         };
       }
@@ -289,7 +288,9 @@ export async function verifyEmailOtp(
   return {
     ok: true,
     message:
-      purpose === 'link' ? 'メール連携が完了しました' : 'ログインしました',
+      purpose === 'link'
+        ? 'メールアドレス連携が完了しました'
+        : 'ログインしました',
   };
 }
 
@@ -321,10 +322,10 @@ export async function signOutAccount(): Promise<AuthActionResult> {
 }
 
 const UNLINK_SUCCESS_MESSAGE =
-  'この端末の連携表示を解除しました。同じメールで再び使う場合は「ログイン（復元用）」を押してください（クラウド上の認証アカウントは残っています。「この端末を連携」は新規登録用です）。';
+  '連携を解除しました。同じメールで使う場合は「ログイン（復元用）」を押してください。';
 
 /**
- * この端末のメール連携表示を解除する（ログアウト＋端末側の連携記録を削除）。
+ * この端末のメールアドレス連携表示を解除する（ログアウト＋端末側の連携記録を削除）。
  * クラウド上の auth.users / player_saves は削除しない。
  * 同じメールを再度使うには「ログイン（復元用）」が必要。
  */

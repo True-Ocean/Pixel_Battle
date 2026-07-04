@@ -68,7 +68,7 @@ describe('formatAuthError', () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.reason).toBe('email_already_registered');
-      expect(result.error).toContain('認証登録済み');
+      expect(result.error).toContain('登録済み');
       expect(result.error).toContain('ログイン');
     }
   });

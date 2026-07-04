@@ -76,7 +76,7 @@ export interface SettingsScreenProps {
   onDevClearPaletteShopUnlocks: () => string;
   onDevUnlockAllEditorTools: () => string;
   onDevClearEditorShopUnlocks: () => string;
-  /** メール連携済みのときクラウドと突き合わせる */
+  /** メールアドレス連携済みのときクラウドと突き合わせる */
   onCloudSyncNow?: () => Promise<string>;
   /** ユーザー名変更（trim 済み・検証済み） */
   onUsernameChange: (username: string) => void;
@@ -374,8 +374,7 @@ function AccountSection({
         if (loginResult.ok === true) {
           result = {
             ok: true,
-            message:
-              'このメールは既に認証登録済みです（連携解除してもクラウド上には残ります）。ログイン用の確認コードを送信しました。下の欄に入力してください。',
+            message: 'メール内の確認コードを入力',
           };
           resolvedPurpose = 'login';
         } else {
@@ -507,7 +506,7 @@ function AccountSection({
           aria-expanded={mailExpanded}
           onClick={() => setMailExpanded((open) => !open)}
         >
-          <span className="settings-account-mail-toggle-title">メール連携</span>
+          <span className="settings-account-mail-toggle-title">メールアドレス連携</span>
           <span className="settings-account-mail-toggle-status">
             {mailStatusLabel}
           </span>
@@ -524,16 +523,24 @@ function AccountSection({
               </p>
             ) : (
               <p className="settings-section-note muted">
-                メール連携すると、機種変更やホーム画面からの削除後もクラウドから進行を復元できます。連携中は自動でクラウドに保存されます。確認はメール内の数字コードをこの画面に入力します（ホーム画面アプリではリンクを開かないでください）。この端末で一度連携したメールは、解除するまで変更できません。
+                メールアドレスを連携すると、機種変更やホーム画面からの削除後もクラウドからデータを復元でき、連携中は自動でクラウドに保存されます。
               </p>
             )}
             {configured && (
               <>
                 {linked ? (
                   <>
-                    {boundEmail != null && (
-                      <p className="settings-section-note muted">{boundEmail}</p>
-                    )}
+                    <label className="settings-account-label" htmlFor="settings-account-email-linked">
+                      メールアドレス
+                    </label>
+                    <input
+                      id="settings-account-email-linked"
+                      type="email"
+                      className="settings-account-input"
+                      value={boundEmail ?? ''}
+                      disabled
+                      readOnly
+                    />
                     <div className="settings-account-actions">
                       {onCloudSyncNow && (
                         <button
@@ -619,16 +626,20 @@ function AccountSection({
                         連携を解除
                       </button>
                     </div>
-                    <p className="settings-section-note muted">
-                      「連携を解除」は端末の表示を外すだけで、クラウド上の認証アカウントは残ります。同じメールで再び使うときは「ログイン（復元用）」です。別のメールにする場合も、先に解除してから新しいメールで連携してください。
-                    </p>
                   </>
                 ) : pendingOtp ? (
                   <div className="settings-account-form">
-                    <p className="settings-section-note muted">
-                      {pendingOtp.email}{' '}
-                      宛に確認コードを送りました。メールに記載の数字を入力してください。ホーム画面アプリではメール内のリンクを開かず、ここでコードを入力してください。
-                    </p>
+                    <label className="settings-account-label" htmlFor="settings-account-email-pending">
+                      メールアドレス
+                    </label>
+                    <input
+                      id="settings-account-email-pending"
+                      type="email"
+                      className="settings-account-input"
+                      value={pendingOtp.email}
+                      disabled
+                      readOnly
+                    />
                     <label
                       className="settings-account-label"
                       htmlFor="settings-account-otp"
@@ -687,16 +698,6 @@ function AccountSection({
                   </div>
                 ) : (
                   <div className="settings-account-form">
-                    {deviceLinkedEmail != null ? (
-                      <p className="settings-section-note muted">
-                        この端末は {deviceLinkedEmail}{' '}
-                        の連携記録があります。同じメールで使う場合は「ログイン（復元用）」を押してください。「この端末を連携」は未登録メール用です。別メールにする場合は「連携を解除」後に新しいメールで連携してください。
-                      </p>
-                    ) : (
-                      <p className="settings-section-note muted">
-                        ボタンを押すと確認コード付きメール（英語の場合あり）が届きます。届いた数字をこの画面に入力してください。ホーム画面アプリではメール内のリンクは開かないでください。届かないときは迷惑メールフォルダも確認してください。短時間に何度も送ると送信制限にかかることがあります。
-                      </p>
-                    )}
                     <label
                       className="settings-account-label"
                       htmlFor="settings-account-email"

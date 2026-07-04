@@ -110,7 +110,7 @@ async function uploadSave(
 }
 
 /**
- * メール連携済みのとき、ローカルとクラウドを突き合わせる。
+ * メールアドレス連携済みのとき、ローカルとクラウドを突き合わせる。
  * download の場合は呼び出し側で state に適用すること。
  */
 export async function reconcileCloudSave(
