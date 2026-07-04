@@ -1,0 +1,12 @@
+# Secrets / local credentials (do not index for AI context)
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output (large, not needed for agent context)
+node_modules/
+dist/
+dist-ssr/
+dev-dist/
+coverage/
+.vite/

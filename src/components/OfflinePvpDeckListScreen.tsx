@@ -1,12 +1,16 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { getRarityMeta } from '../config/rarity';
-import { listPublicGhostDecks, type PublicGhostDeck } from '../offlinePvp';
+import {
+  listPublicGhostDecks,
+  type PublicGhostDeck,
+} from '../offlinePvp';
 import type { Card } from '../types';
 import { CardPreview } from './CardPreview';
 import { OfflinePvpDeckDetailOverlay } from './OfflinePvpDeckDetailOverlay';
 
 interface OfflinePvpDeckListScreenProps {
   viewerLevel: number;
+  excludeOwnerId?: string | null;
   canBattle: boolean;
   onBack: () => void;
   onChallenge: (ghost: PublicGhostDeck) => void;
@@ -38,15 +42,35 @@ function DeckThumbnails({ cards }: { cards: Card[] }) {
 
 export function OfflinePvpDeckListScreen({
   viewerLevel,
+  excludeOwnerId = null,
   canBattle,
   onBack,
   onChallenge,
 }: OfflinePvpDeckListScreenProps) {
-  const ghosts = useMemo(
-    () => listPublicGhostDecks(viewerLevel),
-    [viewerLevel],
-  );
+  const [ghosts, setGhosts] = useState<PublicGhostDeck[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<PublicGhostDeck | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    void listPublicGhostDecks(viewerLevel, { excludeOwnerId }).then((list) => {
+      if (cancelled) return;
+      setGhosts(list);
+      setLoading(false);
+    }).catch((error: unknown) => {
+      if (cancelled) return;
+      setLoadError(
+        error instanceof Error ? error.message : '一覧の取得に失敗しました',
+      );
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewerLevel, excludeOwnerId]);
 
   return (
     <section className="screen screen-offline-pvp-list">
@@ -64,9 +88,16 @@ export function OfflinePvpDeckListScreen({
         </p>
       </header>
 
-      {ghosts.length === 0 ? (
+      {loading ? (
+        <div className="records-history-empty">
+          <p className="muted">公開デッキを読み込み中…</p>
+        </div>
+      ) : ghosts.length === 0 ? (
         <div className="records-history-empty">
           <p className="muted">公開デッキがありません</p>
+          {loadError && (
+            <p className="muted records-history-empty-hint">{loadError}</p>
+          )}
         </div>
       ) : (
         <ul className="records-history-list offline-pvp-list">

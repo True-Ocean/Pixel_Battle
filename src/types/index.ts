@@ -216,6 +216,10 @@ export interface SaveData {
   soundEnabled?: boolean;
   /** マイデッキ初回案内モーダルを表示済み */
   deckIntroSeen?: boolean;
+  /** デッキスロットごとの公開ON（長さ5） */
+  publishedDeckSlots?: boolean[];
+  /** デッキスロットごとのリモート公開ID（長さ5） */
+  publishedDeckRemoteIds?: (string | null)[];
 }
 
 /** アプリ画面（ルーターなし・state で切替） */

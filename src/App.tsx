@@ -31,7 +31,18 @@ import {
 import { loadSave, saveSave, SAVE_SCHEMA_VERSION } from './storage';
 import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, setMemoryAlbumUnlockedRows, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, canRenameCardForFree, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
-import type { PublicGhostDeck } from './offlinePvp';
+import {
+  canPublishDeck,
+  ensureAnonymousUserId,
+  normalizePublishedDeckRemoteIds,
+  normalizePublishedDeckSlots,
+  setPublishedRemoteId,
+  setPublishedSlot,
+  unpublishDeck,
+  upsertPublishedDeck,
+  type PublicGhostDeck,
+} from './offlinePvp';
+import { isSupabaseConfigured } from './supabase/client';
 import {
   unlockPaletteWithJewels,
   createFullPaletteShopUnlocks,
@@ -155,6 +166,19 @@ function App() {
   const [deckNames, setDeckNames] = useState<string[] | undefined>(
     () => initialSave.deckNames,
   );
+  const [publishedDeckSlots, setPublishedDeckSlots] = useState(() =>
+    normalizePublishedDeckSlots(initialSave.publishedDeckSlots),
+  );
+  const [publishedDeckRemoteIds, setPublishedDeckRemoteIds] = useState(() =>
+    normalizePublishedDeckRemoteIds(initialSave.publishedDeckRemoteIds),
+  );
+  const [publishBusy, setPublishBusy] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [supabaseOwnerId, setSupabaseOwnerId] = useState<string | null>(null);
+  const publishedDeckSlotsRef = useRef(publishedDeckSlots);
+  const publishedDeckRemoteIdsRef = useRef(publishedDeckRemoteIds);
+  publishedDeckSlotsRef.current = publishedDeckSlots;
+  publishedDeckRemoteIdsRef.current = publishedDeckRemoteIds;
   const [paletteShopUnlocks, setPaletteShopUnlocks] = useState<number[]>(() =>
     normalizePaletteShopUnlocks(initialSave.paletteShopUnlocks),
   );
@@ -368,6 +392,8 @@ function App() {
       devFileOverrideLevel?: number | null;
       soundEnabled?: boolean;
       deckIntroSeen?: boolean;
+      publishedDeckSlots?: boolean[];
+      publishedDeckRemoteIds?: (string | null)[];
     }) => {
       if (next.devPreferSavedLevel !== undefined) {
         devPreferSavedLevelRef.current = next.devPreferSavedLevel;
@@ -407,6 +433,10 @@ function App() {
         missionState: missionStateToSave,
         soundEnabled: next.soundEnabled ?? soundEnabled,
         deckIntroSeen: next.deckIntroSeen ?? deckIntroSeen,
+        publishedDeckSlots:
+          next.publishedDeckSlots ?? publishedDeckSlotsRef.current,
+        publishedDeckRemoteIds:
+          next.publishedDeckRemoteIds ?? publishedDeckRemoteIdsRef.current,
         ...(devPreferSavedLevelRef.current
           ? {
               devPreferSavedLevel: true as const,
@@ -418,6 +448,156 @@ function App() {
     },
     [activeDeckIndex, adState, deckIntroSeen, decks, economy, inventory, lastBattleDeckIndex, missionState, paletteShopUnlocks, shopPurchase, soundEnabled, subscription, talismanStarterGranted, unlockedDeckCount, user],
   );
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    void ensureAnonymousUserId().then((id) => {
+      if (id) setSupabaseOwnerId(id);
+    });
+  }, []);
+
+  const handleToggleDeckPublish = useCallback(
+    async (published: boolean) => {
+      const profile = userRef.current;
+      if (!profile || !isProfileComplete(profile)) {
+        setPublishError('ユーザー登録後に公開できます');
+        return;
+      }
+      if (!isSupabaseConfigured()) {
+        setPublishError('Supabase が設定されていません（.env を確認してください）');
+        return;
+      }
+
+      const slotIndex = activeDeckIndexRef.current;
+      const layout = normalizeDeckLayout(decksRef.current[slotIndex] ?? []);
+      setPublishBusy(true);
+      setPublishError(null);
+
+      if (published) {
+        const result = await upsertPublishedDeck({
+          slotIndex,
+          deck: layout,
+          user: profile,
+          remoteId: publishedDeckRemoteIdsRef.current[slotIndex],
+        });
+        if (!result.ok) {
+          setPublishError(result.error);
+          setPublishBusy(false);
+          return;
+        }
+        const ownerId = await ensureAnonymousUserId();
+        if (ownerId) setSupabaseOwnerId(ownerId);
+        const nextSlots = setPublishedSlot(
+          publishedDeckSlotsRef.current,
+          slotIndex,
+          true,
+        );
+        const nextIds = setPublishedRemoteId(
+          publishedDeckRemoteIdsRef.current,
+          slotIndex,
+          result.remoteId,
+        );
+        publishedDeckSlotsRef.current = nextSlots;
+        publishedDeckRemoteIdsRef.current = nextIds;
+        setPublishedDeckSlots(nextSlots);
+        setPublishedDeckRemoteIds(nextIds);
+        persistSave({
+          publishedDeckSlots: nextSlots,
+          publishedDeckRemoteIds: nextIds,
+        });
+      } else {
+        const result = await unpublishDeck({
+          slotIndex,
+          remoteId: publishedDeckRemoteIdsRef.current[slotIndex],
+        });
+        if (!result.ok) {
+          setPublishError(result.error);
+          setPublishBusy(false);
+          return;
+        }
+        const nextSlots = setPublishedSlot(
+          publishedDeckSlotsRef.current,
+          slotIndex,
+          false,
+        );
+        const nextIds = setPublishedRemoteId(
+          publishedDeckRemoteIdsRef.current,
+          slotIndex,
+          null,
+        );
+        publishedDeckSlotsRef.current = nextSlots;
+        publishedDeckRemoteIdsRef.current = nextIds;
+        setPublishedDeckSlots(nextSlots);
+        setPublishedDeckRemoteIds(nextIds);
+        persistSave({
+          publishedDeckSlots: nextSlots,
+          publishedDeckRemoteIds: nextIds,
+        });
+      }
+      setPublishBusy(false);
+    },
+    [persistSave],
+  );
+
+  /** 公開中スロットをデッキ変更に合わせて自動同期 */
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const profile = user;
+    if (!profile || !isProfileComplete(profile)) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        let slots = publishedDeckSlotsRef.current;
+        let ids = publishedDeckRemoteIdsRef.current;
+        let changed = false;
+
+        for (let slotIndex = 0; slotIndex < unlockedDeckCount; slotIndex++) {
+          if (!slots[slotIndex]) continue;
+          const layout = normalizeDeckLayout(decks[slotIndex] ?? []);
+          if (!canPublishDeck(layout)) {
+            const result = await unpublishDeck({
+              slotIndex,
+              remoteId: ids[slotIndex],
+            });
+            if (cancelled) return;
+            if (result.ok) {
+              slots = setPublishedSlot(slots, slotIndex, false);
+              ids = setPublishedRemoteId(ids, slotIndex, null);
+              changed = true;
+            }
+            continue;
+          }
+          const result = await upsertPublishedDeck({
+            slotIndex,
+            deck: layout,
+            user: profile,
+            remoteId: ids[slotIndex],
+          });
+          if (cancelled) return;
+          if (result.ok && result.remoteId !== ids[slotIndex]) {
+            ids = setPublishedRemoteId(ids, slotIndex, result.remoteId);
+            changed = true;
+          }
+        }
+
+        if (cancelled || !changed) return;
+        publishedDeckSlotsRef.current = slots;
+        publishedDeckRemoteIdsRef.current = ids;
+        setPublishedDeckSlots(slots);
+        setPublishedDeckRemoteIds(ids);
+        persistSave({
+          publishedDeckSlots: slots,
+          publishedDeckRemoteIds: ids,
+        });
+      })();
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [decks, persistSave, unlockedDeckCount, user]);
 
   const reportAndPersistMissionEvents = useCallback(
     (
@@ -2931,6 +3111,12 @@ function App() {
             onDismissLostCardDeckNoticeForToday={handleDismissLostCardDeckNoticeForToday}
             skipsCreativeAd={skipsCreativeAd(subscription)}
             onBattleGuideOpen={handleBattleGuideOpen}
+            deckPublished={publishedDeckSlots[activeDeckIndex] === true}
+            publishBusy={publishBusy}
+            canPublishDeck={canPublishDeck(activeDeck)}
+            publishAvailable={isSupabaseConfigured()}
+            publishError={publishError}
+            onToggleDeckPublish={handleToggleDeckPublish}
           />
         )}
         {screen === 'memoryAlbum' && (
@@ -2973,6 +3159,7 @@ function App() {
         {screen === 'offlinePvpList' && !isOfflinePvpDeckSelect && (
           <OfflinePvpDeckListScreen
             viewerLevel={user?.level ?? 1}
+            excludeOwnerId={supabaseOwnerId}
             canBattle={hasOfflinePvpBattleDeck}
             onBack={closeOfflinePvpList}
             onChallenge={startOfflinePvpDeckSelect}

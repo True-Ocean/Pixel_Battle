@@ -99,6 +99,16 @@ export interface DeckScreenProps {
   /** ライト / プレ: 編集入室 CM スキップ（🎬 非表示） */
   skipsCreativeAd?: boolean;
   onBattleGuideOpen?: () => void;
+  /** 対人戦用: このスロットを公開中か */
+  deckPublished?: boolean;
+  /** 公開トグル操作中 */
+  publishBusy?: boolean;
+  /** 公開可能（バトル可能デッキ）か */
+  canPublishDeck?: boolean;
+  /** Supabase 未設定時はトグル無効 */
+  publishAvailable?: boolean;
+  publishError?: string | null;
+  onToggleDeckPublish?: (published: boolean) => void;
 }
 
 interface DeckDragState {
@@ -321,6 +331,12 @@ export function DeckScreen({
   onDismissLostCardDeckNoticeForToday,
   skipsCreativeAd = false,
   onBattleGuideOpen,
+  deckPublished = false,
+  publishBusy = false,
+  canPublishDeck = false,
+  publishAvailable = false,
+  publishError = null,
+  onToggleDeckPublish,
 }: DeckScreenProps) {
   const [dragState, setDragState] = useState<DeckDragState | null>(null);
   const [lostCardNoticePendingId, setLostCardNoticePendingId] = useState<string | null>(null);
@@ -954,6 +970,52 @@ export function DeckScreen({
           onClick={() => setHelpOpen(true)}
         />
       </div>
+
+      {onToggleDeckPublish && (
+        <div className="deck-publish-row">
+          <label
+            className={[
+              'deck-publish-toggle',
+              !publishAvailable || publishBusy ? 'is-disabled' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            <input
+              type="checkbox"
+              checked={deckPublished}
+              disabled={
+                !publishAvailable ||
+                publishBusy ||
+                (!deckPublished && !canPublishDeck)
+              }
+              onChange={(event) => onToggleDeckPublish(event.target.checked)}
+            />
+            <span className="deck-publish-toggle-label">
+              {publishBusy
+                ? '公開を更新中…'
+                : deckPublished
+                  ? '対人戦に公開中'
+                  : '対人戦に公開する'}
+            </span>
+          </label>
+          {!publishAvailable && (
+            <p className="deck-publish-hint muted">
+              公開には Supabase の設定（.env）が必要です
+            </p>
+          )}
+          {publishAvailable && !canPublishDeck && !deckPublished && (
+            <p className="deck-publish-hint muted">
+              ロストなしで5枚揃ったデッキだけ公開できます
+            </p>
+          )}
+          {publishError && (
+            <p className="deck-publish-error" role="alert">
+              {publishError}
+            </p>
+          )}
+        </div>
+      )}
 
       {crossDeckTargetIndex != null ? (
         <TargetDeckDropPanel

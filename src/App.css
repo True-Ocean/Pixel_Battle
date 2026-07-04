@@ -2181,6 +2181,49 @@ button.battle-hub-deck-icon.is-move-target {
   font-weight: 600;
 }
 
+.deck-publish-row {
+  flex-shrink: 0;
+  margin: 0 0 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.deck-publish-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+}
+
+.deck-publish-toggle.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.deck-publish-toggle input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: #4f46e5;
+}
+
+.deck-publish-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.deck-publish-error {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #b91c1c;
+}
+
 .offline-pvp-bp-note {
   margin: 0.2rem 0 0;
   font-size: 0.75rem;

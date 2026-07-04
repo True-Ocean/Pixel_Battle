@@ -1,11 +1,12 @@
 import { SEED_GHOST_DECKS } from '../data/seedGhostDecks';
+import { fetchRemotePublicGhostDecks, rowToPublicGhostDeck } from './publish';
 import type { PublicGhostDeck } from './types';
 
 function cloneGhostDeck(ghost: PublicGhostDeck): PublicGhostDeck {
   return structuredClone(ghost);
 }
 
-function sortByViewerLevel(
+export function sortByViewerLevel(
   decks: readonly PublicGhostDeck[],
   viewerLevel: number,
 ): PublicGhostDeck[] {
@@ -19,19 +20,48 @@ function sortByViewerLevel(
   });
 }
 
-/**
- * viewerLevel 付近を優先した公開デッキ一覧（コピーを返す）。
- * v1 は同梱シードのみ。
- */
-export function listPublicGhostDecks(
-  viewerLevel: number,
-  _options?: { minCount?: number },
-): PublicGhostDeck[] {
-  return sortByViewerLevel(SEED_GHOST_DECKS, viewerLevel).map(cloneGhostDeck);
+function seedDecks(): PublicGhostDeck[] {
+  return SEED_GHOST_DECKS.map(cloneGhostDeck);
 }
 
-/** id で1件取得。無ければ null */
-export function getPublicGhostDeckById(id: string): PublicGhostDeck | null {
-  const found = SEED_GHOST_DECKS.find((ghost) => ghost.id === id);
-  return found ? cloneGhostDeck(found) : null;
+/**
+ * viewerLevel 付近を優先した公開デッキ一覧（コピーを返す）。
+ * リモート取得に成功したらリモート＋シードをマージ。自分の ownerId は除外。
+ * 失敗・未設定時はシードのみ。
+ */
+export async function listPublicGhostDecks(
+  viewerLevel: number,
+  options?: { excludeOwnerId?: string | null },
+): Promise<PublicGhostDeck[]> {
+  const excludeOwnerId = options?.excludeOwnerId ?? null;
+  const remote = await fetchRemotePublicGhostDecks();
+
+  let remoteDecks: PublicGhostDeck[] = [];
+  if (remote.ok) {
+    remoteDecks = remote.rows
+      .filter((row) => !excludeOwnerId || row.owner_id !== excludeOwnerId)
+      .map((row) => rowToPublicGhostDeck(row));
+  }
+
+  const seeds = seedDecks();
+  const merged = [...remoteDecks, ...seeds];
+  return sortByViewerLevel(merged, viewerLevel);
+}
+
+/** id で1件取得（シード優先、無ければリモート全件から検索） */
+export async function getPublicGhostDeckById(
+  id: string,
+): Promise<PublicGhostDeck | null> {
+  const seed = SEED_GHOST_DECKS.find((ghost) => ghost.id === id);
+  if (seed) return cloneGhostDeck(seed);
+
+  const remote = await fetchRemotePublicGhostDecks();
+  if (!remote.ok) return null;
+  const row = remote.rows.find((item) => item.id === id);
+  return row ? rowToPublicGhostDeck(row) : null;
+}
+
+/** テスト・オフライン用: シードのみ同期一覧 */
+export function listSeedPublicGhostDecks(viewerLevel: number): PublicGhostDeck[] {
+  return sortByViewerLevel(SEED_GHOST_DECKS, viewerLevel).map(cloneGhostDeck);
 }

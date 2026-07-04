@@ -14,6 +14,7 @@
 | 経済・報酬 | Economy & rewards | [`docs/ECONOMY_SPEC.md`](docs/ECONOMY_SPEC.md) |
 | 経済ロードマップ | Economy roadmap | [`docs/ECONOMY_ROADMAP.md`](docs/ECONOMY_ROADMAP.md) |
 | オフライン対人（実装仕様） | Offline PvP (impl) | [`docs/OFFLINE_PVP_SPEC.md`](docs/OFFLINE_PVP_SPEC.md) |
+| Supabase セットアップ | Supabase setup | [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) |
 | 効果音（仕様のみ） | SFX spec (planned) | [`docs/SFX_SPEC.md`](docs/SFX_SPEC.md) |
 
 ---
@@ -138,6 +139,7 @@ Specs: [`PROTOTYPE §4.8`](docs/PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション
 - [x] 経済リバランス（2026-06） / Economy rebalance (2026-06)  
 - [ ] 効果音（SE） / Sound effects  
 - [x] オフライン対人（公開デッキ一覧・BP 補正） / Offline PvP (public decks + BP rescale)  
+- [x] 公開デッキ共有（Supabase・匿名認証） / Public deck sharing (Supabase)  
 
 ---
 

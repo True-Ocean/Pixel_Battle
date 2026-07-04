@@ -1,4 +1,8 @@
 import type { BattleHistoryEntry, Card, CardRarity, CardStars, MemoryAlbumState, SaveData } from '../types';
+import {
+  normalizePublishedDeckRemoteIds,
+  normalizePublishedDeckSlots,
+} from '../offlinePvp/publishedSlots';
 import { applyLoadBpRecalc, BP_CALC_VERSION, rescaleDeckBp } from '../card';
 import {
   clampDeckSlotIndex,
@@ -478,6 +482,10 @@ export function loadSave(): SaveData {
       ),
       soundEnabled: normalizeSoundEnabled(parsed.soundEnabled),
       deckIntroSeen: parsed.deckIntroSeen === true,
+      publishedDeckSlots: normalizePublishedDeckSlots(parsed.publishedDeckSlots),
+      publishedDeckRemoteIds: normalizePublishedDeckRemoteIds(
+        parsed.publishedDeckRemoteIds,
+      ),
       ...(typeof parsed.bpCalcVersion === 'number'
         ? { bpCalcVersion: Math.floor(parsed.bpCalcVersion) }
         : {}),
@@ -593,6 +601,12 @@ function mergeWithStoredSave(data: SaveData): SaveData {
               (name): name is string => typeof name === 'string',
             )
           : undefined),
+      publishedDeckSlots:
+        data.publishedDeckSlots ??
+        normalizePublishedDeckSlots(stored.publishedDeckSlots),
+      publishedDeckRemoteIds:
+        data.publishedDeckRemoteIds ??
+        normalizePublishedDeckRemoteIds(stored.publishedDeckRemoteIds),
       bpCalcVersion:
         data.bpCalcVersion ??
         (typeof stored.bpCalcVersion === 'number'
@@ -655,6 +669,12 @@ export function saveSave(data: SaveData): void {
   if (merged.deckIntroSeen === true) {
     payload.deckIntroSeen = true;
   }
+  payload.publishedDeckSlots = normalizePublishedDeckSlots(
+    merged.publishedDeckSlots,
+  );
+  payload.publishedDeckRemoteIds = normalizePublishedDeckRemoteIds(
+    merged.publishedDeckRemoteIds,
+  );
   if (merged.devPreferSavedLevel === true) {
     payload.devPreferSavedLevel = true;
     payload.devFileOverrideLevel =
