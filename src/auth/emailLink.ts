@@ -84,7 +84,7 @@ export async function linkEmailToCurrentUser(
   return {
     ok: true,
     message:
-      '確認メールを送信しました。メール内のリンクを開くと、この端末の進行がアカウントに紐づきます。',
+      '確認メールを送信しました（差出人は Supabase で、英語の場合があります）。メール内のリンクを開くと、この端末の進行がアカウントに紐づきます。届かないときは迷惑メールフォルダも確認してください。',
   };
 }
 
@@ -138,7 +138,7 @@ export async function signInWithEmailMagicLink(
   return {
     ok: true,
     message:
-      'ログイン用のメールを送信しました。メール内のリンクを開くとログインします。',
+      'ログイン用のメールを送信しました（差出人は Supabase で、英語の場合があります）。メール内のリンクを開くとログインします。届かないときは迷惑メールフォルダも確認してください。',
   };
 }
 

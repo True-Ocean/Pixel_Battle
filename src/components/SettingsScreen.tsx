@@ -6,8 +6,8 @@ import {
   signInWithEmailMagicLink,
   signOutAccount,
   subscribeAuthState,
-  isAnonymousUser,
   isEmailLinkedUser,
+  type AuthActionResult,
 } from '../auth';
 import {
   DECK_SLOT_COUNT,
@@ -83,10 +83,13 @@ const FUTURE_ROWS: PlaceholderRow[] = [
 
 function SettingsSection({
   title,
+  titleStatus,
   children,
   compact = false,
 }: {
   title: string;
+  /** タイトル右に表示する状態（例: 状態：未連携） */
+  titleStatus?: string;
   children: ReactNode;
   compact?: boolean;
 }) {
@@ -94,7 +97,12 @@ function SettingsSection({
     <section
       className={`settings-section${compact ? ' settings-section--compact' : ''}`}
     >
-      <h2 className="settings-section-title">{title}</h2>
+      <h2 className="settings-section-title">
+        <span className="settings-section-title-text">{title}</span>
+        {titleStatus != null && titleStatus.length > 0 && (
+          <span className="settings-section-title-status">{titleStatus}</span>
+        )}
+      </h2>
       <div className="settings-section-body">{children}</div>
     </section>
   );
@@ -264,6 +272,18 @@ function SettingsDevNotices({ messages }: { messages: (string | null)[] }) {
   );
 }
 
+function applyAuthActionResult(
+  result: AuthActionResult,
+  onSuccess: (message: string) => void,
+  onFailure: (message: string) => void,
+): void {
+  if (result.ok === true) {
+    onSuccess(result.message);
+    return;
+  }
+  onFailure(result.error);
+}
+
 function AccountLinkSection() {
   const configured = isSupabaseConfigured();
   const [authUser, setAuthUser] = useState<User | null>(null);
@@ -276,26 +296,25 @@ function AccountLinkSection() {
 
   const linked = isEmailLinkedUser(authUser);
   const email = resolveAccountEmail(authUser);
-  const anonymous = isAnonymousUser(authUser);
 
-  const runAction = async (
-    action: (email: string) => Promise<{ ok: boolean; message?: string; error?: string }>,
-  ) => {
+  const titleStatus = !configured
+    ? '状態：利用不可'
+    : linked
+      ? '状態：連携済み'
+      : '状態：未連携';
+
+  const runAction = async (action: (email: string) => Promise<AuthActionResult>) => {
     setBusy(true);
     setNotice(null);
     setError(null);
     const result = await action(emailInput);
     setBusy(false);
-    if (result.ok) {
-      setNotice(result.message ?? '完了しました');
-      return;
-    }
-    setError(result.error ?? '失敗しました');
+    applyAuthActionResult(result, setNotice, setError);
   };
 
   if (!configured) {
     return (
-      <SettingsSection title="アカウント連携" compact>
+      <SettingsSection title="アカウント連携" titleStatus={titleStatus} compact>
         <p className="settings-section-note muted">
           Supabase が未設定のため、アカウント連携は利用できません。
         </p>
@@ -304,45 +323,40 @@ function AccountLinkSection() {
   }
 
   return (
-    <SettingsSection title="アカウント連携" compact>
+    <SettingsSection title="アカウント連携" titleStatus={titleStatus} compact>
       <p className="settings-section-note muted">
-        メールで連携すると、機種変更やホーム画面の削除後も進行を復元できます（クラウド同期は次のフェーズで有効化）。
+        メール連携すると、機種変更やホーム画面からの削除後もデータを復元できます。
       </p>
-      <SettingsRow
-        label="状態"
-        value={
-          linked
-            ? `連携済み（${email}）`
-            : anonymous
-              ? '端末のみ（未連携）'
-              : authUser
-                ? 'ログイン中'
-                : '未ログイン'
-        }
-      />
       {linked ? (
-        <div className="settings-account-actions">
-          <button
-            type="button"
-            className="settings-account-btn"
-            disabled={busy}
-            onClick={() => {
-              void (async () => {
-                setBusy(true);
-                setNotice(null);
-                setError(null);
-                const result = await signOutAccount();
-                setBusy(false);
-                if (result.ok) setNotice(result.message);
-                else setError(result.error);
-              })();
-            }}
-          >
-            ログアウト
-          </button>
-        </div>
+        <>
+          {email != null && (
+            <p className="settings-section-note muted">{email}</p>
+          )}
+          <div className="settings-account-actions">
+            <button
+              type="button"
+              className="settings-account-btn"
+              disabled={busy}
+              onClick={() => {
+                void (async () => {
+                  setBusy(true);
+                  setNotice(null);
+                  setError(null);
+                  const result = await signOutAccount();
+                  setBusy(false);
+                  applyAuthActionResult(result, setNotice, setError);
+                })();
+              }}
+            >
+              ログアウト
+            </button>
+          </div>
+        </>
       ) : (
         <div className="settings-account-form">
+          <p className="settings-section-note muted">
+            下のボタンを押すと、認証サービス（Supabase）から入力したアドレス宛に確認用メール（英語）が届きます。メール内のリンクを開くと連携またはログインが完了します。届かないときは迷惑メールフォルダなどを確認してください。
+          </p>
           <label className="settings-account-label" htmlFor="settings-account-email">
             メールアドレス
           </label>
@@ -378,9 +392,6 @@ function AccountLinkSection() {
               ログイン（復元用）
             </button>
           </div>
-          <p className="settings-section-note muted">
-            「この端末を連携」は今の進行をメールに紐づけます。「ログイン」はすでに連携済みのメールで入り直します。
-          </p>
         </div>
       )}
       {notice && (
