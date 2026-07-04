@@ -14,6 +14,7 @@ interface BattleHubScreenProps {
   lastBattleDeckIndex: number;
   userLevel: number;
   onStartBattle: (deckIndex: number) => void;
+  onOpenOfflinePvp: () => void;
   onGoToMyDeck: (deckIndex: number, cardId: string) => void;
   onReorderDeckAt: (deckIndex: number, layout: DeckLayout) => void;
   onMoveCardBetweenDecks: (
@@ -32,6 +33,7 @@ export function BattleHubScreen({
   lastBattleDeckIndex,
   userLevel,
   onStartBattle,
+  onOpenOfflinePvp,
   onGoToMyDeck,
   onReorderDeckAt,
   onMoveCardBetweenDecks,
@@ -88,11 +90,9 @@ export function BattleHubScreen({
           <button
             type="button"
             className="battle-hub-mode-btn"
-            disabled
-            aria-disabled="true"
+            onClick={onOpenOfflinePvp}
           >
             <span className="battle-hub-mode-btn-label">対人戦（オフライン）</span>
-            <span className="battle-hub-mode-btn-soon">（準備中）</span>
           </button>
           <button
             type="button"

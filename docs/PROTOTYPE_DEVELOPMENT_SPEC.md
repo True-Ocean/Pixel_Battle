@@ -2,9 +2,9 @@
 
 | 項目 | 内容 |
 |------|------|
-| ドキュメント版 | 2.27 |
+| ドキュメント版 | 2.28 |
 | 最終更新 | 2026-07-04 |
-| 関連 | [属性・戦闘効果仕様](./ATTRIBUTE_SPEC.md) / [効果音仕様](./SFX_SPEC.md) / [経済仕様](./ECONOMY_SPEC.md) / [経済ロードマップ](./ECONOMY_ROADMAP.md) |
+| 関連 | [属性・戦闘効果仕様](./ATTRIBUTE_SPEC.md) / [効果音仕様](./SFX_SPEC.md) / [経済仕様](./ECONOMY_SPEC.md) / [経済ロードマップ](./ECONOMY_ROADMAP.md) / [オフライン対人実装仕様](./OFFLINE_PVP_SPEC.md) |
 | 対象 | ウェブプロトタイプ（React + Vite + TypeScript） |
 | 本番想定 | Unity（クライアント）＋ API / DB（将来） |
 
@@ -321,13 +321,13 @@ src/
 
 | 項目 | 内容 |
 |------|------|
-| バトルハブ | `BattleHubScreen` — **CPU戦** → デッキ選択へ。**対人戦（オフライン）**・**フレンド対戦** は UI のみ（disabled・準備中） |
+| バトルハブ | `BattleHubScreen` — **CPU戦** → デッキ選択へ。**対人戦（オフライン）** → 公開デッキ一覧（[OFFLINE_PVP_SPEC](./OFFLINE_PVP_SPEC.md)）。**フレンド対戦** は UI のみ（disabled・準備中） |
 | デッキ選択 | `BattleDeckSelectScreen` — 複数デッキから選択・スロット内入替・タップで詳細 |
 | 常時ヒント | 「カードをタップして別のカードをタップすると入替」「同じカードをもう一度タップで詳細画面」 |
 | 通常 CPU 戦 | バトル可能デッキ（ロストなし5枚）のみ開始可。黄色注意は出さない |
 | 履歴再戦 | `deckReadinessMode="historyRematch"`。**5枚揃い**ならロスト含め可。戻る **バトル履歴に戻る** |
 
-**将来構想（未実装）**: **オフライン対人（公開ゴーストデッキ）** — `対人戦（オフライン）` → **公開デッキ一覧**（自分のレベル帯優先、不足時は他レベルも表示）から1件選択 → 自分のデッキ選択 → 相手デッキを挑戦側レベルで `rescaleDeckBp`（`prepareHistoryOpponentDeck`）→ CPU 戦同型フロー。戦利品は通貨化のみ。挑戦者のみリアル経済（作者の所持カードは不変）。詳細は [ECONOMY §13.2](./ECONOMY_SPEC.md#132-オフライン対人戦公開ゴーストデッキ将来構想)。
+**実装済み（v1）**: **オフライン対人（公開ゴーストデッキ）** — `対人戦（オフライン）` → 公開デッキ一覧 → 詳細 → 自分のデッキ選択 → 挑戦側レベルで BP 補正 → CPU 戦同型の経済。同梱シード8件。実装の正は **[OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md)**。
 
 ### 4.8 ミッション
 
@@ -1473,7 +1473,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 
 ### 14.3 バトル・対人
 
-- **オフライン対人（公開ゴーストデッキ）** — 公開デッキ一覧から選択・BP 補正（[ECONOMY §13.2](./ECONOMY_SPEC.md#132-オフライン対人戦公開ゴーストデッキ将来構想)）。`BattleHubScreen` の入口は用意済み（disabled）
+- ~~**オフライン対人（公開ゴーストデッキ）**~~ — **v1 実装済み**（[OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md)）。公開オプトイン・サーバープールは後段
 - **オンライン対人** — **フレンド対戦**（勝者の戦利品選択＝敗者の Lost）を優先。リアルタイムマッチは後段（[ECONOMY §13.3](./ECONOMY_SPEC.md#133-オンライン対人戦将来構想保留)）
 - 非同期対戦・リプレイ検証
 
@@ -1572,6 +1572,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.28 | 2026-07-04 | オフライン対人実装仕様 [OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md) を追加参照 |
 | 2.27 | 2026-07-04 | §4.7 / §14.3 オフライン対人を公開デッキ一覧＋BP補正に更新。決定履歴 #47 改訂・#69（対人戦経済・コレクション不採用） |
 | 2.26 | 2026-07-04 | §4.4 / §5.8 プレミアムリネーム無料・キャンバス拡大配置3択。§4.5 / §11.4 履歴再戦報酬モーダル。決定履歴 #66〜68 |
 | 2.25 | 2026-06-28 | §4.5 / §7.0 / §12.6 — `FormationPlayLayout`・`is-play-phase` で matching/reveal/battle 盤面統一。Dock 下余白・reveal 3列ガイド。決定履歴 #65 |

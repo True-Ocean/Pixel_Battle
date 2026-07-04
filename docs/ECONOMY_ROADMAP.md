@@ -1,9 +1,9 @@
 # 経済・課金・広告 — 実装ロードマップ
 
 **作成日**: 2026-06-14  
-**最終更新**: 2026-07-04（対人戦方針確定 — 公開デッキ一覧・BP 補正・モード別 Lost／戦利品）  
+**最終更新**: 2026-07-04（オフライン対人実装仕様 OFFLINE_PVP_SPEC 追加）  
 **ステータス**: 設計合意（議論ベース）・段階実装の指針  
-**関連**: [ECONOMY_SPEC.md](./ECONOMY_SPEC.md)（旧 §10 ポーション/溶解モデルは本書で置き換え）、[PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) §5.9
+**関連**: [ECONOMY_SPEC.md](./ECONOMY_SPEC.md)（旧 §10 ポーション/溶解モデルは本書で置き換え）、[PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) §5.9、[OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md)（オフライン対人の実装正）
 
 本書は、2026-06 時点の設計議論を **実装順序つき** に整理したロードマップである。  
 `ECONOMY_SPEC.md` の全面改訂は **フェーズ 0** で行い、以降のフェーズは本書を正とする。
@@ -465,7 +465,7 @@
 
 | 項目 | 備考 |
 |------|------|
-| **オフライン対人（公開ゴーストデッキ）** | **優先**。公開デッキ一覧（レベル帯優先）から1件選択 → 挑戦側レベルで `rescaleDeckBp` → CPU 戦同型フロー（[ECONOMY §13.2](./ECONOMY_SPEC.md#132-オフライン対人戦公開ゴーストデッキ将来構想)）。G1〜G3・G5 **確定**。G4・G6〜G8 未確定 |
+| **オフライン対人（公開ゴーストデッキ）** | **優先**。実装仕様 [OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md)（フェーズ A〜E）。経済方針は [ECONOMY §13.2](./ECONOMY_SPEC.md#132-オフライン対人戦公開ゴーストデッキ将来構想)。G4/G6〜G8 は v1 仮決め済み |
 | 対人戦（経済） | 勝利は全モード §4.1（通貨化のみ）。オフラインは挑戦者のみ Lost。オンライン・フレンドは勝者選択＝敗者 Lost（§13.1・§13.3） |
 | オンライン対人 | **フレンド対戦**を優先（真剣勝負）。リアルタイムマッチは後段（[ECONOMY §13.3](./ECONOMY_SPEC.md#133-オンライン対人戦将来構想保留)） |
 | ストア課金本番 | App Store / Google Play |
@@ -631,7 +631,7 @@ flowchart TD
 
 1. フェーズ **7a** 残り — 創作保存ゲート（`hasEverCompletedBattleDeck`・保存前広告）
 2. **効果音 v1** — [SFX_SPEC.md](./SFX_SPEC.md) §12 チェックリスト（素材 + `sfxPlayer` + バトル/ルーレットフック）
-3. フェーズ **11** — オフライン対人（公開デッキ一覧）・将来拡張
+3. フェーズ **11** — オフライン対人（[OFFLINE_PVP_SPEC](./OFFLINE_PVP_SPEC.md) フェーズ A〜E）・将来拡張
 
 **判断待ち（確定済み — 2026-06-20 ショップ設計）**
 

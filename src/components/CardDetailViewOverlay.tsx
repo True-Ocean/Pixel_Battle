@@ -7,9 +7,15 @@ import { DeckCardDetailCard } from './DeckCardDetailCard';
 interface CardDetailViewOverlayProps {
   card: Card;
   onClose: () => void;
+  /** CPU デッキなど戦績を出さないとき */
+  hideBattleRecord?: boolean;
 }
 
-export function CardDetailViewOverlay({ card, onClose }: CardDetailViewOverlayProps) {
+export function CardDetailViewOverlay({
+  card,
+  onClose,
+  hideBattleRecord = false,
+}: CardDetailViewOverlayProps) {
   useEffect(() => {
     const scrollY = window.scrollY;
     const { style } = document.body;
@@ -48,7 +54,11 @@ export function CardDetailViewOverlay({ card, onClose }: CardDetailViewOverlayPr
         </h2>
 
         <div className="deck-card-detail-scroll">
-          <DeckCardDetailCard card={card} isLost={isCardLost(card)} />
+          <DeckCardDetailCard
+            card={card}
+            isLost={isCardLost(card)}
+            hideBattleRecord={hideBattleRecord}
+          />
         </div>
 
         <div className="deck-card-detail-actions">

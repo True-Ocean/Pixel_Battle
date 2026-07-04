@@ -1,4 +1,4 @@
-import { formatBattleHistoryWhen, CPU_OPPONENT_LABEL } from '../battleHistory';
+import { formatBattleHistoryWhen } from '../battleHistory';
 import type { BattleHistoryEntry, Card } from '../types';
 import { CardPreview } from './CardPreview';
 import { getRarityMeta } from '../config/rarity';
@@ -59,7 +59,9 @@ export function BattleHistoryList({ entries, onSelect }: BattleHistoryListProps)
                   {formatBattleHistoryWhen(entry.playedAt)}
                 </span>
                 <span className="records-history-opponent">
-                  <span className="records-history-opponent-name">{CPU_OPPONENT_LABEL}</span>
+                  <span className="records-history-opponent-name">
+                    {entry.opponentName}
+                  </span>
                   <span className="records-history-opponent-level">
                     Lv.{entry.opponentLevel}
                   </span>

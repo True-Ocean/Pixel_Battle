@@ -22,10 +22,9 @@ import {
 import type { Attribute, Card, DeckLayout, MemoryAlbumState, UserInventory } from '../types';
 import { getRarityMeta, type RarityMeta } from '../config/rarity';
 import { AttributeBadge } from './AttributeBadge';
-import { CardBattleRecord } from './CardBattleRecord';
-import { LimitBreakStars } from './LimitBreakStars';
-import { RarityBadge } from './RarityBadge';
 import { CardPreview } from './CardPreview';
+import { DeckCardRowBody } from './DeckCardRowBody';
+import { RarityBadge } from './RarityBadge';
 import { CardDeleteResultModal } from './CardDeleteResultModal';
 import { CardDeckDispositionDialog, MemoryAlbumFullDialog, MEMORY_ALBUM_SAVE_CONFIRM_MESSAGE } from './MemoryAlbumDialogs';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -215,48 +214,6 @@ function TargetDeckDropPanel({
         })}
       </ul>
     </div>
-  );
-}
-
-function DeckCardRowBody({ card }: { card: Card }) {
-  return (
-    <>
-      <RarityBadge rarity={card.rarity} size="deck" className="deck-card-rarity-corner" />
-      <LimitBreakStars
-        stars={card.stars}
-        rarity={card.rarity}
-        className="deck-card-stars-corner"
-      />
-      <div className="deck-card-content">
-        <div className="deck-card-art">
-          <CardPreview pixels={card.pixels} />
-        </div>
-        <div className="deck-card-body">
-          <div className="deck-card-name-row">
-            <span className="deck-card-name">{card.name}</span>
-            {isTalismanEquipped(card) && (
-              <TalismanCardBadge variant="equipped" size="deck" />
-            )}
-          </div>
-          <div className="deck-card-meta-row">
-            <div className="deck-card-stats-primary">
-              <span className="deck-card-bp">{card.bp}</span>
-              <AttributeBadge
-                attribute={card.attribute}
-                className="deck-card-attribute"
-                size="deck"
-              />
-            </div>
-            <CardBattleRecord
-              className="deck-card-record muted"
-              wins={card.wins}
-              losses={card.losses}
-              reviveCount={card.reviveCount}
-            />
-          </div>
-        </div>
-      </div>
-    </>
   );
 }
 

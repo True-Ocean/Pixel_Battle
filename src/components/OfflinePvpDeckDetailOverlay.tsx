@@ -1,35 +1,37 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { BattleHistoryEntry, Card } from '../types';
-import { CPU_OPPONENT_LABEL, formatBattleHistoryWhen } from '../battleHistory';
+import type { PublicGhostDeck } from '../offlinePvp';
+import type { Card } from '../types';
 import { CardDetailViewOverlay } from './CardDetailViewOverlay';
 import { CompactDeckCardRow } from './CompactDeckCardRow';
 
-interface BattleHistoryDetailOverlayProps {
-  entry: BattleHistoryEntry;
-  canRematch: boolean;
+interface OfflinePvpDeckDetailOverlayProps {
+  ghost: PublicGhostDeck;
+  viewerLevel: number;
+  canBattle: boolean;
   onClose: () => void;
-  onRematch: (entry: BattleHistoryEntry) => void;
-  onOpponentCardView?: () => void;
+  onChallenge: (ghost: PublicGhostDeck) => void;
 }
 
-export function BattleHistoryDetailOverlay({
-  entry,
-  canRematch,
+export function OfflinePvpDeckDetailOverlay({
+  ghost,
+  viewerLevel,
+  canBattle,
   onClose,
-  onRematch,
-  onOpponentCardView,
-}: BattleHistoryDetailOverlayProps) {
+  onChallenge,
+}: OfflinePvpDeckDetailOverlayProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [detailCard, setDetailCard] = useState<Card | null>(null);
+  const levelDiffers = ghost.authorLevel !== viewerLevel;
 
-  const handleRematch = () => {
-    if (canRematch) {
-      onRematch(entry);
+  const handleChallenge = () => {
+    if (canBattle) {
+      onChallenge(ghost);
       return;
     }
     setNotice('5枚揃ったデッキがありません。マイデッキで編成してください。');
   };
+
   useEffect(() => {
     const scrollY = window.scrollY;
     const { style } = document.body;
@@ -54,9 +56,6 @@ export function BattleHistoryDetailOverlay({
     };
   }, []);
 
-  const won = entry.winner === 'player';
-  const isCpuOpponent = entry.opponentName === CPU_OPPONENT_LABEL;
-
   return (
     <>
       {createPortal(
@@ -65,40 +64,38 @@ export function BattleHistoryDetailOverlay({
             className="records-history-detail-panel compact-deck-detail-panel"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="records-history-detail-title"
+            aria-labelledby="offline-pvp-detail-title"
             onClick={(event) => event.stopPropagation()}
           >
             <header className="records-history-detail-header compact-deck-detail-header">
-              <h2 id="records-history-detail-title" className="records-history-detail-title">
-                対戦詳細
+              <h2
+                id="offline-pvp-detail-title"
+                className="records-history-detail-title"
+              >
+                公開デッキ
               </h2>
-              <p className="records-history-detail-meta muted">
-                {formatBattleHistoryWhen(entry.playedAt)} ·{' '}
-                <span className={won ? 'records-history-result-win' : 'records-history-result-lose'}>
-                  {won ? '勝利' : '敗北'}
+              <p className="records-history-detail-opponent">
+                {ghost.authorName}
+                <span className="records-history-opponent-level">
+                  {' '}
+                  Lv.{ghost.authorLevel}
                 </span>
               </p>
-              <p className="records-history-detail-opponent">
-                vs {entry.opponentName}
-                <span className="records-history-opponent-level"> Lv.{entry.opponentLevel}</span>
-              </p>
-              <p className="records-history-detail-power muted">
-                自軍 戦力 {entry.playerDeckPower} / 相手 戦力 {entry.opponentDeckPower}
-              </p>
+              {levelDiffers && (
+                <p className="offline-pvp-bp-note muted">
+                  バトル時、相手カードの BP はあなたのレベルに合わせて調整されます
+                </p>
+              )}
             </header>
 
             <div className="records-history-detail-scroll">
               <h3 className="records-history-detail-deck-title">相手デッキ</h3>
               <ul className="compact-deck-list">
-                {entry.opponentDeck.map((card) => (
+                {ghost.deck.map((card) => (
                   <CompactDeckCardRow
                     key={card.id}
                     card={card}
-                    hideBattleRecord={isCpuOpponent}
-                    onSelect={(selected) => {
-                      onOpponentCardView?.();
-                      setDetailCard(selected);
-                    }}
+                    onSelect={setDetailCard}
                   />
                 ))}
               </ul>
@@ -108,16 +105,20 @@ export function BattleHistoryDetailOverlay({
               <button
                 type="button"
                 className="records-history-detail-rematch"
-                onClick={handleRematch}
+                onClick={handleChallenge}
               >
-                もう一度対戦する
+                このデッキと対戦
               </button>
               {notice && (
                 <p className="records-history-detail-notice" role="status">
                   {notice}
                 </p>
               )}
-              <button type="button" className="records-history-detail-close" onClick={onClose}>
+              <button
+                type="button"
+                className="records-history-detail-close"
+                onClick={onClose}
+              >
                 閉じる
               </button>
             </div>
@@ -128,7 +129,6 @@ export function BattleHistoryDetailOverlay({
       {detailCard && (
         <CardDetailViewOverlay
           card={detailCard}
-          hideBattleRecord={isCpuOpponent}
           onClose={() => setDetailCard(null)}
         />
       )}

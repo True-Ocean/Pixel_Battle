@@ -30,6 +30,8 @@ interface DeckCardDetailCardProps {
   onAttributeRetouch?: () => void;
   onAttributeSelect?: () => void;
   onBattleGuideOpen?: () => void;
+  /** CPU デッキなど戦績を出さないとき */
+  hideBattleRecord?: boolean;
 }
 
 export function DeckCardDetailCard({
@@ -44,6 +46,7 @@ export function DeckCardDetailCard({
   onAttributeRetouch,
   onAttributeSelect,
   onBattleGuideOpen,
+  hideBattleRecord = false,
 }: DeckCardDetailCardProps) {
   const [attrDetailOpen, setAttrDetailOpen] = useState(false);
   const [openTermId, setOpenTermId] = useState<BattleGuideTermId | null>(null);
@@ -223,13 +226,15 @@ export function DeckCardDetailCard({
         />
       )}
 
-      <p className="deck-detail-card-record">
-        <CardBattleRecord
-          wins={card.wins}
-          losses={card.losses}
-          reviveCount={card.reviveCount}
-        />
-      </p>
+      {!hideBattleRecord && (
+        <p className="deck-detail-card-record">
+          <CardBattleRecord
+            wins={card.wins}
+            losses={card.losses}
+            reviveCount={card.reviveCount}
+          />
+        </p>
+      )}
 
       {isLost && (
         <p className="deck-detail-card-lost-note">

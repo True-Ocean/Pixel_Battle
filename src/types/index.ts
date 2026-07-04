@@ -226,6 +226,7 @@ export type ScreenId =
   | 'memoryAlbum'
   | 'mission'
   | 'battleHub'
+  | 'offlinePvpList'
   | 'records'
   | 'shop'
   | 'inventory'
