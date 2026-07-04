@@ -523,6 +523,18 @@ function App() {
     return 'すでに最新です';
   }, [applyDownloadedCloudSave]);
 
+  const handleUsernameChange = useCallback(
+    (username: string) => {
+      setUser((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, username };
+        persistSave({ user: next });
+        return next;
+      });
+    },
+    [persistSave],
+  );
+
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
     void ensureAnonymousUserId().then((id) => {
@@ -3381,6 +3393,7 @@ function App() {
             onDevUnlockAllEditorTools={handleDevUnlockAllEditorTools}
             onDevClearEditorShopUnlocks={handleDevClearEditorShopUnlocks}
             onCloudSyncNow={handleCloudSyncNow}
+            onUsernameChange={handleUsernameChange}
           />
         )}
         {screen === 'editor' && (

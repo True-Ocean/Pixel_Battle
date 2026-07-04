@@ -16,6 +16,7 @@ import {
   DECK_SLOT_COUNT,
   DECK_SLOT_INITIAL_UNLOCKED,
   MAX_USER_LEVEL,
+  USERNAME_MAX_LENGTH,
 } from '../config/balance';
 import {
   getMemoryAlbumCapacity,
@@ -24,7 +25,7 @@ import {
 } from '../config/economy';
 import { clampUnlockedDeckCount } from '../deckSlots';
 import { isSupabaseConfigured } from '../supabase/client';
-import { getLevelProgress } from '../user';
+import { getLevelProgress, validateUsername } from '../user';
 import type { SubscriptionPlan, UserProfile } from '../types';
 
 interface DevCardOption {
@@ -74,6 +75,8 @@ export interface SettingsScreenProps {
   onDevClearEditorShopUnlocks: () => string;
   /** メール連携済みのときクラウドと突き合わせる */
   onCloudSyncNow?: () => Promise<string>;
+  /** ユーザー名変更（trim 済み・検証済み） */
+  onUsernameChange: (username: string) => void;
 }
 
 interface PlaceholderRow {
@@ -88,13 +91,10 @@ const FUTURE_ROWS: PlaceholderRow[] = [
 
 function SettingsSection({
   title,
-  titleStatus,
   children,
   compact = false,
 }: {
   title: string;
-  /** タイトル右に表示する状態（例: 状態：未連携） */
-  titleStatus?: string;
   children: ReactNode;
   compact?: boolean;
 }) {
@@ -102,12 +102,7 @@ function SettingsSection({
     <section
       className={`settings-section${compact ? ' settings-section--compact' : ''}`}
     >
-      <h2 className="settings-section-title">
-        <span className="settings-section-title-text">{title}</span>
-        {titleStatus != null && titleStatus.length > 0 && (
-          <span className="settings-section-title-status">{titleStatus}</span>
-        )}
-      </h2>
+      <h2 className="settings-section-title">{title}</h2>
       <div className="settings-section-body">{children}</div>
     </section>
   );
@@ -289,17 +284,29 @@ function applyAuthActionResult(
   onFailure(result.error);
 }
 
-function AccountLinkSection({
+function AccountSection({
+  username,
+  onUsernameChange,
   onCloudSyncNow,
 }: {
+  username: string;
+  onUsernameChange: (username: string) => void;
   onCloudSyncNow?: () => Promise<string>;
 }) {
   const configured = isSupabaseConfigured();
   const [authUser, setAuthUser] = useState<User | null>(null);
+  const [usernameInput, setUsernameInput] = useState(username);
+  const [usernameNotice, setUsernameNotice] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [emailInput, setEmailInput] = useState('');
+  const [mailExpanded, setMailExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUsernameInput(username);
+  }, [username]);
 
   const [deviceLinkedEmail, setDeviceLinkedEmail] = useState<string | null>(() =>
     getDeviceLinkedEmail(),
@@ -319,13 +326,13 @@ function AccountLinkSection({
   const email = resolveAccountEmail(authUser);
   const boundEmail = email ?? deviceLinkedEmail;
 
-  const titleStatus = !configured
-    ? '状態：利用不可'
+  const mailStatusLabel = !configured
+    ? '利用不可'
     : linked
-      ? '状態：連携済み'
+      ? '連携済み'
       : deviceLinkedEmail != null
-        ? '状態：要ログイン'
-        : '状態：未連携';
+        ? '要ログイン'
+        : '未連携';
 
   const refreshDeviceLinkedEmail = () => {
     setDeviceLinkedEmail(getDeviceLinkedEmail());
@@ -358,207 +365,298 @@ function AccountLinkSection({
     }
   }, [deviceLinkedEmail]);
 
-  if (!configured) {
-    return (
-      <SettingsSection title="アカウント連携" titleStatus={titleStatus} compact>
-        <p className="settings-section-note muted">
-          Supabase が未設定のため、アカウント連携は利用できません。
-        </p>
-      </SettingsSection>
-    );
-  }
+  const handleUsernameSave = () => {
+    setUsernameNotice(null);
+    setUsernameError(null);
+    const validationError = validateUsername(usernameInput);
+    if (validationError) {
+      setUsernameError(validationError);
+      return;
+    }
+    const next = usernameInput.trim();
+    if (next === username) {
+      setUsernameNotice('変更はありません');
+      return;
+    }
+    onUsernameChange(next);
+    setUsernameNotice('ユーザー名を変更しました');
+  };
 
   return (
-    <SettingsSection title="アカウント連携" titleStatus={titleStatus} compact>
-      <p className="settings-section-note muted">
-        メール連携すると、機種変更やホーム画面からの削除後もクラウドから進行を復元できます。連携中は自動でクラウドに保存されます。この端末で一度連携したメールは、解除するまで変更できません。
-      </p>
-      {linked ? (
-        <>
-          {boundEmail != null && (
-            <p className="settings-section-note muted">{boundEmail}</p>
-          )}
-          <div className="settings-account-actions">
-            {onCloudSyncNow && (
-              <button
-                type="button"
-                className="settings-account-btn settings-account-btn--primary"
-                disabled={busy}
-                onClick={() => {
-                  void (async () => {
-                    setBusy(true);
-                    setNotice(null);
-                    setError(null);
-                    try {
-                      const message = await onCloudSyncNow();
-                      setNotice(message);
-                    } catch (caught) {
-                      setError(
-                        caught instanceof Error
-                          ? caught.message
-                          : '同期に失敗しました',
-                      );
-                    } finally {
-                      setBusy(false);
-                    }
-                  })();
-                }}
-              >
-                今すぐ同期
-              </button>
-            )}
-            <button
-              type="button"
-              className="settings-account-btn"
-              disabled={busy}
-              onClick={() => {
-                void (async () => {
-                  setBusy(true);
-                  setNotice(null);
-                  setError(null);
-                  try {
-                    const result = await signOutAccount();
-                    applyAuthActionResult(result, setNotice, setError);
-                    refreshDeviceLinkedEmail();
-                  } catch (caught) {
-                    setError(
-                      caught instanceof Error
-                        ? caught.message
-                        : 'ログアウトに失敗しました',
-                    );
-                  } finally {
-                    setBusy(false);
-                  }
-                })();
-              }}
-            >
-              ログアウト
-            </button>
-            <button
-              type="button"
-              className="settings-account-btn"
-              disabled={busy}
-              onClick={() => {
-                void (async () => {
-                  setBusy(true);
-                  setNotice(null);
-                  setError(null);
-                  try {
-                    const result = await unlinkAccountFromDevice();
-                    applyAuthActionResult(result, setNotice, setError);
-                    refreshDeviceLinkedEmail();
-                    if (result.ok) setEmailInput('');
-                  } catch (caught) {
-                    setError(
-                      caught instanceof Error
-                        ? caught.message
-                        : '連携解除に失敗しました',
-                    );
-                  } finally {
-                    setBusy(false);
-                  }
-                })();
-              }}
-            >
-              連携を解除
-            </button>
-          </div>
-          <p className="settings-section-note muted">
-            別のメールに変える場合は「連携を解除」してから、改めて連携してください。ログアウトだけではメールは変わりません。
-          </p>
-        </>
-      ) : (
-        <div className="settings-account-form">
-          {deviceLinkedEmail != null ? (
-            <p className="settings-section-note muted">
-              この端末は {deviceLinkedEmail}{' '}
-              と連携済みです。同じメールでログインするか、「連携を解除」してから別のメールを登録できます。
-            </p>
-          ) : (
-            <p className="settings-section-note muted">
-              下のボタンを押すと、認証サービス（Supabase）から入力したアドレス宛に確認用メール（英語）が届きます。メール内のリンクを開くと連携またはログインが完了します。届かないときは迷惑メールフォルダなどを確認してください。短時間に何度も送ると送信制限にかかることがあります。
-            </p>
-          )}
-          <label className="settings-account-label" htmlFor="settings-account-email">
-            メールアドレス
-          </label>
+    <SettingsSection title="アカウント" compact>
+      <div className="settings-account-form">
+        <label className="settings-account-label" htmlFor="settings-username">
+          ユーザー名
+        </label>
+        <div className="settings-account-username-row">
           <input
-            id="settings-account-email"
-            type="email"
+            id="settings-username"
+            type="text"
             className="settings-account-input"
-            autoComplete="email"
-            placeholder="you@example.com"
-            value={emailInput}
-            disabled={busy || deviceLinkedEmail != null}
-            readOnly={deviceLinkedEmail != null}
-            onChange={(event) => setEmailInput(event.target.value)}
+            autoComplete="username"
+            maxLength={USERNAME_MAX_LENGTH}
+            value={usernameInput}
+            disabled={busy}
+            onChange={(event) => {
+              setUsernameInput(event.target.value);
+              if (usernameError) setUsernameError(null);
+              if (usernameNotice) setUsernameNotice(null);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') handleUsernameSave();
+            }}
           />
-          <div className="settings-account-actions">
-            {deviceLinkedEmail == null && (
-              <button
-                type="button"
-                className="settings-account-btn settings-account-btn--primary"
-                disabled={busy || emailInput.trim().length === 0}
-                onClick={() => {
-                  void runAction(linkEmailToCurrentUser);
-                }}
-              >
-                この端末を連携
-              </button>
+          <button
+            type="button"
+            className="settings-account-btn settings-account-btn--primary"
+            disabled={busy || usernameInput.trim().length === 0}
+            onClick={handleUsernameSave}
+          >
+            変更
+          </button>
+        </div>
+        <p className="settings-section-note muted">
+          {USERNAME_MAX_LENGTH} 文字以内
+        </p>
+        {usernameNotice && (
+          <p className="settings-account-notice" role="status">
+            {usernameNotice}
+          </p>
+        )}
+        {usernameError && (
+          <p className="settings-account-error" role="alert">
+            {usernameError}
+          </p>
+        )}
+      </div>
+
+      <div className="settings-account-mail">
+        <button
+          type="button"
+          className={`settings-account-mail-toggle${mailExpanded ? ' is-open' : ''}`}
+          aria-expanded={mailExpanded}
+          onClick={() => setMailExpanded((open) => !open)}
+        >
+          <span className="settings-account-mail-toggle-title">メール連携</span>
+          <span className="settings-account-mail-toggle-status">
+            {mailStatusLabel}
+          </span>
+          <span className="settings-account-mail-toggle-chevron" aria-hidden>
+            {mailExpanded ? '▲' : '▼'}
+          </span>
+        </button>
+
+        {mailExpanded && (
+          <div className="settings-account-mail-body">
+            {!configured ? (
+              <p className="settings-section-note muted">
+                Supabase が未設定のため、アカウント連携は利用できません。
+              </p>
+            ) : (
+              <p className="settings-section-note muted">
+                メール連携すると、機種変更やホーム画面からの削除後もクラウドから進行を復元できます。連携中は自動でクラウドに保存されます。この端末で一度連携したメールは、解除するまで変更できません。
+              </p>
             )}
-            <button
-              type="button"
-              className="settings-account-btn settings-account-btn--primary"
-              disabled={busy || emailInput.trim().length === 0}
-              onClick={() => {
-                void runAction(signInWithEmailMagicLink);
-              }}
-            >
-              ログイン（復元用）
-            </button>
-            {deviceLinkedEmail != null && (
-              <button
-                type="button"
-                className="settings-account-btn"
-                disabled={busy}
-                onClick={() => {
-                  void (async () => {
-                    setBusy(true);
-                    setNotice(null);
-                    setError(null);
-                    try {
-                      const result = await unlinkAccountFromDevice();
-                      applyAuthActionResult(result, setNotice, setError);
-                      refreshDeviceLinkedEmail();
-                      if (result.ok) setEmailInput('');
-                    } catch (caught) {
-                      setError(
-                        caught instanceof Error
-                          ? caught.message
-                          : '連携解除に失敗しました',
-                      );
-                    } finally {
-                      setBusy(false);
-                    }
-                  })();
-                }}
-              >
-                連携を解除
-              </button>
+            {configured && (
+              <>
+                {linked ? (
+                  <>
+                    {boundEmail != null && (
+                      <p className="settings-section-note muted">{boundEmail}</p>
+                    )}
+                    <div className="settings-account-actions">
+                      {onCloudSyncNow && (
+                        <button
+                          type="button"
+                          className="settings-account-btn settings-account-btn--primary"
+                          disabled={busy}
+                          onClick={() => {
+                            void (async () => {
+                              setBusy(true);
+                              setNotice(null);
+                              setError(null);
+                              try {
+                                const message = await onCloudSyncNow();
+                                setNotice(message);
+                              } catch (caught) {
+                                setError(
+                                  caught instanceof Error
+                                    ? caught.message
+                                    : '同期に失敗しました',
+                                );
+                              } finally {
+                                setBusy(false);
+                              }
+                            })();
+                          }}
+                        >
+                          今すぐ同期
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="settings-account-btn"
+                        disabled={busy}
+                        onClick={() => {
+                          void (async () => {
+                            setBusy(true);
+                            setNotice(null);
+                            setError(null);
+                            try {
+                              const result = await signOutAccount();
+                              applyAuthActionResult(result, setNotice, setError);
+                              refreshDeviceLinkedEmail();
+                            } catch (caught) {
+                              setError(
+                                caught instanceof Error
+                                  ? caught.message
+                                  : 'ログアウトに失敗しました',
+                              );
+                            } finally {
+                              setBusy(false);
+                            }
+                          })();
+                        }}
+                      >
+                        ログアウト
+                      </button>
+                      <button
+                        type="button"
+                        className="settings-account-btn"
+                        disabled={busy}
+                        onClick={() => {
+                          void (async () => {
+                            setBusy(true);
+                            setNotice(null);
+                            setError(null);
+                            try {
+                              const result = await unlinkAccountFromDevice();
+                              applyAuthActionResult(result, setNotice, setError);
+                              refreshDeviceLinkedEmail();
+                              if (result.ok) setEmailInput('');
+                            } catch (caught) {
+                              setError(
+                                caught instanceof Error
+                                  ? caught.message
+                                  : '連携解除に失敗しました',
+                              );
+                            } finally {
+                              setBusy(false);
+                            }
+                          })();
+                        }}
+                      >
+                        連携を解除
+                      </button>
+                    </div>
+                    <p className="settings-section-note muted">
+                      別のメールに変える場合は「連携を解除」してから、改めて連携してください。ログアウトだけではメールは変わりません。
+                    </p>
+                  </>
+                ) : (
+                  <div className="settings-account-form">
+                    {deviceLinkedEmail != null ? (
+                      <p className="settings-section-note muted">
+                        この端末は {deviceLinkedEmail}{' '}
+                        と連携済みです。同じメールでログインするか、「連携を解除」してから別のメールを登録できます。
+                      </p>
+                    ) : (
+                      <p className="settings-section-note muted">
+                        下のボタンを押すと、認証サービス（Supabase）から入力したアドレス宛に確認用メール（英語）が届きます。メール内のリンクを開くと連携またはログインが完了します。届かないときは迷惑メールフォルダなどを確認してください。短時間に何度も送ると送信制限にかかることがあります。
+                      </p>
+                    )}
+                    <label
+                      className="settings-account-label"
+                      htmlFor="settings-account-email"
+                    >
+                      メールアドレス
+                    </label>
+                    <input
+                      id="settings-account-email"
+                      type="email"
+                      className="settings-account-input"
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      value={emailInput}
+                      disabled={busy || deviceLinkedEmail != null}
+                      readOnly={deviceLinkedEmail != null}
+                      onChange={(event) => setEmailInput(event.target.value)}
+                    />
+                    <div className="settings-account-actions">
+                      {deviceLinkedEmail == null && (
+                        <button
+                          type="button"
+                          className="settings-account-btn settings-account-btn--primary"
+                          disabled={busy || emailInput.trim().length === 0}
+                          onClick={() => {
+                            void runAction(linkEmailToCurrentUser);
+                          }}
+                        >
+                          この端末を連携
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="settings-account-btn settings-account-btn--primary"
+                        disabled={busy || emailInput.trim().length === 0}
+                        onClick={() => {
+                          void runAction(signInWithEmailMagicLink);
+                        }}
+                      >
+                        ログイン（復元用）
+                      </button>
+                      {deviceLinkedEmail != null && (
+                        <button
+                          type="button"
+                          className="settings-account-btn"
+                          disabled={busy}
+                          onClick={() => {
+                            void (async () => {
+                              setBusy(true);
+                              setNotice(null);
+                              setError(null);
+                              try {
+                                const result = await unlinkAccountFromDevice();
+                                applyAuthActionResult(
+                                  result,
+                                  setNotice,
+                                  setError,
+                                );
+                                refreshDeviceLinkedEmail();
+                                if (result.ok) setEmailInput('');
+                              } catch (caught) {
+                                setError(
+                                  caught instanceof Error
+                                    ? caught.message
+                                    : '連携解除に失敗しました',
+                                );
+                              } finally {
+                                setBusy(false);
+                              }
+                            })();
+                          }}
+                        >
+                          連携を解除
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {notice && (
+                  <p className="settings-account-notice" role="status">
+                    {notice}
+                  </p>
+                )}
+                {error && (
+                  <p className="settings-account-error" role="alert">
+                    {error}
+                  </p>
+                )}
+              </>
             )}
           </div>
-        </div>
-      )}
-      {notice && (
-        <p className="settings-account-notice" role="status">
-          {notice}
-        </p>
-      )}
-      {error && (
-        <p className="settings-account-error" role="alert">
-          {error}
-        </p>
-      )}
+        )}
+      </div>
     </SettingsSection>
   );
 }
@@ -596,6 +694,7 @@ export function SettingsScreen({
   onDevUnlockAllEditorTools,
   onDevClearEditorShopUnlocks,
   onCloudSyncNow,
+  onUsernameChange,
 }: SettingsScreenProps) {
   const [devLevelInput, setDevLevelInput] = useState(
     () => String(user?.level ?? 1),
@@ -857,16 +956,13 @@ export function SettingsScreen({
         </header>
       )}
       <div className="settings-scroll">
-        <SettingsSection title="アカウント" compact>
-          <SettingsRow label="ユーザー名" value={user.username} />
-          <SettingsRow
-            label="CPU戦"
-            value={`${user.cpuBattleWins}勝 ${user.cpuBattleLosses}敗`}
-          />
-          <SettingsRow
-            label="対人戦（オフライン）"
-            value={`${user.offlinePvpBattleWins}勝 ${user.offlinePvpBattleLosses}敗`}
-          />
+        <AccountSection
+          username={user.username}
+          onUsernameChange={onUsernameChange}
+          onCloudSyncNow={onCloudSyncNow}
+        />
+
+        <SettingsSection title="戦績" compact>
           <SettingsRow label="レベル" value={`Lv.${user.level}`} />
           <div className="settings-progress-wrap">
             <div className="settings-progress-label">
@@ -885,9 +981,15 @@ export function SettingsScreen({
               />
             </div>
           </div>
+          <SettingsRow
+            label="CPU戦"
+            value={`${user.cpuBattleWins}勝 ${user.cpuBattleLosses}敗`}
+          />
+          <SettingsRow
+            label="対人戦（オフライン）"
+            value={`${user.offlinePvpBattleWins}勝 ${user.offlinePvpBattleLosses}敗`}
+          />
         </SettingsSection>
-
-        <AccountLinkSection onCloudSyncNow={onCloudSyncNow} />
 
         <SettingsSection title="サブスク・課金" compact>
           <SettingsRow label="サブスク" value={subscriptionLabel} />
