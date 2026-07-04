@@ -1210,7 +1210,7 @@ export function DeckScreen({
       {helpOpen && (
         <HelpPanelModal
           topic={getDeckHelp()}
-          panelClassName="help-panel--deck-guide"
+          panelClassName="help-panel--categorized"
           onClose={() => setHelpOpen(false)}
         />
       )}

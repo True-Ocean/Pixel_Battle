@@ -3254,50 +3254,44 @@ button.battle-hub-deck-icon.is-move-target {
   color: #fff;
 }
 
-.help-panel--deck-guide,
-.help-panel--memory-album {
+.help-panel--categorized {
   max-height: 92vh;
 }
 
-.help-panel--deck-guide .help-panel-title,
-.help-panel--memory-album .help-panel-title {
+.help-panel--categorized .help-panel-title {
   margin-bottom: 0.45rem;
 }
 
-.help-panel--deck-guide .help-panel-section,
-.help-panel--memory-album .help-panel-section {
+.help-panel--categorized .help-panel-section {
   padding: 0.7rem 0.75rem;
   border-radius: 10px;
   background: #f6f7fb;
 }
 
-.help-panel--deck-guide .help-panel-section + .help-panel-section,
-.help-panel--memory-album .help-panel-section + .help-panel-section {
+.help-panel--categorized .help-panel-section + .help-panel-section {
   margin-top: 0.55rem;
 }
 
-.help-panel--deck-guide .help-panel-section-title,
-.help-panel--memory-album .help-panel-section-title {
+.help-panel--categorized .help-panel-section-title {
   margin: 0 0 0.45rem;
   font-size: 0.95rem;
   font-weight: 700;
   color: #1f2937;
 }
 
-.help-panel--deck-guide .help-panel-actions,
-.help-panel--memory-album .help-panel-actions {
+.help-panel--categorized .help-panel-actions {
   margin-top: 0.6rem;
 }
 
-.help-panel--deck-guide .help-panel-list li:has(.help-panel-defined-item) + li:has(.help-panel-defined-item) {
+.help-panel--categorized .help-panel-list li:has(.help-panel-defined-item) + li:has(.help-panel-defined-item) {
   margin-top: 0.38rem;
 }
 
-.help-panel--deck-guide .help-panel-defined-item-desc {
+.help-panel--categorized .help-panel-defined-item-desc {
   margin-top: 0.1rem;
 }
 
-.help-panel--deck-guide .help-panel-defined-item-line + .help-panel-defined-item-line {
+.help-panel--categorized .help-panel-defined-item-line + .help-panel-defined-item-line {
   margin-top: 0.12rem;
 }
 

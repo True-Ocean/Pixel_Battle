@@ -207,7 +207,7 @@ export function MemoryAlbumScreen({
       {helpOpen && (
         <HelpPanelModal
           topic={getMemoryAlbumHelp()}
-          panelClassName="help-panel--memory-album"
+          panelClassName="help-panel--categorized"
           onClose={() => setHelpOpen(false)}
         />
       )}

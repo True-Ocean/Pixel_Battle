@@ -109,6 +109,7 @@ export function BattleHubScreen({
       {helpOpen && (
         <HelpPanelModal
           topic={getBattleHubHelp(userLevel)}
+          panelClassName="help-panel--categorized"
           onClose={() => setHelpOpen(false)}
         />
       )}
