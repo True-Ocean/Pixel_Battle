@@ -1,4 +1,3 @@
-import { createEmptyGrid } from '../canvas';
 import { createCardFromDrawing, computeDeckPower, recalculateCardBp } from '../card';
 import {
   DECK_MAX,
@@ -17,12 +16,6 @@ import {
   pickCpuPattern,
   rollCpuTargetDensity,
 } from './cpuPatterns';
-
-export { randomCpuName } from '../config/cpuNames';
-
-function fillGrid(color: string) {
-  return createEmptyGrid().map((row) => row.map(() => color));
-}
 
 /** 強敵になる確率（このバトルは CPU 平均 BP を高めに生成） */
 export const STRONG_ENEMY_CHANCE = 0.28;
@@ -244,13 +237,6 @@ export function buildBalancedCpuDeck(
   return lastAttempt;
 }
 
-/** @deprecated テスト互換。playerDeck なしのとき用 */
-export function buildRandomCpuDeck(
-  random: () => number = Math.random,
-): Card[] {
-  return buildBalancedCpuDeck([], random);
-}
-
 /** 開発用: 既存カードを参照し、空きスロット分だけ CPU 風カードを生成 */
 export function buildCpuCardsForDeckFill(
   existingCards: readonly Card[],
@@ -328,20 +314,4 @@ export function pickCpuBattleLineup(
   }
 
   return best;
-}
-
-/** 固定5枚（テスト・参照用） */
-export function buildCpuFullDeck(): Card[] {
-  return [
-    createCardFromDrawing('赤鬼', fillGrid('#ff0000')),
-    createCardFromDrawing('白盾', fillGrid('#ffffff')),
-    createCardFromDrawing('黒影', fillGrid('#000000')),
-    createCardFromDrawing('赤刃', fillGrid('#ff0000')),
-    createCardFromDrawing('堅壁', fillGrid('#ffffff')),
-  ];
-}
-
-/** @deprecated 旧3枚のみ */
-export function buildCpuStarterCards(): Card[] {
-  return pickCpuBattleLineup(buildCpuFullDeck());
 }

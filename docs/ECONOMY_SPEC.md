@@ -2,7 +2,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| ドキュメント版 | 2.22 |
+| ドキュメント版 | 2.24 |
 | 最終更新 | 2026-07-04 |
 | 対象 | ウェブ版（React + Vite + TypeScript）→ 将来 Unity / API |
 | 関連 | [プロトタイプ開発指示書](./PROTOTYPE_DEVELOPMENT_SPEC.md) / [属性・戦闘効果仕様](./ATTRIBUTE_SPEC.md) / [効果音仕様](./SFX_SPEC.md) / [実装ロードマップ](./ECONOMY_ROADMAP.md) / [オフライン対人実装仕様](./OFFLINE_PVP_SPEC.md) / [Supabase セットアップ](./SUPABASE_SETUP.md) |
@@ -584,7 +584,7 @@ SR★3 --(4回目)--> UR★0  （UR 実装後）
 
 | カテゴリ | 購入場所 | 備考 |
 |----------|----------|------|
-| **追加色パレット** | **編集画面**（`PaletteUnlockModal`） | Lv50+。**tier1** 各 **2000px** / **tier2** 各 **💎100** または **2200px** |
+| **追加色パレット** | **編集画面**（`PaletteUnlockModal`） | 12色・各 **💎100**。右2列は **Lv50+**、下段は上段解放後（[§18.1](#181-プロトタイプ簡略実装現行コード)） |
 | **描画ツール早期解放** | **編集画面** | 各 **💎100**（`JEWEL_COST_EDITOR_EARLY_UNLOCK`） |
 | カード削除・属性セレクト・デッキ3以降 | 操作地点で **💎 直消費** | |
 | **属性リタッチ** | 操作地点で **px 直消費** | |
@@ -603,7 +603,7 @@ SR★3 --(4回目)--> UR★0  （UR 実装後）
 
 | 条件 | 報酬 |
 |------|------|
-| **毎レベルアップ** | **無償ピクセル 300** ＋ **💎 30**（`JEWELS_PER_LEVEL`） |
+| **毎レベルアップ** | **無償ピクセル 100**（`LEVEL_UP_PIXEL_REWARD`）＋ **💎 10**（`JEWELS_PER_LEVEL`） |
 | **Lv5** | **Lost 解禁**（§4.2.1 終了）＋ **護符 ×1**（初回無償。§7.3）。色（青）解放など 5n+m 報酬は [PROTOTYPE §5.9](./PROTOTYPE_DEVELOPMENT_SPEC.md#59-ユーザーレベル解放5nm-統一) に従う |
 | **Lv10** | **デッキ2 解放**（`unlockedDeckCount` を 2 に。告知 UI 必須） |
 | **L ≡ 4 (mod 5)**, L ≥ 5 | **汎用かけら ×20**（`LEVEL_UP_UNIVERSAL_SHARD_REWARD`） |
@@ -611,7 +611,7 @@ SR★3 --(4回目)--> UR★0  （UR 実装後）
 
 - 5n+m 統一スケジュール全体は [PROTOTYPE §5.9](./PROTOTYPE_DEVELOPMENT_SPEC.md#59-ユーザーレベル解放5nm-統一)。
 - **Lv10 では護符・汎用かけらを配布しない**（デッキ2解放に枠を使用）。
-- Lv2〜50 の💎収入合計は **1,470**（49回 × 30）。px 収入合計は **14,700**（49回 × 300）。汎用かけらは L9,14,…,49 の **9回 × 20 = 180**。護符は L5（初回）＋ L20,30,40,50 で **計5個**。
+- Lv2〜50 の💎収入合計は **490**（49回 × 10）。px 収入合計は **4,900**（49回 × 100）。汎用かけらは L9,14,…,49 の **9回 × 20 = 180**。護符は L5（初回）＋ L20,30,40,50 で **計5個**。
 - **経済設計意図**: レベルアップ **100px** と属性リタッチ **300px/回** の差で、リタッチを主要 px シンクに。無課金の必須💎消費は主に**カード削除**（5💎/回）。
 - レベルアップモーダル: px・💎 は **アイコン＋合計数値** で表示（💎ボーナス枠は廃止。[§16.10](#1610-レベルアップモーダル)）。
 
@@ -1062,7 +1062,7 @@ interface SaveData {
   activeDeckIndex: number;
   lastBattleDeckIndex: number;
   deckNames?: string[];
-  battleHistory?: BattleHistoryEntry[]; // 最大10件・端末専用（クラウド非連携）
+  battleHistory?: BattleHistoryEntry[]; // 最大10件・端末専用（クラウド非連携。空ならキーごと省略）
   paletteShopUnlocks?: number[];  // ショップ購入済みパレット index（8〜19 のうちショップ色）
   shopPurchase?: ShopPurchaseState; // ジュエル初回ボーナス・かけら日次購入（フェーズ8）
   memoryAlbum?: MemoryAlbumState; // 思い出アルバム（§14.1）
@@ -1129,14 +1129,15 @@ interface MemoryAlbumState {
 
 - `ShopScreen.tsx` — **3タブ**（💎 / アイテム / サブスク）・モック購入
 - サブスクタブ: 特典説明（プレは2行）＋ **毎月一括受取報酬**（px・💎・護符を1行）
-- **追加色パレット** — `PaletteUnlockModal`（編集画面）。tier1 各 **2000px** / tier2 各 **💎100** または **2200px**。Lv50+。
+- **追加色パレット** — `PaletteUnlockModal`（編集画面）。12色・各 **💎100**（`JEWEL_COST_PALETTE_EXTRA`）。右2列は Lv50+、下段は上段解放後。
 - **描画ツール早期解放** — 編集画面ツールバー鍵から **💎100**。
 
 **不採用**
 
 - 💎 不足時のショップ deep link（削除・デッキ解放・属性セレクトから）は実装しない
+- 追加色の **px 購入**（旧 tier1/tier2）
 
-**エディタからの購入**: 鍵表示のショップ色タップ → `PaletteUnlockModal`（tier2 は px / 💎 の両ボタン）。
+**エディタからの購入**: 鍵表示のショップ色タップ → `PaletteUnlockModal`（💎のみ）。
 
 **開発用**: 設定画面の開発メニュー「色パレット（ショップ追加分）」— **全解放 / 未解放**。
 
@@ -1344,7 +1345,7 @@ interface MemoryAlbumState {
 | 限界突破レア昇格 💎 | **実装済み** — `LIMIT_BREAK_RARITY_JEWEL_COST` |
 | 勝利2倍広告 | **実装済み** — `GraveyardPickModal`（EXP・px・かけら2倍） |
 | **レア抽選・創作ボーナス** | **実装済み** — `rollRarity` / `meetsCreationBonus`（§9.2） |
-| 追加色パレットショップ | **実装済み** — `ShopScreen`・`PaletteUnlockModal`・`paletteShopUnlocks` |
+| 追加色パレットショップ | **実装済み** — `PaletteUnlockModal`・`unlockPaletteWithJewels`・`paletteShopUnlocks`（💎100・px 廃止） |
 | **カードノート** | **実装済み** — プレミアム編集・全員閲覧（§8.5） |
 | **属性 battleGuide・用語モーダル** | **実装済み** — `battleGuideCommon.ts`・`GuideTextWithTerms`（ATTRIBUTE_SPEC §2.5） |
 
@@ -1407,13 +1408,13 @@ floor( 塗りマス数 × REVIVE_PAINTED_MULTIPLIER × レア倍率 × ★倍率
 | 成功時 | `unlockedDeckCount` +1、新デッキタブへ切替、`spendJewels` でセーブ |
 | UI | `DeckUnlockModal` — [§16.6](#166-デッキ解放) |
 
-#### 追加色パレット（`unlockPaletteWithPixels` / `unlockPaletteWithJewels`）
+#### 追加色パレット（`unlockPaletteWithJewels`）
 
 | 項目 | 内容 |
 |------|------|
-| 最低レベル | **Lv50**（`PALETTE_SHOP_MIN_USER_LEVEL`） |
-| tier1 | 紫・濃い緑・茶・赤茶 — 各 **2000px**（`PIXEL_COST_PALETTE_SHOP_TIER1`） |
-| tier2 | 薄色系8色 — 各 **💎100**（`JEWEL_COST_PALETTE_SHOP_TIER2` / `JEWEL_COST_PALETTE_EXTRA`）または **2200px**（`PIXEL_COST_PALETTE_SHOP_TIER2`） |
+| 価格 | 12色すべて各 **💎100**（`JEWEL_COST_PALETTE_EXTRA`）。**px 購入は廃止** |
+| 右2列（紫・濃い緑・薄紫・赤茶） | **Lv50+**（`PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL`） |
+| 下段 index 10〜17 | 上段同列がレベル解放済みであること |
 | 永続化 | `SaveData.paletteShopUnlocks`（購入済み index の配列） |
 | 創作ボーナス | 使用色数は `countUnlockedPaletteColors(level, shopUnlocks)` を参照 |
 
@@ -1474,12 +1475,14 @@ floor( 塗りマス数 × REVIVE_PAINTED_MULTIPLIER × レア倍率 × ★倍率
 | `JEWEL_COST_MEMORY_ALBUM_ROW` | **1,000** | 思い出アルバム行解放（+5枠） |
 | `LOST_WEIGHT_RARITY` | N=1.0, R=1.3, SR=1.6 | 復活コストのレア傾斜（§18.1） |
 | `LOST_WEIGHT_STARS` | ★0=1.0 … ★3=1.5 | 復活コストの★傾斜（§18.1） |
-| `LEVEL_UP_PIXEL_REWARD` | **100** | プロトタイプ: レベルアップ px 固定 |
-| `JEWELS_PER_LEVEL` | **10** | プロトタイプ: レベルアップ 💎 固定 |
+| `LEVEL_UP_PIXEL_REWARD` | **100** | レベルアップ px 固定（§10.4） |
+| `JEWELS_PER_LEVEL` | **10** | 毎レベル（§10.4） |
 | `BATTLE_VICTORY_PX_MULTIPLIER` | **0.5** | バトル勝利由来 px の倍率 |
 | `LEVEL_UP_UNIVERSAL_SHARD_REWARD` | **20** | L≡4 (mod 5), L≥5 の汎用かけら配布数（§10.4） |
 | `TALISMAN_MILESTONE_GRANT_COUNT` | **1** | L20,30,40,50 の護符配布数（§10.4） |
-| `JEWELS_PER_LEVEL` | **30** | 毎レベル（§10.4） |
+| `JEWEL_COST_PALETTE_EXTRA` | **100** | 追加色パレット（12色・各1回・💎のみ） |
+| `PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL` | **50** | 右2列ショップ色の購入最低レベル |
+| `BATTLE_HISTORY_MAX` | **10** | バトル履歴最大件数（端末専用・クラウド非連携） |
 | `JEWEL_COST_DELETE` | **5** | カード削除（active/lost 共通） |
 | `PIXEL_COST_RENAME` | **200** | リネーム（名前変更保存時・毎回） |
 | `PIXEL_COST_ATTRIBUTE_RETOUCH` | **300** | 属性リタッチ1回（§8.4） |
@@ -1509,6 +1512,21 @@ floor( 塗りマス数 × REVIVE_PAINTED_MULTIPLIER × レア倍率 × ★倍率
 | `CREATE_RARITY_*` | — | §9.2 |
 | `SUB_*` | — | §12.2 |
 
+**廃止・コードから削除済み**
+
+| キー | 備考 |
+|------|------|
+| ~~`SHOP_TALISMAN_JEWELS`~~ | 護符💎購入。**削除済み**（px 一本化） |
+| ~~`unlockPaletteWithPixels`~~ / tier1・tier2 px | 追加色 px 購入。**削除済み**（💎一本化） |
+| ~~`COLOR_WEIGHT`~~ / ~~`HASH_WEIGHT`~~ / ~~`BLACK_ATTACK_WEIGHT`~~ | 旧属性決定用。**削除済み**（`rollAttribute`） |
+
+**レガシー（コードに残存・未使用）**
+
+| キー | 備考 |
+|------|------|
+| `BATTLE_DAILY_FREE_LIMIT` | 10戦 cap 案。仕様廃止済み・参照なし |
+| `PIXEL_COST_PALETTE_SHOP_TIER1` / `TIER2` / `JEWEL_COST_PALETTE_SHOP_TIER2` | 旧 tier 定数。購入経路は `JEWEL_COST_PALETTE_EXTRA` |
+
 ---
 
 ## 20. 未決定・要調整
@@ -1523,7 +1541,7 @@ floor( 塗りマス数 × REVIVE_PAINTED_MULTIPLIER × レア倍率 × ★倍率
 | 6 | CPU 相手カードの **レア付与** | CPU デッキ生成 |
 | 7 | 既存セーブへの **レア遡及** | §9.2.3 |
 | 8 | ~~💎 不足時 **ショップ deep link**~~ | **不採用**（実装しない） |
-| 9 | `BATTLE_DAILY_FREE_LIMIT` **コード削除** | 仕様廃止済み。定数整理は実装時 |
+| 9 | ~~未使用レガシー定数の削除~~ | **一部完了**（`SHOP_TALISMAN_JEWELS` 等）。`BATTLE_DAILY_FREE_LIMIT`・旧パレット tier 定数は残存 |
 
 ---
 
@@ -1555,6 +1573,7 @@ floor( 塗りマス数 × REVIVE_PAINTED_MULTIPLIER × レア倍率 × ★倍率
 | 20 | キャンバス拡大配置 | 拡大モーダルで **フィット / 左上 / 中央** の3択（デフォルト中央。§16.14） |
 | 21 | サブスク UI | 月次付与を **毎月一括受取報酬** 1行表示。プレ説明は特典2行（§12.2・§16.4） |
 | 22 | デッキ名変更 | **ライト / プレミアム**でデッキ名変更可（未加入はアップセル。§12.2・§16.2） |
+| 23 | 追加色・履歴・デッドコード | 追加色は **💎100 一本化**。バトル履歴は最大10件・端末専用（クラウドはキー省略）。未使用 `@deprecated` 削除 |
 
 ---
 
@@ -1562,6 +1581,7 @@ floor( 塗りマス数 × REVIVE_PAINTED_MULTIPLIER × レア倍率 × ★倍率
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.24 | 2026-07-04 | §10.2 / §10.4 / §15 / §16.4 / §18 / §19 — 追加色💎一本化・Lv報酬100px+💎10に同期・バトル履歴端末専用・削除済み定数を反映。決定履歴 #23 |
 | 2.23 | 2026-07-04 | §12.2 / §16.2 / §16.2.1 — デッキ名変更をサブスク特典に追加。ショップ説明文・思い出アルバムヘルプを同期。決定履歴 #22 |
 | 2.22 | 2026-07-04 | §13.2 入口を実装済みに更新。BP 補正は出撃デッキ戦力（履歴再戦共通）。一覧は補正前戦力表示 |
 | 2.21 | 2026-07-04 | §13.2.6 G4/G6〜G8 を v1 仮決め。実装仕様 [OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md) を参照追加 |

@@ -116,14 +116,6 @@ export function getLimitBreakRarityJewelCost(rarity: CardRarity): number | null 
   );
 }
 
-/** ★数ごとの BP 倍率（非推奨: 限界突破は `LIMIT_BREAK_BP_GAIN_RATE` で均等加算） */
-export const LIMIT_BREAK_STAR_BP_MULTIPLIER: Record<CardStars, number> = {
-  0: 1,
-  1: 1.03,
-  2: 1.06,
-  3: 1.09,
-};
-
 /** 限界突破1回あたりのBP増加率（基礎BPに対する割合。★アップ・レア昇格で同じ加算量） */
 export const LIMIT_BREAK_BP_GAIN_RATE = 0.03;
 
@@ -136,11 +128,6 @@ export function calcLevelUpUniversalShards(level: number): number {
   const L = Math.max(1, Math.floor(level));
   if (L < 5 || L % 5 !== 4) return 0;
   return LEVEL_UP_UNIVERSAL_SHARD_REWARD;
-}
-
-/** @deprecated calcLevelUpUniversalShards を使用 */
-export function calcLevelUpUniversalLimitBreak(level: number): number {
-  return calcLevelUpUniversalShards(level);
 }
 
 const TALISMAN_MILESTONE_LEVELS = [20, 30, 40, 50] as const;
@@ -170,9 +157,6 @@ export const SHOP_DAILY_RESET_TIMEZONE = BATTLE_DAILY_RESET_TIMEZONE;
 
 /** 護符購入価格（px のみ） */
 export const SHOP_TALISMAN_PX = 1500;
-
-/** @deprecated 護符の 💎 購入は廃止（2026-06-20） */
-export const SHOP_TALISMAN_JEWELS = 125;
 
 /** 開発用モックジュエルパック */
 export const MOCK_JEWEL_PACK_SMALL = 500;

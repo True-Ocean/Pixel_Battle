@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CANVAS_SIZE, PALETTE_UNLOCKED_COUNT_LV0 } from '../config/balance';
+import { CANVAS_SIZE_DEFAULT, PALETTE_UNLOCKED_COUNT_LV0 } from '../config/balance';
 import { PALETTE_16 } from '../config/palette';
 import { CREATE_BONUS_COLOR_SHARE_TOTAL } from '../config/rarity';
 import { createEmptyGrid } from '../canvas';
@@ -20,7 +20,7 @@ function ratiosFor(
 ) {
   const ratios = computeColorRatios(
     grid,
-    CANVAS_SIZE * CANVAS_SIZE,
+    CANVAS_SIZE_DEFAULT * CANVAS_SIZE_DEFAULT,
     unlockedPaletteCount,
   );
   if (!ratios) throw new Error('empty grid');
@@ -28,7 +28,7 @@ function ratiosFor(
 }
 
 /** 創作ボーナス条件を満たす全面塗りグリッド */
-function buildBonusGrid(unlockedCount: number, size = CANVAS_SIZE) {
+function buildBonusGrid(unlockedCount: number, size = CANVAS_SIZE_DEFAULT) {
   const colors = PALETTE_16.slice(0, unlockedCount);
   const total = size * size;
   const minEach = Math.ceil((total * CREATE_BONUS_COLOR_SHARE_TOTAL) / unlockedCount);
@@ -85,7 +85,7 @@ describe('meetsCreationBonus', () => {
     const grid = buildBonusGrid(4);
     const ratios = ratiosFor(grid, 4);
     expect(meetsCreationBonus(ratios, grid, 4)).toBe(true);
-    const total = CANVAS_SIZE * CANVAS_SIZE;
+    const total = CANVAS_SIZE_DEFAULT * CANVAS_SIZE_DEFAULT;
     const minShare = CREATE_BONUS_COLOR_SHARE_TOTAL / 4;
     for (const color of PALETTE_16.slice(0, 4)) {
       let count = 0;

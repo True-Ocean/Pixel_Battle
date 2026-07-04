@@ -40,11 +40,6 @@ export function getJewelCostForPaletteIndex(index: number): number | null {
   return isJewelPaletteIndex(index) ? JEWEL_COST_PALETTE_EXTRA : null;
 }
 
-/** @deprecated px 購入は廃止 */
-export function getPixelCostForPaletteIndex(_index: number): number | null {
-  return null;
-}
-
 export function canOfferPaletteJewelPurchase(
   index: number,
   userLevel: number,
@@ -63,33 +58,12 @@ export function canOfferPaletteJewelPurchase(
   return false;
 }
 
-/** @deprecated canOfferPaletteJewelPurchase を使用 */
-export const PALETTE_SHOP_MIN_USER_LEVEL = PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL;
-
-/** @deprecated A案では tier なし */
-export type PaletteShopTier = 'tier1' | 'tier2';
-
-/** @deprecated isJewelPaletteIndex を使用 */
-export function isShopPaletteIndex(index: number): boolean {
-  return isJewelPaletteIndex(index);
-}
-
-/** @deprecated */
-export function getPaletteShopTier(_index: number): PaletteShopTier | null {
-  return null;
-}
-
 export function getAllJewelPaletteIndices(): readonly number[] {
   const indices: number[] = [];
   for (let index = 0; index < PALETTE_EDITOR_COLOR_COUNT; index++) {
     if (isJewelPaletteIndex(index)) indices.push(index);
   }
   return indices;
-}
-
-/** @deprecated getAllJewelPaletteIndices を使用 */
-export function getAllShopPaletteIndices(): readonly number[] {
-  return getAllJewelPaletteIndices();
 }
 
 export type PaletteUnlockModalMode =
@@ -142,11 +116,4 @@ export function getPaletteUnlockModalMode(
   }
 
   return null;
-}
-
-/** @deprecated */
-export function getShopPaletteIndicesByTier(
-  _tier: PaletteShopTier,
-): readonly number[] {
-  return [];
 }

@@ -1,7 +1,7 @@
 # 経済・課金・広告 — 実装ロードマップ
 
 **作成日**: 2026-06-14  
-**最終更新**: 2026-07-04（オフライン対人・アカウント連携クラウドセーブ・戦力補正）  
+**最終更新**: 2026-07-04（追加色💎一本化・バトル履歴端末専用・デッドコード整理を仕様書に反映）  
 **ステータス**: 設計合意（議論ベース）・段階実装の指針  
 **関連**: [ECONOMY_SPEC.md](./ECONOMY_SPEC.md)（旧 §10 ポーション/溶解モデルは本書で置き換え）、[PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) §5.9、[OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md)（オフライン対人の実装正）、[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)（公開デッキ・アカウント連携）
 
@@ -133,7 +133,7 @@
 
 **ショップ外（編集画面から購入）**
 
-- 追加色パレット（**Lv50+**・tier1=2000px / tier2=💎100 or 2200px）
+- 追加色パレット（12色・各 **💎100**。右2列は **Lv50+**、下段は上段解放後）
 - 描画ツール早期解放（**💎100**）
 
 **ショップに並べない（操作地点で 💎 / px 直消費）**
@@ -532,7 +532,7 @@ flowchart TD
 
 | キー | 値 | 備考 |
 |------|-----|------|
-| `JEWELS_PER_LEVEL` | **30** | 毎レベル |
+| `JEWELS_PER_LEVEL` | **10** | 毎レベル |
 | `LEVEL_UP_UNIVERSAL_SHARD_REWARD` | **20** | L≡4 (mod 5), L≥5 |
 | `TALISMAN_MILESTONE_GRANT_COUNT` | **1** | L20,30,40,50 |
 | `JEWEL_COST_DELETE` | **5** | カード削除（active/lost 共通） |
@@ -542,6 +542,9 @@ flowchart TD
 | `JEWEL_COST_DECK_UNLOCK` | **1,000** | デッキ3〜各1回 |
 | `JEWEL_COST_MEMORY_ALBUM_ROW` | **1,000** | 行解放（+5枠） |
 | `JEWEL_COST_EDITOR_EARLY_UNLOCK` | **100** | 描画ツール早期解放 |
+| `JEWEL_COST_PALETTE_EXTRA` | **100** | 追加色パレット（12色・各1回・💎のみ） |
+| `PALETTE_RIGHT_COLUMN_MIN_USER_LEVEL` | **50** | 右2列ショップ色の購入最低レベル |
+| `BATTLE_HISTORY_MAX` | **10** | バトル履歴最大件数（端末専用・クラウド非連携） |
 | `getLimitBreakShardsRequired` | N=10, R=15, SR/UR=20 | |
 | `LIMIT_BREAK_BP_GAIN_RATE` | 0.03 | 限界突破1回のBP加算 |
 | `GRAVEYARD_SHARD_REWARD` | N=1, R=2, SR=3 | 戦利品かけら |
@@ -553,19 +556,16 @@ flowchart TD
 | `REVIVE_PAINTED_MULTIPLIER` | 3 | 復活 px |
 | `REVIVE_CAP` | 3 | 1枚あたり px 復活上限 |
 | `LEVEL_UP_PIXEL_REWARD` | **100** | 毎レベル |
-| `JEWELS_PER_LEVEL` | **10** | 毎レベル |
 | `BATTLE_VICTORY_PX_MULTIPLIER` | **0.5** | バトル勝利 px |
 | `PIXEL_COST_ATTRIBUTE_RETOUCH` | 300 | 属性リタッチ1回 |
-| `JEWEL_COST_PALETTE_SHOP_TIER2` | **100** | 薄色系8色（💎支払い） |
-| `PIXEL_COST_PALETTE_SHOP_TIER2` | 2200 | 薄色系8色（px支払い） |
-| `PALETTE_SHOP_MIN_USER_LEVEL` | 50 | 追加色購入の最低レベル |
 
 **廃止・レガシー**
 
 | キー | 備考 |
 |------|------|
-| ~~`BATTLE_DAILY_FREE_LIMIT`~~ | 10戦cap案。**未実装・削除予定** |
-| ~~`SHOP_TALISMAN_JEWELS`~~ | 125💎。**廃止**（px 一本化） |
+| ~~`SHOP_TALISMAN_JEWELS`~~ | 125💎。**コード削除済み**（px 一本化） |
+| ~~`PIXEL_COST_PALETTE_SHOP_*`~~ / ~~`JEWEL_COST_PALETTE_SHOP_TIER2`~~ | 旧 tier。購入経路は `JEWEL_COST_PALETTE_EXTRA`（定数はコードに残存・未使用） |
+| ~~`BATTLE_DAILY_FREE_LIMIT`~~ | 10戦cap案。仕様廃止済み・参照なし（定数はコードに残存） |
 | `MOCK_JEWEL_PACK_SMALL` | 500。**フェーズ8で shop.ts へ移行予定** |
 
 ---
@@ -635,6 +635,8 @@ flowchart TD
 21. ~~**プレミアムリネーム無料**・サブスク UI（毎月一括受取報酬）~~ — **2026-07-04 完了**
 22. ~~**キャンバス拡大配置3択**（フィット/左上/中央）~~ — **2026-07-04 完了**
 23. ~~**デッキ名変更（サブスク限定）**・ヘルプ拡充（マイデッキ/思い出アルバム/バトル共通）~~ — **2026-07-04 完了**
+24. ~~**バトル履歴** — 最大10件・端末専用（クラウドはキー省略）~~ — **2026-07-04 完了**
+25. ~~**デッドコード整理** — 未使用 `@deprecated`・薄い別名削除。仕様書定数表を実装に同期~~ — **2026-07-04 完了**
 
 **次の推奨**
 
@@ -658,7 +660,7 @@ flowchart TD
 - [x] **勝利2倍**: **EXP・px・かけら** すべて2倍
 - [x] **CPU 戦広告**: **3回に1回**（~~1日10戦 cap~~ 廃止）
 - [x] **px 創作コスト**: レベルアップ **100px** / 属性リタッチ **300px** / リネーム **200px**（名前変更保存のたび）
-- [x] レベル報酬: **💎30/Lv**、L≡4 **汎用かけら×20**、L20,30,40,50 **護符×1**
+- [x] レベル報酬: **💎10/Lv**・**100px/Lv**、L≡4 **汎用かけら×20**、L20,30,40,50 **護符×1**
 - [x] 日次リセットのタイムゾーン（**JST 固定**）
 - [x] 限界突破 UI: かけら不足時は非表示、専用・汎用をステッパーで内訳選択
 - [x] 限界突破 BP: **基礎BP×3%/回** の均等加算（レア昇格でも減少しない）

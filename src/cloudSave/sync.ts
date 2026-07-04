@@ -60,9 +60,10 @@ export function pickSyncDirection(
   return 'noop';
 }
 
-/** クラウド送信用。バトル履歴は端末専用のため含めない */
+/** クラウド送信用。バトル履歴は端末専用のためキーごと含めない */
 export function saveForCloudUpload(save: SaveData): SaveData {
-  return { ...save, battleHistory: [] };
+  const { battleHistory: _omit, ...rest } = save;
+  return rest;
 }
 
 /**

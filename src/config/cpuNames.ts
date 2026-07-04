@@ -114,11 +114,6 @@ function composePatternName(patternId: string, random: () => number): string | n
   return pickRandom(pool, random);
 }
 
-/** @deprecated 互換用。generateCpuCardName を推奨 */
-export function randomCpuName(random: () => number = Math.random): string {
-  return finalizeCardNameForCreation(composeRandomName(random));
-}
-
 export function generateCpuCardName(
   patternId: string,
   usedNames: ReadonlySet<string>,

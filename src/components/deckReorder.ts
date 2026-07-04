@@ -72,14 +72,3 @@ export function findDeckTabIndexAtPoint(
   }
   return null;
 }
-
-/** @deprecated findDeckDropIndex を使用 */
-export function findDeckRowIndexAtY(
-  clientY: number,
-  listEl: HTMLElement,
-  skipIndex?: number,
-): number | null {
-  const drop = findDeckDropIndex(clientY, listEl);
-  if (drop == null) return skipIndex ?? null;
-  return drop;
-}

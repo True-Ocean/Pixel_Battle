@@ -18,7 +18,6 @@ export {
   formatAuthError,
   MIN_PASSWORD_LENGTH,
 } from './emailLink';
-export { getAuthRedirectUrl } from './redirectUrl';
 export {
   getAccountLinkStatus,
   getAuthSession,

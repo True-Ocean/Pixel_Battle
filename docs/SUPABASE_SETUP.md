@@ -116,7 +116,7 @@ https://true-ocean.github.io/Pixel_Battle/
 - **Confirm email は OFF**（必須）
 - 連携確認後の auth `user_id` はメールユーザー側
 - クラウドセーブは **メールアドレス連携済み** のときだけ同期する
-- **バトル履歴（`battleHistory`）は端末専用**。アップロード時は空にし、ダウンロード時は端末の履歴を維持する（`saveForCloudUpload` / `mergeLocalOnlyFields`）
+- **バトル履歴（`battleHistory`）は端末専用**。アップロード時はキーごと含めない（空配列も書かない）。ダウンロード時は端末の履歴を維持する（`saveForCloudUpload` / `mergeLocalOnlyFields`）
 - **空クラウドで端末進行を消さない**（上表）
 - **連携を解除 ≠ アカウント削除**。解除後の再接続はログイン
 - アカウント削除（リリース前）時は端末セーブの扱いを UI で明示する

@@ -645,8 +645,10 @@ export function serializeSaveForStorage(data: SaveData): Record<string, unknown>
     ),
     unlockedDeckCount: clampUnlockedDeckCount(data.unlockedDeckCount),
     deckNames: data.deckNames,
-    battleHistory: data.battleHistory ?? [],
   };
+  if (data.battleHistory != null && data.battleHistory.length > 0) {
+    payload.battleHistory = data.battleHistory;
+  }
   if (data.talismanStarterGranted === true) {
     payload.talismanStarterGranted = true;
   }
@@ -742,12 +744,4 @@ export function resetBattleRecords(data: SaveData): SaveData {
     battleHistory: [],
     talismanStarterGranted: false,
   };
-}
-
-/** @deprecated saveSave を使用 */
-export function saveDeck(deck: Card[]): void {
-  const current = loadSave();
-  const nextDecks = normalizeDeckSlots(current.decks);
-  nextDecks[clampDeckSlotIndex(current.activeDeckIndex)] = deck.slice(0, DECK_MAX);
-  saveSave({ ...current, decks: nextDecks });
 }

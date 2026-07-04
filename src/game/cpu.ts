@@ -1,24 +1,17 @@
-import type { BattleActionChoice, BattleState } from '../types/battle';
+import type {
+  BattleActionChoice,
+  BattleState,
+  BoardPosition,
+} from '../types/battle';
 import {
   enumerateBattleActionChoices,
   pickPassAction,
 } from './actionChoices';
 import {
-  getAliveIndices,
   getPendingPromotionFronts,
   getPromotableBackPositions,
 } from './battleState';
 import { promoteUnit } from './resolveTurn';
-
-/** @deprecated 旧3枚制互換。新仕様では pickCpuAction を使う。 */
-export function pickCpuMainIndex(
-  state: BattleState,
-  random = Math.random,
-): number {
-  const aliveCpu = getAliveIndices(state.cpu);
-  if (aliveCpu.length === 1) return aliveCpu[0];
-  return aliveCpu[Math.floor(random() * aliveCpu.length)] ?? 0;
-}
 
 function pickRandom<T>(items: readonly T[], random: () => number): T | undefined {
   if (items.length === 0) return undefined;

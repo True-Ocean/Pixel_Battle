@@ -4,7 +4,6 @@ import {
   getDefaultCanvasSize,
   getMaxCanvasSize,
   getSelectableCanvasSizes,
-  getUnlockedCanvasSizes,
   isCanvasSizeUnlocked,
 } from './canvasUnlock';
 
@@ -12,7 +11,6 @@ describe('canvasUnlock', () => {
   it('Lv1では16のみ', () => {
     expect(getMaxCanvasSize(1)).toBe(16);
     expect(getSelectableCanvasSizes(1)).toEqual([16]);
-    expect(getUnlockedCanvasSizes(1)).toEqual([16]);
     expect(getDefaultCanvasSize(1)).toBe(16);
   });
 

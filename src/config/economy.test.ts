@@ -22,7 +22,6 @@ import {
   calcLevelUpJewels,
   calcLevelUpTalismanGrant,
   calcLevelUpUniversalShards,
-  calcLevelUpUniversalLimitBreak,
   calcLimitBreakBpGain,
   calcTotalLevelUpJewels,
   getLimitBreakRarityJewelCost,
@@ -131,11 +130,8 @@ describe('calcLevelUpUniversalShards', () => {
     expect(calcLevelUpUniversalShards(4)).toBe(0);
     expect(calcLevelUpUniversalShards(9)).toBe(20);
     expect(calcLevelUpUniversalShards(10)).toBe(0);
-  });
-
-  it('deprecated alias still works', () => {
-    expect(calcLevelUpUniversalLimitBreak(14)).toBe(20);
-    expect(calcLevelUpUniversalLimitBreak(20)).toBe(0);
+    expect(calcLevelUpUniversalShards(14)).toBe(20);
+    expect(calcLevelUpUniversalShards(20)).toBe(0);
   });
 });
 

@@ -6,9 +6,6 @@ import type { Attribute, CardRarity } from '../types';
 
 /** 初期キャンバス・既存セーブ移行のデフォルト値 */
 export const CANVAS_SIZE_DEFAULT = 16;
-
-/** @deprecated CANVAS_SIZE_DEFAULT を使用 */
-export const CANVAS_SIZE = CANVAS_SIZE_DEFAULT;
 export const DECK_MAX = 5;
 /** ユーザーが持てるデッキスロット数（各スロット最大 DECK_MAX 枚） */
 export const DECK_SLOT_COUNT = 5;
@@ -32,13 +29,6 @@ export const MATCH_REVEAL_COUNTDOWN_SEC = 5;
 /** WIN/LOSE 表示から報酬・ロストモーダルまでの待機 (ms) */
 export const BATTLE_OUTCOME_HOLD_MS = 1500;
 export const CPU_RANDOM_ACTION = true;
-
-/** 属性決定: 色スコア vs hash */
-export const COLOR_WEIGHT = 0.7;
-export const HASH_WEIGHT = 0.3;
-
-/** 黒を攻撃寄りに載せる重み */
-export const BLACK_ATTACK_WEIGHT = 0.7;
 
 /** CPU: 有利対面を選ぶ確率 */
 export const CPU_AGGRESSIVE_CHANCE = 0.7;
@@ -218,12 +208,6 @@ export const MAX_USER_LEVEL = 50;
  * 本番・通常プレイ前に false に戻すこと。
  */
 export const DEV_FORCE_MAX_USER_LEVEL = false;
-
-/** @deprecated レベル連動BP以前の固定レンジ（参照用） */
-export const BP_RANGE: Record<'attack' | 'defense', { min: number; max: number }> = {
-  attack: { min: 70, max: 100 },
-  defense: { min: 55, max: 85 },
-};
 
 /** 新規作成時: 基礎 BP に乗算（ECONOMY_SPEC §9.4） */
 export const RARITY_BP_MULTIPLIER: Record<CardRarity, number> = {

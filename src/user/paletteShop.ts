@@ -48,17 +48,3 @@ export function unlockPaletteWithJewels(
     shopUnlocks: normalizePaletteShopUnlocks([...shopUnlocks, index]),
   };
 }
-
-/** @deprecated unlockPaletteWithJewels を使用 */
-export function unlockPaletteWithPixels(
-  index: number,
-  userLevel: number,
-  economy: UserEconomy,
-  shopUnlocks: readonly number[],
-): { economy: UserEconomy; shopUnlocks: number[] } | null {
-  void index;
-  void userLevel;
-  void economy;
-  void shopUnlocks;
-  return null;
-}

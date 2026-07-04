@@ -16,9 +16,6 @@ export const IDEAL_TOOL_ORDER = [
 
 export type EditorToolId = (typeof IDEAL_TOOL_ORDER)[number];
 
-/** @deprecated EditorToolId を使用 */
-export type EditorPaletteToolId = EditorToolId;
-
 /** ブラシ色を使う描画ツール */
 export const COLOR_USING_EDITOR_TOOLS = [
   'pen',
@@ -70,14 +67,6 @@ export function isEditorToolUnlockedAtLevel(
   return level >= getToolUnlockLevel(tool);
 }
 
-/** @deprecated isEditorToolAvailable を使用 */
-export function isEditorToolUnlocked(
-  tool: EditorToolId,
-  userLevel: number,
-): boolean {
-  return isEditorToolUnlockedAtLevel(tool, userLevel);
-}
-
 export function isEditorToolImplemented(tool: EditorToolId): boolean {
   return IMPLEMENTED_EDITOR_TOOLS.includes(tool);
 }
@@ -98,6 +87,3 @@ export function getVisibleEditorTools(userLevel: number): EditorToolId[] {
 export function getDisplayEditorTools(): EditorToolId[] {
   return IDEAL_TOOL_ORDER.filter(isEditorToolImplemented);
 }
-
-/** @deprecated IDEAL_TOOL_ORDER を使用 */
-export const EDITOR_TOOL_IDS = IMPLEMENTED_EDITOR_TOOLS;

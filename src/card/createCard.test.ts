@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CANVAS_SIZE,
+  CANVAS_SIZE_DEFAULT,
   getCardBaseBpRange,
   getUserBaseBp,
 } from '../config/balance';
@@ -27,7 +27,7 @@ function fillGrid(color: string): ReturnType<typeof createEmptyGrid> {
 
 function buildBonusGrid(unlockedCount: number) {
   const colors = PALETTE_16.slice(0, unlockedCount);
-  const total = CANVAS_SIZE * CANVAS_SIZE;
+  const total = CANVAS_SIZE_DEFAULT * CANVAS_SIZE_DEFAULT;
   const minEach = Math.ceil((total * CREATE_BONUS_COLOR_SHARE_TOTAL) / unlockedCount);
   const counts = colors.map(() => minEach);
   counts[0] += total - minEach * unlockedCount;
@@ -36,8 +36,8 @@ function buildBonusGrid(unlockedCount: number) {
   let cursor = 0;
   for (let colorIndex = 0; colorIndex < unlockedCount; colorIndex++) {
     for (let n = 0; n < counts[colorIndex]; n++) {
-      const row = Math.floor(cursor / CANVAS_SIZE);
-      const col = cursor % CANVAS_SIZE;
+      const row = Math.floor(cursor / CANVAS_SIZE_DEFAULT);
+      const col = cursor % CANVAS_SIZE_DEFAULT;
       grid[row][col] = colors[colorIndex];
       cursor++;
     }
@@ -180,9 +180,9 @@ describe('createCardFromDrawing', () => {
 
   it('16x16 のカードを生成', () => {
     const card = createCardFromDrawing('x', fillGrid('#ff0000'));
-    expect(card.pixels).toHaveLength(CANVAS_SIZE);
-    expect(card.pixels[0]).toHaveLength(CANVAS_SIZE);
-    expect(card.canvasSize).toBe(CANVAS_SIZE);
+    expect(card.pixels).toHaveLength(CANVAS_SIZE_DEFAULT);
+    expect(card.pixels[0]).toHaveLength(CANVAS_SIZE_DEFAULT);
+    expect(card.canvasSize).toBe(CANVAS_SIZE_DEFAULT);
     expect(card.name).toBe('x');
     expect(card.wins).toBe(0);
     expect(card.reviveCount).toBe(0);

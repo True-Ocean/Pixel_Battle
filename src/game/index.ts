@@ -82,16 +82,12 @@ export {
   hasBattleActionChoices,
   pickPassAction,
 } from './actionChoices';
-export { pickCpuMainIndex, pickCpuAction, autoPromoteCpu } from './cpu';
+export { pickCpuAction, autoPromoteCpu } from './cpu';
 export {
-  buildCpuStarterCards,
-  buildCpuFullDeck,
   buildBalancedCpuDeck,
-  buildRandomCpuDeck,
   buildDeckTargets,
   rollCpuDifficulty,
   pickCpuBattleLineup,
-  randomCpuName,
   STRONG_ENEMY_CHANCE,
 } from './cpuDeck';
 export { CPU_PATTERNS, pickCpuPattern } from './cpuPatterns';

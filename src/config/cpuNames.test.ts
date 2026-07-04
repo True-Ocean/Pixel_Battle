@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { generateCpuCardName, randomCpuName } from './cpuNames';
+import { generateCpuCardName } from './cpuNames';
 
 describe('cpuNames', () => {
-  it('randomCpuName は空でない名前を返す', () => {
-    expect(randomCpuName(() => 0.5).length).toBeGreaterThan(0);
+  it('generateCpuCardName は空でない名前を返す', () => {
+    expect(generateCpuCardName('cat', new Set(), () => 0.5).length).toBeGreaterThan(0);
   });
 
   it('generateCpuCardName はデッキ内で重複しない', () => {

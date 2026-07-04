@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { serializeSaveForStorage } from '../storage';
 import type { SaveData } from '../types';
 import {
   hasPlayableProgress,
@@ -143,7 +144,8 @@ describe('saveForCloudUpload', () => {
       },
     });
     const forCloud = saveForCloudUpload(local);
-    expect(forCloud.battleHistory).toEqual([]);
+    expect(forCloud).not.toHaveProperty('battleHistory');
+    expect(serializeSaveForStorage(forCloud)).not.toHaveProperty('battleHistory');
     expect(forCloud.user?.level).toBe(2);
     expect(local.battleHistory).toHaveLength(1);
   });
