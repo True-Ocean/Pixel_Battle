@@ -932,6 +932,7 @@ export function EditorScreen({
       {helpOpen && (
         <HelpPanelModal
           topic={getEditorHelp(isEditing)}
+          panelClassName="help-panel--categorized"
           onClose={() => setHelpOpen(false)}
         />
       )}
