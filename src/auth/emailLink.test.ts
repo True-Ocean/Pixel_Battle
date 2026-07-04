@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   isValidEmail,
+  isValidPassword,
   normalizeEmailInput,
   linkEmailToCurrentUser,
-  signInWithEmailMagicLink,
-  verifyEmailOtp,
+  signInWithEmailPassword,
   formatAuthError,
+  MIN_PASSWORD_LENGTH,
 } from './emailLink';
 import { isAnonymousUser, isEmailLinkedUser, resolveAccountEmail } from './session';
 import type { User } from '@supabase/supabase-js';
@@ -15,6 +16,12 @@ describe('email validation', () => {
     expect(normalizeEmailInput('  Foo@Example.COM ')).toBe('foo@example.com');
     expect(isValidEmail('foo@example.com')).toBe(true);
     expect(isValidEmail('not-an-email')).toBe(false);
+  });
+
+  it('validates password length', () => {
+    expect(isValidPassword('12345')).toBe(false);
+    expect(isValidPassword('123456')).toBe(true);
+    expect(MIN_PASSWORD_LENGTH).toBe(6);
   });
 });
 
@@ -39,15 +46,25 @@ describe('session helpers', () => {
   });
 });
 
-describe('linkEmailToCurrentUser / signInWithEmailMagicLink', () => {
+describe('linkEmailToCurrentUser / signInWithEmailPassword', () => {
   it('rejects invalid email without calling network when format is bad', async () => {
-    const linked = await linkEmailToCurrentUser('bad');
+    const linked = await linkEmailToCurrentUser('bad', 'password1');
     expect(linked.ok).toBe(false);
     if (!linked.ok) expect(linked.reason).toBe('invalid_email');
 
-    const signedIn = await signInWithEmailMagicLink('bad');
+    const signedIn = await signInWithEmailPassword('bad', 'password1');
     expect(signedIn.ok).toBe(false);
     if (!signedIn.ok) expect(signedIn.reason).toBe('invalid_email');
+  });
+
+  it('rejects short passwords without calling network', async () => {
+    const linked = await linkEmailToCurrentUser('a@example.com', '12345');
+    expect(linked.ok).toBe(false);
+    if (!linked.ok) expect(linked.reason).toBe('invalid_password');
+
+    const signedIn = await signInWithEmailPassword('a@example.com', '123');
+    expect(signedIn.ok).toBe(false);
+    if (!signedIn.ok) expect(signedIn.reason).toBe('invalid_password');
   });
 });
 
@@ -72,12 +89,13 @@ describe('formatAuthError', () => {
       expect(result.error).toContain('ログイン');
     }
   });
-});
 
-describe('verifyEmailOtp', () => {
-  it('rejects non-numeric or short tokens without network', async () => {
-    const result = await verifyEmailOtp('a@example.com', '12ab', 'link');
+  it('maps invalid credentials to a Japanese guidance message', () => {
+    const result = formatAuthError('Invalid login credentials');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('invalid_otp');
+    if (!result.ok) {
+      expect(result.reason).toBe('invalid_credentials');
+      expect(result.error).toContain('パスワード');
+    }
   });
 });

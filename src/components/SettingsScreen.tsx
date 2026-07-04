@@ -3,17 +3,14 @@ import type { User } from '@supabase/supabase-js';
 import {
   getDeviceLinkedEmail,
   linkEmailToCurrentUser,
-  normalizeEmailInput,
   resolveAccountEmail,
-  signInWithEmailMagicLink,
+  signInWithEmailPassword,
   signOutAccount,
   subscribeAuthState,
   syncDeviceLinkedEmailFromUser,
   unlinkAccountFromDevice,
-  verifyEmailOtp,
   isEmailLinkedUser,
   type AuthActionResult,
-  type EmailAuthPurpose,
 } from '../auth';
 import {
   DECK_SLOT_COUNT,
@@ -302,11 +299,7 @@ function AccountSection({
   const [usernameNotice, setUsernameNotice] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [emailInput, setEmailInput] = useState('');
-  const [otpInput, setOtpInput] = useState('');
-  const [pendingOtp, setPendingOtp] = useState<{
-    email: string;
-    purpose: EmailAuthPurpose;
-  } | null>(null);
+  const [passwordInput, setPasswordInput] = useState('');
   const [mailExpanded, setMailExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -336,8 +329,7 @@ function AccountSection({
 
   useEffect(() => {
     if (linked) {
-      setPendingOtp(null);
-      setOtpInput('');
+      setPasswordInput('');
     }
   }, [linked]);
 
@@ -353,73 +345,39 @@ function AccountSection({
     setDeviceLinkedEmail(getDeviceLinkedEmail());
   };
 
-  const runSendOtp = async (purpose: EmailAuthPurpose) => {
+  const canSubmitAuth =
+    emailInput.trim().length > 0 && passwordInput.length > 0;
+
+  const runLink = async () => {
     setBusy(true);
     setNotice(null);
     setError(null);
     try {
-      let result =
-        purpose === 'link'
-          ? await linkEmailToCurrentUser(emailInput)
-          : await signInWithEmailMagicLink(emailInput);
-      let resolvedPurpose = purpose;
-
-      // 以前 Safari 等で認証だけ完了している場合、連携ではなくログインへ切り替える
-      if (
-        purpose === 'link' &&
-        result.ok === false &&
-        result.reason === 'email_already_registered'
-      ) {
-        const loginResult = await signInWithEmailMagicLink(emailInput);
-        if (loginResult.ok === true) {
-          result = {
-            ok: true,
-            message: 'メール内の確認コードを入力',
-          };
-          resolvedPurpose = 'login';
-        } else {
-          result = loginResult;
-        }
-      }
-
+      const result = await linkEmailToCurrentUser(emailInput, passwordInput);
       if (result.ok === true) {
-        setPendingOtp({
-          email: normalizeEmailInput(emailInput),
-          purpose: resolvedPurpose,
-        });
-        setOtpInput('');
+        setPasswordInput('');
         setNotice(result.message);
         refreshDeviceLinkedEmail();
         return;
       }
       setError(result.error);
     } catch (caught) {
-      const message =
-        caught instanceof Error ? caught.message : '処理に失敗しました';
       setError(
-        message.toLowerCase().includes('rate limit')
-          ? 'メールの送信回数上限に達しました。数分〜1時間ほど待ってから、もう一度お試しください。'
-          : message,
+        caught instanceof Error ? caught.message : '連携に失敗しました',
       );
     } finally {
       setBusy(false);
     }
   };
 
-  const runVerifyOtp = async () => {
-    if (!pendingOtp) return;
+  const runLogin = async () => {
     setBusy(true);
     setNotice(null);
     setError(null);
     try {
-      const result = await verifyEmailOtp(
-        pendingOtp.email,
-        otpInput,
-        pendingOtp.purpose,
-      );
+      const result = await signInWithEmailPassword(emailInput, passwordInput);
       if (result.ok === true) {
-        setPendingOtp(null);
-        setOtpInput('');
+        setPasswordInput('');
         setNotice(result.message);
         refreshDeviceLinkedEmail();
         return;
@@ -427,7 +385,7 @@ function AccountSection({
       setError(result.error);
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : '確認に失敗しました',
+        caught instanceof Error ? caught.message : 'ログインに失敗しました',
       );
     } finally {
       setBusy(false);
@@ -523,7 +481,8 @@ function AccountSection({
               </p>
             ) : (
               <p className="settings-section-note muted">
-                メールアドレスを連携すると、機種変更やホーム画面からの削除後もクラウドからデータを復元でき、連携中は自動でクラウドに保存されます。
+                メールアドレスとパスワードで連携すると、機種変更やホーム画面からの削除後もクラウドからデータを復元でき、連携中は自動でクラウドに保存されます。パスワードは 6
+                文字以上です。
               </p>
             )}
             {configured && (
@@ -627,75 +586,6 @@ function AccountSection({
                       </button>
                     </div>
                   </>
-                ) : pendingOtp ? (
-                  <div className="settings-account-form">
-                    <label className="settings-account-label" htmlFor="settings-account-email-pending">
-                      メールアドレス
-                    </label>
-                    <input
-                      id="settings-account-email-pending"
-                      type="email"
-                      className="settings-account-input"
-                      value={pendingOtp.email}
-                      disabled
-                      readOnly
-                    />
-                    <label
-                      className="settings-account-label"
-                      htmlFor="settings-account-otp"
-                    >
-                      確認コード
-                    </label>
-                    <input
-                      id="settings-account-otp"
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      className="settings-account-input"
-                      placeholder="12345678"
-                      value={otpInput}
-                      disabled={busy}
-                      onChange={(event) => {
-                        setOtpInput(event.target.value);
-                        if (error) setError(null);
-                      }}
-                    />
-                    <div className="settings-account-actions">
-                      <button
-                        type="button"
-                        className="settings-account-btn settings-account-btn--primary"
-                        disabled={busy || otpInput.trim().length === 0}
-                        onClick={() => {
-                          void runVerifyOtp();
-                        }}
-                      >
-                        コードを確認
-                      </button>
-                      <button
-                        type="button"
-                        className="settings-account-btn"
-                        disabled={busy}
-                        onClick={() => {
-                          void runSendOtp(pendingOtp.purpose);
-                        }}
-                      >
-                        コードを再送
-                      </button>
-                      <button
-                        type="button"
-                        className="settings-account-btn"
-                        disabled={busy}
-                        onClick={() => {
-                          setPendingOtp(null);
-                          setOtpInput('');
-                          setNotice(null);
-                          setError(null);
-                        }}
-                      >
-                        戻る
-                      </button>
-                    </div>
-                  </div>
                 ) : (
                   <div className="settings-account-form">
                     <label
@@ -715,14 +605,37 @@ function AccountSection({
                       readOnly={deviceLinkedEmail != null}
                       onChange={(event) => setEmailInput(event.target.value)}
                     />
+                    <label
+                      className="settings-account-label"
+                      htmlFor="settings-account-password"
+                    >
+                      パスワード
+                    </label>
+                    <input
+                      id="settings-account-password"
+                      type="password"
+                      className="settings-account-input"
+                      autoComplete={
+                        deviceLinkedEmail != null
+                          ? 'current-password'
+                          : 'new-password'
+                      }
+                      placeholder="6文字以上"
+                      value={passwordInput}
+                      disabled={busy}
+                      onChange={(event) => {
+                        setPasswordInput(event.target.value);
+                        if (error) setError(null);
+                      }}
+                    />
                     <div className="settings-account-actions">
                       {deviceLinkedEmail == null && (
                         <button
                           type="button"
                           className="settings-account-btn settings-account-btn--primary"
-                          disabled={busy || emailInput.trim().length === 0}
+                          disabled={busy || !canSubmitAuth}
                           onClick={() => {
-                            void runSendOtp('link');
+                            void runLink();
                           }}
                         >
                           この端末を連携
@@ -731,9 +644,9 @@ function AccountSection({
                       <button
                         type="button"
                         className="settings-account-btn settings-account-btn--primary"
-                        disabled={busy || emailInput.trim().length === 0}
+                        disabled={busy || !canSubmitAuth}
                         onClick={() => {
-                          void runSendOtp('login');
+                          void runLogin();
                         }}
                       >
                         ログイン（復元用）
@@ -756,7 +669,10 @@ function AccountSection({
                                   setError,
                                 );
                                 refreshDeviceLinkedEmail();
-                                if (result.ok) setEmailInput('');
+                                if (result.ok) {
+                                  setEmailInput('');
+                                  setPasswordInput('');
+                                }
                               } catch (caught) {
                                 setError(
                                   caught instanceof Error

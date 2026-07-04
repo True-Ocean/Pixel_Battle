@@ -3,16 +3,15 @@ import type { User } from '@supabase/supabase-js';
 export type AuthFailReason =
   | 'not_configured'
   | 'invalid_email'
+  | 'invalid_password'
+  | 'invalid_credentials'
   | 'auth_error'
   | 'already_linked'
   | 'no_session'
   | 'rate_limited'
   | 'device_email_locked'
-  | 'invalid_otp'
-  | 'email_already_registered';
-
-/** メール確認コードの用途 */
-export type EmailAuthPurpose = 'link' | 'login';
+  | 'email_already_registered'
+  | 'email_confirmation_required';
 
 export type AuthActionResult =
   | { ok: true; message: string }

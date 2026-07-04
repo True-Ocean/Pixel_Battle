@@ -7,15 +7,16 @@ export {
 } from './deviceLinkedEmail';
 export {
   linkEmailToCurrentUser,
-  signInWithEmailMagicLink,
-  verifyEmailOtp,
+  signInWithEmailPassword,
   signOutAccount,
   unlinkAccountFromDevice,
   syncDeviceLinkedEmailFromUser,
   describeAuthUser,
   isValidEmail,
+  isValidPassword,
   normalizeEmailInput,
   formatAuthError,
+  MIN_PASSWORD_LENGTH,
 } from './emailLink';
 export { getAuthRedirectUrl } from './redirectUrl';
 export {
@@ -31,5 +32,4 @@ export type {
   AccountLinkStatus,
   AuthActionResult,
   AuthFailReason,
-  EmailAuthPurpose,
 } from './types';

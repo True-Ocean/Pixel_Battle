@@ -40,48 +40,52 @@ https://supabase.com/dashboard/project/YOUR_PROJECT_REF/auth/providers
 4. **すでに 001 を実行済み**のプロジェクトでは、続けて `002_public_ghost_decks_record.sql` も実行する（対人戦の勝敗表示用）
 5. アカウント連携（クラウドセーブ）を使う場合は `003_player_saves.sql` も実行する（**実行済みならスキップ**）
 
-## 3.1 アカウント連携用の Auth URL（メール OTP）
+## 3.1 アカウント連携用の Auth（メール＋パスワード）
 
-1. **Authentication** → **URL Configuration**
-2. **Site URL**（本番）:
+無料枠では **Email Templates を編集できない**ため、メール内確認コード（OTP）方式は使えません。  
+アプリは **メールアドレス＋パスワード**で連携／ログインし、ホーム画面 PWA 内で完結します（メール内リンクは使いません）。
+
+### 必須: Confirm email を OFF にする
+
+1. Supabase ダッシュボード → **Authentication** → **Providers** → **Email**
+2. **Confirm email**（メール確認）を **OFF** にして保存
+
+ON のままだと `signUp` 後にセッションが返らず、アプリ内で連携を完了できません（確認メールもリンクのみで PWA 非対応）。
+
+### Email Provider
+
+1. **Authentication** → **Providers** → **Email** が ON
+2. 上記どおり **Confirm email** が OFF
+3. パスワード最小長は既定（6 文字）でよい。アプリも 6 文字以上を要求する
+
+### URL Configuration（任意）
+
+本番の Site URL などは他機能用に設定してよいが、パスワード連携の完了には不要です。
 
 ```text
 https://true-ocean.github.io/Pixel_Battle/
 ```
 
-3. **Redirect URLs** に本番と開発を追加（メール内リンク用の予備。**完了の正はアプリ内コード入力**）:
-
-```text
-https://true-ocean.github.io/Pixel_Battle/**
-http://localhost:5173/**
-```
-
-4. **Authentication** → **Providers** → **Email** が ON であること
-5. Email OTP の桁数（例: 6〜8）を確認。アプリは 6〜8 桁の数字を受け付ける
-
 クラウドセーブ API は `src/cloudSave/`（`fetchPlayerSave` / `upsertPlayerSave` / `reconcileCloudSave`）。
 
-### アカウント連携（メール確認コード）
+### アカウント連携（メール＋パスワード）
 
-**完了手段はアプリ内の確認コード入力**（`verifyEmailOtp`）。ホーム画面に追加した PWA では、メール内リンクを開くと Safari にセッションが載り、PWA 側は未連携のままになる。
+| ボタン | 用途 | API |
+|--------|------|-----|
+| **この端末を連携** | 未登録メールの新規登録〜連携 | `signUp`（`linkEmailToCurrentUser`） |
+| **ログイン（復元用）** | 既に `auth.users` にあるメールで入り直す | `signInWithPassword`（`signInWithEmailPassword`） |
 
-| ボタン | 用途 | 送信 API |
-|--------|------|----------|
-| **この端末を連携** | 未登録メールの新規登録〜連携 | `signInWithOtp`（`shouldCreateUser: true`） |
-| **ログイン（復元用）** | 既に `auth.users` にあるメールで入り直す | `signInWithOtp`（`shouldCreateUser: false`） |
-
-どちらも **Magic Link / OTP メール**（本文に `{{ .Token }}`）を使う。`updateUser` の Change Email メールはリンクのみでコードが無いため使わない。
-
-1. 上記 URL Configuration と Email Provider が済んでいること
+1. 上記 **Confirm email OFF** と Email Provider が済んでいること
 2. `003_player_saves.sql` 実行済みであること
 3. アプリの **設定 → アカウント**（メールアドレス連携は折りたたみ）
-4. メール送信 → **確認コードを同じアプリ画面に入力**（リンクは開かない）
-5. 確認後の auth `user_id` はメールユーザー側。端末の `localStorage` セーブは残り、同期で `player_saves` へ上がる
-6. 連携後はローカル保存が debounce 付きで自動同期。**今すぐ同期** でも手動実行可
-7. **既に登録済みメールで「この端末を連携」した場合**: アプリがログイン用コード送信へ自動切替する（`email_already_registered`）
-8. 端末ごとに連携完了メールは固定。**連携を解除**は端末の表示・セッション解除のみ（`auth.users` / `player_saves` は残る）。同じメールで再び使うときは **ログイン（復元用）**。アカウントごと消すのはダッシュボードの Users 削除、またはリリース前の「アカウント削除」
+4. メールとパスワード（6 文字以上）を入力 → **この端末を連携** または **ログイン（復元用）**
+5. 成功するとその場で連携完了（メール待ちなし）
+6. 確認後の auth `user_id` はメールユーザー側。端末の `localStorage` セーブは残り、同期で `player_saves` へ上がる
+7. 連携後はローカル保存が debounce 付きで自動同期。**今すぐ同期** でも手動実行可
+8. **既に登録済みメールで「この端末を連携」した場合**: 同じパスワードならログインにフォールバック。違う場合は「ログイン（復元用）」を案内
+9. 端末ごとに連携メールは固定。**連携を解除**は端末の表示・セッション解除のみ（`auth.users` / `player_saves` は残る）。同じメールで再び使うときは **ログイン（復元用）**。アカウントごと消すのはダッシュボードの Users 削除、またはリリース前の「アカウント削除」
 
-実装: `src/auth/`（`linkEmailToCurrentUser` / `signInWithEmailMagicLink` / `verifyEmailOtp`）・`src/cloudSave/sync.ts`（`hasPlayableProgress` / `resolveSyncDirection`）
+実装: `src/auth/`（`linkEmailToCurrentUser` / `signInWithEmailPassword`）・`src/cloudSave/sync.ts`（`hasPlayableProgress` / `resolveSyncDirection`）
 
 #### 同期の安全策
 
@@ -103,12 +107,13 @@ http://localhost:5173/**
 | **アカウント削除** | Auth ユーザー削除、`player_saves` 削除（CASCADE）、公開デッキ行の扱いを定義 | いまの「連携を解除」は端末紐づけ解除のみ。ストア審査では削除導線が求められることが多い |
 | **Sign in with Apple** | OAuth。匿名セッションへの `linkIdentity` を維持 | iOS / App Store で外部ログインを出す場合にほぼ必須 |
 | **Google ログイン** | OAuth。同上 | Web / Android 向け。Apple と併用可 |
-| **日本語メール／独自 SMTP** | 確認メールの件名・本文を日本語化。必要なら SendGrid 等 | 無料枠の標準メールではテンプレート編集が制限される場合あり（Pro 等） |
+| **日本語メール／独自 SMTP** | 将来 OTP や通知メールを使う場合の件名・本文日本語化 | 無料枠ではテンプレート編集不可のため、現状はパスワード認証 |
 
 方針の前提（現行実装と整合）:
 
-- **完了はアプリ内 OTP**（`signInWithOtp` → `verifyEmailOtp`）。ホーム画面 PWA と Safari のストレージ分離を避ける
-- 連携確認後の auth `user_id` はメールユーザー側（匿名 ID への `updateUser` 昇格は、Change Email にコードが無く PWA 非対応のため不採用）
+- **完了はアプリ内のメール＋パスワード**（`signUp` / `signInWithPassword`）。無料枠でもテンプレート編集不要で PWA 内完結
+- **Confirm email は OFF**（必須）
+- 連携確認後の auth `user_id` はメールユーザー側
 - クラウドセーブは **メールアドレス連携済み** のときだけ同期する
 - **空クラウドで端末進行を消さない**（上表）
 - **連携を解除 ≠ アカウント削除**。解除後の再接続はログイン
@@ -151,3 +156,5 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...（anon public）
 | 「匿名ログインに失敗」 | Authentication → Anonymous が ON か |
 | 公開は成功するが他端末に出ない | SQL マイグレーション実行済みか、RLS ポリシーがあるか |
 | Status Unhealthy | 数分待って再読み込み。Paused なら Restore |
+| 連携ボタンを押しても完了しない／確認メールを求められる | **Authentication → Providers → Email** で **Confirm email** が OFF か |
+| メールまたはパスワードが正しくありません | 登録時と違うパスワード、または未登録メールでログインしていないか |
