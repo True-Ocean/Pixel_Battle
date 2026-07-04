@@ -1,9 +1,9 @@
 # 経済・課金・広告 — 実装ロードマップ
 
 **作成日**: 2026-06-14  
-**最終更新**: 2026-07-04（オフライン対人実装仕様 OFFLINE_PVP_SPEC 追加）  
+**最終更新**: 2026-07-04（オフライン対人・アカウント連携クラウドセーブ・戦力補正）  
 **ステータス**: 設計合意（議論ベース）・段階実装の指針  
-**関連**: [ECONOMY_SPEC.md](./ECONOMY_SPEC.md)（旧 §10 ポーション/溶解モデルは本書で置き換え）、[PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) §5.9、[OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md)（オフライン対人の実装正）
+**関連**: [ECONOMY_SPEC.md](./ECONOMY_SPEC.md)（旧 §10 ポーション/溶解モデルは本書で置き換え）、[PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) §5.9、[OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md)（オフライン対人の実装正）、[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)（公開デッキ・アカウント連携）
 
 本書は、2026-06 時点の設計議論を **実装順序つき** に整理したロードマップである。  
 `ECONOMY_SPEC.md` の全面改訂は **フェーズ 0** で行い、以降のフェーズは本書を正とする。
@@ -103,14 +103,21 @@
 
 | 段階 | 内容 | ステータス |
 |------|------|------------|
-| **1** | **オフライン対人（公開ゴーストデッキ）** — 公開デッキ一覧・BP 補正・Supabase 共有 | **v1+G 実装済み**（[OFFLINE_PVP_SPEC](./OFFLINE_PVP_SPEC.md) / [SUPABASE_SETUP](./SUPABASE_SETUP.md)） |
+| **1** | **オフライン対人（公開ゴーストデッキ）** — 公開デッキ一覧・**戦力補正**（出撃デッキ戦力へ BP 比率スケール）・Supabase 共有 | **v1+G 実装済み**（[OFFLINE_PVP_SPEC](./OFFLINE_PVP_SPEC.md) / [SUPABASE_SETUP](./SUPABASE_SETUP.md)） |
 | **2** | **オンライン・フレンド対戦** — 勝者の戦利品選択＝敗者の Lost（真剣勝負） | **保留**（§13.3） |
 | **3** | リアルタイムマッチ | **保留**（§13.3 後段） |
 
 - **勝利報酬**（全モード共通）: 相手墓地1枚選択 → px・かけら。**デッキ取り込み・別コレクションは不採用**（§4.1・§13.1）。
-- **オフライン対人**: 挑戦者側のみリアル経済（勝＝戦利品、負＝Lost）。ゴースト作者の所持カードは不変。
+- **オフライン対人**: 挑戦者側のみリアル経済（勝＝戦利品、負＝Lost）。ゴースト作者の所持カードは不変。BP 補正は履歴再戦と同じ `prepareHistoryOpponentDeck`（戦力基準）。
 - **オンライン・フレンド**: 双方リアル。意図的ロストが増え、**護符・復活／アルバム／削除**が本領を発揮する。
 - ゴースト対人が増えると px 収入・Lost が増え、創作コスト（§1.4b）の体感が CPU 戦のみより締まる方向（§10.4 参照）。
+
+### 1.8b アカウント連携・クラウドセーブ（実装済み／リリース前）
+
+| 項目 | ステータス |
+|------|------------|
+| メールマジックリンク連携・端末1メール固定・自動クラウド同期（`player_saves`） | **実装済み**（[SUPABASE_SETUP](./SUPABASE_SETUP.md) / [PROTOTYPE §4.11](./PROTOTYPE_DEVELOPMENT_SPEC.md#411-設定画面)） |
+| アカウント削除・Sign in with Apple / Google・日本語メール／独自 SMTP | **リリース前**（同ドキュメント「将来実装」） |
 
 ---
 
@@ -465,7 +472,8 @@
 
 | 項目 | 備考 |
 |------|------|
-| **オフライン対人（公開ゴーストデッキ）** | **優先**。実装仕様 [OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md)（フェーズ A〜E）。経済方針は [ECONOMY §13.2](./ECONOMY_SPEC.md#132-オフライン対人戦公開ゴーストデッキ将来構想)。G4/G6〜G8 は v1 仮決め済み |
+| **オフライン対人（公開ゴーストデッキ）** | **✅ 実装済み**（[OFFLINE_PVP_SPEC](./OFFLINE_PVP_SPEC.md)）。経済は [ECONOMY §13.2](./ECONOMY_SPEC.md#132-オフライン対人戦公開ゴーストデッキ将来構想) |
+| **アカウント連携（メール・クラウドセーブ）** | **✅ 実装済み**。リリース前: アカウント削除・Apple/Google・日本語メール（[SUPABASE_SETUP](./SUPABASE_SETUP.md)） |
 | 対人戦（経済） | 勝利は全モード §4.1（通貨化のみ）。オフラインは挑戦者のみ Lost。オンライン・フレンドは勝者選択＝敗者 Lost（§13.1・§13.3） |
 | オンライン対人 | **フレンド対戦**を優先（真剣勝負）。リアルタイムマッチは後段（[ECONOMY §13.3](./ECONOMY_SPEC.md#133-オンライン対人戦将来構想保留)） |
 | ストア課金本番 | App Store / Google Play |
