@@ -1,5 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { AdState, Attribute, Card, MemoryAlbumState, MissionState, ScreenId, ShopPurchaseState, SubscriptionPlan, UserProfile, UserEconomy, UserInventory, UserSubscription, BattleOutcome, BattleHistoryEntry } from './types';
+import type { AdState, Attribute, Card, MemoryAlbumState, MissionState, SaveData, ScreenId, ShopPurchaseState, SubscriptionPlan, UserProfile, UserEconomy, UserInventory, UserSubscription, BattleOutcome, BattleHistoryEntry } from './types';
+import {
+  isEmailLinkedUser,
+  subscribeAuthState,
+  syncDeviceLinkedEmailFromUser,
+} from './auth';
+import {
+  cancelScheduledCloudSaveUpload,
+  ensureLocalClientUpdatedAt,
+  reconcileCloudSave,
+  scheduleCloudSaveUpload,
+  syncCloudSaveNow,
+  touchLocalClientUpdatedAt,
+  writeLocalClientUpdatedAt,
+} from './cloudSave';
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
 import { isAttributeUnlockedAtLevel } from './config/attributeUnlock';
 import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX, USER_INITIAL_LEVEL, BATTLE_OUTCOME_HOLD_MS } from './config/balance';
@@ -409,7 +423,7 @@ function App() {
         missionStateRef.current = missionStateToSave;
         setMissionState(missionStateToSave);
       }
-      saveSave({
+      const payload: SaveData = {
         schemaVersion: SAVE_SCHEMA_VERSION,
         user: next.user !== undefined ? next.user : user,
         economy: next.economy ?? economyRef.current,
@@ -444,10 +458,70 @@ function App() {
                 devFileOverrideLevelRef.current ?? DEV_USER_LEVEL_OVERRIDE ?? null,
             }
           : {}),
-      });
+      };
+      touchLocalClientUpdatedAt();
+      saveSave(payload);
+      scheduleCloudSaveUpload(payload);
     },
     [activeDeckIndex, adState, deckIntroSeen, decks, economy, inventory, lastBattleDeckIndex, missionState, paletteShopUnlocks, shopPurchase, soundEnabled, subscription, talismanStarterGranted, unlockedDeckCount, user],
   );
+
+  const applyDownloadedCloudSave = useCallback(
+    (save: SaveData, clientUpdatedAt: string) => {
+      writeLocalClientUpdatedAt(clientUpdatedAt);
+      saveSave(save);
+      setUser(save.user);
+      setEconomy(save.economy ?? createInitialEconomy());
+      setInventory(save.inventory ?? createInitialInventory());
+      setTalismanStarterGranted(save.talismanStarterGranted === true);
+      setAdState(save.adState ?? createInitialAdState());
+      setDecks(save.decks);
+      setActiveDeckIndex(save.activeDeckIndex);
+      setLastBattleDeckIndex(save.lastBattleDeckIndex);
+      setUnlockedDeckCount(save.unlockedDeckCount);
+      setDeckNames(save.deckNames);
+      setPublishedDeckSlots(normalizePublishedDeckSlots(save.publishedDeckSlots));
+      setPublishedDeckRemoteIds(
+        normalizePublishedDeckRemoteIds(save.publishedDeckRemoteIds),
+      );
+      setPaletteShopUnlocks(normalizePaletteShopUnlocks(save.paletteShopUnlocks));
+      setEditorShopUnlocks(normalizeEditorShopUnlocks(save.editorShopUnlocks));
+      setMemoryAlbum(save.memoryAlbum ?? createInitialMemoryAlbum());
+      setShopPurchase(normalizeShopPurchaseState(save.shopPurchase));
+      setSubscription(normalizeUserSubscription(save.subscription));
+      setMissionState(
+        applyMissionResets(save.missionState ?? createInitialMissionState()),
+      );
+      setSoundEnabled(normalizeSoundEnabled(save.soundEnabled));
+      setDeckIntroSeen(save.deckIntroSeen === true);
+      setBattleHistory(save.battleHistory ?? []);
+      if (save.devPreferSavedLevel === true) {
+        devPreferSavedLevelRef.current = true;
+        devFileOverrideLevelRef.current = save.devFileOverrideLevel;
+      }
+    },
+    [],
+  );
+
+  const runCloudReconcile = useCallback(async () => {
+    const result = await reconcileCloudSave(loadSave());
+    if (!result.ok) return result;
+    if (result.action === 'downloaded') {
+      applyDownloadedCloudSave(result.save, result.clientUpdatedAt);
+    }
+    return result;
+  }, [applyDownloadedCloudSave]);
+
+  const handleCloudSyncNow = useCallback(async (): Promise<string> => {
+    const result = await syncCloudSaveNow(loadSave());
+    if (!result.ok) return result.error;
+    if (result.action === 'downloaded') {
+      applyDownloadedCloudSave(result.save, result.clientUpdatedAt);
+      return 'クラウドから復元しました';
+    }
+    if (result.action === 'uploaded') return 'クラウドに保存しました';
+    return 'すでに最新です';
+  }, [applyDownloadedCloudSave]);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
@@ -455,6 +529,35 @@ function App() {
       if (id) setSupabaseOwnerId(id);
     });
   }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    ensureLocalClientUpdatedAt();
+    let cancelled = false;
+
+    const applyReconcile = async () => {
+      const result = await runCloudReconcile();
+      if (cancelled || !result || !result.ok) return;
+    };
+
+    void applyReconcile();
+
+    const unsubscribe = subscribeAuthState((authUser) => {
+      if (authUser) setSupabaseOwnerId(authUser.id);
+      syncDeviceLinkedEmailFromUser(authUser);
+      if (!isEmailLinkedUser(authUser)) {
+        cancelScheduledCloudSaveUpload();
+        return;
+      }
+      void applyReconcile();
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      cancelScheduledCloudSaveUpload();
+    };
+  }, [runCloudReconcile]);
 
   const handleToggleDeckPublish = useCallback(
     async (published: boolean) => {
@@ -3277,6 +3380,7 @@ function App() {
             onDevClearPaletteShopUnlocks={handleDevClearPaletteShopUnlocks}
             onDevUnlockAllEditorTools={handleDevUnlockAllEditorTools}
             onDevClearEditorShopUnlocks={handleDevClearEditorShopUnlocks}
+            onCloudSyncNow={handleCloudSyncNow}
           />
         )}
         {screen === 'editor' && (

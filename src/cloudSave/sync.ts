@@ -1,0 +1,146 @@
+import { isEmailLinkedUser, getAuthUser } from '../auth';
+import type { User } from '@supabase/supabase-js';
+import type { SaveData } from '../types';
+import {
+  ensureLocalClientUpdatedAt,
+  readLocalClientUpdatedAt,
+  writeLocalClientUpdatedAt,
+} from './clientUpdatedAt';
+import { fetchPlayerSave, upsertPlayerSave } from './playerSave';
+import type { CloudSaveFailReason } from './types';
+
+const DEBOUNCE_MS = 3000;
+
+export type SyncDirection = 'upload' | 'download' | 'noop';
+
+export type ReconcileCloudSaveResult =
+  | { ok: true; action: 'noop' | 'uploaded' }
+  | {
+      ok: true;
+      action: 'downloaded';
+      save: SaveData;
+      clientUpdatedAt: string;
+    }
+  | { ok: false; reason: CloudSaveFailReason; error: string };
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingSave: SaveData | null = null;
+let lastCloudSyncAt: string | null = null;
+let reconcileInFlight = false;
+
+export function canSyncCloudSave(user: User | null | undefined): boolean {
+  return isEmailLinkedUser(user);
+}
+
+export function getLastCloudSyncAt(): string | null {
+  return lastCloudSyncAt;
+}
+
+export function cancelScheduledCloudSaveUpload(): void {
+  if (debounceTimer != null) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+  pendingSave = null;
+}
+
+/** ローカルとクラウドのどちらを採用するか（純粋関数） */
+export function pickSyncDirection(
+  localAt: string,
+  cloudAt: string | null,
+): SyncDirection {
+  if (cloudAt == null) return 'upload';
+  const localTime = Date.parse(localAt);
+  const cloudTime = Date.parse(cloudAt);
+  if (!Number.isFinite(cloudTime)) return 'upload';
+  if (!Number.isFinite(localTime)) return 'download';
+  if (cloudTime > localTime) return 'download';
+  if (localTime > cloudTime) return 'upload';
+  return 'noop';
+}
+
+async function uploadSave(
+  save: SaveData,
+  clientUpdatedAt: string,
+): Promise<ReconcileCloudSaveResult> {
+  const result = await upsertPlayerSave(save, clientUpdatedAt);
+  if (!result.ok) {
+    return { ok: false, reason: result.reason, error: result.error };
+  }
+  lastCloudSyncAt = new Date().toISOString();
+  return { ok: true, action: 'uploaded' };
+}
+
+/**
+ * メール連携済みのとき、ローカルとクラウドを突き合わせる。
+ * download の場合は呼び出し側で state に適用すること。
+ */
+export async function reconcileCloudSave(
+  localSave: SaveData,
+): Promise<ReconcileCloudSaveResult> {
+  const user = await getAuthUser();
+  if (!canSyncCloudSave(user)) {
+    return { ok: true, action: 'noop' };
+  }
+
+  if (reconcileInFlight) {
+    return { ok: true, action: 'noop' };
+  }
+  reconcileInFlight = true;
+  try {
+    ensureLocalClientUpdatedAt();
+    const localAt = readLocalClientUpdatedAt();
+    const fetched = await fetchPlayerSave();
+    if (!fetched.ok) {
+      return { ok: false, reason: fetched.reason, error: fetched.error };
+    }
+
+    const cloudAt = fetched.data?.clientUpdatedAt ?? null;
+    const direction = pickSyncDirection(localAt, cloudAt);
+
+    if (direction === 'download' && fetched.data) {
+      writeLocalClientUpdatedAt(fetched.data.clientUpdatedAt);
+      lastCloudSyncAt = new Date().toISOString();
+      return {
+        ok: true,
+        action: 'downloaded',
+        save: fetched.data.save,
+        clientUpdatedAt: fetched.data.clientUpdatedAt,
+      };
+    }
+
+    if (direction === 'upload') {
+      return uploadSave(localSave, localAt);
+    }
+
+    lastCloudSyncAt = new Date().toISOString();
+    return { ok: true, action: 'noop' };
+  } finally {
+    reconcileInFlight = false;
+  }
+}
+
+/** ローカル保存後に呼ぶ。連携済みなら debounce してクラウドへ upsert */
+export function scheduleCloudSaveUpload(save: SaveData): void {
+  void getAuthUser().then((user) => {
+    if (!canSyncCloudSave(user)) return;
+    pendingSave = save;
+    if (debounceTimer != null) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
+      const toUpload = pendingSave;
+      pendingSave = null;
+      if (!toUpload) return;
+      const clientUpdatedAt = readLocalClientUpdatedAt();
+      void uploadSave(toUpload, clientUpdatedAt);
+    }, DEBOUNCE_MS);
+  });
+}
+
+/** 設定の「今すぐ同期」用。debounce を待たず突き合わせる */
+export async function syncCloudSaveNow(
+  localSave: SaveData,
+): Promise<ReconcileCloudSaveResult> {
+  cancelScheduledCloudSaveUpload();
+  return reconcileCloudSave(localSave);
+}

@@ -1,11 +1,20 @@
 export { ensureAnonymousUserId } from './anonymous';
 export {
+  assertEmailAllowedOnDevice,
+  clearDeviceLinkedEmail,
+  getDeviceLinkedEmail,
+  rememberDeviceLinkedEmail,
+} from './deviceLinkedEmail';
+export {
   linkEmailToCurrentUser,
   signInWithEmailMagicLink,
   signOutAccount,
+  unlinkAccountFromDevice,
+  syncDeviceLinkedEmailFromUser,
   describeAuthUser,
   isValidEmail,
   normalizeEmailInput,
+  formatAuthError,
 } from './emailLink';
 export { getAuthRedirectUrl } from './redirectUrl';
 export {

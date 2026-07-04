@@ -6,7 +6,8 @@ export type AuthFailReason =
   | 'auth_error'
   | 'already_linked'
   | 'no_session'
-  | 'rate_limited';
+  | 'rate_limited'
+  | 'device_email_locked';
 
 export type AuthActionResult =
   | { ok: true; message: string }

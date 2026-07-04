@@ -1,5 +1,10 @@
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase/client';
 import { ensureAnonymousUserId } from './anonymous';
+import {
+  assertEmailAllowedOnDevice,
+  clearDeviceLinkedEmail,
+  rememberDeviceLinkedEmail,
+} from './deviceLinkedEmail';
 import { getAuthRedirectUrl } from './redirectUrl';
 import {
   getAuthUser,
@@ -60,14 +65,23 @@ export async function linkEmailToCurrentUser(
       error: 'Supabase が設定されていません（.env を確認してください）',
     };
   }
-  const email = normalizeEmailInput(emailInput);
-  if (!isValidEmail(email)) {
+  if (!isValidEmail(emailInput)) {
     return {
       ok: false,
       reason: 'invalid_email',
       error: 'メールアドレスの形式が正しくありません',
     };
   }
+
+  const allowed = assertEmailAllowedOnDevice(emailInput);
+  if (!allowed.ok) {
+    return {
+      ok: false,
+      reason: 'device_email_locked',
+      error: allowed.error,
+    };
+  }
+  const email = allowed.email;
 
   const client = getSupabaseClient();
   if (!client) {
@@ -89,10 +103,12 @@ export async function linkEmailToCurrentUser(
 
   const user = await getAuthUser();
   if (isEmailLinkedUser(user)) {
+    const linkedEmail = resolveAccountEmail(user);
+    if (linkedEmail) rememberDeviceLinkedEmail(linkedEmail);
     return {
       ok: false,
       reason: 'already_linked',
-      error: `すでに ${resolveAccountEmail(user)} と連携済みです`,
+      error: `すでに ${linkedEmail} と連携済みです`,
     };
   }
 
@@ -122,14 +138,23 @@ export async function signInWithEmailMagicLink(
       error: 'Supabase が設定されていません（.env を確認してください）',
     };
   }
-  const email = normalizeEmailInput(emailInput);
-  if (!isValidEmail(email)) {
+  if (!isValidEmail(emailInput)) {
     return {
       ok: false,
       reason: 'invalid_email',
       error: 'メールアドレスの形式が正しくありません',
     };
   }
+
+  const allowed = assertEmailAllowedOnDevice(emailInput);
+  if (!allowed.ok) {
+    return {
+      ok: false,
+      reason: 'device_email_locked',
+      error: allowed.error,
+    };
+  }
+  const email = allowed.email;
 
   const client = getSupabaseClient();
   if (!client) {
@@ -155,7 +180,7 @@ export async function signInWithEmailMagicLink(
   };
 }
 
-/** ログアウト（端末のセーブデータは消えない） */
+/** ログアウト（端末のセーブデータ・端末の連携メール記録は消えない） */
 export async function signOutAccount(): Promise<AuthActionResult> {
   if (!isSupabaseConfigured()) {
     return {
@@ -180,6 +205,40 @@ export async function signOutAccount(): Promise<AuthActionResult> {
     ok: true,
     message: 'ログアウトしました。この端末のデータはそのまま残ります。',
   };
+}
+
+/**
+ * この端末のメール連携を解除する（ログアウト＋端末側の連携記録を削除）。
+ * クラウド上のアカウント自体は削除しない。
+ */
+export async function unlinkAccountFromDevice(): Promise<AuthActionResult> {
+  const client = getSupabaseClient();
+  if (!isSupabaseConfigured() || !client) {
+    clearDeviceLinkedEmail();
+    return {
+      ok: true,
+      message:
+        'この端末の連携を解除しました。別のメールアドレスで改めて連携できます。',
+    };
+  }
+
+  const { error } = await client.auth.signOut();
+  if (error) return authErrorResult(error);
+  clearDeviceLinkedEmail();
+  return {
+    ok: true,
+    message:
+      'この端末の連携を解除しました。別のメールアドレスで改めて連携できます。',
+  };
+}
+
+/** セッションが連携済みなら端末にメールを記録する */
+export function syncDeviceLinkedEmailFromUser(
+  user: Parameters<typeof isEmailLinkedUser>[0],
+): void {
+  if (!isEmailLinkedUser(user)) return;
+  const email = resolveAccountEmail(user);
+  if (email) rememberDeviceLinkedEmail(email);
 }
 
 export function describeAuthUser(user: Parameters<typeof isAnonymousUser>[0]): string {
