@@ -5787,16 +5787,6 @@ button.battle-hub-deck-icon.is-move-target {
   font-variant-numeric: tabular-nums;
 }
 
-.history-rematch-reward-row {
-  min-height: 2.5rem;
-}
-
-.history-rematch-reward-label {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #475569;
-}
-
 .graveyard-pick-px-reward,
 .graveyard-pick-exp-reward {
   display: inline-flex;
@@ -5807,6 +5797,7 @@ button.battle-hub-deck-icon.is-move-target {
 
 .graveyard-pick-coin-icon,
 .graveyard-pick-exp-icon {
+  display: block;
   width: 1rem;
   height: 1rem;
   flex-shrink: 0;
@@ -5839,6 +5830,19 @@ button.battle-hub-deck-icon.is-move-target {
 .graveyard-pick-reward-double {
   font-weight: 800;
   white-space: nowrap;
+}
+
+.graveyard-pick-double-banner {
+  margin: 0 0 0.55rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #fcd34d;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  color: #92400e;
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.35;
 }
 
 .graveyard-pick-list {
@@ -6198,6 +6202,9 @@ button.battle-hub-deck-icon.is-move-target {
 
 .graveyard-pick-confirm {
   box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: 2.5rem;
   padding: 0.4rem 0.55rem;
@@ -6208,7 +6215,7 @@ button.battle-hub-deck-icon.is-move-target {
   font: inherit;
   font-size: 0.82rem;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1;
   cursor: pointer;
 }
 

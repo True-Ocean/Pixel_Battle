@@ -199,21 +199,26 @@ describe('calcSurvivorPixels', () => {
 });
 
 describe('calcHistoryRematchRewardPixels', () => {
-  it('uses full-deck survivor pixels as the normal-battle baseline', () => {
-    expect(calcHistoryRematchNormalPixels(5)).toBe(
-      calcSurvivorPixelsForBattleVictory(5),
+  it('uses actual survivor pixels as the normal-battle baseline', () => {
+    expect(calcHistoryRematchNormalPixels(3)).toBe(
+      calcSurvivorPixelsForBattleVictory(3),
     );
-    expect(calcHistoryRematchNormalPixels(5)).toBe(25);
+    expect(calcHistoryRematchNormalPixels(3)).toBe(15);
   });
 
   it('grants 2x normal on win and 1x normal on loss', () => {
-    expect(calcHistoryRematchRewardPixels(5, 'player')).toBe(50);
-    expect(calcHistoryRematchRewardPixels(5, 'cpu')).toBe(25);
+    expect(calcHistoryRematchRewardPixels(3, 'player')).toBe(30);
+    expect(calcHistoryRematchRewardPixels(3, 'cpu')).toBe(15);
   });
 
   it('doubles the outcome reward when doubleRewards is set', () => {
-    expect(calcHistoryRematchRewardPixels(5, 'player', true)).toBe(100);
-    expect(calcHistoryRematchRewardPixels(5, 'cpu', true)).toBe(50);
+    expect(calcHistoryRematchRewardPixels(3, 'player', true)).toBe(60);
+    expect(calcHistoryRematchRewardPixels(3, 'cpu', true)).toBe(30);
+  });
+
+  it('returns 0 when there are no survivors', () => {
+    expect(calcHistoryRematchRewardPixels(0, 'player')).toBe(0);
+    expect(calcHistoryRematchRewardPixels(0, 'cpu')).toBe(0);
   });
 });
 

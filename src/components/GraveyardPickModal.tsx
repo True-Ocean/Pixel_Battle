@@ -19,6 +19,8 @@ interface GraveyardPickModalProps {
   expGain: number;
   showVictoryDoubleAd?: boolean;
   alwaysDoubleRewards?: boolean;
+  /** 広告視聴直後。2倍表示と案内を出し、ゲットで2倍付与する */
+  doubleRewardsFromAd?: boolean;
   onPick: (card: Card, options?: { doubleRewards?: boolean }) => void;
   onRequestVictoryDoubleAd?: (card: Card) => void;
 }
@@ -84,10 +86,12 @@ export function GraveyardPickModal({
   expGain,
   showVictoryDoubleAd = false,
   alwaysDoubleRewards = false,
+  doubleRewardsFromAd = false,
   onPick,
   onRequestVictoryDoubleAd,
 }: GraveyardPickModalProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const showDoubleBadge = alwaysDoubleRewards || doubleRewardsFromAd;
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -134,6 +138,12 @@ export function GraveyardPickModal({
           バトル報酬
         </h2>
 
+        {doubleRewardsFromAd && (
+          <p className="graveyard-pick-double-banner" role="status">
+            広告視聴で報酬が2倍になりました！
+          </p>
+        )}
+
         {survivorCards.length > 0 && (
           <section className="graveyard-pick-section" aria-labelledby="graveyard-pick-survivor">
             <h3 id="graveyard-pick-survivor" className="graveyard-pick-section-title">
@@ -149,6 +159,7 @@ export function GraveyardPickModal({
               </ul>
               <span className="graveyard-pick-survivor-total">
                 <PixelReward amount={survivorPixels} />
+                {showDoubleBadge && <RewardDoubleBadge />}
               </span>
             </div>
           </section>
@@ -188,6 +199,7 @@ export function GraveyardPickModal({
                     </span>
                     <span className="graveyard-pick-card-reward">
                       <PixelReward amount={reward} />
+                      {showDoubleBadge && <RewardDoubleBadge />}
                     </span>
                   </button>
                 </li>
@@ -202,7 +214,11 @@ export function GraveyardPickModal({
           disabled={selected == null}
           aria-label={confirmAriaLabel}
           onClick={() => {
-            if (selected) onPick(selected);
+            if (selected) {
+              onPick(selected, {
+                doubleRewards: showDoubleBadge || undefined,
+              });
+            }
           }}
         >
           {selected ? (
@@ -211,19 +227,19 @@ export function GraveyardPickModal({
                 amount={expGain}
                 iconClassName="graveyard-pick-exp-icon graveyard-pick-exp-icon--confirm"
               />
-              {alwaysDoubleRewards && <RewardDoubleBadge />}
+              {showDoubleBadge && <RewardDoubleBadge />}
               <span className="graveyard-pick-reward-sep">,</span>
               <PixelReward
                 amount={totalPixels}
                 iconClassName="graveyard-pick-coin-icon graveyard-pick-coin-icon--confirm"
               />
-              {alwaysDoubleRewards && <RewardDoubleBadge />}
+              {showDoubleBadge && <RewardDoubleBadge />}
               <span className="graveyard-pick-reward-sep">,</span>
               <ShardReward
                 attribute={selected.attribute}
                 count={graveyardShards}
               />
-              {alwaysDoubleRewards && <RewardDoubleBadge />}
+              {showDoubleBadge && <RewardDoubleBadge />}
               <span className="graveyard-pick-confirm-get">ゲット！</span>
             </span>
           ) : (
@@ -231,7 +247,10 @@ export function GraveyardPickModal({
           )}
         </button>
 
-        {showVictoryDoubleAd && selected && onRequestVictoryDoubleAd && (
+        {showVictoryDoubleAd &&
+          !doubleRewardsFromAd &&
+          selected &&
+          onRequestVictoryDoubleAd && (
           <button
             type="button"
             className="graveyard-pick-double-ad"

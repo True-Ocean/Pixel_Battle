@@ -299,10 +299,10 @@ export function calcSurvivorPixelsForBattleVictory(survivorCount: number): numbe
 
 /**
  * 履歴再戦の「通常バトル相当」コイン。
- * 出撃枚数分の生存報酬（通常バトルの生存 px）を基準にする。
+ * 生存枚数分の生存報酬（通常バトルの生存 px）を基準にする。
  */
-export function calcHistoryRematchNormalPixels(playerCardCount: number): number {
-  return calcSurvivorPixelsForBattleVictory(playerCardCount);
+export function calcHistoryRematchNormalPixels(survivorCount: number): number {
+  return calcSurvivorPixelsForBattleVictory(survivorCount);
 }
 
 /**
@@ -310,11 +310,11 @@ export function calcHistoryRematchNormalPixels(playerCardCount: number): number 
  * 勝利は通常の2倍、敗北は通常と同等。広告/プレミアムでさらに2倍。
  */
 export function calcHistoryRematchRewardPixels(
-  playerCardCount: number,
+  survivorCount: number,
   winner: 'player' | 'cpu',
   doubleRewards = false,
 ): number {
-  const normal = calcHistoryRematchNormalPixels(playerCardCount);
+  const normal = calcHistoryRematchNormalPixels(survivorCount);
   const outcomeMultiplier = winner === 'player' ? 2 : 1;
   const rewardMultiplier = doubleRewards ? 2 : 1;
   return normal * outcomeMultiplier * rewardMultiplier;

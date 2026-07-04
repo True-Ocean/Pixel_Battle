@@ -223,7 +223,11 @@ function App() {
   } | null>(null);
   const [graveyardVictoryDoubleCard, setGraveyardVictoryDoubleCard] =
     useState<Card | null>(null);
+  const [graveyardDoubleRewardsFromAd, setGraveyardDoubleRewardsFromAd] =
+    useState(false);
   const [historyRematchVictoryDoublePending, setHistoryRematchVictoryDoublePending] =
+    useState(false);
+  const [historyRematchDoubleRewardsFromAd, setHistoryRematchDoubleRewardsFromAd] =
     useState(false);
   const [pendingHistoryRematchOutcome, setPendingHistoryRematchOutcome] =
     useState<BattleOutcome | null>(null);
@@ -1793,8 +1797,12 @@ function App() {
       const doubleRewards =
         options.doubleRewards === true ||
         hasPremiumAlwaysDouble(subscriptionRef.current);
+      const survivorCount = countBattleSurvivors(
+        outcome.playerCardIds,
+        outcome.defeatedPlayerCardIds,
+      );
       const pixelTotal = calcHistoryRematchRewardPixels(
-        outcome.playerCardIds.length,
+        survivorCount,
         outcome.winner,
         doubleRewards,
       );
@@ -1818,13 +1826,19 @@ function App() {
       if (!outcome) return;
       setPendingHistoryRematchOutcome(null);
       setHistoryRematchVictoryDoublePending(false);
+      setHistoryRematchDoubleRewardsFromAd(false);
       finalizeHistoryRematchOutcome(outcome, {
         doubleRewards:
           options?.doubleRewards === true ||
+          historyRematchDoubleRewardsFromAd ||
           hasPremiumAlwaysDouble(subscriptionRef.current),
       });
     },
-    [finalizeHistoryRematchOutcome, pendingHistoryRematchOutcome],
+    [
+      finalizeHistoryRematchOutcome,
+      historyRematchDoubleRewardsFromAd,
+      pendingHistoryRematchOutcome,
+    ],
   );
 
   const handleRequestHistoryRematchVictoryDoubleAd = useCallback(() => {
@@ -1834,15 +1848,20 @@ function App() {
   const handleBattleOutcome = useCallback(
     (outcome: BattleOutcome) => {
       if (isHistoryRematchRef.current) {
+        const survivorCount = countBattleSurvivors(
+          outcome.playerCardIds,
+          outcome.defeatedPlayerCardIds,
+        );
         const pixelTotal = calcHistoryRematchRewardPixels(
-          outcome.playerCardIds.length,
+          survivorCount,
           outcome.winner,
           false,
         );
         if (pixelTotal > 0) {
-          scheduleBattleOutcomeModal(() =>
-            setPendingHistoryRematchOutcome(outcome),
-          );
+          scheduleBattleOutcomeModal(() => {
+            setHistoryRematchDoubleRewardsFromAd(false);
+            setPendingHistoryRematchOutcome(outcome);
+          });
           return;
         }
         finalizeHistoryRematchOutcome(outcome);
@@ -1852,7 +1871,10 @@ function App() {
         outcome.winner === 'player' &&
         outcome.defeatedCpuCards.length > 0
       ) {
-        scheduleBattleOutcomeModal(() => setPendingGraveyardOutcome(outcome));
+        scheduleBattleOutcomeModal(() => {
+          setGraveyardDoubleRewardsFromAd(false);
+          setPendingGraveyardOutcome(outcome);
+        });
         return;
       }
       if (
@@ -1885,15 +1907,21 @@ function App() {
       if (!outcome) return;
       setPendingGraveyardOutcome(null);
       setGraveyardVictoryDoubleCard(null);
+      setGraveyardDoubleRewardsFromAd(false);
       const doubleVictoryRewards =
         options?.doubleRewards === true ||
+        graveyardDoubleRewardsFromAd ||
         hasPremiumAlwaysDouble(subscriptionRef.current);
       finalizeBattleOutcome(outcome, {
         graveyardCard: card,
         doubleVictoryRewards,
       });
     },
-    [finalizeBattleOutcome, pendingGraveyardOutcome],
+    [
+      finalizeBattleOutcome,
+      graveyardDoubleRewardsFromAd,
+      pendingGraveyardOutcome,
+    ],
   );
 
   const handleRequestGraveyardVictoryDoubleAd = useCallback((card: Card) => {
@@ -2938,12 +2966,8 @@ function App() {
           message="広告視聴後、このバトルの EXP・コイン・かけら報酬が2倍になります（モック）"
           onComplete={() => {
             recordMockAdWatchedAndPersist();
-            setGraveyardVictoryDoubleCard((card) => {
-              if (card) {
-                handleGraveyardPick(card, { doubleRewards: true });
-              }
-              return null;
-            });
+            setGraveyardVictoryDoubleCard(null);
+            setGraveyardDoubleRewardsFromAd(true);
           }}
           onCancel={() => setGraveyardVictoryDoubleCard(null)}
         />
@@ -2955,7 +2979,7 @@ function App() {
           onComplete={() => {
             recordMockAdWatchedAndPersist();
             setHistoryRematchVictoryDoublePending(false);
-            handleHistoryRematchRewardClaim({ doubleRewards: true });
+            setHistoryRematchDoubleRewardsFromAd(true);
           }}
           onCancel={() => setHistoryRematchVictoryDoublePending(false)}
         />
@@ -3020,20 +3044,25 @@ function App() {
           expGain={pendingBattleExpGain}
           showVictoryDoubleAd={showGraveyardVictoryDoubleAd}
           alwaysDoubleRewards={graveyardAlwaysDoubleRewards}
+          doubleRewardsFromAd={graveyardDoubleRewardsFromAd}
           onPick={handleGraveyardPick}
           onRequestVictoryDoubleAd={handleRequestGraveyardVictoryDoubleAd}
         />
       )}
       {pendingHistoryRematchOutcome && (
         <HistoryRematchRewardModal
-          winner={pendingHistoryRematchOutcome.winner}
+          survivorCards={pendingHistoryRematchOutcome.survivorPlayerCards}
           pixelAmount={calcHistoryRematchRewardPixels(
-            pendingHistoryRematchOutcome.playerCardIds.length,
+            countBattleSurvivors(
+              pendingHistoryRematchOutcome.playerCardIds,
+              pendingHistoryRematchOutcome.defeatedPlayerCardIds,
+            ),
             pendingHistoryRematchOutcome.winner,
             false,
           )}
           showVictoryDoubleAd={showHistoryRematchVictoryDoubleAd}
           alwaysDoubleRewards={historyRematchAlwaysDoubleRewards}
+          doubleRewardsFromAd={historyRematchDoubleRewardsFromAd}
           onClaim={handleHistoryRematchRewardClaim}
           onRequestVictoryDoubleAd={handleRequestHistoryRematchVictoryDoubleAd}
         />

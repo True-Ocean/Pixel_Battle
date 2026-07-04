@@ -1,12 +1,16 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import type { Card } from '../types';
+import { CardPreview } from './CardPreview';
 import { PixelCoinIcon } from './PixelCoinIcon';
 
 interface HistoryRematchRewardModalProps {
-  winner: 'player' | 'cpu';
+  survivorCards: Card[];
   pixelAmount: number;
   showVictoryDoubleAd?: boolean;
   alwaysDoubleRewards?: boolean;
+  /** 広告視聴直後。2倍表示と案内を出し、ゲットで2倍付与する */
+  doubleRewardsFromAd?: boolean;
   onClaim: (options?: { doubleRewards?: boolean }) => void;
   onRequestVictoryDoubleAd?: () => void;
 }
@@ -32,13 +36,16 @@ function RewardDoubleBadge() {
 }
 
 export function HistoryRematchRewardModal({
-  winner,
+  survivorCards,
   pixelAmount,
   showVictoryDoubleAd = false,
   alwaysDoubleRewards = false,
+  doubleRewardsFromAd = false,
   onClaim,
   onRequestVictoryDoubleAd,
 }: HistoryRematchRewardModalProps) {
+  const showDoubleBadge = alwaysDoubleRewards || doubleRewardsFromAd;
+
   useEffect(() => {
     const scrollY = window.scrollY;
     const { style } = document.body;
@@ -63,8 +70,6 @@ export function HistoryRematchRewardModal({
     };
   }, []);
 
-  const sectionTitle = winner === 'player' ? '勝利報酬' : '敗北報酬';
-
   return createPortal(
     <div className="graveyard-pick-backdrop">
       <div
@@ -77,53 +82,72 @@ export function HistoryRematchRewardModal({
           バトル報酬
         </h2>
 
-        <section
-          className="graveyard-pick-section"
-          aria-labelledby="history-rematch-reward-amount"
-        >
-          <h3
-            id="history-rematch-reward-amount"
-            className="graveyard-pick-section-title"
+        {doubleRewardsFromAd && (
+          <p className="graveyard-pick-double-banner" role="status">
+            広告視聴で報酬が2倍になりました！
+          </p>
+        )}
+
+        {survivorCards.length > 0 && (
+          <section
+            className="graveyard-pick-section"
+            aria-labelledby="history-rematch-reward-survivor"
           >
-            {sectionTitle}
-          </h3>
-          <div className="graveyard-pick-survivor-row history-rematch-reward-row">
-            <span className="history-rematch-reward-label">
-              {winner === 'player'
-                ? '通常バトルの2倍'
-                : '通常バトルと同等'}
-            </span>
-            <span className="graveyard-pick-survivor-total">
-              <PixelReward amount={pixelAmount} />
-              {alwaysDoubleRewards && <RewardDoubleBadge />}
-            </span>
-          </div>
-        </section>
+            <h3
+              id="history-rematch-reward-survivor"
+              className="graveyard-pick-section-title"
+            >
+              生存報酬（確定）
+            </h3>
+            <div className="graveyard-pick-survivor-row">
+              <ul
+                className="graveyard-pick-survivor-icons"
+                aria-label="生存カード"
+              >
+                {survivorCards.map((card) => (
+                  <li key={card.id} className="graveyard-pick-survivor-icon">
+                    <CardPreview pixels={card.pixels} />
+                  </li>
+                ))}
+              </ul>
+              <span className="graveyard-pick-survivor-total">
+                <PixelReward amount={pixelAmount} />
+                {showDoubleBadge && <RewardDoubleBadge />}
+              </span>
+            </div>
+          </section>
+        )}
 
         <button
           type="button"
           className="graveyard-pick-confirm"
-          onClick={() => onClaim()}
+          onClick={() =>
+            onClaim({
+              doubleRewards: showDoubleBadge || undefined,
+            })
+          }
         >
           <span className="graveyard-pick-confirm-reward">
             <PixelReward
               amount={pixelAmount}
               iconClassName="graveyard-pick-coin-icon graveyard-pick-coin-icon--confirm"
             />
-            {alwaysDoubleRewards && <RewardDoubleBadge />}
+            {showDoubleBadge && <RewardDoubleBadge />}
             <span className="graveyard-pick-confirm-get">ゲット！</span>
           </span>
         </button>
 
-        {showVictoryDoubleAd && onRequestVictoryDoubleAd && (
-          <button
-            type="button"
-            className="graveyard-pick-double-ad"
-            onClick={onRequestVictoryDoubleAd}
-          >
-            報酬2倍　🎬
-          </button>
-        )}
+        {showVictoryDoubleAd &&
+          !doubleRewardsFromAd &&
+          onRequestVictoryDoubleAd && (
+            <button
+              type="button"
+              className="graveyard-pick-double-ad"
+              onClick={onRequestVictoryDoubleAd}
+            >
+              報酬2倍　🎬
+            </button>
+          )}
       </div>
     </div>,
     document.body,
