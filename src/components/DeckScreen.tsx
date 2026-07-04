@@ -33,6 +33,7 @@ import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
 import type { AttributeSelectOutcome } from './attributeSelectTypes';
 import type { AttributeRetouchResult } from './AttributeRetouchModal';
 import { DeckRenameDialog } from './DeckRenameDialog';
+import { DeckRenameUpsellModal } from './DeckRenameUpsellModal';
 import { DeckUnlockModal } from './DeckUnlockModal';
 import { HelpInfoButton } from './HelpInfoButton';
 import { HelpPanelModal } from './HelpPanelModal';
@@ -92,6 +93,9 @@ export interface DeckScreenProps {
   ) => void;
   onUnlockDeck?: (slotIndex: number) => string | null;
   onRenameDeck?: (deckIndex: number, name: string) => void;
+  /** ライト / プレ: デッキ名変更可 */
+  canRenameDeck?: boolean;
+  onOpenShopSubscription?: () => void;
   onEquipTalisman: (cardId: string) => void;
   onUnequipTalisman: (cardId: string) => void;
   showLostCardDeckNotice?: boolean;
@@ -325,6 +329,8 @@ export function DeckScreen({
   onMoveCardBetweenDecks,
   onUnlockDeck,
   onRenameDeck,
+  canRenameDeck = false,
+  onOpenShopSubscription,
   onEquipTalisman,
   onUnequipTalisman,
   showLostCardDeckNotice = false,
@@ -351,6 +357,7 @@ export function DeckScreen({
   const [pendingUnequipTalisman, setPendingUnequipTalisman] = useState<Card | null>(null);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
   const [renameDeckIndex, setRenameDeckIndex] = useState<number | null>(null);
+  const [renameUpsellOpen, setRenameUpsellOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef(false);
@@ -774,9 +781,13 @@ export function DeckScreen({
       if (!onRenameDeck || reorderMode || dragState) return;
       if (!isDeckSlotUnlocked(index, unlockedDeckCount)) return;
       longPressTriggeredRef.current = true;
+      if (!canRenameDeck) {
+        setRenameUpsellOpen(true);
+        return;
+      }
       setRenameDeckIndex(index);
     },
-    [dragState, onRenameDeck, reorderMode, unlockedDeckCount],
+    [canRenameDeck, dragState, onRenameDeck, reorderMode, unlockedDeckCount],
   );
 
   const handleDeckTabPointerDown = useCallback(
@@ -966,7 +977,7 @@ export function DeckScreen({
         </div>
         <HelpInfoButton
           className="deck-help-btn"
-          ariaLabel="カードの見方"
+          ariaLabel="マイデッキのヘルプ"
           onClick={() => setHelpOpen(true)}
         />
       </div>
@@ -1239,7 +1250,14 @@ export function DeckScreen({
         />
       )}
 
-      {renameDeckIndex != null && onRenameDeck && (
+      {renameUpsellOpen && (
+        <DeckRenameUpsellModal
+          onClose={() => setRenameUpsellOpen(false)}
+          onOpenShop={() => onOpenShopSubscription?.()}
+        />
+      )}
+
+      {renameDeckIndex != null && onRenameDeck && canRenameDeck && (
         <DeckRenameDialog
           deckIndex={renameDeckIndex}
           deckNames={deckNames}

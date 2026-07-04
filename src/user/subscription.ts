@@ -66,6 +66,15 @@ export function canRenameCardForFree(
   return hasPremiumAlwaysDouble(subscription, now);
 }
 
+/** ライト / プレ: デッキ名の変更 */
+export function canRenameDeck(
+  subscription: UserSubscription,
+  now = Date.now(),
+): boolean {
+  const plan = getActiveSubscriptionPlan(subscription, now);
+  return plan === 'light' || plan === 'premium';
+}
+
 export function formatSubscriptionPlanLabel(
   subscription: UserSubscription,
   now = Date.now(),

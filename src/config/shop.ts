@@ -69,7 +69,7 @@ export const SUBSCRIPTION_PLANS: readonly SubscriptionPlanDefinition[] = [
     monthlyTalismans: 1,
     label: 'ライトプラン',
     description:
-      'バトルおよびカード編集時の CM 解除（報酬2倍 CM は任意のまま）',
+      'バトルおよびカード編集時の CM 解除（報酬2倍 CM は任意のまま）・デッキ名変更',
   },
   {
     id: 'premium',
@@ -79,7 +79,7 @@ export const SUBSCRIPTION_PLANS: readonly SubscriptionPlanDefinition[] = [
     monthlyTalismans: 2,
     label: 'プレミアムプラン',
     description:
-      '全 CM 解除・常時バトル報酬2倍・リネーム無料\nカードノート機能解放',
+      '全 CM 解除・常時バトル報酬2倍・リネーム無料・デッキ名変更\nカードノート機能解放',
   },
 ] as const;
 

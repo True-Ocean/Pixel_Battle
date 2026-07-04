@@ -6,9 +6,12 @@ import {
   JEWEL_COST_MEMORY_ALBUM_ROW,
   MEMORY_ALBUM_SLOTS_PER_ROW,
 } from '../config/economy';
+import { getMemoryAlbumHelp } from '../config/helpContent';
 import { getRarityMeta } from '../config/rarity';
 import type { Card, MemoryAlbumState } from '../types';
 import { CardPreview } from './CardPreview';
+import { HelpInfoButton } from './HelpInfoButton';
+import { HelpPanelModal } from './HelpPanelModal';
 import { MemoryAlbumDetailOverlay } from './MemoryAlbumDetailOverlay';
 import { MemoryAlbumExpandConfirmDialog } from './MemoryAlbumDialogs';
 
@@ -123,6 +126,7 @@ export function MemoryAlbumScreen({
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [expandConfirmOpen, setExpandConfirmOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const capacity = getMemoryAlbumCapacity(album.unlockedRows);
   const maxRows = getMemoryAlbumMaxRows();
@@ -145,7 +149,14 @@ export function MemoryAlbumScreen({
         <button type="button" className="memory-album-back" onClick={onBack}>
           マイデッキに戻る
         </button>
-        <h1>思い出アルバム</h1>
+        <div className="memory-album-header-title-row">
+          <h1>思い出アルバム</h1>
+          <HelpInfoButton
+            className="memory-album-help-btn"
+            ariaLabel="思い出アルバムのヘルプ"
+            onClick={() => setHelpOpen(true)}
+          />
+        </div>
         <p className="memory-album-meta muted">
           {album.cards.length} / {capacity} 枚
         </p>
@@ -192,6 +203,14 @@ export function MemoryAlbumScreen({
         onConfirm={handleConfirmExpand}
         onCancel={() => setExpandConfirmOpen(false)}
       />
+
+      {helpOpen && (
+        <HelpPanelModal
+          topic={getMemoryAlbumHelp()}
+          panelClassName="help-panel--memory-album"
+          onClose={() => setHelpOpen(false)}
+        />
+      )}
 
       {detailCard && (
         <MemoryAlbumDetailOverlay

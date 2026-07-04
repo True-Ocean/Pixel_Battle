@@ -1,6 +1,17 @@
 import type { ReactNode } from 'react';
-import { HelpInlinePxCost, HelpInlinePxIcon } from '../components/HelpInlineEconomy';
-import { PIXEL_COST_RENAME, REVIVE_CAP } from './economy';
+import {
+  HelpInlineJewelCost,
+  HelpInlinePxCost,
+  HelpInlinePxIcon,
+} from '../components/HelpInlineEconomy';
+import {
+  JEWEL_COST_DELETE,
+  JEWEL_COST_MEMORY_ALBUM_ROW,
+  MEMORY_ALBUM_INITIAL_ROWS,
+  MEMORY_ALBUM_SLOTS_PER_ROW,
+  PIXEL_COST_RENAME,
+  REVIVE_CAP,
+} from './economy';
 
 export type HelpItem = string | ReactNode;
 
@@ -51,9 +62,10 @@ function HelpDefinedItem({
 
 export function getDeckHelp(): HelpTopic {
   return {
-    title: 'カードの見方（左から）',
+    title: 'マイデッキ',
     sections: [
       {
+        title: '1. カードの見方（左から）',
         items: [
           <HelpDefinedItem
             label="レア度"
@@ -84,6 +96,79 @@ export function getDeckHelp(): HelpTopic {
             ]}
           />,
           <HelpDefinedItem label="限界突破" lines={['★の数で表します']} />,
+        ],
+      },
+      {
+        title: '2. デッキ名の変更',
+        items: [
+          'デッキタブを長押し、または選択中にダブルタップで名前を変更できます。',
+          'デッキ名の変更はサブスク会員限定の特典です。',
+        ],
+      },
+      {
+        title: '3. 対人戦へのデッキ公開',
+        items: [
+          '「対人戦に公開する」にチェックを入れると、対人戦で他のユーザーにデッキが公開されます。',
+        ],
+      },
+      {
+        title: '4. 並べ替え',
+        items: [
+          '画面下の「並べ替え」を押すと、カードの順序を変更できます。',
+          'ドラッグで同じデッキ内の並び順を変えられます。',
+          '他のデッキタブへドロップするとカードを移動できます。タブ上でドロップすると空きスロットへ自動配置され、満杯のときはキャンセルされます。カード同士のスロットにドロップすると入れ替えます。',
+          '終わったら「完了」を押します。',
+        ],
+      },
+    ],
+  };
+}
+
+export function getMemoryAlbumHelp(): HelpTopic {
+  const initialSlots = MEMORY_ALBUM_INITIAL_ROWS * MEMORY_ALBUM_SLOTS_PER_ROW;
+  return {
+    title: '思い出アルバム',
+    sections: [
+      {
+        title: '1. 思い出アルバムとは',
+        items: [
+          'デッキから外したカードを、閲覧専用で保管する場所です。',
+          'ここに保存したカードは、マイデッキには戻せません。',
+        ],
+      },
+      {
+        title: '2. カードの保存',
+        items: [
+          'マイデッキのカード詳細から「思い出アルバムに保存」で保存できます（無料）。',
+        ],
+      },
+      {
+        title: '3. カードの閲覧',
+        items: [
+          'サムネイルをタップすると、カードの詳細を閲覧できます。',
+        ],
+      },
+      {
+        title: '4. アルバム拡張',
+        items: [
+          `最初は ${initialSlots} 枚分の空きがあります。`,
+          <>
+            アルバムを拡張すると、さらに {MEMORY_ALBUM_SLOTS_PER_ROW}{' '}
+            枚分の枠が追加されます（
+            <HelpInlineJewelCost amount={JEWEL_COST_MEMORY_ALBUM_ROW} />
+            ）。
+          </>,
+        ],
+      },
+      {
+        title: '5. アルバムからの削除',
+        items: [
+          <>
+            カード詳細の「思い出アルバムから削除」で完全に削除できます（
+            <HelpInlineJewelCost amount={JEWEL_COST_DELETE} />
+            ）。
+          </>,
+          '一度削除したカードは元に戻せません。',
         ],
       },
     ],

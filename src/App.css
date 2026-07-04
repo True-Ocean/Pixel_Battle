@@ -3254,21 +3254,38 @@ button.battle-hub-deck-icon.is-move-target {
   color: #fff;
 }
 
-.help-panel--deck-guide {
+.help-panel--deck-guide,
+.help-panel--memory-album {
   max-height: 92vh;
 }
 
-.help-panel--deck-guide .help-panel-scroll {
-  flex: none;
-  min-height: auto;
-  overflow-y: visible;
-}
-
-.help-panel--deck-guide .help-panel-title {
+.help-panel--deck-guide .help-panel-title,
+.help-panel--memory-album .help-panel-title {
   margin-bottom: 0.45rem;
 }
 
-.help-panel--deck-guide .help-panel-actions {
+.help-panel--deck-guide .help-panel-section,
+.help-panel--memory-album .help-panel-section {
+  padding: 0.7rem 0.75rem;
+  border-radius: 10px;
+  background: #f6f7fb;
+}
+
+.help-panel--deck-guide .help-panel-section + .help-panel-section,
+.help-panel--memory-album .help-panel-section + .help-panel-section {
+  margin-top: 0.55rem;
+}
+
+.help-panel--deck-guide .help-panel-section-title,
+.help-panel--memory-album .help-panel-section-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.help-panel--deck-guide .help-panel-actions,
+.help-panel--memory-album .help-panel-actions {
   margin-top: 0.6rem;
 }
 
@@ -4692,9 +4709,23 @@ button.battle-hub-deck-icon.is-move-target {
   cursor: pointer;
 }
 
-.memory-album-header h1 {
+.memory-album-header-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.memory-album-header-title-row h1 {
   margin: 0;
   font-size: 1.15rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.memory-album-help-btn {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
 }
 
 .memory-album-meta {

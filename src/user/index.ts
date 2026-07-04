@@ -92,6 +92,7 @@ export type {
 export {
   canEditCardUserNote,
   canRenameCardForFree,
+  canRenameDeck,
   devSetSubscriptionPlan,
   formatSubscriptionPlanLabel,
   getActiveSubscriptionPlan,

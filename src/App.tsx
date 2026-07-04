@@ -43,7 +43,7 @@ import {
   syncPermanentOwnershipAchievements,
 } from './mission/permanentAchievementProgress';
 import { loadSave, saveSave, SAVE_SCHEMA_VERSION } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, setMemoryAlbumUnlockedRows, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, canRenameCardForFree, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, setMemoryAlbumUnlockedRows, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, canRenameCardForFree, canRenameDeck, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
   canPublishDeck,
@@ -2829,6 +2829,7 @@ function App() {
 
   const handleRenameDeck = useCallback(
     (deckIndex: number, name: string) => {
+      if (!canRenameDeck(subscriptionRef.current)) return;
       if (
         isDeckNameTakenByOtherDeck(
           deckNamesRef.current,
@@ -2889,6 +2890,11 @@ function App() {
 
   const editorCanRenameCardForFree = useMemo(
     () => canRenameCardForFree(subscription),
+    [subscription],
+  );
+
+  const deckCanRename = useMemo(
+    () => canRenameDeck(subscription),
     [subscription],
   );
 
@@ -3241,6 +3247,8 @@ function App() {
             onMoveCardBetweenDecks={moveCardBetweenDecks}
             onUnlockDeck={unlockDeckWithJewels}
             onRenameDeck={handleRenameDeck}
+            canRenameDeck={deckCanRename}
+            onOpenShopSubscription={openShopSubscriptionTab}
             onEquipTalisman={equipTalismanOnCard}
             onUnequipTalisman={unequipTalismanOnCard}
             showLostCardDeckNotice={shouldShowLostCardDeckNoticeModal(adState)}

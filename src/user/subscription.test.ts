@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canEditCardUserNote,
   canRenameCardForFree,
+  canRenameDeck,
   devSetSubscriptionPlan,
   formatSubscriptionPlanLabel,
   getActiveSubscriptionPlan,
@@ -28,6 +29,7 @@ describe('subscription benefits', () => {
     expect(skipsBattleStartAd(subscription, NOW)).toBe(true);
     expect(skipsCreativeAd(subscription, NOW)).toBe(true);
     expect(hasPremiumAlwaysDouble(subscription, NOW)).toBe(false);
+    expect(canRenameDeck(subscription, NOW)).toBe(true);
   });
 
   it('premium skips battle/creative ads and enables always double', () => {
@@ -37,6 +39,7 @@ describe('subscription benefits', () => {
     expect(hasPremiumAlwaysDouble(subscription, NOW)).toBe(true);
     expect(canEditCardUserNote(subscription, NOW)).toBe(true);
     expect(canRenameCardForFree(subscription, NOW)).toBe(true);
+    expect(canRenameDeck(subscription, NOW)).toBe(true);
   });
 
   it('light cannot edit card notes or rename for free', () => {
@@ -52,6 +55,7 @@ describe('subscription benefits', () => {
     expect(hasPremiumAlwaysDouble(subscription, NOW)).toBe(false);
     expect(canEditCardUserNote(subscription, NOW)).toBe(false);
     expect(canRenameCardForFree(subscription, NOW)).toBe(false);
+    expect(canRenameDeck(subscription, NOW)).toBe(false);
     expect(formatSubscriptionPlanLabel(subscription, NOW)).toBe('未加入');
   });
 
