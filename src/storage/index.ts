@@ -1,3 +1,4 @@
+import { BATTLE_HISTORY_MAX } from '../battleHistory';
 import type { BattleHistoryEntry, Card, CardRarity, CardStars, MemoryAlbumState, SaveData } from '../types';
 import {
   normalizePublishedDeckRemoteIds,
@@ -279,7 +280,7 @@ function parseBattleHistory(raw: unknown): BattleHistoryEntry[] {
       ...(playerLevel != null ? { playerLevel } : {}),
     });
   }
-  return entries;
+  return entries.slice(0, BATTLE_HISTORY_MAX);
 }
 
 function parseDevSaveFields(parsed: Record<string, unknown>): Pick<
@@ -419,6 +420,12 @@ function shouldRewriteSaveOnLoad(
   if (options.decksRescaled && options.decksBpChanged) return true;
   if (parsed.devPreferSavedLevel === true && !options.preferSaved) return true;
   if (options.inventoryDevFilled) return true;
+  if (
+    Array.isArray(parsed.battleHistory) &&
+    parsed.battleHistory.length > (normalized.battleHistory?.length ?? 0)
+  ) {
+    return true;
+  }
   if (
     normalized.user &&
     normalized.user.level >= 10 &&

@@ -60,6 +60,25 @@ export function pickSyncDirection(
   return 'noop';
 }
 
+/** クラウド送信用。バトル履歴は端末専用のため含めない */
+export function saveForCloudUpload(save: SaveData): SaveData {
+  return { ...save, battleHistory: [] };
+}
+
+/**
+ * クラウド復元時に端末専用フィールドを維持する。
+ * バトル履歴は共有不要のためローカル側を優先する。
+ */
+export function mergeLocalOnlyFields(
+  cloudSave: SaveData,
+  localSave: SaveData,
+): SaveData {
+  return {
+    ...cloudSave,
+    battleHistory: localSave.battleHistory ?? [],
+  };
+}
+
 /** 進行データがあるか（空クラウドでローカルを潰さない判定用） */
 export function hasPlayableProgress(save: SaveData): boolean {
   const user = save.user;
@@ -101,7 +120,10 @@ async function uploadSave(
   save: SaveData,
   clientUpdatedAt: string,
 ): Promise<ReconcileCloudSaveResult> {
-  const result = await upsertPlayerSave(save, clientUpdatedAt);
+  const result = await upsertPlayerSave(
+    saveForCloudUpload(save),
+    clientUpdatedAt,
+  );
   if (!result.ok) {
     return { ok: false, reason: result.reason, error: result.error };
   }
@@ -148,7 +170,7 @@ export async function reconcileCloudSave(
       return {
         ok: true,
         action: 'downloaded',
-        save: fetched.data.save,
+        save: mergeLocalOnlyFields(fetched.data.save, localSave),
         clientUpdatedAt: fetched.data.clientUpdatedAt,
       };
     }

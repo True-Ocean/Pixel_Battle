@@ -39,6 +39,7 @@ https://supabase.com/dashboard/project/YOUR_PROJECT_REF/auth/providers
 3. **Run** で実行
 4. **すでに 001 を実行済み**のプロジェクトでは、続けて `002_public_ghost_decks_record.sql` も実行する（対人戦の勝敗表示用）
 5. アカウント連携（クラウドセーブ）を使う場合は `003_player_saves.sql` も実行する（**実行済みならスキップ**）
+6. **以前 003 を実行済み**で「permission denied for table player_saves」が出る場合は、`004_player_saves_grant.sql` を実行する
 
 ## 3.1 アカウント連携用の Auth（メール＋パスワード）
 
@@ -115,6 +116,7 @@ https://true-ocean.github.io/Pixel_Battle/
 - **Confirm email は OFF**（必須）
 - 連携確認後の auth `user_id` はメールユーザー側
 - クラウドセーブは **メールアドレス連携済み** のときだけ同期する
+- **バトル履歴（`battleHistory`）は端末専用**。アップロード時は空にし、ダウンロード時は端末の履歴を維持する（`saveForCloudUpload` / `mergeLocalOnlyFields`）
 - **空クラウドで端末進行を消さない**（上表）
 - **連携を解除 ≠ アカウント削除**。解除後の再接続はログイン
 - アカウント削除（リリース前）時は端末セーブの扱いを UI で明示する
@@ -158,3 +160,4 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...（anon public）
 | Status Unhealthy | 数分待って再読み込み。Paused なら Restore |
 | 連携ボタンを押しても完了しない／確認メールを求められる | **Authentication → Providers → Email** で **Confirm email** が OFF か |
 | メールまたはパスワードが正しくありません | 登録時と違うパスワード、または未登録メールでログインしていないか |
+| **permission denied for table player_saves** | `003_player_saves.sql` 未実行、または GRANT 不足。SQL Editor で `004_player_saves_grant.sql`（または 003 全体）を実行 |

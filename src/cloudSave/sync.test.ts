@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { SaveData } from '../types';
 import {
   hasPlayableProgress,
+  mergeLocalOnlyFields,
   pickSyncDirection,
   resolveSyncDirection,
+  saveForCloudUpload,
 } from './sync';
 
 function emptySave(overrides: Partial<SaveData> = {}): SaveData {
@@ -110,5 +112,74 @@ describe('resolveSyncDirection', () => {
         cloudHasProgress: true,
       }),
     ).toBe('download');
+  });
+});
+
+describe('saveForCloudUpload', () => {
+  it('strips battle history', () => {
+    const local = emptySave({
+      battleHistory: [
+        {
+          id: 'h1',
+          playedAt: '2026-07-04T10:00:00.000Z',
+          winner: 'player',
+          opponentName: 'CPU',
+          opponentLevel: 1,
+          opponentDeckPower: 100,
+          playerDeckPower: 120,
+          opponentDeck: [],
+        },
+      ],
+      user: {
+        username: 'a',
+        level: 2,
+        exp: 10,
+        battleWins: 1,
+        battleLosses: 0,
+        cpuBattleWins: 1,
+        cpuBattleLosses: 0,
+        offlinePvpBattleWins: 0,
+        offlinePvpBattleLosses: 0,
+      },
+    });
+    const forCloud = saveForCloudUpload(local);
+    expect(forCloud.battleHistory).toEqual([]);
+    expect(forCloud.user?.level).toBe(2);
+    expect(local.battleHistory).toHaveLength(1);
+  });
+});
+
+describe('mergeLocalOnlyFields', () => {
+  it('keeps local battle history when applying cloud save', () => {
+    const localHistory = [
+      {
+        id: 'local-h1',
+        playedAt: '2026-07-04T10:00:00.000Z',
+        winner: 'player' as const,
+        opponentName: 'CPU',
+        opponentLevel: 1,
+        opponentDeckPower: 100,
+        playerDeckPower: 120,
+        opponentDeck: [],
+      },
+    ];
+    const local = emptySave({ battleHistory: localHistory });
+    const cloud = emptySave({
+      battleHistory: [],
+      user: {
+        username: 'cloud',
+        level: 5,
+        exp: 0,
+        battleWins: 0,
+        battleLosses: 0,
+        cpuBattleWins: 0,
+        cpuBattleLosses: 0,
+        offlinePvpBattleWins: 0,
+        offlinePvpBattleLosses: 0,
+      },
+    });
+    const merged = mergeLocalOnlyFields(cloud, local);
+    expect(merged.battleHistory).toEqual(localHistory);
+    expect(merged.user?.level).toBe(5);
   });
 });

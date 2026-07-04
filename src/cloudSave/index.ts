@@ -10,9 +10,11 @@ export {
   cancelScheduledCloudSaveUpload,
   getLastCloudSyncAt,
   hasPlayableProgress,
+  mergeLocalOnlyFields,
   pickSyncDirection,
   reconcileCloudSave,
   resolveSyncDirection,
+  saveForCloudUpload,
   scheduleCloudSaveUpload,
   syncCloudSaveNow,
 } from './sync';

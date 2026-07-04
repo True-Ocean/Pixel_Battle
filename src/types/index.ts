@@ -143,7 +143,7 @@ export interface BattleOutcome {
 /** useBattle が組み立てる結果（相手スナップショットは BattleSetupScreen が付与） */
 export type BattleOutcomeCore = Omit<BattleOutcome, 'opponent'>;
 
-/** 対戦履歴（最大20件・localStorage 永続化） */
+/** 対戦履歴（最大10件・端末専用・localStorage 永続化） */
 export interface BattleHistoryEntry {
   id: string;
   playedAt: string;
@@ -201,6 +201,7 @@ export interface SaveData {
   unlockedDeckCount: number;
   /** 将来: デッキ名。未設定時はタブ番号を表示 */
   deckNames?: string[];
+  /** バトル履歴（端末専用。クラウド同期では送受信しない） */
   battleHistory?: BattleHistoryEntry[];
   /** 開発: 設定画面のテスト用レベルをファイル上書きより優先 */
   devPreferSavedLevel?: boolean;

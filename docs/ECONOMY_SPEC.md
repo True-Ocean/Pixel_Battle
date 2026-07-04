@@ -1062,7 +1062,7 @@ interface SaveData {
   activeDeckIndex: number;
   lastBattleDeckIndex: number;
   deckNames?: string[];
-  battleHistory?: BattleHistoryEntry[];
+  battleHistory?: BattleHistoryEntry[]; // 最大10件・端末専用（クラウド非連携）
   paletteShopUnlocks?: number[];  // ショップ購入済みパレット index（8〜19 のうちショップ色）
   shopPurchase?: ShopPurchaseState; // ジュエル初回ボーナス・かけら日次購入（フェーズ8）
   memoryAlbum?: MemoryAlbumState; // 思い出アルバム（§14.1）

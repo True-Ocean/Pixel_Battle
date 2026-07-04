@@ -1,7 +1,7 @@
 import type { BattleHistoryEntry, BattleOutcome, Card } from './types';
 import { createId } from './utils/createId';
 
-export const BATTLE_HISTORY_MAX = 20;
+export const BATTLE_HISTORY_MAX = 10;
 /** 履歴・対戦画面で表示する CPU 相手名（プロトタイプは CPU 戦のみ） */
 export const CPU_OPPONENT_LABEL = 'CPU';
 

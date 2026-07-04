@@ -9,6 +9,7 @@ export function getBattleHistoryHelp(): HelpTopic {
         title: '一覧について',
         items: [
           `直近 ${BATTLE_HISTORY_MAX} 件の対戦履歴を確認できます。${BATTLE_HISTORY_MAX + 1} 件目以降は、古いものから順に消えます。`,
+          'バトル履歴はこの端末のみに保存され、アカウント連携では同期されません。',
           'バトル履歴から再戦した結果は、バトル履歴に追加されません。',
         ],
       },
