@@ -2144,14 +2144,8 @@ button.battle-hub-deck-icon.is-move-target {
   flex-shrink: 0;
 }
 
-.offline-pvp-list-back {
+.offline-pvp-list-header .battle-hub-back-btn {
   align-self: flex-start;
-  border: none;
-  background: transparent;
-  color: #4338ca;
-  font-size: 0.9rem;
-  padding: 0.15rem 0;
-  cursor: pointer;
 }
 
 .offline-pvp-list-title {

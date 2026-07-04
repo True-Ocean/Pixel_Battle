@@ -82,14 +82,14 @@ export function OfflinePvpDeckListScreen({
       <header className="offline-pvp-list-header">
         <button
           type="button"
-          className="offline-pvp-list-back"
+          className="battle-hub-back-btn"
           onClick={onBack}
         >
-          戻る
+          モード選択に戻る
         </button>
         <h1 className="offline-pvp-list-title">対人戦（オフライン）</h1>
         <p className="offline-pvp-list-hint muted">
-          公開デッキを選んで対戦します。レベルが違う相手はバトル時に戦力補正されます。
+          対戦したい公開デッキをタップして下さい。
         </p>
       </header>
 
