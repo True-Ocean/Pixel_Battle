@@ -70,7 +70,7 @@
 | フロントエンド | React 18+ / Vite / TypeScript |
 | 状態・UI | React（コンポーネント + state） |
 | 永続化 | `localStorage`。メール連携時は Supabase（`player_saves`・公開デッキ） |
-| バックエンド（任意） | Supabase（匿名認証・メールマジックリンク・RLS） |
+| バックエンド（任意） | Supabase（匿名認証・メール OTP・RLS） |
 | パッケージ管理 | npm |
 
 ### 2.2 開発環境
@@ -507,14 +507,14 @@ src/
 | 項目 | 内容 |
 |------|------|
 | 入口 | ヘッダー三本線メニュー → **設定**（`SettingsScreen`） |
-| アカウント | **ユーザー名**（変更可・10文字以内）→ **メール連携**（折りたたみ。マジックリンク・同期・ログアウト・連携解除）。手順は [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) |
+| アカウント | **ユーザー名**（変更ボタンで確定・10文字以内）→ **メール連携**（折りたたみ。確認コード入力・同期・ログアウト・連携解除）。手順は [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) |
 | 戦績 | **レベル** → EXP バー → **CPU戦** 勝敗 → **対人戦（オフライン）** 勝敗 |
 | サブスク・課金 | **サブスク** → **課金額累計（テスト）** → **広告視聴回数（テスト）**（全ユーザー閲覧可） |
 | その他 | **BGM** トグル。通知・利用規約は準備中プレースホルダ |
 | 開発（DEV のみ） | レベル/通貨/スロット/サブスク切替・所持品・お絵描き解放・カード操作 等 |
 | テスト指標 | **課金額累計** — `shopPurchase.mockLifetimeSpendYen`（円建てモック購入のみ）。**広告視聴回数** — `adState.mockAdsWatchedTotal`（`MockRewardAdModal` 視聴完了）。**本番リリース前に UI 削除予定** |
 
-**アカウント連携（実装済みの範囲）**: メールマジックリンクで端末進行をクラウドへ同期（`player_saves`）。詳細は [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)。
+**アカウント連携（実装済みの範囲）**: メール確認コードを**アプリ内入力**（`verifyEmailOtp`）で連携完了し、端末進行をクラウドへ同期（`player_saves`）。ホーム画面 PWA ではメール内リンクを開かない。詳細は [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)。
 
 **将来実装（リリース前）**: 次はストア／本番公開に近くなってから着手する（同ドキュメントの「将来実装」表と同一）。
 
@@ -1565,7 +1565,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | 54 | マッチング UI | 通常 CPU: 2〜4秒探索 → **5秒** reveal（3列ガイド: 完了ラベル / カウントダウン / キャンセル）。履歴再戦は探索スキップ（§7.0 / §11.4） |
 | 55 | ヘルプ | バトルハブ/エディタ/バトル履歴 ? モーダル・マイデッキ初回案内（§4.9） |
 | 61 | 設定画面 | アカウント／戦績／**サブスク・課金**（§4.11） |
-| 70 | アカウント連携 | メールマジックリンク・端末1メール固定・`player_saves` 自動同期。リリース前: 削除・Apple/Google（SUPABASE_SETUP） |
+| 70 | アカウント連携 | メール確認コードをアプリ内入力（PWA 対応）・端末1メール固定・`player_saves` 自動同期。リリース前: 削除・Apple/Google（SUPABASE_SETUP） |
 | 71 | 戦力補正 | オフライン対人・履歴再戦は出撃デッキ戦力へ BP 比率スケール（`prepareHistoryOpponentDeck`。レベル補正から変更） |
 | 56 | SE 仕様 | [SFX_SPEC.md](./SFX_SPEC.md) v1（9種・未実装） |
 | 57 | カードノート | プレミアム編集・全員閲覧。全角100文字（ECONOMY §8.5） |
@@ -1586,6 +1586,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.30 | 2026-07-04 | §4.11 アカウント連携を確認コード入力（PWA）に更新。決定履歴 #70 改訂 |
 | 2.29 | 2026-07-04 | §1.2/§1.3/§4.11 アカウント連携・戦績・戦力補正を現状反映。決定履歴 #70〜71。将来実装（削除・Apple/Google）は SUPABASE_SETUP |
 | 2.28 | 2026-07-04 | オフライン対人実装仕様 [OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md) を追加参照 |
 | 2.27 | 2026-07-04 | §4.7 / §14.3 オフライン対人を公開デッキ一覧＋BP補正に更新。決定履歴 #47 改訂・#69（対人戦経済・コレクション不採用） |

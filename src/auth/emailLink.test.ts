@@ -4,6 +4,7 @@ import {
   normalizeEmailInput,
   linkEmailToCurrentUser,
   signInWithEmailMagicLink,
+  verifyEmailOtp,
   formatAuthError,
 } from './emailLink';
 import { isAnonymousUser, isEmailLinkedUser, resolveAccountEmail } from './session';
@@ -58,5 +59,13 @@ describe('formatAuthError', () => {
       expect(result.reason).toBe('rate_limited');
       expect(result.error).toContain('送信回数上限');
     }
+  });
+});
+
+describe('verifyEmailOtp', () => {
+  it('rejects non-numeric or short tokens without network', async () => {
+    const result = await verifyEmailOtp('a@example.com', '12ab', 'link');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe('invalid_otp');
   });
 });

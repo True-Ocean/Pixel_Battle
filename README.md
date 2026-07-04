@@ -140,7 +140,7 @@ Specs: [`PROTOTYPE §4.8`](docs/PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション
 - [ ] 効果音（SE） / Sound effects  
 - [x] オフライン対人（公開デッキ一覧・**戦力補正**） / Offline PvP (public decks + power-based BP rescale)  
 - [x] 公開デッキ共有（Supabase・匿名認証） / Public deck sharing (Supabase)  
-- [x] アカウント連携（メール・クラウドセーブ） / Account link (email + cloud save)  
+- [x] アカウント連携（メール確認コード・クラウドセーブ・PWA 対応） / Account link (email OTP + cloud save, PWA-safe)  
   - リリース前: アカウント削除・Apple/Google ログイン（[SUPABASE_SETUP](docs/SUPABASE_SETUP.md)）
 
 ---

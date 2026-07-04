@@ -8,6 +8,7 @@ export {
 export {
   linkEmailToCurrentUser,
   signInWithEmailMagicLink,
+  verifyEmailOtp,
   signOutAccount,
   unlinkAccountFromDevice,
   syncDeviceLinkedEmailFromUser,
@@ -30,4 +31,5 @@ export type {
   AccountLinkStatus,
   AuthActionResult,
   AuthFailReason,
+  EmailAuthPurpose,
 } from './types';

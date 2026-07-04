@@ -12,7 +12,7 @@ import {
   isEmailLinkedUser,
   resolveAccountEmail,
 } from './session';
-import type { AuthActionResult } from './types';
+import type { AuthActionResult, EmailAuthPurpose } from './types';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -51,9 +51,13 @@ function authErrorResult(error: { message?: string } | null | undefined): AuthAc
   return formatAuthError(error?.message?.trim() || '認証に失敗しました');
 }
 
+const OTP_SENT_MESSAGE =
+  '確認コードをメールで送信しました。下の欄にコードを入力してください（メール内のリンクは開かなくて大丈夫です）。';
+
 /**
- * 現在のセッション（無ければ匿名を作成）にメールを紐づける。
- * user_id は維持され、確認用マジックリンクが送られる。
+ * 現在のセッション（無ければ匿名を作成）にメールを紐づける準備。
+ * user_id は維持され、確認コード付きメールが送られる。
+ * 完了には verifyEmailOtp(..., 'link') が必要。
  */
 export async function linkEmailToCurrentUser(
   emailInput: string,
@@ -120,12 +124,13 @@ export async function linkEmailToCurrentUser(
 
   return {
     ok: true,
-    message: '確認メールを送信しました',
+    message: OTP_SENT_MESSAGE,
   };
 }
 
 /**
- * メールマジックリンクでログインする（別端末からの復元用）。
+ * メール確認コードでログインする準備（別端末からの復元用）。
+ * 完了には verifyEmailOtp(..., 'login') が必要。
  * 匿名セッションがある場合は置き換わる点に注意。
  */
 export async function signInWithEmailMagicLink(
@@ -176,7 +181,100 @@ export async function signInWithEmailMagicLink(
 
   return {
     ok: true,
-    message: '確認メールを送信しました',
+    message: OTP_SENT_MESSAGE,
+  };
+}
+
+/**
+ * メールに記載の確認コードを検証して連携／ログインを完了する。
+ * ホーム画面 PWA 内で完結させるための入口（Safari を経由しない）。
+ */
+export async function verifyEmailOtp(
+  emailInput: string,
+  tokenInput: string,
+  purpose: EmailAuthPurpose,
+): Promise<AuthActionResult> {
+  if (!isSupabaseConfigured()) {
+    return {
+      ok: false,
+      reason: 'not_configured',
+      error: 'Supabase が設定されていません（.env を確認してください）',
+    };
+  }
+
+  const email = normalizeEmailInput(emailInput);
+  const token = tokenInput.replace(/\s/g, '');
+  if (!isValidEmail(email)) {
+    return {
+      ok: false,
+      reason: 'invalid_email',
+      error: 'メールアドレスの形式が正しくありません',
+    };
+  }
+  if (!/^\d{6,8}$/.test(token)) {
+    return {
+      ok: false,
+      reason: 'invalid_otp',
+      error: '確認コードはメールに記載の数字です（通常6〜8桁）',
+    };
+  }
+
+  const allowed = assertEmailAllowedOnDevice(email);
+  if (!allowed.ok) {
+    return {
+      ok: false,
+      reason: 'device_email_locked',
+      error: allowed.error,
+    };
+  }
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return {
+      ok: false,
+      reason: 'not_configured',
+      error: 'Supabase が設定されていません（.env を確認してください）',
+    };
+  }
+
+  const primaryType = purpose === 'link' ? 'email_change' : 'email';
+  const fallbackTypes =
+    purpose === 'link'
+      ? (['email', 'magiclink'] as const)
+      : (['magiclink', 'email_change'] as const);
+
+  let lastError: { message?: string } | null = null;
+  const { data, error } = await client.auth.verifyOtp({
+    email,
+    token,
+    type: primaryType,
+  });
+  if (error) {
+    lastError = error;
+    for (const type of fallbackTypes) {
+      const retry = await client.auth.verifyOtp({ email, token, type });
+      if (!retry.error) {
+        const user = retry.data.user ?? (await getAuthUser());
+        syncDeviceLinkedEmailFromUser(user);
+        return {
+          ok: true,
+          message:
+            purpose === 'link'
+              ? 'メール連携が完了しました'
+              : 'ログインしました',
+        };
+      }
+      lastError = retry.error;
+    }
+    return authErrorResult(lastError);
+  }
+
+  const user = data.user ?? (await getAuthUser());
+  syncDeviceLinkedEmailFromUser(user);
+  return {
+    ok: true,
+    message:
+      purpose === 'link' ? 'メール連携が完了しました' : 'ログインしました',
   };
 }
 

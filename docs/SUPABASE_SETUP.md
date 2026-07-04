@@ -40,7 +40,7 @@ https://supabase.com/dashboard/project/YOUR_PROJECT_REF/auth/providers
 4. **すでに 001 を実行済み**のプロジェクトでは、続けて `002_public_ghost_decks_record.sql` も実行する（対人戦の勝敗表示用）
 5. アカウント連携（クラウドセーブ）を使う場合は `003_player_saves.sql` も実行する（**実行済みならスキップ**）
 
-## 3.1 アカウント連携用の Auth URL（メールマジックリンク）
+## 3.1 アカウント連携用の Auth URL（メール OTP）
 
 1. **Authentication** → **URL Configuration**
 2. **Site URL**（本番）:
@@ -49,29 +49,34 @@ https://supabase.com/dashboard/project/YOUR_PROJECT_REF/auth/providers
 https://true-ocean.github.io/Pixel_Battle/
 ```
 
-3. **Redirect URLs** に本番と開発を追加:
+3. **Redirect URLs** に本番と開発を追加（メール内リンク用の予備。**完了の正はアプリ内コード入力**）:
 
 ```text
 https://true-ocean.github.io/Pixel_Battle/**
 http://localhost:5173/**
 ```
 
-4. **Authentication** → **Providers** → **Email** が ON であること（マジックリンク用）
+4. **Authentication** → **Providers** → **Email** が ON であること
+5. Email OTP の桁数（例: 6〜8）を確認。アプリは 6〜8 桁の数字を受け付ける
 
 クラウドセーブ API は `src/cloudSave/`（`fetchPlayerSave` / `upsertPlayerSave` / `reconcileCloudSave`）。
 
-### アカウント連携（メールマジックリンク）
+### アカウント連携（メール確認コード）
+
+**完了手段はアプリ内の確認コード入力**（`verifyEmailOtp`）。ホーム画面に追加した PWA では、メール内リンクを開くと Safari にセッションが載り、PWA 側は未連携のままになる。
 
 1. 上記 URL Configuration と Email Provider が済んでいること
 2. `003_player_saves.sql` 実行済みであること
 3. アプリの **設定 → アカウント**（メール連携は折りたたみ）
-4. **この端末を連携**: 匿名セッションにメールを紐づけ（`user_id` 維持・公開デッキの owner もそのまま）
-5. 届いたメールのリンクを開くと連携完了
+4. **この端末を連携**: 匿名セッションにメールを紐づけ開始（`user_id` 維持・公開デッキの owner もそのまま）
+5. 届いたメールの **確認コード（数字）を同じアプリ画面に入力**して連携完了。リンクは開かない
 6. 連携後はローカル保存が debounce 付きでクラウドへ自動同期される。設定の **今すぐ同期** でも手動実行可
-7. **ログイン（復元用）**: すでに連携済みのメールで別端末から入り、クラウドの方が新しければ自動復元
+7. **ログイン（復元用）**: 同様にコード入力でログイン。クラウドの方が新しければ自動復元
 8. 端末ごとに連携完了したメールは固定。別メールにする場合は **連携を解除**（端末の紐づけ解除のみ。クラウド上のアカウントは残る）
 
-実装: `src/auth/`・`src/cloudSave/sync.ts`
+実装: `src/auth/`（`linkEmailToCurrentUser` / `signInWithEmailMagicLink` / `verifyEmailOtp`）・`src/cloudSave/sync.ts`
+
+メールテンプレートに確認コード（`{{ .Token }}`）が含まれること。Supabase の Email OTP 設定（桁数など）と一致させる。
 
 ### 将来実装（リリース前）
 
@@ -87,6 +92,7 @@ http://localhost:5173/**
 方針の前提（現行実装と整合）:
 
 - 連携の本線は **匿名 ID を本アカウントに昇格**（`user_id` 不変）し、公開デッキの `owner_id` を壊さない
+- **完了はアプリ内 OTP**（`verifyEmailOtp`）。ホーム画面 PWA と Safari のストレージ分離を避ける
 - クラウドセーブは **メール連携済み**（本ログイン）のときだけ同期する
 - アカウント削除時は端末セーブの扱い（残す／初期化する）を UI で明示する
 

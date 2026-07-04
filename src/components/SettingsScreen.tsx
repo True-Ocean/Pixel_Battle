@@ -3,14 +3,17 @@ import type { User } from '@supabase/supabase-js';
 import {
   getDeviceLinkedEmail,
   linkEmailToCurrentUser,
+  normalizeEmailInput,
   resolveAccountEmail,
   signInWithEmailMagicLink,
   signOutAccount,
   subscribeAuthState,
   syncDeviceLinkedEmailFromUser,
   unlinkAccountFromDevice,
+  verifyEmailOtp,
   isEmailLinkedUser,
   type AuthActionResult,
+  type EmailAuthPurpose,
 } from '../auth';
 import {
   DECK_SLOT_COUNT,
@@ -299,6 +302,11 @@ function AccountSection({
   const [usernameNotice, setUsernameNotice] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [emailInput, setEmailInput] = useState('');
+  const [otpInput, setOtpInput] = useState('');
+  const [pendingOtp, setPendingOtp] = useState<{
+    email: string;
+    purpose: EmailAuthPurpose;
+  } | null>(null);
   const [mailExpanded, setMailExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -326,6 +334,13 @@ function AccountSection({
   const email = resolveAccountEmail(authUser);
   const boundEmail = email ?? deviceLinkedEmail;
 
+  useEffect(() => {
+    if (linked) {
+      setPendingOtp(null);
+      setOtpInput('');
+    }
+  }, [linked]);
+
   const mailStatusLabel = !configured
     ? '利用不可'
     : linked
@@ -338,14 +353,26 @@ function AccountSection({
     setDeviceLinkedEmail(getDeviceLinkedEmail());
   };
 
-  const runAction = async (action: (email: string) => Promise<AuthActionResult>) => {
+  const runSendOtp = async (purpose: EmailAuthPurpose) => {
     setBusy(true);
     setNotice(null);
     setError(null);
     try {
-      const result = await action(emailInput);
-      applyAuthActionResult(result, setNotice, setError);
-      refreshDeviceLinkedEmail();
+      const result =
+        purpose === 'link'
+          ? await linkEmailToCurrentUser(emailInput)
+          : await signInWithEmailMagicLink(emailInput);
+      if (result.ok === true) {
+        setPendingOtp({
+          email: normalizeEmailInput(emailInput),
+          purpose,
+        });
+        setOtpInput('');
+        setNotice(result.message);
+        refreshDeviceLinkedEmail();
+        return;
+      }
+      setError(result.error);
     } catch (caught) {
       const message =
         caught instanceof Error ? caught.message : '処理に失敗しました';
@@ -353,6 +380,34 @@ function AccountSection({
         message.toLowerCase().includes('rate limit')
           ? 'メールの送信回数上限に達しました。数分〜1時間ほど待ってから、もう一度お試しください。'
           : message,
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runVerifyOtp = async () => {
+    if (!pendingOtp) return;
+    setBusy(true);
+    setNotice(null);
+    setError(null);
+    try {
+      const result = await verifyEmailOtp(
+        pendingOtp.email,
+        otpInput,
+        pendingOtp.purpose,
+      );
+      if (result.ok === true) {
+        setPendingOtp(null);
+        setOtpInput('');
+        setNotice(result.message);
+        refreshDeviceLinkedEmail();
+        return;
+      }
+      setError(result.error);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : '確認に失敗しました',
       );
     } finally {
       setBusy(false);
@@ -448,7 +503,7 @@ function AccountSection({
               </p>
             ) : (
               <p className="settings-section-note muted">
-                メール連携すると、機種変更やホーム画面からの削除後もクラウドから進行を復元できます。連携中は自動でクラウドに保存されます。この端末で一度連携したメールは、解除するまで変更できません。
+                メール連携すると、機種変更やホーム画面からの削除後もクラウドから進行を復元できます。連携中は自動でクラウドに保存されます。確認はメール内の数字コードをこの画面に入力します（ホーム画面アプリではリンクを開かないでください）。この端末で一度連携したメールは、解除するまで変更できません。
               </p>
             )}
             {configured && (
@@ -547,6 +602,68 @@ function AccountSection({
                       別のメールに変える場合は「連携を解除」してから、改めて連携してください。ログアウトだけではメールは変わりません。
                     </p>
                   </>
+                ) : pendingOtp ? (
+                  <div className="settings-account-form">
+                    <p className="settings-section-note muted">
+                      {pendingOtp.email}{' '}
+                      宛に確認コードを送りました。メールに記載の数字を入力してください。ホーム画面アプリではメール内のリンクを開かず、ここでコードを入力してください。
+                    </p>
+                    <label
+                      className="settings-account-label"
+                      htmlFor="settings-account-otp"
+                    >
+                      確認コード
+                    </label>
+                    <input
+                      id="settings-account-otp"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      className="settings-account-input"
+                      placeholder="12345678"
+                      value={otpInput}
+                      disabled={busy}
+                      onChange={(event) => {
+                        setOtpInput(event.target.value);
+                        if (error) setError(null);
+                      }}
+                    />
+                    <div className="settings-account-actions">
+                      <button
+                        type="button"
+                        className="settings-account-btn settings-account-btn--primary"
+                        disabled={busy || otpInput.trim().length === 0}
+                        onClick={() => {
+                          void runVerifyOtp();
+                        }}
+                      >
+                        コードを確認
+                      </button>
+                      <button
+                        type="button"
+                        className="settings-account-btn"
+                        disabled={busy}
+                        onClick={() => {
+                          void runSendOtp(pendingOtp.purpose);
+                        }}
+                      >
+                        コードを再送
+                      </button>
+                      <button
+                        type="button"
+                        className="settings-account-btn"
+                        disabled={busy}
+                        onClick={() => {
+                          setPendingOtp(null);
+                          setOtpInput('');
+                          setNotice(null);
+                          setError(null);
+                        }}
+                      >
+                        戻る
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <div className="settings-account-form">
                     {deviceLinkedEmail != null ? (
@@ -556,7 +673,7 @@ function AccountSection({
                       </p>
                     ) : (
                       <p className="settings-section-note muted">
-                        下のボタンを押すと、認証サービス（Supabase）から入力したアドレス宛に確認用メール（英語）が届きます。メール内のリンクを開くと連携またはログインが完了します。届かないときは迷惑メールフォルダなどを確認してください。短時間に何度も送ると送信制限にかかることがあります。
+                        ボタンを押すと確認コード付きメール（英語の場合あり）が届きます。届いた数字をこの画面に入力してください。ホーム画面アプリではメール内のリンクは開かないでください。届かないときは迷惑メールフォルダも確認してください。短時間に何度も送ると送信制限にかかることがあります。
                       </p>
                     )}
                     <label
@@ -583,7 +700,7 @@ function AccountSection({
                           className="settings-account-btn settings-account-btn--primary"
                           disabled={busy || emailInput.trim().length === 0}
                           onClick={() => {
-                            void runAction(linkEmailToCurrentUser);
+                            void runSendOtp('link');
                           }}
                         >
                           この端末を連携
@@ -594,7 +711,7 @@ function AccountSection({
                         className="settings-account-btn settings-account-btn--primary"
                         disabled={busy || emailInput.trim().length === 0}
                         onClick={() => {
-                          void runAction(signInWithEmailMagicLink);
+                          void runSendOtp('login');
                         }}
                       >
                         ログイン（復元用）

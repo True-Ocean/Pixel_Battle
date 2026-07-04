@@ -7,7 +7,11 @@ export type AuthFailReason =
   | 'already_linked'
   | 'no_session'
   | 'rate_limited'
-  | 'device_email_locked';
+  | 'device_email_locked'
+  | 'invalid_otp';
+
+/** メール確認コードの用途 */
+export type EmailAuthPurpose = 'link' | 'login';
 
 export type AuthActionResult =
   | { ok: true; message: string }
