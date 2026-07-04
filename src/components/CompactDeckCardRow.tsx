@@ -39,7 +39,6 @@ export function CompactDeckCardRow({
       >
         <DeckCardRowBody
           card={card}
-          hideTalisman
           hideBattleRecord={hideBattleRecord}
         />
       </button>

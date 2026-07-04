@@ -23,7 +23,20 @@ export function DeckCardRowBody({
 }: DeckCardRowBodyProps) {
   return (
     <>
-      <RarityBadge rarity={card.rarity} size="deck" className="deck-card-rarity-corner" />
+      <div className="deck-card-leading-corner">
+        <RarityBadge
+          rarity={card.rarity}
+          size="deck"
+          className="deck-card-rarity-badge"
+        />
+        {!hideTalisman && isTalismanEquipped(card) && (
+          <TalismanCardBadge
+            variant="equipped"
+            size="deck"
+            className="deck-card-talisman-under-rarity"
+          />
+        )}
+      </div>
       <LimitBreakStars
         stars={card.stars}
         rarity={card.rarity}
@@ -36,9 +49,6 @@ export function DeckCardRowBody({
         <div className="deck-card-body">
           <div className="deck-card-name-row">
             <span className="deck-card-name">{card.name}</span>
-            {!hideTalisman && isTalismanEquipped(card) && (
-              <TalismanCardBadge variant="equipped" size="deck" />
-            )}
           </div>
           <div className="deck-card-meta-row">
             <div className="deck-card-stats-primary">

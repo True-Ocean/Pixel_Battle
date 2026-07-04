@@ -115,11 +115,14 @@ export function DeckCardDetailCard({
       </div>
 
       <div className="deck-detail-card-name-row">
-        <span className="deck-detail-card-name-side" aria-hidden="true" />
-        <h3 className="deck-detail-card-name">{card.name}</h3>
-        <span className="deck-detail-card-name-side deck-detail-card-name-side--end">
-          {showTalismanUi && isTalismanEquipped(card) && onTalismanPress && (
-            <TalismanCardBadge variant="equipped" onPress={onTalismanPress} />
+        <span className="deck-detail-card-name-side deck-detail-card-name-side--start">
+          {isTalismanEquipped(card) && (
+            <TalismanCardBadge
+              variant="equipped"
+              onPress={
+                showTalismanUi && onTalismanPress ? onTalismanPress : undefined
+              }
+            />
           )}
           {showTalismanUi &&
             !isTalismanEquipped(card) &&
@@ -128,6 +131,8 @@ export function DeckCardDetailCard({
               <TalismanCardBadge variant="available" onPress={onTalismanPress} />
             )}
         </span>
+        <h3 className="deck-detail-card-name">{card.name}</h3>
+        <span className="deck-detail-card-name-side" aria-hidden="true" />
       </div>
 
       <div

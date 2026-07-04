@@ -2311,16 +2311,15 @@ button.battle-hub-deck-icon.is-move-target {
   font-size: 0.72rem;
 }
 
-.compact-deck-card .deck-card-rarity-corner {
-  top: 0.02rem;
+.compact-deck-card .deck-card-leading-corner {
+  --deck-leading-badge-size: 1.5rem;
+  top: 0.04rem;
   left: 0;
+  gap: 0.26rem;
 }
 
-.compact-deck-card .deck-card-rarity-corner.rarity-badge--deck {
-  width: 1.45rem;
-  min-width: 1.45rem;
-  height: 1.45rem;
-  font-size: 0.7rem;
+.compact-deck-card .deck-card-leading-corner .rarity-badge--deck {
+  font-size: 0.72rem;
 }
 
 .compact-deck-card .deck-card-stars-corner {
@@ -3396,10 +3395,11 @@ button.battle-hub-deck-icon.is-move-target {
   min-width: 0;
 }
 
-.deck-detail-card-name-side--end {
+.deck-detail-card-name-side--start {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-end;
+  gap: 0.2rem;
 }
 
 .deck-card-name-row {
@@ -7787,11 +7787,40 @@ button.battle-hub-deck-icon.is-move-target {
   background: #646cff;
 }
 
-.deck-card-rarity-corner {
+.deck-card-leading-corner {
+  --deck-leading-badge-size: 1.68rem;
   position: absolute;
   top: 0.06rem;
   left: 0.02rem;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--deck-leading-badge-size);
+  gap: 0.3rem;
+}
+
+.deck-card-leading-corner .deck-card-rarity-badge.rarity-badge--deck {
+  box-sizing: border-box;
+  min-width: var(--deck-leading-badge-size);
+  width: var(--deck-leading-badge-size);
+  height: var(--deck-leading-badge-size);
+}
+
+.deck-card-talisman-under-rarity {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--deck-leading-badge-size);
+  height: var(--deck-leading-badge-size);
+}
+
+/* SVG 内余白があるため、見た目がレア度円と揃うよう少し大きめにする */
+.deck-card-talisman-under-rarity.talisman-card-badge--deck .talisman-card-badge-icon {
+  width: calc(var(--deck-leading-badge-size) * 1.14);
+  height: calc(var(--deck-leading-badge-size) * 1.14);
 }
 
 .deck-card-stars-corner {
@@ -7994,9 +8023,23 @@ button.battle-hub-deck-icon.is-move-target {
   font-weight: 600;
 }
 
-.screen-deck .deck-card-rarity-corner {
+.screen-deck .deck-card-leading-corner {
   top: 0.04rem;
   left: 0;
+  /* レア度（上）と護符（下）の間を空け、行の左余白で上下バランスを取る */
+  gap: 0.55rem;
+}
+
+.screen-deck .deck-card-talisman-under-rarity {
+  width: var(--deck-leading-badge-size);
+  height: var(--deck-leading-badge-size);
+}
+
+.screen-deck
+  .deck-card-talisman-under-rarity.talisman-card-badge--deck
+  .talisman-card-badge-icon {
+  width: calc(var(--deck-leading-badge-size) * 1.22);
+  height: calc(var(--deck-leading-badge-size) * 1.22);
 }
 
 .screen-deck .deck-card-stars-corner {
@@ -9800,7 +9843,7 @@ button.battle-hub-deck-icon.is-move-target {
   cursor: pointer;
 }
 
-.deck-card-row--lost .deck-card-rarity-corner,
+.deck-card-row--lost .deck-card-leading-corner,
 .deck-card-row--lost .deck-card-stars-corner,
 .deck-card-row--lost .deck-card-content {
   opacity: 0.45;
