@@ -28,7 +28,10 @@ import {
   getLimitBreakRarityJewelCost,
   getLimitBreakShardsRequired,
   calcLostSelectionWeight,
+  calcHistoryRematchNormalPixels,
+  calcHistoryRematchRewardPixels,
   calcSurvivorPixels,
+  calcSurvivorPixelsForBattleVictory,
   calcVictoryBattlePixels,
   countBattleSurvivors,
   canAffordCardRename,
@@ -192,6 +195,25 @@ describe('calcSurvivorPixels', () => {
   it('multiplies survivor count by 10', () => {
     expect(calcSurvivorPixels(3)).toBe(30);
     expect(calcSurvivorPixels(5)).toBe(50);
+  });
+});
+
+describe('calcHistoryRematchRewardPixels', () => {
+  it('uses full-deck survivor pixels as the normal-battle baseline', () => {
+    expect(calcHistoryRematchNormalPixels(5)).toBe(
+      calcSurvivorPixelsForBattleVictory(5),
+    );
+    expect(calcHistoryRematchNormalPixels(5)).toBe(25);
+  });
+
+  it('grants 2x normal on win and 1x normal on loss', () => {
+    expect(calcHistoryRematchRewardPixels(5, 'player')).toBe(50);
+    expect(calcHistoryRematchRewardPixels(5, 'cpu')).toBe(25);
+  });
+
+  it('doubles the outcome reward when doubleRewards is set', () => {
+    expect(calcHistoryRematchRewardPixels(5, 'player', true)).toBe(100);
+    expect(calcHistoryRematchRewardPixels(5, 'cpu', true)).toBe(50);
   });
 });
 

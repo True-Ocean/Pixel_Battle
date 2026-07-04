@@ -3020,21 +3020,6 @@ button.battle-hub-deck-icon.is-move-target {
   color: #475569;
 }
 
-.battle-end-history-reward-amount {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.12rem;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #1d4ed8;
-}
-
-.battle-end-history-reward-coin {
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
 /* --- 設定タブ --- */
 
 .screen-settings {
@@ -5778,11 +5763,24 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .graveyard-pick-survivor-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
   flex-shrink: 0;
   font-weight: 800;
   font-size: 0.92rem;
   color: #2563eb;
   font-variant-numeric: tabular-nums;
+}
+
+.history-rematch-reward-row {
+  min-height: 2.5rem;
+}
+
+.history-rematch-reward-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
 }
 
 .graveyard-pick-px-reward,

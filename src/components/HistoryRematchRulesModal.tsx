@@ -57,7 +57,9 @@ export function HistoryRematchRulesModal({
           <li>
             報酬は
             <PixelCoinIcon className="history-rematch-rules-coin" aria-hidden />
-            のみとなります
+            のみとなりますが、勝利時は通常バトルの2倍、敗北時は通常バトルと同等の
+            <PixelCoinIcon className="history-rematch-rules-coin" aria-hidden />
+            を獲得できます
           </li>
         </ul>
         <label className="history-rematch-rules-dismiss">

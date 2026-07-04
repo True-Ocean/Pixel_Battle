@@ -7,7 +7,6 @@ import {
   useState,
 } from 'react';
 import { CPU_OPPONENT_LEVEL, DECK_MAX, MATCH_REVEAL_COUNTDOWN_SEC, SETUP_TIME_LIMIT_SEC } from '../config/balance';
-import { calcSurvivorPixelsForBattleVictory, countBattleSurvivors } from '../config/economy';
 import { computeDeckPower } from '../card';
 import type { Card, BattleOutcome, BattleOutcomeCore } from '../types';
 import type { BoardPosition } from '../types/battle';
@@ -1233,7 +1232,6 @@ function BattleBoard({
     onOpenLog: () => void;
     newBattleLabel: string;
     newBattleDisabled?: boolean;
-    historyRematchRewardPixels?: number | null;
   };
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
@@ -1547,15 +1545,6 @@ function BattleBoard({
                 battle.hint,
                 showOutcome ? result : null,
               )}
-              {showOutcome &&
-                endActions &&
-                endActions.historyRematchRewardPixels != null &&
-                endActions.historyRematchRewardPixels > 0 && (
-                  <span className="battle-end-history-reward-amount" role="status">
-                    +{endActions.historyRematchRewardPixels.toLocaleString()}
-                    <PixelCoinIcon className="battle-end-history-reward-coin" />
-                  </span>
-                )}
             </div>
             {showOutcome && endActions ? (
               <button
@@ -1632,7 +1621,6 @@ function BattleSession({
     onOpenLog: () => void;
     newBattleLabel: string;
     newBattleDisabled?: boolean;
-    historyRematchRewardPixels?: number | null;
   };
   onBattleLogViewed?: () => void;
 }) {
@@ -1735,9 +1723,6 @@ export function BattleSetupScreen({
   const [battleEnded, setBattleEnded] = useState(false);
   const [battleSubView, setBattleSubView] = useState<'play' | 'log'>('play');
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
-  const [historyRematchRewardPixels, setHistoryRematchRewardPixels] = useState<
-    number | null
-  >(null);
 
   useEffect(() => {
     onBattleEndedChange?.(battleEnded);
@@ -1912,25 +1897,11 @@ export function BattleSetupScreen({
 
   const handleMainButton = () => {
     setBattleEnded(false);
-    setHistoryRematchRewardPixels(null);
     setPhase('battle');
   };
 
   const handleBattleFinish = useCallback(
     (outcome: BattleOutcomeCore) => {
-      if (isHistoryRematch && outcome.winner === 'player') {
-        setHistoryRematchRewardPixels(
-          calcSurvivorPixelsForBattleVictory(
-            countBattleSurvivors(
-              outcome.playerCardIds,
-              outcome.defeatedPlayerCardIds,
-            ),
-          ),
-        );
-      } else {
-        setHistoryRematchRewardPixels(null);
-      }
-
       const cpuSnapshot = structuredClone(battleCards.cpu);
       const defeatedIds = new Set(outcome.defeatedCpuCards.map((card) => card.id));
       const rarityById = new Map(
@@ -1959,7 +1930,6 @@ export function BattleSetupScreen({
     },
     [
       battleCards.cpu,
-      isHistoryRematch,
       onFinish,
       resolvedOpponentIdentity.level,
       resolvedOpponentIdentity.name,
@@ -2019,7 +1989,6 @@ export function BattleSetupScreen({
                   ? 'もう一度対戦'
                   : '新規バトル',
                 newBattleDisabled,
-                historyRematchRewardPixels,
               }}
             />
           ) : phase === 'reveal' || phase === 'matching' ? (
