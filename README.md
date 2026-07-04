@@ -15,6 +15,7 @@
 | 経済ロードマップ | Economy roadmap | [`docs/ECONOMY_ROADMAP.md`](docs/ECONOMY_ROADMAP.md) |
 | オフライン対人（実装仕様） | Offline PvP (impl) | [`docs/OFFLINE_PVP_SPEC.md`](docs/OFFLINE_PVP_SPEC.md) |
 | Supabase セットアップ | Supabase setup | [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) |
+| リリース準備チェックリスト | Release checklist | [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) |
 | 効果音（仕様のみ） | SFX spec (planned) | [`docs/SFX_SPEC.md`](docs/SFX_SPEC.md) |
 
 ---

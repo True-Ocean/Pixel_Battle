@@ -524,7 +524,7 @@ src/
 | 連携を解除 | 端末の表示・セッションのみ解除。`auth.users` / `player_saves` は残る。同じメールは再度「ログイン」 |
 | auth `user_id` | 確認後はメールユーザー側（匿名 ID 固定は不採用） |
 
-**将来実装（リリース前）**: ストア／本番公開に近くなってから着手（[SUPABASE_SETUP 将来実装](./SUPABASE_SETUP.md) と同一）。
+**将来実装（リリース前）**: ストア／本番公開に近くなってから着手（[SUPABASE_SETUP 将来実装](./SUPABASE_SETUP.md) / [RELEASE_CHECKLIST](./RELEASE_CHECKLIST.md)）。
 
 | 項目 | 内容 |
 |------|------|
