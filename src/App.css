@@ -3929,14 +3929,26 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .settings-account-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   border: 1px solid #94a3b8;
   background: #f8fafc;
   color: #0f172a;
   border-radius: 0.45rem;
-  padding: 0.4rem 0.65rem;
+  padding: 0.45rem 0.5rem;
   font-size: 0.78rem;
   font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
   cursor: pointer;
+}
+
+/* 「この端末を連携」「ログイン（復元用）」など並ぶボタンの幅を揃える */
+.settings-account-actions .settings-account-btn {
+  flex: 1 1 calc(50% - 0.2rem);
+  min-width: 0;
 }
 
 .settings-account-btn:disabled {
