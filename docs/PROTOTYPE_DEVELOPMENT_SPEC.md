@@ -327,7 +327,7 @@ src/
 | 通常 CPU 戦 | バトル可能デッキ（ロストなし5枚）のみ開始可。黄色注意は出さない |
 | 履歴再戦 | `deckReadinessMode="historyRematch"`。**5枚揃い**ならロスト含め可。戻る **バトル履歴に戻る** |
 
-**実装済み（v1）**: **オフライン対人（公開ゴーストデッキ）** — `対人戦（オフライン）` → 公開デッキ一覧 → 詳細 → 自分のデッキ選択 → 挑戦側レベルで BP 補正 → CPU 戦同型の経済。同梱シード8件。実装の正は **[OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md)**。
+**実装済み（v1+G）**: **オフライン対人（公開ゴーストデッキ）** — `対人戦（オフライン）` → 公開デッキ一覧（Supabase）→ 詳細 → 自分のデッキ選択 → 挑戦側レベルで BP 補正 → CPU 戦同型の経済。実装の正は **[OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md)** / [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)。
 
 ### 4.8 ミッション
 

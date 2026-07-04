@@ -9,10 +9,11 @@ export {
 } from './publish';
 export {
   getPublicGhostDeckById,
+  getPublicGhostDeckListEmptyMessage,
   listPublicGhostDecks,
-  listSeedPublicGhostDecks,
   sortByViewerLevel,
 } from './listPublicGhostDecks';
+export type { ListPublicGhostDecksResult } from './listPublicGhostDecks';
 export {
   normalizePublishedDeckRemoteIds,
   normalizePublishedDeckSlots,

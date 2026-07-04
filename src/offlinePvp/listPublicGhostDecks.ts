@@ -1,10 +1,5 @@
-import { SEED_GHOST_DECKS } from '../data/seedGhostDecks';
 import { fetchRemotePublicGhostDecks, rowToPublicGhostDeck } from './publish';
 import type { PublicGhostDeck } from './types';
-
-function cloneGhostDeck(ghost: PublicGhostDeck): PublicGhostDeck {
-  return structuredClone(ghost);
-}
 
 export function sortByViewerLevel(
   decks: readonly PublicGhostDeck[],
@@ -20,48 +15,68 @@ export function sortByViewerLevel(
   });
 }
 
-function seedDecks(): PublicGhostDeck[] {
-  return SEED_GHOST_DECKS.map(cloneGhostDeck);
-}
+export type ListPublicGhostDecksResult =
+  | { ok: true; decks: PublicGhostDeck[] }
+  | {
+      ok: false;
+      reason: 'not_configured' | 'fetch_failed';
+      /** 開発・ログ用。UI には出さないこともある */
+      error?: string;
+    };
 
 /**
- * viewerLevel 付近を優先した公開デッキ一覧（コピーを返す）。
- * リモート取得に成功したらリモート＋シードをマージ。自分の ownerId は除外。
- * 失敗・未設定時はシードのみ。
+ * viewerLevel 付近を優先した公開デッキ一覧。
+ * 成功時は decks（自分の ownerId は除外）。失敗時は reason で区別する。
  */
 export async function listPublicGhostDecks(
   viewerLevel: number,
   options?: { excludeOwnerId?: string | null },
-): Promise<PublicGhostDeck[]> {
+): Promise<ListPublicGhostDecksResult> {
   const excludeOwnerId = options?.excludeOwnerId ?? null;
   const remote = await fetchRemotePublicGhostDecks();
-
-  let remoteDecks: PublicGhostDeck[] = [];
-  if (remote.ok) {
-    remoteDecks = remote.rows
-      .filter((row) => !excludeOwnerId || row.owner_id !== excludeOwnerId)
-      .map((row) => rowToPublicGhostDeck(row));
+  if (!remote.ok) {
+    if (remote.error === 'not_configured') {
+      return { ok: false, reason: 'not_configured' };
+    }
+    return {
+      ok: false,
+      reason: 'fetch_failed',
+      error: remote.error,
+    };
   }
 
-  const seeds = seedDecks();
-  const merged = [...remoteDecks, ...seeds];
-  return sortByViewerLevel(merged, viewerLevel);
+  const decks = remote.rows
+    .filter((row) => !excludeOwnerId || row.owner_id !== excludeOwnerId)
+    .map((row) => rowToPublicGhostDeck(row));
+
+  return { ok: true, decks: sortByViewerLevel(decks, viewerLevel) };
 }
 
-/** id で1件取得（シード優先、無ければリモート全件から検索） */
+/** id で1件取得。無ければ null（取得失敗時も null） */
 export async function getPublicGhostDeckById(
   id: string,
 ): Promise<PublicGhostDeck | null> {
-  const seed = SEED_GHOST_DECKS.find((ghost) => ghost.id === id);
-  if (seed) return cloneGhostDeck(seed);
-
   const remote = await fetchRemotePublicGhostDecks();
   if (!remote.ok) return null;
   const row = remote.rows.find((item) => item.id === id);
   return row ? rowToPublicGhostDeck(row) : null;
 }
 
-/** テスト・オフライン用: シードのみ同期一覧 */
-export function listSeedPublicGhostDecks(viewerLevel: number): PublicGhostDeck[] {
-  return sortByViewerLevel(SEED_GHOST_DECKS, viewerLevel).map(cloneGhostDeck);
+/** 一覧画面用のユーザー向けメッセージ */
+export function getPublicGhostDeckListEmptyMessage(
+  result: ListPublicGhostDecksResult,
+): { title: string; hint?: string } {
+  if (result.ok) {
+    return { title: '公開デッキがありません' };
+  }
+  if (result.reason === 'not_configured') {
+    return {
+      title: '公開デッキを表示できません',
+      hint: '接続設定がありません。管理者にお問い合わせください。',
+    };
+  }
+  return {
+    title: '公開デッキを取得できませんでした',
+    hint: '通信環境を確認して、もう一度開き直してください。',
+  };
 }

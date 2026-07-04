@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { getRarityMeta } from '../config/rarity';
 import {
+  getPublicGhostDeckListEmptyMessage,
   listPublicGhostDecks,
   type PublicGhostDeck,
 } from '../offlinePvp';
@@ -49,22 +50,26 @@ export function OfflinePvpDeckListScreen({
 }: OfflinePvpDeckListScreenProps) {
   const [ghosts, setGhosts] = useState<PublicGhostDeck[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [emptyTitle, setEmptyTitle] = useState('公開デッキがありません');
+  const [emptyHint, setEmptyHint] = useState<string | undefined>();
   const [selected, setSelected] = useState<PublicGhostDeck | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setLoadError(null);
-    void listPublicGhostDecks(viewerLevel, { excludeOwnerId }).then((list) => {
+    void listPublicGhostDecks(viewerLevel, { excludeOwnerId }).then((result) => {
       if (cancelled) return;
-      setGhosts(list);
-      setLoading(false);
-    }).catch((error: unknown) => {
-      if (cancelled) return;
-      setLoadError(
-        error instanceof Error ? error.message : '一覧の取得に失敗しました',
-      );
+      if (result.ok) {
+        setGhosts(result.decks);
+        const empty = getPublicGhostDeckListEmptyMessage(result);
+        setEmptyTitle(empty.title);
+        setEmptyHint(empty.hint);
+      } else {
+        setGhosts([]);
+        const empty = getPublicGhostDeckListEmptyMessage(result);
+        setEmptyTitle(empty.title);
+        setEmptyHint(empty.hint);
+      }
       setLoading(false);
     });
     return () => {
@@ -94,9 +99,9 @@ export function OfflinePvpDeckListScreen({
         </div>
       ) : ghosts.length === 0 ? (
         <div className="records-history-empty">
-          <p className="muted">公開デッキがありません</p>
-          {loadError && (
-            <p className="muted records-history-empty-hint">{loadError}</p>
+          <p className="muted">{emptyTitle}</p>
+          {emptyHint && (
+            <p className="muted records-history-empty-hint">{emptyHint}</p>
           )}
         </div>
       ) : (

@@ -14,7 +14,7 @@ export function isSupabaseConfigured(): boolean {
 
 let client: SupabaseClient | null = null;
 
-/** 未設定時は null（シード一覧のみで動作） */
+/** 未設定時は null（公開デッキ一覧は空） */
 export function getSupabaseClient(): SupabaseClient | null {
   if (!isSupabaseConfigured()) return null;
   if (!client) {

@@ -9,9 +9,9 @@ export interface PublicGhostDeck {
   authorLevel: number;
   /** ちょうど5枚 */
   deck: Card[];
-  /** 任意。シードやサーバーの公開日時 */
+  /** 任意。サーバーの公開日時 */
   publishedAt?: string;
-  /** リモート所有者（シードは無し）。一覧から自分を除外するのに使用 */
+  /** リモート所有者。一覧から自分を除外するのに使用 */
   ownerId?: string;
 }
 
