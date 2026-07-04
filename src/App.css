@@ -3907,7 +3907,19 @@ button.battle-hub-deck-icon.is-move-target {
   border: 1px solid #cbd5e1;
   border-radius: 0.45rem;
   padding: 0.45rem 0.55rem;
-  font-size: 0.85rem;
+  /* iOS は 16px 未満の input フォーカスで画面を拡大する */
+  font-size: 16px;
+}
+
+/* 設定画面の他の入力欄も同様（開発メニュー等） */
+.screen-settings input[type='text'],
+.screen-settings input[type='email'],
+.screen-settings input[type='number'],
+.screen-settings input[type='search'],
+.screen-settings input:not([type]),
+.screen-settings select,
+.screen-settings textarea {
+  font-size: 16px;
 }
 
 .settings-account-actions {

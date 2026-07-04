@@ -514,14 +514,22 @@ src/
 | 開発（DEV のみ） | レベル/通貨/スロット/サブスク切替・所持品・お絵描き解放・カード操作 等 |
 | テスト指標 | **課金額累計** — `shopPurchase.mockLifetimeSpendYen`（円建てモック購入のみ）。**広告視聴回数** — `adState.mockAdsWatchedTotal`（`MockRewardAdModal` 視聴完了）。**本番リリース前に UI 削除予定** |
 
-**アカウント連携（実装済みの範囲）**: メール確認コードを**アプリ内入力**（`verifyEmailOtp`）で連携完了し、端末進行をクラウドへ同期（`player_saves`）。ホーム画面 PWA ではメール内リンクを開かない。詳細は [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)。
+**アカウント連携（実装済みの範囲）** — 詳細は [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)。
 
-**将来実装（リリース前）**: 次はストア／本番公開に近くなってから着手する（同ドキュメントの「将来実装」表と同一）。
+| 項目 | 内容 |
+|------|------|
+| 完了手段 | `signInWithOtp` でコード送信 → **アプリ内**で `verifyEmailOtp`（ホーム画面 PWA 対応。メール内リンクは開かない） |
+| 連携 / ログイン | 「この端末を連携」= 新規登録可。「ログイン（復元用）」= 既存 `auth.users` 用。登録済みメールで連携を押すとログイン送信へ自動切替 |
+| 同期 | 連携済みのみ。時刻比較＋**クラウドに進行が無いときは端末をアップロード**（空アカウントで端末データを消さない） |
+| 連携を解除 | 端末の表示・セッションのみ解除。`auth.users` / `player_saves` は残る。同じメールは再度「ログイン」 |
+| auth `user_id` | 確認後はメールユーザー側（匿名 ID 固定は不採用） |
+
+**将来実装（リリース前）**: ストア／本番公開に近くなってから着手（[SUPABASE_SETUP 将来実装](./SUPABASE_SETUP.md) と同一）。
 
 | 項目 | 内容 |
 |------|------|
 | アカウント削除 | クラウド上のユーザーとセーブを削除する導線（「連携を解除」とは別） |
-| Sign in with Apple / Google | メール以外の本ログイン。匿名 ID への link を維持 |
+| Sign in with Apple / Google | メール以外の本ログイン（可能なら匿名への `linkIdentity`） |
 | 日本語メール／独自 SMTP | 確認メールの日本語化（必要に応じて） |
 
 ---
@@ -1565,7 +1573,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | 54 | マッチング UI | 通常 CPU: 2〜4秒探索 → **5秒** reveal（3列ガイド: 完了ラベル / カウントダウン / キャンセル）。履歴再戦は探索スキップ（§7.0 / §11.4） |
 | 55 | ヘルプ | バトルハブ/エディタ/バトル履歴 ? モーダル・マイデッキ初回案内（§4.9） |
 | 61 | 設定画面 | アカウント／戦績／**サブスク・課金**（§4.11） |
-| 70 | アカウント連携 | メール確認コードをアプリ内入力（PWA 対応）・端末1メール固定・`player_saves` 自動同期。リリース前: 削除・Apple/Google（SUPABASE_SETUP） |
+| 70 | アカウント連携 | `signInWithOtp`＋アプリ内 OTP（PWA）。空クラウドでは端末優先。連携解除≠アカウント削除。リリース前: 削除・Apple/Google（SUPABASE_SETUP） |
 | 71 | 戦力補正 | オフライン対人・履歴再戦は出撃デッキ戦力へ BP 比率スケール（`prepareHistoryOpponentDeck`。レベル補正から変更） |
 | 56 | SE 仕様 | [SFX_SPEC.md](./SFX_SPEC.md) v1（9種・未実装） |
 | 57 | カードノート | プレミアム編集・全員閲覧。全角100文字（ECONOMY §8.5） |
@@ -1586,6 +1594,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.31 | 2026-07-04 | §4.11 連携=OTP送信・空クラウド保護・解除と削除の区別を明記。決定履歴 #70 改訂 |
 | 2.30 | 2026-07-04 | §4.11 アカウント連携を確認コード入力（PWA）に更新。決定履歴 #70 改訂 |
 | 2.29 | 2026-07-04 | §1.2/§1.3/§4.11 アカウント連携・戦績・戦力補正を現状反映。決定履歴 #70〜71。将来実装（削除・Apple/Google）は SUPABASE_SETUP |
 | 2.28 | 2026-07-04 | オフライン対人実装仕様 [OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md) を追加参照 |

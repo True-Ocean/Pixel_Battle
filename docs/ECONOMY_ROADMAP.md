@@ -116,7 +116,7 @@
 
 | 項目 | ステータス |
 |------|------------|
-| メール確認コード連携（アプリ内入力・PWA 対応）・端末1メール固定・自動クラウド同期（`player_saves`） | **実装済み**（[SUPABASE_SETUP](./SUPABASE_SETUP.md) / [PROTOTYPE §4.11](./PROTOTYPE_DEVELOPMENT_SPEC.md#411-設定画面)） |
+| メール OTP（アプリ内入力・PWA）・空クラウドでは端末優先・端末1メール固定・自動同期（`player_saves`）。連携解除は端末のみ | **実装済み**（[SUPABASE_SETUP](./SUPABASE_SETUP.md) / [PROTOTYPE §4.11](./PROTOTYPE_DEVELOPMENT_SPEC.md#411-設定画面)） |
 | アカウント削除・Sign in with Apple / Google・日本語メール／独自 SMTP | **リリース前**（同ドキュメント「将来実装」） |
 
 ---
