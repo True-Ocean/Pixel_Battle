@@ -386,7 +386,7 @@ function AccountSection({
     <SettingsSection title="アカウント" compact>
       <div className="settings-account-form">
         <label className="settings-account-label" htmlFor="settings-username">
-          ユーザー名
+          ユーザー名（{USERNAME_MAX_LENGTH}文字以内）
         </label>
         <div className="settings-account-username-row">
           <input
@@ -402,9 +402,6 @@ function AccountSection({
               if (usernameError) setUsernameError(null);
               if (usernameNotice) setUsernameNotice(null);
             }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') handleUsernameSave();
-            }}
           />
           <button
             type="button"
@@ -415,9 +412,6 @@ function AccountSection({
             変更
           </button>
         </div>
-        <p className="settings-section-note muted">
-          {USERNAME_MAX_LENGTH} 文字以内
-        </p>
         {usernameNotice && (
           <p className="settings-account-notice" role="status">
             {usernameNotice}
