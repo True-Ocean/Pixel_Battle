@@ -358,14 +358,35 @@ function AccountSection({
     setNotice(null);
     setError(null);
     try {
-      const result =
+      let result =
         purpose === 'link'
           ? await linkEmailToCurrentUser(emailInput)
           : await signInWithEmailMagicLink(emailInput);
+      let resolvedPurpose = purpose;
+
+      // 以前 Safari 等で認証だけ完了している場合、連携ではなくログインへ切り替える
+      if (
+        purpose === 'link' &&
+        result.ok === false &&
+        result.reason === 'email_already_registered'
+      ) {
+        const loginResult = await signInWithEmailMagicLink(emailInput);
+        if (loginResult.ok === true) {
+          result = {
+            ok: true,
+            message:
+              'このメールは既に認証登録済みです（連携解除してもクラウド上には残ります）。ログイン用の確認コードを送信しました。下の欄に入力してください。',
+          };
+          resolvedPurpose = 'login';
+        } else {
+          result = loginResult;
+        }
+      }
+
       if (result.ok === true) {
         setPendingOtp({
           email: normalizeEmailInput(emailInput),
-          purpose,
+          purpose: resolvedPurpose,
         });
         setOtpInput('');
         setNotice(result.message);
@@ -599,7 +620,7 @@ function AccountSection({
                       </button>
                     </div>
                     <p className="settings-section-note muted">
-                      別のメールに変える場合は「連携を解除」してから、改めて連携してください。ログアウトだけではメールは変わりません。
+                      「連携を解除」は端末の表示を外すだけで、クラウド上の認証アカウントは残ります。同じメールで再び使うときは「ログイン（復元用）」です。別のメールにする場合も、先に解除してから新しいメールで連携してください。
                     </p>
                   </>
                 ) : pendingOtp ? (
@@ -669,7 +690,7 @@ function AccountSection({
                     {deviceLinkedEmail != null ? (
                       <p className="settings-section-note muted">
                         この端末は {deviceLinkedEmail}{' '}
-                        と連携済みです。同じメールでログインするか、「連携を解除」してから別のメールを登録できます。
+                        の連携記録があります。同じメールで使う場合は「ログイン（復元用）」を押してください。「この端末を連携」は未登録メール用です。別メールにする場合は「連携を解除」後に新しいメールで連携してください。
                       </p>
                     ) : (
                       <p className="settings-section-note muted">

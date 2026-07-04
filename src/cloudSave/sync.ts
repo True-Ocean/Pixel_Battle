@@ -4,6 +4,7 @@ import type { SaveData } from '../types';
 import {
   ensureLocalClientUpdatedAt,
   readLocalClientUpdatedAt,
+  touchLocalClientUpdatedAt,
   writeLocalClientUpdatedAt,
 } from './clientUpdatedAt';
 import { fetchPlayerSave, upsertPlayerSave } from './playerSave';
@@ -44,7 +45,7 @@ export function cancelScheduledCloudSaveUpload(): void {
   pendingSave = null;
 }
 
-/** ローカルとクラウドのどちらを採用するか（純粋関数） */
+/** ローカルとクラウドのどちらを採用するか（時刻のみ・純粋関数） */
 export function pickSyncDirection(
   localAt: string,
   cloudAt: string | null,
@@ -57,6 +58,43 @@ export function pickSyncDirection(
   if (cloudTime > localTime) return 'download';
   if (localTime > cloudTime) return 'upload';
   return 'noop';
+}
+
+/** 進行データがあるか（空クラウドでローカルを潰さない判定用） */
+export function hasPlayableProgress(save: SaveData): boolean {
+  const user = save.user;
+  if (user != null) {
+    if (user.level > 1 || user.exp > 0) return true;
+    const wins =
+      (user.battleWins ?? 0) +
+      (user.cpuBattleWins ?? 0) +
+      (user.offlinePvpBattleWins ?? 0);
+    if (wins > 0) return true;
+  }
+  const deckCards =
+    save.decks?.flat().filter((card): card is NonNullable<typeof card> => card != null) ??
+    [];
+  if (deckCards.length > 0) return true;
+  if ((save.memoryAlbum?.cards?.length ?? 0) > 0) return true;
+  return false;
+}
+
+/**
+ * 時刻に加え、クラウドが実質空ならローカルを優先する。
+ * 「認証だけある空アカウントでログイン → 空が復元されて消える」を防ぐ。
+ */
+export function resolveSyncDirection(options: {
+  localAt: string;
+  cloudAt: string | null;
+  localHasProgress: boolean;
+  cloudHasProgress: boolean;
+}): SyncDirection {
+  const { localAt, cloudAt, localHasProgress, cloudHasProgress } = options;
+  if (!cloudHasProgress) {
+    return localHasProgress || cloudAt == null ? 'upload' : 'noop';
+  }
+  if (!localHasProgress) return 'download';
+  return pickSyncDirection(localAt, cloudAt);
 }
 
 async function uploadSave(
@@ -96,7 +134,13 @@ export async function reconcileCloudSave(
     }
 
     const cloudAt = fetched.data?.clientUpdatedAt ?? null;
-    const direction = pickSyncDirection(localAt, cloudAt);
+    const cloudSave = fetched.data?.save;
+    const direction = resolveSyncDirection({
+      localAt,
+      cloudAt,
+      localHasProgress: hasPlayableProgress(localSave),
+      cloudHasProgress: cloudSave != null && hasPlayableProgress(cloudSave),
+    });
 
     if (direction === 'download' && fetched.data) {
       writeLocalClientUpdatedAt(fetched.data.clientUpdatedAt);
@@ -110,7 +154,11 @@ export async function reconcileCloudSave(
     }
 
     if (direction === 'upload') {
-      return uploadSave(localSave, localAt);
+      // 空クラウドを上書きするときはローカルを新しい扱いにする
+      const uploadAt = hasPlayableProgress(localSave)
+        ? touchLocalClientUpdatedAt()
+        : localAt;
+      return uploadSave(localSave, uploadAt);
     }
 
     lastCloudSyncAt = new Date().toISOString();

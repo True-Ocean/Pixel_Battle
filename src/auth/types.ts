@@ -8,7 +8,8 @@ export type AuthFailReason =
   | 'no_session'
   | 'rate_limited'
   | 'device_email_locked'
-  | 'invalid_otp';
+  | 'invalid_otp'
+  | 'email_already_registered';
 
 /** メール確認コードの用途 */
 export type EmailAuthPurpose = 'link' | 'login';

@@ -1,5 +1,4 @@
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase/client';
-import { ensureAnonymousUserId } from './anonymous';
 import {
   assertEmailAllowedOnDevice,
   clearDeviceLinkedEmail,
@@ -24,6 +23,17 @@ export function isValidEmail(email: string): boolean {
   return EMAIL_RE.test(normalizeEmailInput(email));
 }
 
+function isEmailAlreadyRegisteredMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('already been registered') ||
+    lower.includes('already registered') ||
+    lower.includes('user already registered') ||
+    lower.includes('email address is already') ||
+    lower.includes('already exists')
+  );
+}
+
 /** Supabase のエラー文言をユーザー向けメッセージに変換する */
 export function formatAuthError(message: string): AuthActionResult {
   const text = message.trim() || '認証に失敗しました';
@@ -38,6 +48,14 @@ export function formatAuthError(message: string): AuthActionResult {
       reason: 'rate_limited',
       error:
         'メールの送信回数上限に達しました。数分〜1時間ほど待ってから、もう一度お試しください。',
+    };
+  }
+  if (isEmailAlreadyRegisteredMessage(text)) {
+    return {
+      ok: false,
+      reason: 'email_already_registered',
+      error:
+        'このメールは既に認証登録済みです。「この端末を連携」ではなく「ログイン（復元用）」を使ってください。連携解除は端末の表示を外すだけで、クラウド上のアカウントは消えません。',
     };
   }
   return {
@@ -55,9 +73,13 @@ const OTP_SENT_MESSAGE =
   '確認コードをメールで送信しました。下の欄にコードを入力してください（メール内のリンクは開かなくて大丈夫です）。';
 
 /**
- * 現在のセッション（無ければ匿名を作成）にメールを紐づける準備。
- * user_id は維持され、確認コード付きメールが送られる。
+ * メール連携の準備（確認コード付きメールを送る）。
+ * updateUser のメール変更通知はリンクのみでコードが無いため、
+ * OTP メールになる signInWithOtp を使う（PWA でコード入力するため）。
  * 完了には verifyEmailOtp(..., 'link') が必要。
+ *
+ * 注意: 確認後の auth user_id は匿名 ID からメールユーザーへ切り替わる。
+ * 端末のセーブは localStorage に残り、同期でクラウドへ上がる。
  */
 export async function linkEmailToCurrentUser(
   emailInput: string,
@@ -96,15 +118,6 @@ export async function linkEmailToCurrentUser(
     };
   }
 
-  const userId = await ensureAnonymousUserId();
-  if (!userId) {
-    return {
-      ok: false,
-      reason: 'no_session',
-      error: 'セッションを開始できませんでした',
-    };
-  }
-
   const user = await getAuthUser();
   if (isEmailLinkedUser(user)) {
     const linkedEmail = resolveAccountEmail(user);
@@ -116,10 +129,14 @@ export async function linkEmailToCurrentUser(
     };
   }
 
-  const { error } = await client.auth.updateUser(
-    { email },
-    { emailRedirectTo: getAuthRedirectUrl() },
-  );
+  // Magic Link / OTP テンプレート（{{ .Token }} あり）。Change Email テンプレートはコード無し。
+  const { error } = await client.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: getAuthRedirectUrl(),
+      shouldCreateUser: true,
+    },
+  });
   if (error) return authErrorResult(error);
 
   return {
@@ -237,11 +254,9 @@ export async function verifyEmailOtp(
     };
   }
 
-  const primaryType = purpose === 'link' ? 'email_change' : 'email';
-  const fallbackTypes =
-    purpose === 'link'
-      ? (['email', 'magiclink'] as const)
-      : (['magiclink', 'email_change'] as const);
+  // link / login とも signInWithOtp 由来のコードなので email / magiclink を優先
+  const primaryType = 'email';
+  const fallbackTypes = ['magiclink', 'email_change'] as const;
 
   let lastError: { message?: string } | null = null;
   const { data, error } = await client.auth.verifyOtp({
@@ -305,28 +320,36 @@ export async function signOutAccount(): Promise<AuthActionResult> {
   };
 }
 
+const UNLINK_SUCCESS_MESSAGE =
+  'この端末の連携表示を解除しました。同じメールで再び使う場合は「ログイン（復元用）」を押してください（クラウド上の認証アカウントは残っています。「この端末を連携」は新規登録用です）。';
+
 /**
- * この端末のメール連携を解除する（ログアウト＋端末側の連携記録を削除）。
- * クラウド上のアカウント自体は削除しない。
+ * この端末のメール連携表示を解除する（ログアウト＋端末側の連携記録を削除）。
+ * クラウド上の auth.users / player_saves は削除しない。
+ * 同じメールを再度使うには「ログイン（復元用）」が必要。
  */
 export async function unlinkAccountFromDevice(): Promise<AuthActionResult> {
   const client = getSupabaseClient();
+  // 端末側の記録は必ず消す（signOut 失敗時も「解除できていない」状態を残さない）
+  clearDeviceLinkedEmail();
+
   if (!isSupabaseConfigured() || !client) {
-    clearDeviceLinkedEmail();
     return {
       ok: true,
-      message:
-        'この端末の連携を解除しました。別のメールアドレスで改めて連携できます。',
+      message: UNLINK_SUCCESS_MESSAGE,
     };
   }
 
   const { error } = await client.auth.signOut();
-  if (error) return authErrorResult(error);
-  clearDeviceLinkedEmail();
+  if (error) {
+    return {
+      ok: true,
+      message: `${UNLINK_SUCCESS_MESSAGE}（ログアウト処理で問題がありましたが、端末の連携記録は削除済みです。必要ならアプリを再読み込みしてください。）`,
+    };
+  }
   return {
     ok: true,
-    message:
-      'この端末の連携を解除しました。別のメールアドレスで改めて連携できます。',
+    message: UNLINK_SUCCESS_MESSAGE,
   };
 }
 

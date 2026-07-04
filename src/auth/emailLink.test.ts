@@ -60,6 +60,18 @@ describe('formatAuthError', () => {
       expect(result.error).toContain('送信回数上限');
     }
   });
+
+  it('maps already-registered email to a Japanese guidance message', () => {
+    const result = formatAuthError(
+      'A user with this email address has already been registered',
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('email_already_registered');
+      expect(result.error).toContain('認証登録済み');
+      expect(result.error).toContain('ログイン');
+    }
+  });
 });
 
 describe('verifyEmailOtp', () => {
