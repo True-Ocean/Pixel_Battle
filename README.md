@@ -98,8 +98,8 @@ docs/               # 仕様書 / specifications
 | Level-up reward | **100 px + 10 jewels** / level |
 | 属性リタッチ | **300 px** / Attribute retouch **300 px** |
 | 属性セレクト | **💎100** / Attribute select **100 jewels** |
-| リネーム | **200 px/回**（名前変更保存のたび） |
-| Rename | **200 px** per save when the name changes |
+| リネーム | **200 px/回**（プレミアムは無料） |
+| Rename | **200 px** per save（free for Premium） |
 | 復活 | 塗り×3×レア×★（`calcReviveCost`）、上限3回 |
 | Revive | painted×3×rarity×stars (`calcReviveCost`), cap 3 |
 
@@ -121,8 +121,9 @@ Specs: [`PROTOTYPE §4.8`](docs/PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション
 ### その他 / Other
 
 - Dock: マイデッキ / **ミッション** / バトル / ショップ / 所持品  
-- BGM（設定で ON/OFF）、カードノート（プレミアム編集）  
-- サブスク: ライト / プレミアム（プロトタイプ課金 UI）  
+- BGM（設定で ON/OFF）、カードノート（プレミアム編集）、プレミアムはリネーム無料  
+- サブスク: ライト / プレミアム（月次一括受取・プロトタイプ課金 UI）  
+- キャンバス拡大: フィット / 左上 / 中央の配置選択  
 
 ---
 
