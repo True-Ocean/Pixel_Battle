@@ -19,6 +19,33 @@ export function isValidEmail(email: string): boolean {
   return EMAIL_RE.test(normalizeEmailInput(email));
 }
 
+/** Supabase のエラー文言をユーザー向けメッセージに変換する */
+export function formatAuthError(message: string): AuthActionResult {
+  const text = message.trim() || '認証に失敗しました';
+  const lower = text.toLowerCase();
+  if (
+    lower.includes('rate limit') ||
+    lower.includes('email rate limit') ||
+    lower.includes('over_email_send_rate_limit')
+  ) {
+    return {
+      ok: false,
+      reason: 'rate_limited',
+      error:
+        'メールの送信回数上限に達しました。数分〜1時間ほど待ってから、もう一度お試しください。',
+    };
+  }
+  return {
+    ok: false,
+    reason: 'auth_error',
+    error: text,
+  };
+}
+
+function authErrorResult(error: { message?: string } | null | undefined): AuthActionResult {
+  return formatAuthError(error?.message?.trim() || '認証に失敗しました');
+}
+
 /**
  * 現在のセッション（無ければ匿名を作成）にメールを紐づける。
  * user_id は維持され、確認用マジックリンクが送られる。
@@ -73,13 +100,7 @@ export async function linkEmailToCurrentUser(
     { email },
     { emailRedirectTo: getAuthRedirectUrl() },
   );
-  if (error) {
-    return {
-      ok: false,
-      reason: 'auth_error',
-      error: error.message,
-    };
-  }
+  if (error) return authErrorResult(error);
 
   return {
     ok: true,
@@ -126,13 +147,7 @@ export async function signInWithEmailMagicLink(
       shouldCreateUser: false,
     },
   });
-  if (error) {
-    return {
-      ok: false,
-      reason: 'auth_error',
-      error: error.message,
-    };
-  }
+  if (error) return authErrorResult(error);
 
   return {
     ok: true,
@@ -159,13 +174,7 @@ export async function signOutAccount(): Promise<AuthActionResult> {
   }
 
   const { error } = await client.auth.signOut();
-  if (error) {
-    return {
-      ok: false,
-      reason: 'auth_error',
-      error: error.message,
-    };
-  }
+  if (error) return authErrorResult(error);
 
   return {
     ok: true,

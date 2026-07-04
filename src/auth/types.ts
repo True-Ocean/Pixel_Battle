@@ -5,7 +5,8 @@ export type AuthFailReason =
   | 'invalid_email'
   | 'auth_error'
   | 'already_linked'
-  | 'no_session';
+  | 'no_session'
+  | 'rate_limited';
 
 export type AuthActionResult =
   | { ok: true; message: string }

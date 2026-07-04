@@ -4,6 +4,7 @@ import {
   normalizeEmailInput,
   linkEmailToCurrentUser,
   signInWithEmailMagicLink,
+  formatAuthError,
 } from './emailLink';
 import { isAnonymousUser, isEmailLinkedUser, resolveAccountEmail } from './session';
 import type { User } from '@supabase/supabase-js';
@@ -46,5 +47,16 @@ describe('linkEmailToCurrentUser / signInWithEmailMagicLink', () => {
     const signedIn = await signInWithEmailMagicLink('bad');
     expect(signedIn.ok).toBe(false);
     if (!signedIn.ok) expect(signedIn.reason).toBe('invalid_email');
+  });
+});
+
+describe('formatAuthError', () => {
+  it('maps email rate limit to a Japanese guidance message', () => {
+    const result = formatAuthError('email rate limit exceeded');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('rate_limited');
+      expect(result.error).toContain('送信回数上限');
+    }
   });
 });

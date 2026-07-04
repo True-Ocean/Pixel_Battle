@@ -307,9 +307,20 @@ function AccountLinkSection() {
     setBusy(true);
     setNotice(null);
     setError(null);
-    const result = await action(emailInput);
-    setBusy(false);
-    applyAuthActionResult(result, setNotice, setError);
+    try {
+      const result = await action(emailInput);
+      applyAuthActionResult(result, setNotice, setError);
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : '処理に失敗しました';
+      setError(
+        message.toLowerCase().includes('rate limit')
+          ? 'メールの送信回数上限に達しました。数分〜1時間ほど待ってから、もう一度お試しください。'
+          : message,
+      );
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (!configured) {
@@ -342,9 +353,18 @@ function AccountLinkSection() {
                   setBusy(true);
                   setNotice(null);
                   setError(null);
-                  const result = await signOutAccount();
-                  setBusy(false);
-                  applyAuthActionResult(result, setNotice, setError);
+                  try {
+                    const result = await signOutAccount();
+                    applyAuthActionResult(result, setNotice, setError);
+                  } catch (caught) {
+                    setError(
+                      caught instanceof Error
+                        ? caught.message
+                        : 'ログアウトに失敗しました',
+                    );
+                  } finally {
+                    setBusy(false);
+                  }
                 })();
               }}
             >
@@ -355,7 +375,7 @@ function AccountLinkSection() {
       ) : (
         <div className="settings-account-form">
           <p className="settings-section-note muted">
-            下のボタンを押すと、認証サービス（Supabase）から入力したアドレス宛に確認用メール（英語）が届きます。メール内のリンクを開くと連携またはログインが完了します。届かないときは迷惑メールフォルダなどを確認してください。
+            下のボタンを押すと、認証サービス（Supabase）から入力したアドレス宛に確認用メール（英語）が届きます。メール内のリンクを開くと連携またはログインが完了します。届かないときは迷惑メールフォルダなどを確認してください。短時間に何度も送ると送信制限にかかることがあります。
           </p>
           <label className="settings-account-label" htmlFor="settings-account-email">
             メールアドレス
