@@ -101,10 +101,18 @@ export interface UserProfile {
   username: string;
   level: number;
   exp: number;
-  /** ユーザーとしてのバトル勝利数 */
+  /** 全モード合計の勝利数（CPU + 対人オフライン） */
   battleWins: number;
-  /** ユーザーとしてのバトル敗北数 */
+  /** 全モード合計の敗北数 */
   battleLosses: number;
+  /** CPU 戦の勝利数 */
+  cpuBattleWins: number;
+  /** CPU 戦の敗北数 */
+  cpuBattleLosses: number;
+  /** 対人戦（オフライン）の勝利数 */
+  offlinePvpBattleWins: number;
+  /** 対人戦（オフライン）の敗北数 */
+  offlinePvpBattleLosses: number;
 }
 
 /** バトル終了時に永続化へ渡す結果 */

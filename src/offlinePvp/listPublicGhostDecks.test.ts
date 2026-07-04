@@ -34,6 +34,8 @@ function stubDeck(
     id,
     authorName: id,
     authorLevel,
+    offlinePvpWins: 0,
+    offlinePvpLosses: 0,
     deck: [
       stubCard(`${id}-0`),
       stubCard(`${id}-1`),

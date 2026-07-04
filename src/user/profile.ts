@@ -126,6 +126,10 @@ export function createInitialProfile(username: string): UserProfile {
     exp: USER_INITIAL_EXP,
     battleWins: 0,
     battleLosses: 0,
+    cpuBattleWins: 0,
+    cpuBattleLosses: 0,
+    offlinePvpBattleWins: 0,
+    offlinePvpBattleLosses: 0,
   };
 }
 
@@ -141,21 +145,66 @@ export function normalizeUserProfile(raw: unknown): UserProfile | null {
       ? Math.floor(candidate.exp)
       : USER_INITIAL_EXP;
   const level = levelFromTotalExp(exp);
-  const battleWins =
+  const legacyWins =
     typeof candidate.battleWins === 'number' && candidate.battleWins >= 0
       ? Math.floor(candidate.battleWins)
       : 0;
-  const battleLosses =
+  const legacyLosses =
     typeof candidate.battleLosses === 'number' && candidate.battleLosses >= 0
       ? Math.floor(candidate.battleLosses)
       : 0;
+  /** 旧セーブはモード別が無いので合計を CPU 戦に寄せる */
+  const hasModeSplit =
+    typeof candidate.cpuBattleWins === 'number' ||
+    typeof candidate.cpuBattleLosses === 'number' ||
+    typeof candidate.offlinePvpBattleWins === 'number' ||
+    typeof candidate.offlinePvpBattleLosses === 'number';
+  const cpuBattleWins =
+    typeof candidate.cpuBattleWins === 'number' && candidate.cpuBattleWins >= 0
+      ? Math.floor(candidate.cpuBattleWins)
+      : hasModeSplit
+        ? 0
+        : legacyWins;
+  const cpuBattleLosses =
+    typeof candidate.cpuBattleLosses === 'number' &&
+    candidate.cpuBattleLosses >= 0
+      ? Math.floor(candidate.cpuBattleLosses)
+      : hasModeSplit
+        ? 0
+        : legacyLosses;
+  const offlinePvpBattleWins =
+    typeof candidate.offlinePvpBattleWins === 'number' &&
+    candidate.offlinePvpBattleWins >= 0
+      ? Math.floor(candidate.offlinePvpBattleWins)
+      : 0;
+  const offlinePvpBattleLosses =
+    typeof candidate.offlinePvpBattleLosses === 'number' &&
+    candidate.offlinePvpBattleLosses >= 0
+      ? Math.floor(candidate.offlinePvpBattleLosses)
+      : 0;
+  const battleWins = cpuBattleWins + offlinePvpBattleWins;
+  const battleLosses = cpuBattleLosses + offlinePvpBattleLosses;
 
-  return { username, level, exp, battleWins, battleLosses };
+  return {
+    username,
+    level,
+    exp,
+    battleWins,
+    battleLosses,
+    cpuBattleWins,
+    cpuBattleLosses,
+    offlinePvpBattleWins,
+    offlinePvpBattleLosses,
+  };
 }
+
+export type BattleRecordMode = 'cpu' | 'offlinePvp';
 
 export interface BattleExpInput {
   winner: 'player' | 'cpu';
   opponentDeckPower: number;
+  /** 省略時は CPU 戦として記録 */
+  mode?: BattleRecordMode;
 }
 
 export function calcBattleExpGainForUser(
@@ -252,11 +301,29 @@ export function recordUserBattleOutcome(
     applyLevelUpEconomyRewards(economy, levelsGained);
   const { inventory: nextInventory, universalGranted, talismanGranted } =
     applyLevelUpInventoryRewards(inventory, levelsGained);
+  const mode = input.mode ?? 'cpu';
+  const winDelta = input.winner === 'player' ? 1 : 0;
+  const lossDelta = input.winner === 'cpu' ? 1 : 0;
+  const cpuWins = withExp.cpuBattleWins ?? 0;
+  const cpuLosses = withExp.cpuBattleLosses ?? 0;
+  const pvpWins = withExp.offlinePvpBattleWins ?? 0;
+  const pvpLosses = withExp.offlinePvpBattleLosses ?? 0;
   return {
     user: {
       ...withExp,
-      battleWins: withExp.battleWins + (input.winner === 'player' ? 1 : 0),
-      battleLosses: withExp.battleLosses + (input.winner === 'cpu' ? 1 : 0),
+      cpuBattleWins: cpuWins + (mode === 'cpu' ? winDelta : 0),
+      cpuBattleLosses: cpuLosses + (mode === 'cpu' ? lossDelta : 0),
+      offlinePvpBattleWins: pvpWins + (mode === 'offlinePvp' ? winDelta : 0),
+      offlinePvpBattleLosses:
+        pvpLosses + (mode === 'offlinePvp' ? lossDelta : 0),
+      battleWins:
+        cpuWins +
+        pvpWins +
+        winDelta,
+      battleLosses:
+        cpuLosses +
+        pvpLosses +
+        lossDelta,
     },
     economy: nextEconomy,
     inventory: nextInventory,

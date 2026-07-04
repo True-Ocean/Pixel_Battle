@@ -43,6 +43,10 @@ describe('createInitialProfile', () => {
       exp: USER_INITIAL_EXP,
       battleWins: 0,
       battleLosses: 0,
+      cpuBattleWins: 0,
+      cpuBattleLosses: 0,
+      offlinePvpBattleWins: 0,
+      offlinePvpBattleLosses: 0,
     });
   });
 });
@@ -122,6 +126,10 @@ describe('normalizeUserProfile', () => {
       exp: totalExpForLevel(3),
       battleWins: 0,
       battleLosses: 0,
+      cpuBattleWins: 0,
+      cpuBattleLosses: 0,
+      offlinePvpBattleWins: 0,
+      offlinePvpBattleLosses: 0,
     });
   });
 });
@@ -136,6 +144,10 @@ describe('isProfileComplete', () => {
         exp: 0,
         battleWins: 0,
         battleLosses: 0,
+        cpuBattleWins: 0,
+        cpuBattleLosses: 0,
+        offlinePvpBattleWins: 0,
+        offlinePvpBattleLosses: 0,
       }),
     ).toBe(true);
   });
@@ -148,6 +160,10 @@ describe('grantBattleExp', () => {
     exp: 5,
     battleWins: 0,
     battleLosses: 0,
+    cpuBattleWins: 0,
+    cpuBattleLosses: 0,
+    offlinePvpBattleWins: 0,
+    offlinePvpBattleLosses: 0,
   };
 
   it('adds exp from opponent deck power on victory', () => {
@@ -179,6 +195,10 @@ describe('recordUserBattleOutcome', () => {
     exp: 5,
     battleWins: 2,
     battleLosses: 1,
+    cpuBattleWins: 2,
+    cpuBattleLosses: 1,
+    offlinePvpBattleWins: 0,
+    offlinePvpBattleLosses: 0,
   };
   const economy = createInitialEconomy();
   const inventory = createInitialInventory();
@@ -194,6 +214,8 @@ describe('recordUserBattleOutcome', () => {
       level: levelFromTotalExp(25),
       battleWins: 3,
       battleLosses: 1,
+      cpuBattleWins: 3,
+      cpuBattleLosses: 1,
     });
     expect(result.levelsGained.length).toBeGreaterThan(0);
     expect(result.pixelsGranted).toBe(
@@ -243,11 +265,42 @@ describe('recordUserBattleOutcome', () => {
   });
 
   it('increments battle losses on defeat', () => {
-    expect(
-      recordUserBattleOutcome(base, economy, inventory, {
-        winner: 'cpu',
-        opponentDeckPower: 1000,
-      }).user.battleLosses,
-    ).toBe(2);
+    const user = recordUserBattleOutcome(base, economy, inventory, {
+      winner: 'cpu',
+      opponentDeckPower: 1000,
+    }).user;
+    expect(user.battleLosses).toBe(2);
+    expect(user.cpuBattleLosses).toBe(2);
+    expect(user.offlinePvpBattleLosses).toBe(0);
+  });
+
+  it('records offline PvP wins separately from CPU', () => {
+    const user = recordUserBattleOutcome(base, economy, inventory, {
+      winner: 'player',
+      opponentDeckPower: 1000,
+      mode: 'offlinePvp',
+    }).user;
+    expect(user.battleWins).toBe(3);
+    expect(user.cpuBattleWins).toBe(2);
+    expect(user.offlinePvpBattleWins).toBe(1);
+  });
+});
+
+describe('normalizeUserProfile battle records', () => {
+  it('migrates legacy totals into CPU records', () => {
+    const profile = normalizeUserProfile({
+      username: 'legacy',
+      exp: 0,
+      battleWins: 5,
+      battleLosses: 2,
+    });
+    expect(profile).toMatchObject({
+      battleWins: 5,
+      battleLosses: 2,
+      cpuBattleWins: 5,
+      cpuBattleLosses: 2,
+      offlinePvpBattleWins: 0,
+      offlinePvpBattleLosses: 0,
+    });
   });
 });

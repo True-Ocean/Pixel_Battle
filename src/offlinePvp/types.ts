@@ -7,6 +7,10 @@ export interface PublicGhostDeck {
   authorName: string;
   /** 作者のユーザーレベル（公開時点） */
   authorLevel: number;
+  /** 作者の対人戦（オフライン）勝利数（公開時点） */
+  offlinePvpWins: number;
+  /** 作者の対人戦（オフライン）敗北数（公開時点） */
+  offlinePvpLosses: number;
   /** ちょうど5枚 */
   deck: Card[];
   /** 任意。サーバーの公開日時 */
@@ -21,6 +25,8 @@ export interface PublicGhostDeckRow {
   slot_index: number;
   author_name: string;
   author_level: number;
+  offline_pvp_wins: number;
+  offline_pvp_losses: number;
   deck: Card[];
   published_at: string;
   updated_at: string;

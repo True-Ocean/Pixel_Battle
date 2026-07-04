@@ -8,6 +8,8 @@ create table if not exists public.public_ghost_decks (
   slot_index integer not null check (slot_index >= 0 and slot_index < 5),
   author_name text not null,
   author_level integer not null check (author_level >= 1),
+  offline_pvp_wins integer not null default 0 check (offline_pvp_wins >= 0),
+  offline_pvp_losses integer not null default 0 check (offline_pvp_losses >= 0),
   deck jsonb not null,
   published_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

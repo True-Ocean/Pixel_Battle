@@ -550,8 +550,12 @@ export function SettingsScreen({
         <SettingsSection title="アカウント" compact>
           <SettingsRow label="ユーザー名" value={user.username} />
           <SettingsRow
-            label="戦績"
-            value={`${user.battleWins}勝 ${user.battleLosses}敗`}
+            label="CPU戦"
+            value={`${user.cpuBattleWins}勝 ${user.cpuBattleLosses}敗`}
+          />
+          <SettingsRow
+            label="対人戦（オフライン）"
+            value={`${user.offlinePvpBattleWins}勝 ${user.offlinePvpBattleLosses}敗`}
           />
           <SettingsRow label="レベル" value={`Lv.${user.level}`} />
           <div className="settings-progress-wrap">

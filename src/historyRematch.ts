@@ -1,10 +1,25 @@
-import { rescaleDeckBp } from './card';
+import { computeDeckPower } from './card';
 import type { Card } from './types';
 
-/** 履歴の相手デッキ構成を維持し、BP のみ現在のユーザーレベルで再計算する */
+/**
+ * 履歴再戦・オフライン対人用。
+ * 相手デッキの構成（絵・属性・レア等）は維持し、BP のみプレイヤー出撃デッキの戦力に合わせて比率スケールする。
+ * 戦力の厳密一致は求めない（丸め・属性構成差は許容）。
+ */
 export function prepareHistoryOpponentDeck(
   opponentDeck: Card[],
-  userLevel: number,
+  playerDeck: readonly Card[],
 ): Card[] {
-  return rescaleDeckBp(structuredClone(opponentDeck), userLevel);
+  const deck = structuredClone(opponentDeck) as Card[];
+  const targetPower = computeDeckPower(playerDeck);
+  const currentPower = computeDeckPower(deck);
+  if (currentPower <= 0 || targetPower <= 0 || currentPower === targetPower) {
+    return deck;
+  }
+
+  const ratio = targetPower / currentPower;
+  return deck.map((card) => ({
+    ...card,
+    bp: Math.max(1, Math.round(card.bp * ratio)),
+  }));
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import { computeDeckPower } from '../card';
 import { getRarityMeta } from '../config/rarity';
 import {
   getPublicGhostDeckListEmptyMessage,
@@ -11,6 +12,8 @@ import { OfflinePvpDeckDetailOverlay } from './OfflinePvpDeckDetailOverlay';
 
 interface OfflinePvpDeckListScreenProps {
   viewerLevel: number;
+  /** 出撃デッキ確定前の参考戦力。相手戦力と差があるとき「戦力補正あり」を表示 */
+  viewerDeckPower: number | null;
   excludeOwnerId?: string | null;
   canBattle: boolean;
   onBack: () => void;
@@ -43,6 +46,7 @@ function DeckThumbnails({ cards }: { cards: Card[] }) {
 
 export function OfflinePvpDeckListScreen({
   viewerLevel,
+  viewerDeckPower,
   excludeOwnerId = null,
   canBattle,
   onBack,
@@ -89,7 +93,7 @@ export function OfflinePvpDeckListScreen({
         </button>
         <h1 className="offline-pvp-list-title">対人戦（オフライン）</h1>
         <p className="offline-pvp-list-hint muted">
-          対戦したい公開デッキをタップして下さい。
+          対戦したいデッキをタップ
         </p>
       </header>
 
@@ -107,12 +111,14 @@ export function OfflinePvpDeckListScreen({
       ) : (
         <ul className="records-history-list offline-pvp-list">
           {ghosts.map((ghost) => {
-            const levelDiffers = ghost.authorLevel !== viewerLevel;
+            const deckPower = computeDeckPower(ghost.deck);
+            const powerDiffers =
+              viewerDeckPower != null && deckPower !== viewerDeckPower;
             return (
               <li key={ghost.id}>
                 <button
                   type="button"
-                  className="records-history-item"
+                  className="records-history-item offline-pvp-list-item"
                   onClick={() => setSelected(ghost)}
                 >
                   <div className="records-history-item-main">
@@ -124,11 +130,16 @@ export function OfflinePvpDeckListScreen({
                         Lv.{ghost.authorLevel}
                       </span>
                     </span>
-                    {levelDiffers && (
-                      <span className="offline-pvp-rescale-badge">
-                        戦力補正あり
+                    <span className="offline-pvp-list-power-row">
+                      <span className="offline-pvp-list-power">
+                        戦力 {deckPower}
                       </span>
-                    )}
+                      {powerDiffers && (
+                        <span className="offline-pvp-rescale-badge">
+                          戦力補正あり
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <DeckThumbnails cards={ghost.deck} />
                 </button>
@@ -141,7 +152,7 @@ export function OfflinePvpDeckListScreen({
       {selected && (
         <OfflinePvpDeckDetailOverlay
           ghost={selected}
-          viewerLevel={viewerLevel}
+          viewerDeckPower={viewerDeckPower}
           canBattle={canBattle}
           onClose={() => setSelected(null)}
           onChallenge={(ghost) => {

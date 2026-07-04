@@ -14,7 +14,12 @@ export {
   resolveDevUserProfileOnLoad,
   validateUsername,
 } from './profile';
-export type { BattleExpInput, BattleOutcomeRecord, DevUserLoadOptions } from './profile';
+export type {
+  BattleExpInput,
+  BattleOutcomeRecord,
+  BattleRecordMode,
+  DevUserLoadOptions,
+} from './profile';
 export {
   addFreePixels,
   addJewels,

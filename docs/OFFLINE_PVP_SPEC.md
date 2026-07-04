@@ -47,7 +47,7 @@
 |------|----------|
 | Supabase 公開デッキプール | （旧）同梱シード — **削除済み** |
 | 公開デッキ一覧から選択して対戦 | 自分のデッキ公開オプトイン UI（v2） |
-| 挑戦側レベルでの BP 補正 | オンライン・フレンド対戦 |
+| 挑戦側デッキ戦力での BP 補正 | オンライン・フレンド対戦 |
 | 通常 CPU 戦と同型の経済（戦利品・Lost・EXP） | 勝利カードのデッキ取り込み・別コレクション |
 | 戦績履歴への追記（作者名表示） | ゴースト作者のリアルロスト |
 | 現行 CPU AI による相手操作 | 作者の行動傾向の再現 |
@@ -59,7 +59,7 @@
 | 方針（ECONOMY §13） | **確定** |
 | 実装 | **v1+G 実装済み**（一覧・通常経済パス・Supabase 公開） |
 | フェーズ G | **実装済み**（Supabase・匿名認証・スロット公開トグル）。同梱シードは **削除済み**。セットアップは [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) |
-| BP 補正の足がかり | `prepareHistoryOpponentDeck` / `rescaleDeckBp` **実装済み** |
+| BP 補正（戦力） | `prepareHistoryOpponentDeck`（出撃デッキ戦力へ比率スケール）**実装済み** |
 
 ---
 
@@ -67,7 +67,7 @@
 
 1. **戦闘エンジンは流用** — `src/game/` の解決ロジック・CPU AI は変更しない（相手側は常に CPU 側フィールドとして扱う）。
 2. **経済は通常 CPU 戦パス** — 履歴再戦の特殊分岐（ロストなし・特殊報酬モーダル等）に乗せない。
-3. **相手デッキだけ差し替え** — 出所は公開プール、バトル直前に BP のみ挑戦側レベルへ補正。
+3. **相手デッキだけ差し替え** — 出所は公開プール、バトル直前に BP のみ挑戦側デッキ戦力へ補正。
 4. **一覧から選ぶ** — 自動マッチのみにしない。絵を見てから対戦する。
 5. **作者データは不変** — 勝敗しても公開スナップショットの元ユーザー所持カードは変わらない。
 6. **公開プールは Supabase のみ** — 同梱シードは採用しない（削除済み）。
@@ -80,7 +80,7 @@
 |------|-------------|-------------------------------|----------|
 | 入口 | バトルハブ「CPU戦」 | バトルハブ「対人戦（オフライン）」 | 戦績 → バトル履歴 |
 | 相手デッキ | `buildBalancedCpuDeck` 生成 | 公開プールから **プレイヤーが選択** | 履歴スナップショット |
-| BP 補正 | 生成時に戦力帯合わせ | `prepareHistoryOpponentDeck`（挑戦側 Lv） | 同左 |
+| BP 補正 | 生成時に戦力帯合わせ | `prepareHistoryOpponentDeck`（挑戦側デッキ戦力） | 同左 |
 | 相手表示名 | `CPU` | **作者名** | `CPU`（履歴当時） |
 | マッチング探索 UI | あり（2〜4秒） | **スキップ**（相手確定済み） | スキップ |
 | reveal カウントダウン | あり（5秒） | **あり**（履歴再戦と同様） | あり |
@@ -193,10 +193,10 @@ interface OfflinePvpFlow {
 ### 5.5 バトル開始時にセットする相手情報
 
 ```ts
-setCpuDeck(prepareHistoryOpponentDeck(ghost.deck, playerLevel));
+setCpuDeck(prepareHistoryOpponentDeck(ghost.deck, playerDeck));
 setCpuOpponent({
   name: ghost.authorName,
-  level: ghost.authorLevel, // 表示用。BP 補正基準は playerLevel
+  level: ghost.authorLevel, // 表示用。BP 補正基準は playerDeck の戦力
 });
 ```
 
@@ -275,8 +275,8 @@ SQL: `supabase/migrations/001_public_ghost_decks.sql`
 | 作者名 | ✅ |
 | 作者 Lv | ✅ |
 | デッキサムネ 5 枚（レア枠色付き可。`BattleHistoryList` 流用） | ✅ |
-| レベル差があるとき「戦力補正あり」等のラベル | ✅（`authorLevel !== viewerLevel` のとき） |
-| デッキ戦力（補正前） | 任意 |
+| デッキ戦力（補正前・`computeDeckPower`） | ✅（ユーザー名の下。詳細モーダルにも表示） |
+| 参考戦力と差があるとき「戦力補正あり」等のラベル | ✅（戦力の右。公開戦力 ≠ 自分の参考デッキ戦力） |
 
 勝敗アイコンは一覧に出さない（未対戦の公開デッキのため）。
 
@@ -290,7 +290,7 @@ SQL: `supabase/migrations/001_public_ghost_decks.sql`
 
 ---
 
-## 8. BP 補正
+## 8. BP 補正（戦力補正）
 
 ### 8.1 適用タイミング
 
@@ -299,28 +299,28 @@ SQL: `supabase/migrations/001_public_ghost_decks.sql`
 ```ts
 import { prepareHistoryOpponentDeck } from '../historyRematch';
 
-const opponentDeck = prepareHistoryOpponentDeck(ghost.deck, playerLevel);
+const opponentDeck = prepareHistoryOpponentDeck(ghost.deck, playerDeck);
 ```
 
-`prepareHistoryOpponentDeck` は既存実装をそのまま使う（内部で `rescaleDeckBp`）。
+`prepareHistoryOpponentDeck` は履歴再戦と共通。相手デッキ全体の BP を同じ比率で伸ばす／縮め、`computeDeckPower` が挑戦側出撃デッキ戦力に**おおむね**寄るようにする（厳密一致は不要）。
 
-### 8.2 基準レベル
+### 8.2 基準
 
-**常に挑戦側（自分）の `user.level`**。作者レベルでは補正しない。
+**常に挑戦側（自分）の出撃デッキ戦力**（`computeDeckPower(playerDeck)`）。作者レベル・公開時戦力そのものでは補正しない。
 
 ### 8.3 揃うもの / 揃わないもの
 
 [ECONOMY §13.2.4](./ECONOMY_SPEC.md#1324-bp-補正確定) に従う。
 
-- 揃う: 戦闘中 BP
-- 揃わない: ピクセル・塗り・色数（戦利品 px）、レア（かけら）、限界突破回数の「育成感」
+- 揃う（おおむね）: デッキ戦力（各カード BP の比率スケール）
+- 揃わない: ピクセル・塗り・色数（戦利品 px）、レア（かけら）、属性構成・相性、限界突破回数の「育成感」
 
 一覧に出すサムネの BP 表示をする場合:
 
-- **一覧・詳細**: 公開時（補正前）の BP を出してよい
+- **一覧・詳細**: 公開時（補正前）の BP・戦力を出してよい
 - **バトル中**: 補正後の BP
 
-履歴再戦ヘルプの「相手カードのBPはあなたのデッキに合わせて調整されます」と同趣旨の一文を、オフライン対人のヘルプまたは一覧注釈に置く。
+詳細注釈: 「相手カードの BP はあなたのデッキ戦力に合わせて調整されます」（履歴再戦ルールモーダルと同趣旨）。
 
 ---
 
@@ -336,7 +336,7 @@ const opponentDeck = prepareHistoryOpponentDeck(ghost.deck, playerLevel);
 2. 自分のデッキを readiness チェック（通常戦と同じ）
 3. `isHistoryRematch = false` / `isOfflinePvp = true`（ref も同期）
 4. `battleStartSnapshotRef` を通常戦と同様にセット（履歴追記・ロスト用）
-5. `setCpuDeck(prepareHistoryOpponentDeck(ghost.deck, level))`
+5. `setCpuDeck(prepareHistoryOpponentDeck(ghost.deck, playerDeck))`
 6. `setCpuOpponent({ name: ghost.authorName, level: ghost.authorLevel })`
 7. 広告カウント: 通常戦と同じ `battleStarts`（§10.3）
 8. `setScreen('battleSetup')`、`enableOpponentMatching={false}`
@@ -436,7 +436,7 @@ const opponentDeck = prepareHistoryOpponentDeck(ghost.deck, playerLevel);
 ### 11.4 ヘルプ
 
 - バトルハブヘルプにオフライン対人の短い説明を追加。
-- 要点: 公開デッキを選んで対戦 / BP は自分のレベルに合わせて調整 / 勝敗の報酬・ロストは CPU 戦と同じ / 相手の絵は本物の公開スナップショット
+- 要点: 公開デッキを選んで対戦 / BP は自分のデッキ戦力に合わせて調整 / 勝敗の報酬・ロストは CPU 戦と同じ / 相手の絵は本物の公開スナップショット
 
 ### 11.5 相手名の表示
 
@@ -516,7 +516,7 @@ src/
 1. `ScreenId` またはハブ内 view
 2. `OfflinePvpDeckListScreen`
 3. `BattleHubScreen` の入口有効化
-4. レベル差ラベル
+4. 戦力差ラベル（戦力補正あり）
 
 **完了条件**: シードが一覧表示され、選択コールバックが飛ぶ。
 
@@ -565,13 +565,13 @@ src/
 |------|------|
 | `listPublicGhostDecks` | `viewerLevel` に近い `authorLevel` が先頭付近になる |
 | `listPublicGhostDecks` | 返却デッキがプールを mutate しない |
-| `prepareHistoryOpponentDeck`（既存） | 属性・ピクセル・レア不変、BP のみ変化 |
+| `prepareHistoryOpponentDeck` | 属性・ピクセル・レア不変、BP のみプレイヤー戦力へ比率スケール |
 | モード分岐（可能なら） | オフライン対人開始が `isHistoryRematch` を立てない |
 
 ### 15.2 手動確認
 
 1. 同レベル帯の公開デッキと対戦し、作者の絵が見える
-2. レベル差の大きいゴーストを選び、一方的な押し負けにならない
+2. 戦力差の大きいゴーストを選び、一方的な押し負けにならない
 3. 勝利で戦利品（px・かけら）、カードがデッキに増えない
 4. Lv5+ で敗北すると Lost（護符があれば免れる）
 5. 履歴に作者名で残る
@@ -592,7 +592,7 @@ src/
 
 - [x] 一覧画面
 - [x] ハブ入口の有効化
-- [x] レベル差ラベル
+- [x] 戦力差ラベル（戦力補正あり）
 - [x] 戻る → ハブ
 
 ### フェーズ C

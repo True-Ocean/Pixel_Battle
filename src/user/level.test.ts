@@ -78,6 +78,10 @@ describe('getLevelProgress', () => {
       exp: expInLevelValue,
       battleWins: 0,
       battleLosses: 0,
+      cpuBattleWins: 0,
+      cpuBattleLosses: 0,
+      offlinePvpBattleWins: 0,
+      offlinePvpBattleLosses: 0,
     });
     expect(isMaxLevel).toBe(false);
     expect(progress).toBeCloseTo(expInLevelValue / span, 5);

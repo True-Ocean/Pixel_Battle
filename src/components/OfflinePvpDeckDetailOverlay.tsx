@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { computeDeckPower } from '../card';
 import type { PublicGhostDeck } from '../offlinePvp';
 import type { Card } from '../types';
 import { CardDetailViewOverlay } from './CardDetailViewOverlay';
@@ -7,7 +8,7 @@ import { CompactDeckCardRow } from './CompactDeckCardRow';
 
 interface OfflinePvpDeckDetailOverlayProps {
   ghost: PublicGhostDeck;
-  viewerLevel: number;
+  viewerDeckPower: number | null;
   canBattle: boolean;
   onClose: () => void;
   onChallenge: (ghost: PublicGhostDeck) => void;
@@ -15,14 +16,19 @@ interface OfflinePvpDeckDetailOverlayProps {
 
 export function OfflinePvpDeckDetailOverlay({
   ghost,
-  viewerLevel,
+  viewerDeckPower,
   canBattle,
   onClose,
   onChallenge,
 }: OfflinePvpDeckDetailOverlayProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [detailCard, setDetailCard] = useState<Card | null>(null);
-  const levelDiffers = ghost.authorLevel !== viewerLevel;
+  const deckPower = useMemo(
+    () => computeDeckPower(ghost.deck),
+    [ghost.deck],
+  );
+  const powerDiffers =
+    viewerDeckPower != null && deckPower !== viewerDeckPower;
 
   const handleChallenge = () => {
     if (canBattle) {
@@ -67,30 +73,36 @@ export function OfflinePvpDeckDetailOverlay({
             aria-labelledby="offline-pvp-detail-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <header className="records-history-detail-header compact-deck-detail-header">
+            <header className="records-history-detail-header compact-deck-detail-header offline-pvp-detail-header">
               <h2
                 id="offline-pvp-detail-title"
-                className="records-history-detail-title"
+                className="offline-pvp-detail-username"
               >
-                公開デッキ
-              </h2>
-              <p className="records-history-detail-opponent">
                 {ghost.authorName}
-                <span className="records-history-opponent-level">
-                  {' '}
+              </h2>
+              <p className="offline-pvp-detail-meta-row">
+                <span className="offline-pvp-detail-meta-level">
                   Lv.{ghost.authorLevel}
                 </span>
+                <span className="offline-pvp-detail-meta-record">
+                  {ghost.offlinePvpWins}勝 {ghost.offlinePvpLosses}敗
+                </span>
               </p>
-              {levelDiffers && (
-                <p className="offline-pvp-bp-note muted">
-                  バトル時、相手カードの BP はあなたのレベルに合わせて調整されます
+              <p className="offline-pvp-detail-power-row">
+                <span className="offline-pvp-detail-power">戦力 {deckPower}</span>
+                {powerDiffers && (
+                  <span className="offline-pvp-rescale-badge">戦力補正あり</span>
+                )}
+              </p>
+              {powerDiffers && (
+                <p className="offline-pvp-bp-note">
+                  相手カードの BP はあなたのデッキ戦力に合わせて調整されます
                 </p>
               )}
             </header>
 
             <div className="records-history-detail-scroll">
-              <h3 className="records-history-detail-deck-title">相手デッキ</h3>
-              <ul className="compact-deck-list">
+              <ul className="compact-deck-list" aria-label="相手デッキ">
                 {ghost.deck.map((card) => (
                   <CompactDeckCardRow
                     key={card.id}

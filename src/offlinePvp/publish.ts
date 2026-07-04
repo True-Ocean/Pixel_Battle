@@ -17,6 +17,8 @@ export function rowToPublicGhostDeck(row: PublicGhostDeckRow) {
     id: row.id,
     authorName: row.author_name,
     authorLevel: row.author_level,
+    offlinePvpWins: row.offline_pvp_wins,
+    offlinePvpLosses: row.offline_pvp_losses,
     deck: structuredClone(row.deck),
     publishedAt: row.published_at,
     ownerId: row.owner_id,
@@ -64,6 +66,8 @@ export async function upsertPublishedDeck(options: {
     slot_index: options.slotIndex,
     author_name: options.user.username,
     author_level: options.user.level,
+    offline_pvp_wins: options.user.offlinePvpBattleWins ?? 0,
+    offline_pvp_losses: options.user.offlinePvpBattleLosses ?? 0,
     deck: cards,
     updated_at: new Date().toISOString(),
   };
@@ -146,7 +150,7 @@ export async function fetchRemotePublicGhostDecks(): Promise<
   const { data, error } = await supabase
     .from('public_ghost_decks')
     .select(
-      'id, owner_id, slot_index, author_name, author_level, deck, published_at, updated_at',
+      'id, owner_id, slot_index, author_name, author_level, offline_pvp_wins, offline_pvp_losses, deck, published_at, updated_at',
     )
     .order('author_level', { ascending: true });
 
@@ -164,12 +168,23 @@ export async function fetchRemotePublicGhostDecks(): Promise<
     if (typeof record.author_name !== 'string') continue;
     if (typeof record.author_level !== 'number') continue;
     if (!isCardArray(record.deck)) continue;
+    const wins =
+      typeof record.offline_pvp_wins === 'number' && record.offline_pvp_wins >= 0
+        ? Math.floor(record.offline_pvp_wins)
+        : 0;
+    const losses =
+      typeof record.offline_pvp_losses === 'number' &&
+      record.offline_pvp_losses >= 0
+        ? Math.floor(record.offline_pvp_losses)
+        : 0;
     rows.push({
       id: record.id,
       owner_id: record.owner_id,
       slot_index: Math.floor(record.slot_index),
       author_name: record.author_name,
       author_level: Math.floor(record.author_level),
+      offline_pvp_wins: wins,
+      offline_pvp_losses: losses,
       deck: record.deck,
       published_at:
         typeof record.published_at === 'string'

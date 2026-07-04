@@ -6,7 +6,7 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX, USER_INITIAL_LEVEL, BATTLE_O
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardRevive, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, hasCardUserNote, type LimitBreakShardSpendPlan } from './card';
+import { applyCardSurvivalRecords, applyCardRevive, computeDeckPower, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, hasCardUserNote, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
@@ -1021,7 +1021,7 @@ function App() {
       isOfflinePvpRef.current = true;
       offlinePvpGhostRef.current = ghost;
 
-      setCpuDeck(prepareHistoryOpponentDeck(ghost.deck, level));
+      setCpuDeck(prepareHistoryOpponentDeck(ghost.deck, playerDeck));
       setCpuOpponent({
         name: ghost.authorName,
         level: ghost.authorLevel,
@@ -1160,7 +1160,6 @@ function App() {
         historyRematchFlow?.entry ?? historyRematchEntryRef.current;
       if (!entry) return;
 
-      const level = userRef.current?.level ?? 1;
       const layout = normalizeDeckLayout(decksRef.current[deckIndex] ?? []);
       const playerDeck = getDeckCards(layout);
 
@@ -1171,7 +1170,7 @@ function App() {
       resetOfflinePvpFlow();
       setBattlePlayerDeck(playerDeck);
       battleStartSnapshotRef.current = null;
-      setCpuDeck(prepareHistoryOpponentDeck(entry.opponentDeck, level));
+      setCpuDeck(prepareHistoryOpponentDeck(entry.opponentDeck, playerDeck));
       setCpuOpponent({
         name: entry.opponentName || CPU_OPPONENT_LABEL,
         level: entry.opponentLevel,
@@ -1927,6 +1926,9 @@ function App() {
         const expInput = {
           winner: outcome.winner,
           opponentDeckPower: outcome.opponentDeckPower,
+          mode: isOfflinePvpRef.current
+            ? ('offlinePvp' as const)
+            : ('cpu' as const),
         };
         const battleRecord = recordUserBattleOutcome(
           prevUser,
@@ -2800,6 +2802,25 @@ function App() {
     return false;
   }, [decks, unlockedDeckCount]);
 
+  /** 一覧の「戦力補正あり」表示用。出撃デッキ確定前の参考戦力（直近バトル or 先頭の戦闘可能デッキ） */
+  const viewerReferenceDeckPower = useMemo(() => {
+    const candidates = [lastBattleDeckIndex, activeDeckIndex];
+    for (const index of candidates) {
+      if (index < 0 || index >= unlockedDeckCount) continue;
+      const layout = normalizeDeckLayout(decks[index] ?? []);
+      if (isDeckBattleReady(layout)) {
+        return computeDeckPower(getDeckCards(layout));
+      }
+    }
+    for (let i = 0; i < unlockedDeckCount; i++) {
+      const layout = normalizeDeckLayout(decks[i] ?? []);
+      if (isDeckBattleReady(layout)) {
+        return computeDeckPower(getDeckCards(layout));
+      }
+    }
+    return null;
+  }, [activeDeckIndex, decks, lastBattleDeckIndex, unlockedDeckCount]);
+
   const showProfileBar =
     isProfileComplete(user) &&
     (isTabId(screen) ||
@@ -3159,6 +3180,7 @@ function App() {
         {screen === 'offlinePvpList' && !isOfflinePvpDeckSelect && (
           <OfflinePvpDeckListScreen
             viewerLevel={user?.level ?? 1}
+            viewerDeckPower={viewerReferenceDeckPower}
             excludeOwnerId={supabaseOwnerId}
             canBattle={hasOfflinePvpBattleDeck}
             onBack={closeOfflinePvpList}

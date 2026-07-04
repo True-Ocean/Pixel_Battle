@@ -37,6 +37,7 @@ https://supabase.com/dashboard/project/YOUR_PROJECT_REF/auth/providers
 1. 左メニュー **SQL Editor** → **New query**
 2. リポジトリの `supabase/migrations/001_public_ghost_decks.sql` の内容をすべて貼り付け
 3. **Run** で実行
+4. **すでに 001 を実行済み**のプロジェクトでは、続けて `002_public_ghost_decks_record.sql` も実行する（対人戦の勝敗表示用）
 
 ## 4. アプリに接続情報を渡す
 
