@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import type { DeckLayout } from '../types';
 import { getBattleHubHelp } from '../config/helpContent';
+import {
+  OFFLINE_PVP_MIN_USER_LEVEL,
+  isOfflinePvpUnlockedAtUserLevel,
+} from '../offlinePvp';
 import { BattleDeckSelectScreen } from './BattleDeckSelectScreen';
 import { HelpInfoButton } from './HelpInfoButton';
 import { HelpPanelModal } from './HelpPanelModal';
@@ -41,6 +45,7 @@ export function BattleHubScreen({
 }: BattleHubScreenProps) {
   const [view, setView] = useState<BattleHubView>('modes');
   const [helpOpen, setHelpOpen] = useState(false);
+  const offlinePvpUnlocked = isOfflinePvpUnlockedAtUserLevel(userLevel);
 
   if (view === 'deckSelect') {
     return (
@@ -91,8 +96,15 @@ export function BattleHubScreen({
             type="button"
             className="battle-hub-mode-btn"
             onClick={onOpenOfflinePvp}
+            disabled={!offlinePvpUnlocked}
+            aria-disabled={!offlinePvpUnlocked}
           >
             <span className="battle-hub-mode-btn-label">対人戦（オフライン）</span>
+            {!offlinePvpUnlocked && (
+              <span className="battle-hub-mode-btn-soon">
+                （Lv{OFFLINE_PVP_MIN_USER_LEVEL}で解放）
+              </span>
+            )}
           </button>
           <button
             type="button"

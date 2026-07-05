@@ -1,4 +1,8 @@
 export type { PublicGhostDeck, PublicGhostDeckRow } from './types';
+export {
+  OFFLINE_PVP_MIN_USER_LEVEL,
+  isOfflinePvpUnlockedAtUserLevel,
+} from './unlock';
 export { ensureAnonymousUserId } from './auth';
 export {
   canPublishDeck,

@@ -12,6 +12,7 @@ import {
   PIXEL_COST_RENAME,
   REVIVE_CAP,
 } from './economy';
+import { OFFLINE_PVP_MIN_USER_LEVEL } from '../offlinePvp/unlock';
 
 export type HelpItem = string | ReactNode;
 
@@ -108,7 +109,7 @@ export function getDeckHelp(): HelpTopic {
       {
         title: '3. 対人戦へのデッキ公開',
         items: [
-          '「対人戦に公開する」にチェックを入れると、対人戦で他のユーザーにデッキが公開されます。',
+          `ユーザーレベル ${OFFLINE_PVP_MIN_USER_LEVEL} 到達後、「対人戦に公開する」にチェックを入れると、対人戦で他のユーザーにデッキが公開されます。`,
         ],
       },
       {

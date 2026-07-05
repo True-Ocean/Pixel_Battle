@@ -51,8 +51,10 @@ import {
   clearLocalPublishedDeckState,
   clearPublishedDeckRemoteIds,
   ensureAnonymousUserId,
+  isOfflinePvpUnlockedAtUserLevel,
   normalizePublishedDeckRemoteIds,
   normalizePublishedDeckSlots,
+  OFFLINE_PVP_MIN_USER_LEVEL,
   republishOwnedPublishedDecks,
   setPublishedRemoteId,
   setPublishedSlot,
@@ -679,6 +681,15 @@ function App() {
         setPublishError('Supabase が設定されていません（.env を確認してください）');
         return;
       }
+      if (
+        published &&
+        !isOfflinePvpUnlockedAtUserLevel(profile.level)
+      ) {
+        setPublishError(
+          `対人戦の公開はユーザーレベル${OFFLINE_PVP_MIN_USER_LEVEL}到達後に利用できます`,
+        );
+        return;
+      }
 
       const slotIndex = activeDeckIndexRef.current;
       const layout = normalizeDeckLayout(decksRef.current[slotIndex] ?? []);
@@ -1072,6 +1083,10 @@ function App() {
   }, []);
 
   const openOfflinePvpList = useCallback(() => {
+    const level = userRef.current?.level ?? USER_INITIAL_LEVEL;
+    if (!isOfflinePvpUnlockedAtUserLevel(level)) {
+      return;
+    }
     clearBattleOutcomeHoldTimer();
     clearHistoryRematch();
     resetHistoryRematchFlow();
@@ -2993,6 +3008,7 @@ function App() {
     }
     return false;
   }, [decks, unlockedDeckCount]);
+  const offlinePvpUnlocked = isOfflinePvpUnlockedAtUserLevel(user?.level ?? 1);
 
   /** 一覧の「戦力補正あり」表示用。出撃デッキ確定前の参考戦力（直近バトル or 先頭の戦闘可能デッキ） */
   const viewerReferenceDeckPower = useMemo(() => {
@@ -3330,6 +3346,8 @@ function App() {
             publishBusy={publishBusy}
             canPublishDeck={canPublishDeck(activeDeck)}
             publishAvailable={isSupabaseConfigured()}
+            offlinePvpUnlocked={offlinePvpUnlocked}
+            offlinePvpUnlockLevel={OFFLINE_PVP_MIN_USER_LEVEL}
             publishError={publishError}
             onToggleDeckPublish={handleToggleDeckPublish}
           />

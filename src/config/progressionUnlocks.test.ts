@@ -28,9 +28,12 @@ describe('progressionUnlocks', () => {
     ]);
   });
 
-  it('Lv10 はデッキ2解放', () => {
+  it('Lv10 はデッキ2解放と対人戦解放', () => {
     const rewards = getLevelUpRewardsAtLevel(10);
     expect(rewards.some((reward) => reward.kind === 'deck_unlock')).toBe(true);
+    expect(rewards.some((reward) => reward.kind === 'offline_pvp_unlock')).toBe(
+      true,
+    );
     expect(rewards.some((reward) => reward.kind === 'talisman')).toBe(false);
   });
 

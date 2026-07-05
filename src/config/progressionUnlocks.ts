@@ -15,6 +15,7 @@ import {
 } from './editorShop';
 import { getCanvasUnlockLevel, getMaxCanvasSize } from './canvasUnlock';
 import { ATTRIBUTE_UNLOCK_SCHEDULE } from './attributeUnlock';
+import { OFFLINE_PVP_MIN_USER_LEVEL } from '../offlinePvp/unlock';
 import { PALETTE_UNLOCK_LEVELS } from './paletteUnlock';
 import { PALETTE_COLOR_LABELS } from './palette';
 
@@ -26,6 +27,7 @@ export type LevelUpRewardKind =
   | 'tool'
   | 'canvas'
   | 'deck_unlock'
+  | 'offline_pvp_unlock'
   | 'limit_break'
   | 'lost_unlock'
   | 'lost_encouragement'
@@ -174,6 +176,12 @@ export function getLevelUpRewardsAtLevel(level: number): LevelUpRewardEntry[] {
   ];
   const main = getMainRewardAtLevel(L);
   if (main) rewards.push(main);
+  if (L === OFFLINE_PVP_MIN_USER_LEVEL) {
+    rewards.push({
+      kind: 'offline_pvp_unlock',
+      label: '対人戦（オフライン）が使えるようになりました！',
+    });
+  }
   if (L === TALISMAN_STARTER_GRANT_LEVEL) {
     rewards.push({
       kind: 'talisman',

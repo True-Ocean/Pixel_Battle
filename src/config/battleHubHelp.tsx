@@ -7,6 +7,7 @@ import {
 import type { HelpTopic } from './helpContent';
 import { getVisibleHelpSections } from './helpContent';
 import { HelpInlineJewelCost, HelpInlinePxIcon } from '../components/HelpInlineEconomy';
+import { OFFLINE_PVP_MIN_USER_LEVEL } from '../offlinePvp/unlock';
 
 export function getBattleHubHelp(userLevel: number): HelpTopic {
   const sections: HelpTopic['sections'][number][] = [
@@ -24,7 +25,7 @@ export function getBattleHubHelp(userLevel: number): HelpTopic {
       title: 'モードの違い',
       items: [
         'CPU戦：CPU とマッチングして対戦します。',
-        '対人戦（オフライン）：公開デッキ一覧から相手を選びます。相手の絵・属性はそのまま、BP だけあなたのデッキ戦力に合わせて調整されます。',
+        `対人戦（オフライン）：ユーザーレベル ${OFFLINE_PVP_MIN_USER_LEVEL} 到達後、公開デッキ一覧から相手を選びます。相手の絵・属性はそのまま、BP だけあなたのデッキ戦力に合わせて調整されます。`,
         'どちらのモードも、勝敗の報酬・ロストのルールは同じです。',
       ],
     },
