@@ -1,3 +1,4 @@
+import { DECK_SLOT_COUNT } from '../config/balance';
 import { normalizeDeckLayout } from '../deckSlots';
 import type { DeckLayout, UserProfile } from '../types';
 import { canPublishDeck, unpublishDeck, upsertPublishedDeck } from './publish';
@@ -8,6 +9,30 @@ import {
   setPublishedRemoteId,
   setPublishedSlot,
 } from './publishedSlots';
+import { isOfflinePvpUnlockedAtUserLevel } from './unlock';
+
+/** Lv 不足などでリモート公開だけ止める（端末の公開 ON 意図は維持） */
+async function suspendRemotePublishedDecks(options: {
+  publishedSlots: readonly boolean[];
+  remoteIds: readonly (string | null)[];
+}): Promise<{ remoteIds: (string | null)[]; changed: boolean }> {
+  let ids = normalizePublishedDeckRemoteIds(options.remoteIds);
+  let changed = false;
+
+  for (let slotIndex = 0; slotIndex < DECK_SLOT_COUNT; slotIndex++) {
+    if (!ids[slotIndex]) continue;
+    const result = await unpublishDeck({
+      slotIndex,
+      remoteId: ids[slotIndex],
+    });
+    if (result.ok) {
+      ids = setPublishedRemoteId(ids, slotIndex, null);
+      changed = true;
+    }
+  }
+
+  return { remoteIds: ids, changed };
+}
 
 /** 認証切替後など、端末に残った remoteId を使わず公開デッキを現在の owner に揃える */
 export async function republishOwnedPublishedDecks(options: {
@@ -28,6 +53,14 @@ export async function republishOwnedPublishedDecks(options: {
     ? clearPublishedDeckRemoteIds()
     : normalizePublishedDeckRemoteIds(options.remoteIds);
   let changed = options.resetRemoteIds ?? false;
+
+  if (!isOfflinePvpUnlockedAtUserLevel(options.user.level)) {
+    const suspended = await suspendRemotePublishedDecks({
+      publishedSlots: slots,
+      remoteIds: ids,
+    });
+    return { slots, remoteIds: suspended.remoteIds, changed: changed || suspended.changed };
+  }
 
   for (let slotIndex = 0; slotIndex < options.unlockedDeckCount; slotIndex++) {
     if (!slots[slotIndex]) continue;

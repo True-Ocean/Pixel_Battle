@@ -2574,6 +2574,29 @@ function App() {
       setDecks(nextDecks);
       setInventory(nextInventory);
       setTalismanStarterGranted(nextTalismanStarterGranted);
+      if (
+        isSupabaseConfigured() &&
+        publishedDeckSlotsRef.current.some((published) => published)
+      ) {
+        void (async () => {
+          const result = await republishOwnedPublishedDecks({
+            publishedSlots: publishedDeckSlotsRef.current,
+            remoteIds: publishedDeckRemoteIdsRef.current,
+            decks: nextDecks,
+            user: nextUser,
+            unlockedDeckCount: unlockedDeckCountRef.current,
+          });
+          if (!result.changed) return;
+          publishedDeckSlotsRef.current = result.slots;
+          publishedDeckRemoteIdsRef.current = result.remoteIds;
+          setPublishedDeckSlots(result.slots);
+          setPublishedDeckRemoteIds(result.remoteIds);
+          persistSave({
+            publishedDeckSlots: result.slots,
+            publishedDeckRemoteIds: result.remoteIds,
+          });
+        })();
+      }
       return notice;
     },
     [persistSave],
@@ -3347,7 +3370,6 @@ function App() {
             canPublishDeck={canPublishDeck(activeDeck)}
             publishAvailable={isSupabaseConfigured()}
             offlinePvpUnlocked={offlinePvpUnlocked}
-            offlinePvpUnlockLevel={OFFLINE_PVP_MIN_USER_LEVEL}
             publishError={publishError}
             onToggleDeckPublish={handleToggleDeckPublish}
           />

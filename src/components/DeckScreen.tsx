@@ -111,10 +111,8 @@ export interface DeckScreenProps {
   canPublishDeck?: boolean;
   /** Supabase 未設定時はトグル無効 */
   publishAvailable?: boolean;
-  /** 対人戦（オフライン）解放済みか */
+  /** 対人戦（オフライン）解放済みか（未解放時は公開 UI を非表示） */
   offlinePvpUnlocked?: boolean;
-  /** 対人戦解放レベル（表示用） */
-  offlinePvpUnlockLevel?: number;
   publishError?: string | null;
   onToggleDeckPublish?: (published: boolean) => void;
 }
@@ -346,7 +344,6 @@ export function DeckScreen({
   canPublishDeck = false,
   publishAvailable = false,
   offlinePvpUnlocked = false,
-  offlinePvpUnlockLevel = 10,
   publishError = null,
   onToggleDeckPublish,
 }: DeckScreenProps) {
@@ -988,16 +985,12 @@ export function DeckScreen({
         />
       </div>
 
-      {onToggleDeckPublish && (
+      {onToggleDeckPublish && offlinePvpUnlocked && (
         <div className="deck-publish-row">
           <label
             className={[
               'deck-publish-toggle',
-              !publishAvailable ||
-              publishBusy ||
-              (!offlinePvpUnlocked && !deckPublished)
-                ? 'is-disabled'
-                : '',
+              !publishAvailable || publishBusy ? 'is-disabled' : '',
             ]
               .filter(Boolean)
               .join(' ')}
@@ -1007,8 +1000,7 @@ export function DeckScreen({
               checked={deckPublished}
               disabled={
                 publishBusy ||
-                (!deckPublished &&
-                  (!offlinePvpUnlocked || !publishAvailable || !canPublishDeck))
+                (!deckPublished && (!publishAvailable || !canPublishDeck))
               }
               onChange={(event) => onToggleDeckPublish(event.target.checked)}
             />
@@ -1020,20 +1012,12 @@ export function DeckScreen({
                   : '対人戦に公開する'}
             </span>
           </label>
-          {!offlinePvpUnlocked && !deckPublished && (
-            <p className="deck-publish-hint muted">
-              対人戦はユーザーレベル{offlinePvpUnlockLevel}到達で解放されます
-            </p>
-          )}
-          {offlinePvpUnlocked && !publishAvailable && (
+          {!publishAvailable && (
             <p className="deck-publish-hint muted">
               公開には Supabase の設定（.env）が必要です
             </p>
           )}
-          {offlinePvpUnlocked &&
-            publishAvailable &&
-            !canPublishDeck &&
-            !deckPublished && (
+          {publishAvailable && !canPublishDeck && !deckPublished && (
             <p className="deck-publish-hint muted">
               ロストなしで5枚揃ったデッキだけ公開できます
             </p>
