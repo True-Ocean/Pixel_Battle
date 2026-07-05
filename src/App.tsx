@@ -62,6 +62,18 @@ import {
   upsertPublishedDeck,
   type PublicGhostDeck,
 } from './offlinePvp';
+import {
+  canContinueOnlinePvpSession,
+  closeOnlineBattleRoom,
+  isOnlinePvpUnlockedAtUserLevel,
+  opponentIdentity,
+  shouldReturnToOnlineDeckSelect,
+  submitOnlineRematchReady,
+  submitOnlineSetup,
+  subscribeOnlineBattleRoom,
+  type OnlineBattleRole,
+  type OnlineBattleRoom,
+} from './onlinePvp';
 import { isSupabaseConfigured } from './supabase/client';
 import {
   unlockPaletteWithJewels,
@@ -132,6 +144,8 @@ import { BattleHubScreen } from './components/BattleHubScreen';
 import { BattleDeckSelectScreen } from './components/BattleDeckSelectScreen';
 import { OfflinePvpDeckListScreen } from './components/OfflinePvpDeckListScreen';
 import { BattleSetupScreen } from './components/BattleSetupScreen';
+import { OnlinePvpScreen } from './components/OnlinePvpScreen';
+import { OnlinePvpOpponentLeftModal } from './components/OnlinePvpBattleEndModal';
 import { MockRewardAdModal } from './components/MockRewardAdModal';
 import { HistoryRematchRulesModal } from './components/HistoryRematchRulesModal';
 import { HistoryRematchRewardModal } from './components/HistoryRematchRewardModal';
@@ -262,6 +276,10 @@ function App() {
   const [battleEndDock, setBattleEndDock] = useState(false);
   const [isHistoryRematch, setIsHistoryRematch] = useState(false);
   const [isOfflinePvp, setIsOfflinePvp] = useState(false);
+  const [isOnlinePvp, setIsOnlinePvp] = useState(false);
+  const [onlinePvpRoom, setOnlinePvpRoom] = useState<OnlineBattleRoom | null>(null);
+  const [onlinePvpRole, setOnlinePvpRole] = useState<OnlineBattleRole | null>(null);
+  const [onlinePvpOpponentLeftOpen, setOnlinePvpOpponentLeftOpen] = useState(false);
   const [historyRematchFlow, setHistoryRematchFlow] = useState<{
     entry: BattleHistoryEntry;
     phase: 'rules' | 'deckSelect';
@@ -336,6 +354,14 @@ function App() {
   const screenRef = useRef(screen);
   const isHistoryRematchRef = useRef(false);
   const isOfflinePvpRef = useRef(false);
+  const isOnlinePvpRef = useRef(false);
+  const onlinePvpRoomRef = useRef<OnlineBattleRoom | null>(null);
+  const onlinePvpRoleRef = useRef<OnlineBattleRole | null>(null);
+  const onlineBattleSetupMountRef = useRef<{
+    roomId: string;
+    status: OnlineBattleRoom['status'];
+    deckKey: string;
+  } | null>(null);
   const historyRematchEntryRef = useRef<BattleHistoryEntry | null>(null);
   const offlinePvpGhostRef = useRef<PublicGhostDeck | null>(null);
   const battleStartSnapshotRef = useRef<{
@@ -365,6 +391,9 @@ function App() {
   subscriptionRef.current = subscription;
   missionStateRef.current = missionState;
   screenRef.current = screen;
+  isOnlinePvpRef.current = isOnlinePvp;
+  onlinePvpRoomRef.current = onlinePvpRoom;
+  onlinePvpRoleRef.current = onlinePvpRole;
 
   const devPreferSavedLevelRef = useRef(initialSave.devPreferSavedLevel === true);
   const devFileOverrideLevelRef = useRef<number | null | undefined>(
@@ -1081,6 +1110,30 @@ function App() {
     offlinePvpGhostRef.current = null;
   }, []);
 
+  const clearOnlinePvp = useCallback(() => {
+    setIsOnlinePvp(false);
+    isOnlinePvpRef.current = false;
+    setOnlinePvpRoom(null);
+    setOnlinePvpRole(null);
+    onlinePvpRoomRef.current = null;
+    onlinePvpRoleRef.current = null;
+    onlineBattleSetupMountRef.current = null;
+  }, []);
+
+  const leaveOnlinePvpRoom = useCallback(
+    async (options?: { skipClose?: boolean }) => {
+      const room = onlinePvpRoomRef.current;
+      const role = onlinePvpRoleRef.current;
+      if (room && role && !options?.skipClose) {
+        await closeOnlineBattleRoom(room.id, role);
+      }
+      clearOnlinePvp();
+      setOnlinePvpOpponentLeftOpen(false);
+      setScreen('battleHub');
+    },
+    [clearOnlinePvp],
+  );
+
   const resetHistoryRematchFlow = useCallback(() => {
     setHistoryRematchFlow(null);
     setBattleStartPendingAd((pending) =>
@@ -1121,6 +1174,86 @@ function App() {
     setScreen('battleHub');
   }, [clearOfflinePvp, resetOfflinePvpFlow]);
 
+  const openOnlinePvp = useCallback(() => {
+    const level = userRef.current?.level ?? USER_INITIAL_LEVEL;
+    if (!isOnlinePvpUnlockedAtUserLevel(level)) return;
+    clearBattleOutcomeHoldTimer();
+    clearHistoryRematch();
+    resetHistoryRematchFlow();
+    clearOfflinePvp();
+    resetOfflinePvpFlow();
+    clearOnlinePvp();
+    setBattleEndDock(false);
+    setScreen('onlinePvp');
+  }, [
+    clearBattleOutcomeHoldTimer,
+    clearHistoryRematch,
+    clearOfflinePvp,
+    clearOnlinePvp,
+    resetHistoryRematchFlow,
+    resetOfflinePvpFlow,
+  ]);
+
+  const handleOnlineRoomUpdated = useCallback(
+    (room: OnlineBattleRoom, role: OnlineBattleRole) => {
+      setOnlinePvpRoom(room);
+      setOnlinePvpRole(role);
+      onlinePvpRoomRef.current = room;
+      onlinePvpRoleRef.current = role;
+
+      if (
+        room.status === 'setup' ||
+        room.status === 'battle' ||
+        room.status === 'rematch_wait'
+      ) {
+        const myDeck = role === 'host' ? room.hostDeck : room.guestDeck;
+        const oppDeck = role === 'host' ? room.guestDeck : room.hostDeck;
+        if (!myDeck || !oppDeck) return;
+
+        setIsOnlinePvp(true);
+        isOnlinePvpRef.current = true;
+        setIsOfflinePvp(false);
+        isOfflinePvpRef.current = false;
+        clearHistoryRematch();
+
+        const opp = opponentIdentity(room, role);
+        const deckKey = `${myDeck.map((c) => `${c.id}:${c.bp}`).join(',')}|${oppDeck.map((c) => `${c.id}:${c.bp}`).join(',')}`;
+        const mountCtx = onlineBattleSetupMountRef.current;
+        const deckChanged =
+          mountCtx?.roomId !== room.id || mountCtx?.deckKey !== deckKey;
+        if (deckChanged) {
+          setBattlePlayerDeck(structuredClone(myDeck));
+          setCpuDeck(structuredClone(oppDeck));
+        }
+        setCpuOpponent({ name: opp.name, level: opp.level });
+        battleStartSnapshotRef.current = {
+          deckIndex: activeDeckIndexRef.current,
+          playerDeck: structuredClone(myDeck),
+          playerLevel: userRef.current?.level ?? 1,
+        };
+        const shouldRemountBattleSetup =
+          deckChanged ||
+          (room.status === 'setup' && mountCtx?.status !== 'setup');
+        if (shouldRemountBattleSetup) {
+          setBattleSetupKey((k) => k + 1);
+          onlineBattleSetupMountRef.current = {
+            roomId: room.id,
+            status: room.status,
+            deckKey,
+          };
+        } else if (mountCtx?.roomId === room.id) {
+          onlineBattleSetupMountRef.current = {
+            ...mountCtx,
+            status: room.status,
+          };
+        }
+        setBattleEndDock(false);
+        setScreen('battleSetup');
+      }
+    },
+    [clearHistoryRematch],
+  );
+
   const startOfflinePvpDeckSelect = useCallback((ghost: PublicGhostDeck) => {
     offlinePvpGhostRef.current = ghost;
     setOfflinePvpFlow({ ghost, phase: 'deckSelect' });
@@ -1133,6 +1266,7 @@ function App() {
       resetHistoryRematchFlow();
       clearOfflinePvp();
       resetOfflinePvpFlow();
+      clearOnlinePvp();
       const level = user?.level ?? 1;
       const resolvedIndex =
         deckIndex ??
@@ -1176,6 +1310,7 @@ function App() {
       clearBattleOutcomeHoldTimer,
       clearHistoryRematch,
       clearOfflinePvp,
+      clearOnlinePvp,
       resetHistoryRematchFlow,
       resetOfflinePvpFlow,
       persistSave,
@@ -2359,6 +2494,69 @@ function App() {
     [persistSave],
   );
 
+  const finalizeOnlineBattleOutcome = useCallback(
+    (outcome: BattleOutcome) => {
+      const prevUser = userRef.current;
+      const prevDecks = decksRef.current;
+      const deckIndex = activeDeckIndexRef.current;
+      const prevActiveDeck = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const nextActiveDeck = applyCardSurvivalRecords(
+        prevActiveDeck,
+        outcome.playerCardIds,
+        outcome.defeatedPlayerCardIds,
+      );
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextActiveDeck);
+      const nextHistory = appendBattleHistory(
+        battleHistoryRef.current,
+        createBattleHistoryEntry(outcome, {
+          playerDeck:
+            battleStartSnapshotRef.current?.playerDeck ??
+            getDeckCards(prevActiveDeck),
+          playerLevel:
+            battleStartSnapshotRef.current?.playerLevel ??
+            prevUser?.level ??
+            1,
+        }),
+      );
+      const battleMissionEvents: Array<{ type: MissionEventType; amount?: number }> =
+        [{ type: 'battle_play' }];
+      let missionResult = applyMissionEvents(
+        missionStateRef.current,
+        battleMissionEvents,
+        new Date(),
+        prevUser?.level ?? 1,
+      );
+      const ownershipResult = syncPermanentOwnershipAchievements(
+        missionResult.state,
+        nextDecks,
+        memoryAlbumRef.current,
+        prevUser?.level ?? 1,
+      );
+      missionResult = mergeMissionEventResults(missionResult, ownershipResult);
+      const nextMissionState = missionResult.state;
+      if (nextMissionState !== missionStateRef.current) {
+        missionStateRef.current = nextMissionState;
+        setMissionState(nextMissionState);
+      }
+      const toastMessage = formatMissionCompleteToastMessage(
+        missionResult.newlyCompleted,
+      );
+      if (toastMessage) {
+        setMissionCompleteToast(toastMessage);
+      }
+      persistSave({
+        decks: nextDecks,
+        battleHistory: nextHistory,
+        missionState: nextMissionState,
+      });
+      decksRef.current = nextDecks;
+      setDecks(nextDecks);
+      setBattleHistory(nextHistory);
+      battleStartSnapshotRef.current = null;
+    },
+    [persistSave],
+  );
+
   const finalizeHistoryRematchOutcome = useCallback(
     (
       outcome: BattleOutcome,
@@ -2427,6 +2625,10 @@ function App() {
 
   const handleBattleOutcome = useCallback(
     (outcome: BattleOutcome) => {
+      if (isOnlinePvpRef.current) {
+        finalizeOnlineBattleOutcome(outcome);
+        return;
+      }
       if (isHistoryRematchRef.current) {
         const survivorCount = countBattleSurvivors(
           outcome.playerCardIds,
@@ -2477,6 +2679,7 @@ function App() {
     [
       finalizeBattleOutcome,
       finalizeHistoryRematchOutcome,
+      finalizeOnlineBattleOutcome,
       scheduleBattleOutcomeModal,
     ],
   );
@@ -3052,6 +3255,86 @@ function App() {
     return false;
   }, [decks, unlockedDeckCount]);
   const offlinePvpUnlocked = isOfflinePvpUnlockedAtUserLevel(user?.level ?? 1);
+  const onlinePvpUnlocked = isOnlinePvpUnlockedAtUserLevel(user?.level ?? 1);
+
+  useEffect(() => {
+    if (!isOnlinePvp || !onlinePvpRoom?.id) return;
+    return subscribeOnlineBattleRoom(onlinePvpRoom.id, (room) => {
+      setOnlinePvpRoom(room);
+      onlinePvpRoomRef.current = room;
+      const role = onlinePvpRoleRef.current;
+      if (
+        role &&
+        (room.status === 'setup' ||
+          room.status === 'battle' ||
+          room.status === 'rematch_wait') &&
+        room.hostDeck &&
+        room.guestDeck
+      ) {
+        const myDeck = role === 'host' ? room.hostDeck : room.guestDeck;
+        const oppDeck = role === 'host' ? room.guestDeck : room.hostDeck;
+        setBattlePlayerDeck(structuredClone(myDeck));
+        setCpuDeck(structuredClone(oppDeck));
+        setCpuOpponent(opponentIdentity(room, role));
+      }
+      if (
+        room.status === 'closed' &&
+        room.closedByRole &&
+        role &&
+        room.closedByRole !== role
+      ) {
+        setOnlinePvpOpponentLeftOpen(true);
+      }
+      if (screen === 'battleSetup' && shouldReturnToOnlineDeckSelect(room)) {
+        setBattleEndDock(false);
+        setScreen('onlinePvp');
+      }
+    });
+  }, [isOnlinePvp, onlinePvpRoom?.id, screen]);
+
+  const handleOnlineSubmitSetup = useCallback(
+    (formation: Parameters<typeof submitOnlineSetup>[2]) => {
+      const room = onlinePvpRoomRef.current;
+      const role = onlinePvpRoleRef.current;
+      if (!room || !role) return;
+      void submitOnlineSetup(room.id, role, formation);
+    },
+    [],
+  );
+
+  const handleOnlineRematchReady = useCallback(() => {
+    const room = onlinePvpRoomRef.current;
+    const role = onlinePvpRoleRef.current;
+    if (!room || !role) return;
+    if (!canContinueOnlinePvpSession(economyRef.current.freePixels)) {
+      void leaveOnlinePvpRoom();
+      return;
+    }
+    void submitOnlineRematchReady(room.id, role).then((result) => {
+      if (result.ok) {
+        setOnlinePvpRoom(result.data);
+        onlinePvpRoomRef.current = result.data;
+        if (result.data.status === 'deck_select') {
+          setBattleEndDock(false);
+          setScreen('onlinePvp');
+        }
+      }
+    });
+  }, [leaveOnlinePvpRoom]);
+
+  const onlinePvpSetupProps =
+    isOnlinePvp && onlinePvpRoom && onlinePvpRole
+      ? {
+          role: onlinePvpRole,
+          room: onlinePvpRoom,
+          roomCode: onlinePvpRoom.code,
+          walletPx: economy.freePixels,
+          canRematch: canContinueOnlinePvpSession(economy.freePixels),
+          onSubmitSetup: handleOnlineSubmitSetup,
+          onRematchReady: handleOnlineRematchReady,
+          onLeaveRoom: () => void leaveOnlinePvpRoom(),
+        }
+      : undefined;
 
   /** 一覧の「戦力補正あり」表示用。出撃デッキ確定前の参考戦力（直近バトル or 先頭の戦闘可能デッキ） */
   const viewerReferenceDeckPower = useMemo(() => {
@@ -3078,12 +3361,14 @@ function App() {
       screen === 'memoryAlbum' ||
       screen === 'records' ||
       screen === 'offlinePvpList' ||
+      screen === 'onlinePvp' ||
       isHistoryRematchDeckSelect ||
       isOfflinePvpDeckSelect);
   const showDock =
     isDockVisible(screen) ||
     (screen === 'battleSetup' && battleEndDock) ||
     screen === 'offlinePvpList' ||
+    screen === 'onlinePvp' ||
     isHistoryRematchDeckSelect ||
     isOfflinePvpDeckSelect;
   const activeTab: TabId =
@@ -3105,6 +3390,7 @@ function App() {
       resetHistoryRematchFlow();
       clearOfflinePvp();
       resetOfflinePvpFlow();
+      clearOnlinePvp();
       if (tab !== 'deck') {
         setDeckReorderMode(false);
       }
@@ -3117,6 +3403,7 @@ function App() {
       clearBattleOutcomeHoldTimer,
       clearHistoryRematch,
       clearOfflinePvp,
+      clearOnlinePvp,
       resetHistoryRematchFlow,
       resetOfflinePvpFlow,
     ],
@@ -3425,6 +3712,9 @@ function App() {
             userLevel={user?.level ?? 1}
             onStartBattle={requestGoToBattleSetup}
             onOpenOfflinePvp={openOfflinePvpList}
+            onOpenOnlinePvp={openOnlinePvp}
+            onlinePvpUnlocked={onlinePvpUnlocked}
+            supabaseConfigured={isSupabaseConfigured()}
             onGoToMyDeck={goToMyDeckWithCard}
             onReorderDeckAt={reorderDeckAt}
             onMoveCardBetweenDecks={moveCardBetweenDecksInHub}
@@ -3439,6 +3729,26 @@ function App() {
             canBattle={hasOfflinePvpBattleDeck}
             onBack={closeOfflinePvpList}
             onChallenge={startOfflinePvpDeckSelect}
+          />
+        )}
+        {screen === 'onlinePvp' && isProfileComplete(user) && (
+          <OnlinePvpScreen
+            userName={user.username}
+            userLevel={user.level}
+            walletPx={economy.freePixels}
+            userId={supabaseOwnerId}
+            supabaseConfigured={isSupabaseConfigured()}
+            decks={decks}
+            deckNames={deckNames}
+            unlockedDeckCount={unlockedDeckCount}
+            lastBattleDeckIndex={lastBattleDeckIndex}
+            resumeRoom={onlinePvpRoom}
+            resumeRole={onlinePvpRole}
+            onBack={() => void leaveOnlinePvpRoom()}
+            onRoomUpdated={handleOnlineRoomUpdated}
+            onGoToMyDeck={goToMyDeckWithCard}
+            onReorderDeckAt={reorderDeckAt}
+            onMoveCardBetweenDecks={moveCardBetweenDecksInHub}
           />
         )}
         {isOfflinePvpDeckSelect ? (
@@ -3581,20 +3891,22 @@ function App() {
             }
             opponentIdentity={cpuOpponent}
             isHistoryRematch={isHistoryRematch}
-            enableOpponentMatching={!isHistoryRematch && !isOfflinePvp}
+            enableOpponentMatching={!isHistoryRematch && !isOfflinePvp && !isOnlinePvp}
             onCancelMatch={
-              isHistoryRematch
-                ? handleCancelHistoryRematch
-                : isOfflinePvp
-                  ? handleCancelOfflinePvpMatch
-                  : handleCancelBattleMatch
+              isOnlinePvp
+                ? () => void leaveOnlinePvpRoom()
+                : isHistoryRematch
+                  ? handleCancelHistoryRematch
+                  : isOfflinePvp
+                    ? handleCancelOfflinePvpMatch
+                    : handleCancelBattleMatch
             }
             cancelMatchDisabled={
-              isHistoryRematch || isOfflinePvp
+              isHistoryRematch || isOfflinePvp || isOnlinePvp
                 ? false
                 : economy.freePixels < BATTLE_MATCH_CANCEL_COST
             }
-            cancelMatchShowsCost={!isHistoryRematch && !isOfflinePvp}
+            cancelMatchShowsCost={!isHistoryRematch && !isOfflinePvp && !isOnlinePvp}
             cancelMatchCostPx={BATTLE_MATCH_CANCEL_COST}
             onFinish={handleBattleOutcome}
             onNewBattle={
@@ -3603,6 +3915,7 @@ function App() {
             newBattleDisabled={battleEndNewBattleDisabled}
             onBattleEndedChange={handleBattleEndedChange}
             onBattleLogViewed={handleBattleLogViewed}
+            onlinePvp={onlinePvpSetupProps}
           />
         )}
       </main>
@@ -3774,6 +4087,10 @@ function App() {
           onConfirm={handleTalismanSaveConfirm}
         />
       )}
+      <OnlinePvpOpponentLeftModal
+        open={onlinePvpOpponentLeftOpen}
+        onAcknowledge={() => void leaveOnlinePvpRoom({ skipClose: true })}
+      />
     </div>
   );
 }

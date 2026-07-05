@@ -5,6 +5,9 @@ import {
   OFFLINE_PVP_MIN_USER_LEVEL,
   isOfflinePvpUnlockedAtUserLevel,
 } from '../offlinePvp';
+import {
+  ONLINE_PVP_MIN_USER_LEVEL,
+} from '../onlinePvp';
 import { BattleDeckSelectScreen } from './BattleDeckSelectScreen';
 import { HelpInfoButton } from './HelpInfoButton';
 import { HelpPanelModal } from './HelpPanelModal';
@@ -19,6 +22,9 @@ interface BattleHubScreenProps {
   userLevel: number;
   onStartBattle: (deckIndex: number) => void;
   onOpenOfflinePvp: () => void;
+  onOpenOnlinePvp: () => void;
+  onlinePvpUnlocked: boolean;
+  supabaseConfigured: boolean;
   onGoToMyDeck: (deckIndex: number, cardId: string) => void;
   onReorderDeckAt: (deckIndex: number, layout: DeckLayout) => void;
   onMoveCardBetweenDecks: (
@@ -38,6 +44,9 @@ export function BattleHubScreen({
   userLevel,
   onStartBattle,
   onOpenOfflinePvp,
+  onOpenOnlinePvp,
+  onlinePvpUnlocked,
+  supabaseConfigured,
   onGoToMyDeck,
   onReorderDeckAt,
   onMoveCardBetweenDecks,
@@ -109,11 +118,19 @@ export function BattleHubScreen({
           <button
             type="button"
             className="battle-hub-mode-btn"
-            disabled
-            aria-disabled="true"
+            onClick={onOpenOnlinePvp}
+            disabled={!onlinePvpUnlocked || !supabaseConfigured}
+            aria-disabled={!onlinePvpUnlocked || !supabaseConfigured}
           >
             <span className="battle-hub-mode-btn-label">フレンド対戦</span>
-            <span className="battle-hub-mode-btn-soon">（準備中）</span>
+            {!onlinePvpUnlocked && (
+              <span className="battle-hub-mode-btn-soon">
+                （Lv{ONLINE_PVP_MIN_USER_LEVEL}で解放）
+              </span>
+            )}
+            {onlinePvpUnlocked && !supabaseConfigured && (
+              <span className="battle-hub-mode-btn-soon">（要 Supabase）</span>
+            )}
           </button>
         </div>
         </div>

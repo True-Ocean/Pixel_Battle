@@ -82,6 +82,8 @@ export {
   applyOnlineNinjaStalemateBreak,
   applyOnlineBattleForfeit,
   subscribeOnlineBattleRoom,
+  fetchOnlineBattleRoom,
+  tryAdvanceToSetup,
 } from './roomApi';
 export {
   deriveOnlineUiPhase,

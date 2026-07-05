@@ -248,7 +248,8 @@ export type ScreenId =
   | 'settings'
   | 'editor'
   | 'battleSetup'
-  | 'battle';
+  | 'battle'
+  | 'onlinePvp';
 
 export interface NavigationState {
   screen: ScreenId;

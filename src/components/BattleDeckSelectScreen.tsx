@@ -47,6 +47,8 @@ export interface BattleDeckSelectScreenProps {
   backLabel?: string;
   title?: string;
   startButtonLabel?: string;
+  startBattleDisabled?: boolean;
+  waitingStatusMessage?: string;
   onStartBattle: (deckIndex: number) => void;
   onBack: () => void;
   onGoToMyDeck: (deckIndex: number, cardId: string) => void;
@@ -87,6 +89,8 @@ export function BattleDeckSelectScreen({
   backLabel = 'モード選択に戻る',
   title = 'デッキ選択',
   startButtonLabel = 'バトル開始',
+  startBattleDisabled = false,
+  waitingStatusMessage,
   onStartBattle,
   onBack,
   onGoToMyDeck,
@@ -382,14 +386,20 @@ export function BattleDeckSelectScreen({
               使用するデッキを選んでください（デッキ名または空スロットをタップ）。
             </p>
           )}
-          <button
-            type="button"
-            className="battle-hub-mode-btn battle-hub-start-btn"
-            disabled={!canStart}
-            onClick={handleStartBattle}
-          >
-            {startButtonLabel}
-          </button>
+          {waitingStatusMessage ? (
+            <p className="online-pvp-waiting-status" role="status">
+              {waitingStatusMessage}
+            </p>
+          ) : (
+            <button
+              type="button"
+              className="battle-hub-mode-btn battle-hub-start-btn"
+              disabled={!canStart || startBattleDisabled}
+              onClick={handleStartBattle}
+            >
+              {startButtonLabel}
+            </button>
+          )}
         </div>
       </div>
 

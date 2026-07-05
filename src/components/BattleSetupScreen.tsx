@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { CPU_OPPONENT_LEVEL, DECK_MAX, MATCH_REVEAL_COUNTDOWN_SEC, SETUP_TIME_LIMIT_SEC } from '../config/balance';
+import { CPU_OPPONENT_LEVEL, DECK_MAX, MATCH_REVEAL_COUNTDOWN_SEC, SETUP_TIME_LIMIT_SEC, BATTLE_OUTCOME_HOLD_MS } from '../config/balance';
 import { computeDeckPower } from '../card';
 import type { Card, BattleOutcome, BattleOutcomeCore } from '../types';
 import type { BoardPosition } from '../types/battle';
@@ -29,6 +29,26 @@ import { SETUP_MS } from './setupConstants';
 import { relRect } from './setupMeasure';
 import type { LayoutRect } from './flightMeasure';
 import { useBattle } from './useBattle';
+import {
+  useOnlineBattleController,
+  type OnlineBattleController,
+} from './useOnlineBattleController';
+import type { OnlineBattleRoom, OnlineBattleRole } from '../onlinePvp';
+import {
+  buildOnlinePxBalanceSnapshot,
+  calcOnlinePvpBattleTransfer,
+  cardsToFormation,
+  computeOnlineSetupSecondsRemaining,
+  countFieldSurvivors,
+  onlineRematchButtonLabel,
+  onlineRematchHint,
+  opponentWalletPx,
+} from '../onlinePvp';
+import { randomFormationSeeded } from '../onlinePvp/formation';
+import {
+  OnlinePvpBattleEndModal,
+  OnlinePvpLeaveConfirmDialog,
+} from './OnlinePvpBattleEndModal';
 import { FormationBattleLog } from './FormationBattleLog';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PixelCoinIcon } from './PixelCoinIcon';
@@ -107,6 +127,8 @@ interface BattleZoneProfile {
 
 interface BattleZoneIdentity extends BattleZoneProfile {
   power: number;
+  powerRescaled?: boolean;
+  pxBalance?: number;
 }
 
 interface BattleSetupScreenProps {
@@ -125,6 +147,16 @@ interface BattleSetupScreenProps {
   newBattleDisabled?: boolean;
   onBattleEndedChange?: (ended: boolean) => void;
   onBattleLogViewed?: () => void;
+  onlinePvp?: {
+    role: OnlineBattleRole;
+    room: OnlineBattleRoom;
+    roomCode: string;
+    walletPx: number;
+    canRematch: boolean;
+    onSubmitSetup: (formation: ReturnType<typeof cardsToFormation>) => void;
+    onRematchReady: () => void;
+    onLeaveRoom: () => void;
+  };
 }
 
 type SelectedSetupSlot = BoardPosition | null;
@@ -693,13 +725,15 @@ function FormationBoardSetup({
   );
 }
 
+type BattleController = ReturnType<typeof useBattle> | OnlineBattleController;
+
 function BattleUnitSlot({
   battle,
   position,
   side,
   registerSlot,
 }: {
-  battle: ReturnType<typeof useBattle>;
+  battle: BattleController;
   position: BoardPosition;
   side: 'cpu' | 'player';
   registerSlot: (side: 'cpu' | 'player', position: BoardPosition) => (el: HTMLButtonElement | null) => void;
@@ -1223,8 +1257,13 @@ function BattleBoard({
   opponentIdentity,
   playerIdentity,
   endActions,
+  onlineWaitingHint,
+  onlineRematchHintText,
+  onlinePostBattleActions,
+  onlineRematchWaiting,
+  forceEndedGuideLayout,
 }: {
-  battle: ReturnType<typeof useBattle>;
+  battle: BattleController;
   opponentIdentity: BattleZoneIdentity;
   playerIdentity?: BattleZoneIdentity;
   endActions?: {
@@ -1233,12 +1272,31 @@ function BattleBoard({
     newBattleLabel: string;
     newBattleDisabled?: boolean;
   };
+  onlineWaitingHint?: string;
+  onlineRematchHintText?: string;
+  onlinePostBattleActions?: {
+    onOpenLog: () => void;
+  };
+  onlineRematchWaiting?: boolean;
+  forceEndedGuideLayout?: boolean;
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
   const slotRefs = useRef<Partial<Record<SlotKey, HTMLButtonElement>>>({});
   const result = battle.result;
   const showOutcome =
     battle.effectivePhase === 'ended' && result != null;
+  const endedGuideLayout =
+    showOutcome &&
+    (endActions != null ||
+      onlineRematchHintText != null ||
+      onlinePostBattleActions != null ||
+      forceEndedGuideLayout);
+  const endedCenterHintOnly =
+    (endedGuideLayout &&
+      endActions == null &&
+      onlinePostBattleActions == null) ||
+    onlineRematchWaiting === true;
+  const endedSoloHint = endedCenterHintOnly;
   const isPromotePhase =
     battle.effectivePhase === 'promoteUnit' ||
     battle.effectivePhase === 'promoteSlot';
@@ -1517,8 +1575,12 @@ function BattleBoard({
 
           <div
             className={`formation-guide formation-guide-battle formation-guide-battle--grid${
-              showOutcome && endActions ? ' formation-guide-battle--ended' : ''
-            }${isPromotePhase ? ' formation-guide-battle--promote' : ''}`}
+              endedGuideLayout
+                ? ' formation-guide-battle--ended'
+                : ' formation-guide-battle--in-progress'
+            }${endedSoloHint ? ' formation-guide-battle--ended-solo' : ''}${
+              isPromotePhase ? ' formation-guide-battle--promote' : ''
+            }`}
           >
             {showOutcome && endActions ? (
               <button
@@ -1529,37 +1591,40 @@ function BattleBoard({
               >
                 {endActions.newBattleLabel}
               </button>
-            ) : (
-              <span
-                className="battle-end-actions-slot battle-end-actions-slot--reserve"
-                aria-hidden
-              />
-            )}
+            ) : null}
             <div
               className={`formation-hint formation-guide-line${
-                showOutcome && endActions ? ' formation-guide-line--ended' : ''
+                endedGuideLayout ? ' formation-guide-line--ended' : ''
               }${isPromotePhase ? ' formation-guide-line--promote' : ''}`}
             >
-              {formatBattleGuideLine(
-                battle.turnLabel,
-                battle.hint,
-                showOutcome ? result : null,
-              )}
+              <div className="formation-guide-ended-stack">
+                {!endedSoloHint ? (
+                  <span>
+                    {formatBattleGuideLine(
+                      battle.turnLabel,
+                      onlineWaitingHint ?? battle.hint,
+                      showOutcome ? result : null,
+                    )}
+                  </span>
+                ) : null}
+                {showOutcome && onlineRematchHintText ? (
+                  <p className="formation-guide-rematch-hint" role="status">
+                    {onlineRematchHintText}
+                  </p>
+                ) : null}
+              </div>
             </div>
-            {showOutcome && endActions ? (
+            {showOutcome && (endActions || onlinePostBattleActions) ? (
               <button
                 type="button"
                 className="battle-end-actions-btn battle-end-actions-btn--secondary"
-                onClick={endActions.onOpenLog}
+                onClick={
+                  endActions?.onOpenLog ?? onlinePostBattleActions!.onOpenLog
+                }
               >
                 バトルログ
               </button>
-            ) : (
-              <span
-                className="battle-end-actions-slot battle-end-actions-slot--reserve"
-                aria-hidden
-              />
-            )}
+            ) : null}
           </div>
 
           <div className="formation-zone formation-zone-player">
@@ -1608,6 +1673,10 @@ function BattleSession({
   view,
   endActions,
   onBattleLogViewed,
+  onOpenBattleLog,
+  onlineRoom,
+  onlineRole,
+  onlinePvpContext,
 }: {
   playerCards: Card[];
   cpuCards: Card[];
@@ -1623,9 +1692,41 @@ function BattleSession({
     newBattleDisabled?: boolean;
   };
   onBattleLogViewed?: () => void;
+  onOpenBattleLog?: () => void;
+  onlineRoom?: OnlineBattleRoom | null;
+  onlineRole?: OnlineBattleRole;
+  onlinePvpContext?: {
+    room: OnlineBattleRoom;
+    role: OnlineBattleRole;
+    walletPx: number;
+    canRematch: boolean;
+    onRematchReady: () => void;
+    onLeaveRoom: () => void;
+  };
 }) {
-  const battle = useBattle(playerCards, cpuCards, onFinish);
+  const offlineBattle = useBattle(
+    playerCards,
+    cpuCards,
+    onFinish,
+  );
+  const onlineBattle = useOnlineBattleController({
+    room: onlineRoom ?? null,
+    role: onlineRole ?? 'host',
+    playerCards,
+    cpuCards,
+    onFinish,
+  });
+  const battle = onlinePvpContext ? onlineBattle : offlineBattle;
   const ended = battle.effectivePhase === 'ended' && battle.result != null;
+  const [showEndModal, setShowEndModal] = useState(false);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const [endModalDismissedForLog, setEndModalDismissedForLog] = useState(false);
+
+  const myRematchReady =
+    onlinePvpContext != null &&
+    (onlinePvpContext.role === 'host'
+      ? onlinePvpContext.room.hostRematchReady
+      : onlinePvpContext.room.guestRematchReady);
 
   useEffect(() => {
     if (ended) battle.handleEnd();
@@ -1635,17 +1736,147 @@ function BattleSession({
     onEndedChange?.(ended);
   }, [ended, onEndedChange]);
 
-  const resolvedEndActions = endActions
-    ? {
-        ...endActions,
-        onOpenLog: () => {
-          if (battle.state.events.length > 0) {
-            onBattleLogViewed?.();
+  useEffect(() => {
+    if (!ended || !onlinePvpContext) {
+      setShowEndModal(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setShowEndModal(true);
+    }, BATTLE_OUTCOME_HOLD_MS);
+    return () => window.clearTimeout(timer);
+  }, [ended, onlinePvpContext]);
+
+  useEffect(() => {
+    if (!ended) {
+      setEndModalDismissedForLog(false);
+    }
+  }, [ended]);
+
+  useEffect(() => {
+    if (myRematchReady) {
+      setShowEndModal(false);
+      setLeaveConfirmOpen(false);
+    }
+  }, [myRematchReady]);
+
+  const resolvedEndActions =
+    onlinePvpContext != null
+      ? undefined
+      : endActions
+        ? {
+            ...endActions,
+            onOpenLog: () => {
+              if (battle.state.events.length > 0) {
+                onBattleLogViewed?.();
+              }
+              endActions.onOpenLog();
+            },
           }
-          endActions.onOpenLog();
-        },
-      }
-    : undefined;
+        : undefined;
+
+  const onlinePxOutcome = useMemo((): ReturnType<
+    typeof buildOnlinePxBalanceSnapshot
+  > | null => {
+    if (!onlinePvpContext || !ended || battle.result == null) return null;
+    const playerWon = battle.result === 'player';
+    const winnerUnits = playerWon
+      ? battle.state.player
+      : battle.state.cpu;
+    const transfer =
+      onlinePvpContext.room.lastTransferPx ??
+      calcOnlinePvpBattleTransfer(countFieldSurvivors(winnerUnits));
+    if (transfer <= 0) return null;
+    return buildOnlinePxBalanceSnapshot(
+      onlinePvpContext.walletPx,
+      playerWon,
+      transfer,
+    );
+  }, [
+    battle.result,
+    battle.state.cpu,
+    battle.state.player,
+    ended,
+    onlinePvpContext,
+  ]);
+
+  const onlineRematchHintText =
+    ended && onlinePvpContext
+      ? onlineRematchHint(onlinePvpContext.room, onlinePvpContext.role)
+      : undefined;
+
+  const onlineRematchButtonLabelText =
+    onlinePvpContext != null
+      ? onlineRematchButtonLabel(onlinePvpContext.room, onlinePvpContext.role)
+      : '再戦希望';
+
+  const onlineBannerPowerRef = useRef<{
+    applied: boolean;
+    playerPower: number;
+    opponentPower: number;
+  } | null>(null);
+  const onlineBannerPowerRoomRef = useRef<string | null>(null);
+
+  const onlineBattlePower = useMemo(() => {
+    if (!onlinePvpContext) {
+      onlineBannerPowerRef.current = null;
+      onlineBannerPowerRoomRef.current = null;
+      return null;
+    }
+    if (onlineBannerPowerRoomRef.current !== onlinePvpContext.room.id) {
+      onlineBannerPowerRoomRef.current = onlinePvpContext.room.id;
+      onlineBannerPowerRef.current = null;
+    }
+    const { hostDeck, guestDeck, role } = {
+      hostDeck: onlinePvpContext.room.hostDeck,
+      guestDeck: onlinePvpContext.room.guestDeck,
+      role: onlinePvpContext.role,
+    };
+    if (hostDeck?.length && guestDeck?.length) {
+      const myDeck = role === 'host' ? hostDeck : guestDeck;
+      const oppDeck = role === 'host' ? guestDeck : hostDeck;
+      const applied = onlinePvpContext.room.powerBalanceApplied;
+      const snapshot = {
+        applied,
+        playerPower: computeDeckPower(myDeck),
+        opponentPower: computeDeckPower(oppDeck),
+      };
+      onlineBannerPowerRef.current = snapshot;
+      return snapshot;
+    }
+    return onlineBannerPowerRef.current;
+  }, [onlinePvpContext]);
+
+  const displayPlayerIdentity = useMemo((): BattleZoneIdentity | undefined => {
+    if (!playerIdentity) return undefined;
+    let base = playerIdentity;
+    if (onlinePvpContext && !ended && onlineBattlePower) {
+      base = {
+        ...playerIdentity,
+        power: onlineBattlePower.playerPower,
+        powerRescaled: onlineBattlePower.applied,
+      };
+    }
+    if (onlinePvpContext && ended && onlinePxOutcome) {
+      return {
+        ...base,
+        pxBalance: onlinePxOutcome.myNext,
+      };
+    }
+    return base;
+  }, [ended, onlineBattlePower, onlinePxOutcome, onlinePvpContext, playerIdentity]);
+
+  const displayOpponentIdentity = useMemo((): BattleZoneIdentity => {
+    let base = opponentIdentity;
+    if (onlinePvpContext && !ended && onlineBattlePower) {
+      base = {
+        ...opponentIdentity,
+        power: onlineBattlePower.opponentPower,
+        powerRescaled: onlineBattlePower.applied,
+      };
+    }
+    return base;
+  }, [ended, onlineBattlePower, onlinePvpContext, opponentIdentity]);
 
   if (view === 'log') {
     return (
@@ -1659,13 +1890,86 @@ function BattleSession({
     );
   }
 
+  const rematchBlocked =
+    myRematchReady ||
+    (onlinePvpContext != null && !onlinePvpContext.canRematch);
+
+  const onlineRematchWaiting = Boolean(
+    myRematchReady && onlineRematchHintText,
+  );
+
+  const onlinePostBattleActions =
+    ended &&
+    onlinePvpContext &&
+    endModalDismissedForLog &&
+    !myRematchReady &&
+    battle.state.events.length > 0 &&
+    onOpenBattleLog
+      ? {
+          onOpenLog: () => {
+            onBattleLogViewed?.();
+            onOpenBattleLog();
+          },
+        }
+      : undefined;
+
+  const opponentLeftRoom =
+    onlinePvpContext != null &&
+    onlinePvpContext.room.status === 'closed' &&
+    onlinePvpContext.room.closedByRole != null &&
+    onlinePvpContext.room.closedByRole !== onlinePvpContext.role;
+
   return (
-    <BattleBoard
-      battle={battle}
-      opponentIdentity={opponentIdentity}
-      playerIdentity={playerIdentity}
-      endActions={resolvedEndActions}
-    />
+    <>
+      <BattleBoard
+        battle={battle}
+        opponentIdentity={displayOpponentIdentity}
+        playerIdentity={displayPlayerIdentity}
+        endActions={resolvedEndActions}
+        onlineWaitingHint={
+          battle.waitingForOpponent
+            ? '相手の選択を待っています…'
+            : battle.effectivePhase === 'waitOpponentPromotion'
+              ? '相手の前衛補充を待っています…'
+              : undefined
+        }
+        onlineRematchHintText={onlineRematchHintText}
+        onlinePostBattleActions={onlinePostBattleActions}
+        onlineRematchWaiting={onlineRematchWaiting}
+        forceEndedGuideLayout={onlinePvpContext != null && ended}
+      />
+      {onlinePvpContext && battle.result != null ? (
+        <>
+          <OnlinePvpBattleEndModal
+            open={showEndModal && !myRematchReady}
+            won={battle.result === 'player'}
+            rematchDisabled={rematchBlocked}
+            rematchButtonLabel={onlineRematchButtonLabelText}
+            showRematchButton={!opponentLeftRoom}
+            pxOutcome={onlinePxOutcome}
+            canRematch={onlinePvpContext.canRematch}
+            onRematch={() => {
+              setShowEndModal(false);
+              onlinePvpContext.onRematchReady();
+            }}
+            onLeave={() => {
+              setShowEndModal(false);
+              setEndModalDismissedForLog(true);
+              setLeaveConfirmOpen(true);
+            }}
+          />
+          <OnlinePvpLeaveConfirmDialog
+            open={leaveConfirmOpen}
+            onConfirm={() => {
+              setLeaveConfirmOpen(false);
+              setShowEndModal(false);
+              onlinePvpContext.onLeaveRoom();
+            }}
+            onCancel={() => setLeaveConfirmOpen(false)}
+          />
+        </>
+      ) : null}
+    </>
   );
 }
 
@@ -1685,28 +1989,59 @@ export function BattleSetupScreen({
   newBattleDisabled = false,
   onBattleEndedChange,
   onBattleLogViewed,
+  onlinePvp,
 }: BattleSetupScreenProps) {
+  const isOnlinePvp = onlinePvp != null;
   const opponentProfile: BattleZoneProfile = opponentIdentity ?? {
     name: 'CPU',
     level: playerIdentity?.level ?? CPU_OPPONENT_LEVEL,
   };
   const canBattle = playerDeck.length >= DECK_MAX;
+  const opponentCpuDeck = cpuDeck;
+  const seededOpponentFormation = useMemo(
+    () =>
+      isOnlinePvp && onlinePvp
+        ? randomFormationSeeded(opponentCpuDeck, onlinePvp.roomCode)
+        : randomFormation(cpuDeck),
+    [cpuDeck, isOnlinePvp, onlinePvp, opponentCpuDeck],
+  );
   const [playerFormation] = useState<Record<BoardPosition, Card | null>>(() =>
     randomFormation(playerDeck),
   );
   const [cpuFormation] = useState<Record<BoardPosition, Card | null>>(() =>
-    randomFormation(cpuDeck),
+    seededOpponentFormation,
   );
   const [phase, setPhase] = useState<'matching' | 'reveal' | 'setup' | 'battle'>(
-    () => (enableOpponentMatching ? 'matching' : 'reveal'),
+    () => {
+      if (isOnlinePvp && onlinePvp) {
+        if (
+          onlinePvp.room.status === 'battle' ||
+          onlinePvp.room.status === 'rematch_wait'
+        ) {
+          return 'battle';
+        }
+        return 'setup';
+      }
+      return enableOpponentMatching ? 'matching' : 'reveal';
+    },
   );
   const [revealCountdown, setRevealCountdown] = useState(MATCH_REVEAL_COUNTDOWN_SEC);
-  const [timeLeft, setTimeLeft] = useState(SETUP_TIME_LIMIT_SEC);
+  const [timeLeft, setTimeLeft] = useState(() => {
+    if (isOnlinePvp && onlinePvp?.room.setupStartedAt) {
+      return computeOnlineSetupSecondsRemaining(onlinePvp.room.setupStartedAt);
+    }
+    return SETUP_TIME_LIMIT_SEC;
+  });
   const [playerSlots, setPlayerSlots] = useState<
     Record<BoardPosition, Card | null>
   >(() => ({ ...playerFormation }));
   const [cpuSlots, setCpuSlots] = useState<Record<BoardPosition, Card | null>>(
-    () => (enableOpponentMatching ? emptyFormation() : { ...cpuFormation }),
+    () =>
+      isOnlinePvp
+        ? { ...seededOpponentFormation }
+        : enableOpponentMatching
+          ? emptyFormation()
+          : { ...cpuFormation },
   );
   const [cpuDeployIndex, setCpuDeployIndex] = useState<number>(
     BOARD_POSITIONS.length,
@@ -1722,7 +2057,38 @@ export function BattleSetupScreen({
   const [selectedSlot, setSelectedSlot] = useState<SelectedSetupSlot>(null);
   const [battleEnded, setBattleEnded] = useState(false);
   const [battleSubView, setBattleSubView] = useState<'play' | 'log'>('play');
+  const [setupSubmitted, setSetupSubmitted] = useState(() => {
+    if (!isOnlinePvp || !onlinePvp) return false;
+    return onlinePvp.role === 'host'
+      ? onlinePvp.room.hostSetupReady
+      : onlinePvp.room.guestSetupReady;
+  });
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOnlinePvp || !onlinePvp) return;
+    if (onlinePvp.room.status === 'battle') {
+      setPhase('battle');
+    } else if (onlinePvp.room.status === 'setup') {
+      setPhase('setup');
+      const myReady =
+        onlinePvp.role === 'host'
+          ? onlinePvp.room.hostSetupReady
+          : onlinePvp.room.guestSetupReady;
+      setSetupSubmitted(myReady);
+      if (onlinePvp.room.setupStartedAt) {
+        setTimeLeft(
+          computeOnlineSetupSecondsRemaining(onlinePvp.room.setupStartedAt),
+        );
+      }
+    } else if (
+      onlinePvp.room.status === 'rematch_wait' ||
+      onlinePvp.room.status === 'closed'
+    ) {
+      setPhase('battle');
+      setBattleEnded(true);
+    }
+  }, [isOnlinePvp, onlinePvp]);
 
   useEffect(() => {
     onBattleEndedChange?.(battleEnded);
@@ -1765,17 +2131,26 @@ export function BattleSetupScreen({
   const resolvedPlayerIdentity = useMemo(
     (): BattleZoneIdentity | undefined =>
       playerIdentity
-        ? { ...playerIdentity, power: computeDeckPower(playerDeck) }
+        ? {
+            ...playerIdentity,
+            power: computeDeckPower(playerDeck),
+            pxBalance:
+              isOnlinePvp && onlinePvp ? onlinePvp.walletPx : undefined,
+          }
         : undefined,
-    [playerIdentity, playerDeck],
+    [isOnlinePvp, onlinePvp, playerIdentity, playerDeck],
   );
 
   const resolvedOpponentIdentity = useMemo(
     (): BattleZoneIdentity => ({
       ...opponentProfile,
       power: computeDeckPower(cpuDeck),
+      pxBalance:
+        isOnlinePvp && onlinePvp
+          ? opponentWalletPx(onlinePvp.room, onlinePvp.role)
+          : undefined,
     }),
-    [opponentProfile, cpuDeck],
+    [cpuDeck, isOnlinePvp, onlinePvp, opponentProfile],
   );
 
   const handleCpuFlightComplete = useCallback(() => {
@@ -1799,6 +2174,7 @@ export function BattleSetupScreen({
   }, [cpuDeployCooldown]);
 
   useLayoutEffect(() => {
+    if (isOnlinePvp) return;
     if (phase !== 'setup') return;
     if (cpuDeployCooldown || cpuFlight) return;
     if (cpuDeployIndex >= BOARD_POSITIONS.length) return;
@@ -1832,6 +2208,7 @@ export function BattleSetupScreen({
       to: relRect(container, slotEl),
     });
   }, [
+    isOnlinePvp,
     phase,
     cpuDeployIndex,
     cpuFlight,
@@ -1849,13 +2226,45 @@ export function BattleSetupScreen({
 
   useEffect(() => {
     if (phase !== 'setup') return;
+
+    if (isOnlinePvp && onlinePvp?.room.setupStartedAt) {
+      const tick = () => {
+        const remaining = computeOnlineSetupSecondsRemaining(
+          onlinePvp.room.setupStartedAt,
+        );
+        setTimeLeft(remaining);
+        if (remaining <= 0 && !setupSubmitted) {
+          setSetupSubmitted(true);
+          onlinePvp.onSubmitSetup(cardsToFormation(playerSlots));
+        }
+      };
+      tick();
+      const id = window.setInterval(tick, 250);
+      return () => window.clearInterval(id);
+    }
+
     if (timeLeft <= 0) {
+      if (isOnlinePvp && onlinePvp) {
+        if (!setupSubmitted) {
+          setSetupSubmitted(true);
+          onlinePvp.onSubmitSetup(cardsToFormation(playerSlots));
+        }
+        return;
+      }
+      setBattleEnded(false);
       setPhase('battle');
       return;
     }
     const t = window.setTimeout(() => setTimeLeft((n) => n - 1), 1000);
     return () => window.clearTimeout(t);
-  }, [phase, timeLeft]);
+  }, [
+    isOnlinePvp,
+    onlinePvp,
+    phase,
+    playerSlots,
+    setupSubmitted,
+    timeLeft,
+  ]);
 
   const handleSlotClick = (position: BoardPosition) => {
     if (selectedSlot == null) {
@@ -1896,6 +2305,12 @@ export function BattleSetupScreen({
   }, [phase, revealCountdown, handleRevealContinue]);
 
   const handleMainButton = () => {
+    if (isOnlinePvp && onlinePvp) {
+      if (setupSubmitted) return;
+      setSetupSubmitted(true);
+      onlinePvp.onSubmitSetup(cardsToFormation(playerSlots));
+      return;
+    }
     setBattleEnded(false);
     setPhase('battle');
   };
@@ -1972,7 +2387,11 @@ export function BattleSetupScreen({
         <div
           className={`formation-battle-body${isPlayPhase ? ' formation-battle-play-body' : ''}`}
         >
-          {phase === 'battle' ? (
+          {phase === 'battle' &&
+          (!isOnlinePvp ||
+            onlinePvp?.room.status === 'battle' ||
+            onlinePvp?.room.status === 'rematch_wait' ||
+            onlinePvp?.room.status === 'closed') ? (
             <BattleSession
               playerCards={battleCards.player}
               cpuCards={battleCards.cpu}
@@ -1982,14 +2401,33 @@ export function BattleSetupScreen({
               onEndedChange={setBattleEnded}
               view={battleSubView}
               onBattleLogViewed={onBattleLogViewed}
-              endActions={{
-                onNewBattle,
-                onOpenLog: () => setBattleSubView('log'),
-                newBattleLabel: isHistoryRematch
-                  ? 'もう一度対戦'
-                  : '新規バトル',
-                newBattleDisabled,
-              }}
+              onOpenBattleLog={() => setBattleSubView('log')}
+              onlineRoom={isOnlinePvp ? onlinePvp?.room : null}
+              onlineRole={isOnlinePvp ? onlinePvp?.role : undefined}
+              onlinePvpContext={
+                isOnlinePvp && onlinePvp
+                  ? {
+                      room: onlinePvp.room,
+                      role: onlinePvp.role,
+                      walletPx: onlinePvp.walletPx,
+                      canRematch: onlinePvp.canRematch,
+                      onRematchReady: onlinePvp.onRematchReady,
+                      onLeaveRoom: onlinePvp.onLeaveRoom,
+                    }
+                  : undefined
+              }
+              endActions={
+                isOnlinePvp
+                  ? undefined
+                  : {
+                      onNewBattle,
+                      onOpenLog: () => setBattleSubView('log'),
+                      newBattleLabel: isHistoryRematch
+                        ? 'もう一度対戦'
+                        : '新規バトル',
+                      newBattleDisabled,
+                    }
+              }
             />
           ) : phase === 'reveal' || phase === 'matching' ? (
             <FormationPlayLayout>
@@ -2042,9 +2480,15 @@ export function BattleSetupScreen({
 
         {phase === 'setup' && (
           <div className="actions setup-actions formation-actions">
-            <button type="button" className="primary" onClick={handleMainButton}>
-              準備完了
-            </button>
+            {isOnlinePvp && setupSubmitted ? (
+              <p className="online-pvp-waiting-status" role="status">
+                相手の準備が完了するのを待っています…
+              </p>
+            ) : (
+              <button type="button" className="primary" onClick={handleMainButton}>
+                準備完了
+              </button>
+            )}
           </div>
         )}
         {phase === 'battle' && battleSubView === 'log' && (

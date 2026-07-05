@@ -49,6 +49,7 @@ export type BattleUiPhase =
   | 'stalemateStealthBreak'
   | 'promoteUnit'
   | 'promoteSlot'
+  | 'waitOpponentPromotion'
   | 'ended';
 
 export interface TurnStartPlayback {
@@ -1049,5 +1050,6 @@ export function useBattle(
     handleCpuCardClick,
     handleEnd,
     cancelShieldPick: cancelSelection,
+    waitingForOpponent: false,
   };
 }
