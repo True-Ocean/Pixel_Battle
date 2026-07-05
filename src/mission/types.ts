@@ -6,6 +6,7 @@ export type MissionEventType =
   | 'app_open'
   | 'battle_win'
   | 'cpu_battle_win'
+  | 'offline_pvp_battle_win'
   | 'history_rematch_win'
   | 'battle_play'
   | 'card_created'
@@ -58,6 +59,10 @@ export interface MissionDefinition {
   displayTrackId?: string;
   /** 常設達成型: 達成条件 */
   condition?: MissionCondition;
+  /** このレベル以上で表示・進捗対象（省略時は制限なし） */
+  minUserLevel?: number;
+  /** このレベル以下で表示・進捗対象（省略時は制限なし） */
+  maxUserLevel?: number;
 }
 
 /** 個別ミッションの進捗 */

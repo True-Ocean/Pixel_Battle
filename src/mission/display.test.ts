@@ -62,8 +62,8 @@ describe('sortMissionsForDisplay', () => {
     const withProgress = {
       ...state,
       entries: {
-        weekly_cpu_battle_win_30: {
-          progress: 30,
+        weekly_limit_break: {
+          progress: 1,
           completedAt: monday.toISOString(),
           claimedAt: monday.toISOString(),
         },
@@ -76,10 +76,21 @@ describe('sortMissionsForDisplay', () => {
       'weekly_login_5',
       'weekly_cpu_battle_win_10',
       'weekly_cpu_battle_win_20',
-      'weekly_history_rematch_win_2',
       'weekly_attribute_retouch',
       'weekly_limit_break',
-      'weekly_cpu_battle_win_30',
+    ]);
+  });
+
+  it('shows offline pvp daily missions instead of cpu 5-win at level 10', () => {
+    const missions = getMissionsByCategory('daily', undefined, 10);
+    expect(missions.map((m) => m.id)).toEqual([
+      'daily_login',
+      'daily_cpu_battle_win_1',
+      'daily_cpu_battle_win_3',
+      'daily_offline_pvp_battle_win_1',
+      'daily_offline_pvp_battle_win_3',
+      'daily_card_edit',
+      'daily_history_rematch_win',
     ]);
   });
 
@@ -91,6 +102,7 @@ describe('sortMissionsForDisplay', () => {
     expect(visible.map((m) => m.id)).toEqual(
       expect.arrayContaining([
         'permanent_cpu_battle_win_10',
+        'permanent_offline_pvp_battle_win_10',
         'permanent_card_created_10',
         'permanent_limit_break_5',
         'permanent_memory_album_saved_1',

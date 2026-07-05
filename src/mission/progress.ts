@@ -100,6 +100,7 @@ export function reportMissionEvent(
   eventType: MissionEventType,
   amount: number = 1,
   date: Date = new Date(),
+  userLevel: number = 1,
 ): MissionEventResult {
   const delta = Math.max(0, Math.floor(amount));
   if (delta === 0) {
@@ -119,7 +120,7 @@ export function reportMissionEvent(
 
   const nextEntries = { ...next.entries };
 
-  for (const mission of getMissionDefinitions(next)) {
+  for (const mission of getMissionDefinitions(next, userLevel)) {
     if (mission.eventType !== eventType) continue;
     if (!isMissionActive(mission, next)) continue;
 
@@ -152,11 +153,12 @@ export function applyMissionEvents(
   state: MissionState,
   events: ReadonlyArray<{ type: MissionEventType; amount?: number }>,
   date: Date = new Date(),
+  userLevel: number = 1,
 ): MissionEventResult {
   let next = state;
   const newlyCompleted: MissionDefinition[] = [];
   for (const { type, amount = 1 } of events) {
-    const result = reportMissionEvent(next, type, amount, date);
+    const result = reportMissionEvent(next, type, amount, date, userLevel);
     next = result.state;
     newlyCompleted.push(...result.newlyCompleted);
   }

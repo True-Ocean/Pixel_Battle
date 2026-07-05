@@ -73,4 +73,15 @@ describe('permanent mission ladder', () => {
       200,
     );
   });
+
+  it('tracks offline pvp wins separately from cpu wins in permanent counters', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'cpu_battle_win', 10, monday).state;
+    state = reportMissionEvent(state, 'offline_pvp_battle_win', 5, monday).state;
+
+    expect(state.entries.permanent_cpu_battle_win_10?.progress).toBe(10);
+    expect(state.entries.permanent_offline_pvp_battle_win_10?.progress).toBe(5);
+    expect(state.entries.permanent_cpu_battle_win_10?.completedAt).toBeTruthy();
+    expect(state.entries.permanent_offline_pvp_battle_win_10?.completedAt).toBeUndefined();
+  });
 });

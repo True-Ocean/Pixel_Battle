@@ -16,6 +16,7 @@ export function getMissionChallengeTarget(
   switch (eventType) {
     case 'battle_win':
     case 'cpu_battle_win':
+    case 'offline_pvp_battle_win':
     case 'battle_play':
     case 'battle_log_viewed':
     case 'deck_win_with_attribute':

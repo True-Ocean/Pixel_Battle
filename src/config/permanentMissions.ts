@@ -36,6 +36,12 @@ export const PERMANENT_COUNTER_SPECS: readonly PermanentCounterSpec[] = [
     description: (goal) => `CPU戦に累計${goal}回勝利する`,
   },
   {
+    eventType: 'offline_pvp_battle_win',
+    idPrefix: 'permanent_offline_pvp_battle_win',
+    title: (goal) => `対人戦${goal}勝`,
+    description: (goal) => `対人戦（オフライン）に累計${goal}回勝利する`,
+  },
+  {
     eventType: 'card_created',
     idPrefix: 'permanent_card_created',
     title: (goal) => `累計${goal}枚作成`,

@@ -1,6 +1,6 @@
 import { BATTLE_DAILY_RESET_TIMEZONE } from '../config/economy';
 import { getBattlesDayKey } from '../user/adState';
-import { getMissionsByCategory } from '../config/missions';
+import { getAllStaticMissionsByCategory } from '../config/missions';
 import type { MissionCategory, MissionState } from './types';
 
 const JST_WEEKDAY: Record<string, number> = {
@@ -36,7 +36,7 @@ function clearCategoryProgress(
   category: MissionCategory,
 ): MissionState {
   const nextEntries = { ...state.entries };
-  for (const mission of getMissionsByCategory(category)) {
+  for (const mission of getAllStaticMissionsByCategory(category)) {
     delete nextEntries[mission.id];
   }
   return { ...state, entries: nextEntries };

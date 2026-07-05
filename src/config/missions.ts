@@ -1,4 +1,5 @@
 import type { MissionDefinition, MissionState } from '../mission/types';
+import { OFFLINE_PVP_MIN_USER_LEVEL } from '../offlinePvp/unlock';
 import {
   buildPermanentCounterMissionById,
   getActivePermanentMissions,
@@ -43,6 +44,27 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
     eventType: 'cpu_battle_win',
     goal: 5,
     reward: { px: 15, jewels: 1 },
+    maxUserLevel: OFFLINE_PVP_MIN_USER_LEVEL - 1,
+  },
+  {
+    id: 'daily_offline_pvp_battle_win_1',
+    category: 'daily',
+    title: '対人戦1勝',
+    description: '対人戦（オフライン）に1回勝利する',
+    eventType: 'offline_pvp_battle_win',
+    goal: 1,
+    reward: { px: 5 },
+    minUserLevel: OFFLINE_PVP_MIN_USER_LEVEL,
+  },
+  {
+    id: 'daily_offline_pvp_battle_win_3',
+    category: 'daily',
+    title: '対人戦3勝',
+    description: '対人戦（オフライン）に3回勝利する',
+    eventType: 'offline_pvp_battle_win',
+    goal: 3,
+    reward: { px: 10, jewels: 1 },
+    minUserLevel: OFFLINE_PVP_MIN_USER_LEVEL,
   },
   {
     id: 'daily_card_edit',
@@ -91,22 +113,24 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
     reward: { px: 20 },
   },
   {
-    id: 'weekly_cpu_battle_win_30',
+    id: 'weekly_offline_pvp_battle_win_10',
     category: 'weekly',
-    title: 'CPU戦30勝',
-    description: 'CPU戦に30回勝利する',
-    eventType: 'cpu_battle_win',
-    goal: 30,
-    reward: { jewels: 5 },
+    title: '対人戦10勝',
+    description: '対人戦（オフライン）に10回勝利する',
+    eventType: 'offline_pvp_battle_win',
+    goal: 10,
+    reward: { px: 10 },
+    minUserLevel: OFFLINE_PVP_MIN_USER_LEVEL,
   },
   {
-    id: 'weekly_history_rematch_win_2',
+    id: 'weekly_offline_pvp_battle_win_20',
     category: 'weekly',
-    title: '履歴再戦2勝',
-    description: 'バトル履歴から再戦して2回勝利する',
-    eventType: 'history_rematch_win',
-    goal: 2,
-    reward: { px: 10 },
+    title: '対人戦20勝',
+    description: '対人戦（オフライン）に20回勝利する',
+    eventType: 'offline_pvp_battle_win',
+    goal: 20,
+    reward: { jewels: 5 },
+    minUserLevel: OFFLINE_PVP_MIN_USER_LEVEL,
   },
   {
     id: 'weekly_attribute_retouch',
@@ -255,11 +279,38 @@ const MISSION_BY_ID = new Map<string, MissionDefinition>(
   MISSION_DEFINITIONS.map((mission) => [mission.id, mission]),
 );
 
+export function isMissionAvailableAtUserLevel(
+  mission: MissionDefinition,
+  userLevel: number,
+): boolean {
+  const level = Math.floor(userLevel);
+  if (mission.minUserLevel != null && level < mission.minUserLevel) return false;
+  if (mission.maxUserLevel != null && level > mission.maxUserLevel) return false;
+  return true;
+}
+
+function filterMissionsByUserLevel(
+  missions: readonly MissionDefinition[],
+  userLevel: number,
+): MissionDefinition[] {
+  return missions.filter((mission) => isMissionAvailableAtUserLevel(mission, userLevel));
+}
+
+/** リセット用: レベル制限を無視してカテゴリ内の全定義を返す */
+export function getAllStaticMissionsByCategory(
+  category: MissionDefinition['category'],
+): MissionDefinition[] {
+  return MISSION_DEFINITIONS.filter((mission) => mission.category === category);
+}
+
 export function getMissionDefinitions(
   state: MissionState,
   userLevel: number = 1,
 ): MissionDefinition[] {
-  return [...MISSION_DEFINITIONS, ...getActivePermanentMissions(state, userLevel)];
+  return [
+    ...filterMissionsByUserLevel(MISSION_DEFINITIONS, userLevel),
+    ...getActivePermanentMissions(state, userLevel),
+  ];
 }
 
 export function getMissionById(
@@ -286,7 +337,10 @@ export function getMissionsByCategory(
   if (category === 'permanent') {
     return state ? getActivePermanentMissions(state, userLevel) : [];
   }
-  return MISSION_DEFINITIONS.filter((mission) => mission.category === category);
+  return filterMissionsByUserLevel(
+    MISSION_DEFINITIONS.filter((mission) => mission.category === category),
+    userLevel,
+  );
 }
 
 export function getBeginnerMissions(): MissionDefinition[] {

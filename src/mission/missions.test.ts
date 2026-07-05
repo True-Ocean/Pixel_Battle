@@ -173,16 +173,71 @@ describe('mission progress and claim', () => {
 
     expect(state.entries.weekly_cpu_battle_win_10?.progress).toBe(10);
     expect(state.entries.weekly_cpu_battle_win_20?.progress).toBe(10);
-    expect(state.entries.weekly_cpu_battle_win_30?.progress).toBe(10);
     expect(isMissionClaimable(state, getMissionById('weekly_cpu_battle_win_10')!)).toBe(
       true,
     );
     expect(isMissionClaimable(state, getMissionById('weekly_cpu_battle_win_20')!)).toBe(
       false,
     );
-    expect(isMissionClaimable(state, getMissionById('weekly_cpu_battle_win_30')!)).toBe(
-      false,
-    );
+  });
+
+  it('counts offline pvp wins separately from cpu wins', () => {
+    let state = createInitialMissionState(monday);
+
+    state = reportMissionEvent(state, 'cpu_battle_win', 3, monday, 10).state;
+    expect(state.entries.daily_cpu_battle_win_3?.progress).toBe(3);
+    expect(state.entries.daily_offline_pvp_battle_win_1).toBeUndefined();
+
+    state = reportMissionEvent(state, 'offline_pvp_battle_win', 1, monday, 10).state;
+    expect(state.entries.daily_offline_pvp_battle_win_1?.progress).toBe(1);
+    expect(state.entries.daily_cpu_battle_win_3?.progress).toBe(3);
+  });
+
+  it('grants jewel from daily offline pvp 3-win mission at level 10', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'offline_pvp_battle_win', 3, monday, 10).state;
+    const economy = createInitialEconomy();
+    const inventory = createInitialInventory();
+
+    const claimed = claimMission(
+      state,
+      economy,
+      inventory,
+      'daily_offline_pvp_battle_win_3',
+      monday,
+      10,
+    )!;
+    expect(claimed.pxGranted).toBe(10);
+    expect(claimed.jewelsGranted).toBe(1);
+    expect(claimed.economy.jewels).toBe(1);
+  });
+
+  it('does not progress daily cpu 5-win mission at level 10', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'cpu_battle_win', 5, monday, 10).state;
+    expect(state.entries.daily_cpu_battle_win_5).toBeUndefined();
+  });
+
+  it('does not progress offline pvp missions below level 10', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'offline_pvp_battle_win', 3, monday, 9).state;
+    expect(state.entries.daily_offline_pvp_battle_win_1).toBeUndefined();
+    expect(state.entries.daily_offline_pvp_battle_win_3).toBeUndefined();
+    expect(state.entries.weekly_offline_pvp_battle_win_10).toBeUndefined();
+  });
+
+  it('advances tiered weekly offline pvp win missions together at level 10', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'offline_pvp_battle_win', 10, monday, 10).state;
+
+    expect(state.entries.weekly_offline_pvp_battle_win_10?.progress).toBe(10);
+    expect(state.entries.weekly_offline_pvp_battle_win_20?.progress).toBe(10);
+    expect(
+      isMissionClaimable(state, getMissionById('weekly_offline_pvp_battle_win_10')!),
+    ).toBe(true);
+    expect(
+      isMissionClaimable(state, getMissionById('weekly_offline_pvp_battle_win_20')!),
+    ).toBe(false);
   });
 
   it('claims reward and prevents double claim', () => {

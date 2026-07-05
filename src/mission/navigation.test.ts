@@ -8,6 +8,9 @@ describe('mission navigation', () => {
   it('maps event types to challenge targets', () => {
     expect(getMissionChallengeTarget('battle_win')).toEqual({ kind: 'battleHub' });
     expect(getMissionChallengeTarget('cpu_battle_win')).toEqual({ kind: 'battleHub' });
+    expect(getMissionChallengeTarget('offline_pvp_battle_win')).toEqual({
+      kind: 'battleHub',
+    });
     expect(getMissionChallengeTarget('battle_play')).toEqual({ kind: 'battleHub' });
     expect(getMissionChallengeTarget('battle_log_viewed')).toEqual({ kind: 'battleHub' });
     expect(getMissionChallengeTarget('card_created')).toEqual({ kind: 'createCard' });

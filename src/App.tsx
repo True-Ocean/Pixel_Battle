@@ -2279,11 +2279,18 @@ function App() {
       const battleMissionEvents: Array<{ type: MissionEventType; amount?: number }> =
         [{ type: 'battle_play' }];
       if (outcome.winner === 'player') {
-        battleMissionEvents.push({ type: 'battle_win' }, { type: 'cpu_battle_win' });
+        battleMissionEvents.push({ type: 'battle_win' });
+        battleMissionEvents.push(
+          isOfflinePvpRef.current
+            ? { type: 'offline_pvp_battle_win' }
+            : { type: 'cpu_battle_win' },
+        );
       }
       let missionResult = applyMissionEvents(
         missionStateRef.current,
         battleMissionEvents,
+        new Date(),
+        battleUserLevel,
       );
       if (outcome.winner === 'player') {
         const deckWinResult = reportPermanentDeckWinAchievements(
