@@ -103,6 +103,8 @@ export function normalizeUserSubscription(raw: unknown, now = Date.now()): UserS
       : 'none';
   if (plan === 'none') return { plan: 'none' };
 
+  const autoRenew = candidate.autoRenew === false ? false : undefined;
+
   const expiresAt =
     typeof candidate.expiresAt === 'string' && candidate.expiresAt.length > 0
       ? candidate.expiresAt
@@ -120,6 +122,7 @@ export function normalizeUserSubscription(raw: unknown, now = Date.now()): UserS
     plan,
     ...(expiresAt != null ? { expiresAt } : {}),
     ...(nextGrantAt != null ? { nextGrantAt } : {}),
+    ...(autoRenew === false ? { autoRenew: false } : {}),
   };
 }
 
@@ -191,6 +194,18 @@ export type SubscriptionPlanButtonState =
 export type MockSubscribeResult =
   | { ok: true; result: ShopPurchaseResult }
   | { ok: false; message: string };
+
+export type MockCancelSubscriptionResult =
+  | { ok: true; subscription: UserSubscription; message: string }
+  | { ok: false; message: string };
+
+export function canCancelSubscription(
+  subscription: UserSubscription,
+  now = Date.now(),
+): boolean {
+  if (!isSubscriptionActive(subscription, now)) return false;
+  return subscription.autoRenew !== false;
+}
 
 export function resolveSubscriptionPlanButtonState(
   subscription: UserSubscription,
@@ -396,6 +411,7 @@ export function mockSubscribe(
           plan: 'premium',
           expiresAt: subscription.expiresAt,
           nextGrantAt: subscription.nextGrantAt,
+          autoRenew: true,
         },
         message:
           `${premium.label}にアップグレードしました（差額${upgradePriceYen.toLocaleString()}円・残り${remainingDays}日分・モック）。` +
@@ -417,6 +433,7 @@ export function mockSubscribe(
         plan: planId,
         expiresAt,
         nextGrantAt,
+        autoRenew: true,
       },
       message: `${plan.label}に加入しました（${plan.priceYen.toLocaleString()}円・モック）。月次特典を付与しました。`,
     },
@@ -490,4 +507,30 @@ export function describeActiveSubscription(
 ): string | null {
   if (!isSubscriptionActive(subscription, now)) return null;
   return formatSubscriptionPlanLabel(subscription, now);
+}
+
+export function mockCancelSubscription(
+  subscription: UserSubscription,
+  now = Date.now(),
+): MockCancelSubscriptionResult {
+  if (!isSubscriptionActive(subscription, now)) {
+    return { ok: false, message: '加入中のプランがありません。' };
+  }
+  if (subscription.autoRenew === false) {
+    return { ok: false, message: 'すでに解約手続き済みです。' };
+  }
+
+  const plan = getSubscriptionPlanById(subscription.plan);
+  const expiresLabel =
+    subscription.expiresAt != null
+      ? new Date(subscription.expiresAt).toLocaleDateString('ja-JP')
+      : '契約満了日';
+
+  return {
+    ok: true,
+    subscription: { ...subscription, autoRenew: false },
+    message:
+      `${expiresLabel}まで${plan.label}の特典をご利用いただけます。` +
+      '以降は自動更新されません（モック）。',
+  };
 }

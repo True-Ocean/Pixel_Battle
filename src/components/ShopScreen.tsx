@@ -18,11 +18,15 @@ import type {
 } from '../types';
 import {
   canPurchaseUniversalShardPackToday,
+  canCancelSubscription,
   describeActiveSubscription,
   getUniversalShardPurchasesToday,
   resolveJewelPackGrantAmount,
   resolveSubscriptionPlanButtonState,
 } from '../user/shop';
+import { ConfirmDialog } from './ConfirmDialog';
+import { getSubscriptionPlanById } from '../config/shop';
+import { getActiveSubscriptionPlan } from '../user/subscription';
 import { JewelAmount, JewelIcon } from './JewelIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
 import { TalismanIcon } from './TalismanIcon';
@@ -39,6 +43,7 @@ interface ShopScreenProps {
   onPurchaseTalisman: () => void;
   onPurchaseUniversalShard: (packId: UniversalShardPackId) => void;
   onSubscribe: (plan: 'light' | 'premium') => void;
+  onCancelSubscribe: () => void;
   onDismissPurchaseMessage: () => void;
 }
 
@@ -62,9 +67,11 @@ export function ShopScreen({
   onPurchaseTalisman,
   onPurchaseUniversalShard,
   onSubscribe,
+  onCancelSubscribe,
   onDismissPurchaseMessage,
 }: ShopScreenProps) {
   const [activeTab, setActiveTab] = useState<ShopTabId>(initialTab);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -74,6 +81,15 @@ export function ShopScreen({
     [shopPurchase],
   );
   const activeSubscriptionLabel = describeActiveSubscription(subscription);
+  const showCancelButton = canCancelSubscription(subscription);
+  const cancelConfirmExpiresLabel =
+    subscription.expiresAt != null
+      ? new Date(subscription.expiresAt).toLocaleDateString('ja-JP')
+      : '契約満了日';
+  const cancelConfirmPlanLabel =
+    getActiveSubscriptionPlan(subscription) !== 'none'
+      ? getSubscriptionPlanById(getActiveSubscriptionPlan(subscription)).label
+      : '会員プラン';
 
   return (
     <section className="screen shop-screen">
@@ -240,6 +256,17 @@ export function ShopScreen({
           {activeSubscriptionLabel != null && (
             <p className="shop-active-plan">{activeSubscriptionLabel}</p>
           )}
+          {showCancelButton && (
+            <div className="shop-subscription-cancel-row">
+              <button
+                type="button"
+                className="shop-subscription-cancel-btn"
+                onClick={() => setCancelConfirmOpen(true)}
+              >
+                解約する（モック）
+              </button>
+            </div>
+          )}
           <p className="shop-panel-note muted">
             月額（モック）。加入即時付与＋30日ごとに再付与。プランは同時に1つのみ。
             ライト→プレへのアップグレードは残り期間に応じた日割り差額（次回更新以降800円/月）。
@@ -301,6 +328,27 @@ export function ShopScreen({
               );
             })}
           </ul>
+          <ConfirmDialog
+            open={cancelConfirmOpen}
+            className="shop-subscription-cancel-dialog"
+            title="サブスクを解約しますか？"
+            message={
+              <>
+                {cancelConfirmExpiresLabel}まで{cancelConfirmPlanLabel}
+                の特典はそのままご利用いただけます。
+                <br />
+                以降は自動更新されません（モック）。
+              </>
+            }
+            confirmLabel="解約する"
+            cancelLabel="戻る"
+            confirmVariant="danger"
+            onConfirm={() => {
+              setCancelConfirmOpen(false);
+              onCancelSubscribe();
+            }}
+            onCancel={() => setCancelConfirmOpen(false)}
+          />
         </div>
       )}
     </section>

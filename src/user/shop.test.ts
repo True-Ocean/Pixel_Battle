@@ -8,6 +8,7 @@ import {
   SUBSCRIPTION_PERIOD_MS,
 } from '../config/shop';
 import { createInitialEconomy, createInitialInventory } from '../user';
+import { hasPremiumAlwaysDouble } from '../user/subscription';
 import {
   applyDueSubscriptionGrants,
   canPurchaseUniversalShardPackToday,
@@ -16,6 +17,8 @@ import {
   mockPurchaseTalisman,
   mockPurchaseUniversalShardPack,
   mockSubscribe,
+  mockCancelSubscription,
+  canCancelSubscription,
   resolveJewelPackGrantAmount,
   resolveSubscriptionPlanButtonState,
 } from '../user/shop';
@@ -109,6 +112,7 @@ describe('mockSubscribe', () => {
     expect(outcome.result.economy.jewels).toBe(250);
     expect(outcome.result.inventory.talisman).toBe(1);
     expect(outcome.result.subscription.plan).toBe('light');
+    expect(outcome.result.subscription.autoRenew).toBe(true);
     expect(outcome.result.subscription.nextGrantAt).toBeTruthy();
   });
 
@@ -246,6 +250,48 @@ describe('resolveSubscriptionPlanButtonState', () => {
       now,
     );
     expect(state.kind).toBe('active');
+  });
+});
+
+describe('mockCancelSubscription', () => {
+  const now = Date.parse('2026-06-20T00:00:00+09:00');
+
+  it('disables auto renew while keeping benefits until expiry', () => {
+    const join = mockSubscribe(
+      createInitialEconomy(),
+      createInitialInventory(),
+      {},
+      { plan: 'none' },
+      'premium',
+      now,
+    );
+    expect(join.ok).toBe(true);
+    if (!join.ok) return;
+
+    const cancel = mockCancelSubscription(join.result.subscription, now);
+    expect(cancel.ok).toBe(true);
+    if (!cancel.ok) return;
+
+    expect(cancel.subscription.autoRenew).toBe(false);
+    expect(cancel.subscription.plan).toBe('premium');
+    expect(hasPremiumAlwaysDouble(cancel.subscription, now)).toBe(true);
+    expect(canCancelSubscription(cancel.subscription, now)).toBe(false);
+    expect(cancel.message).toContain('自動更新されません');
+  });
+
+  it('rejects cancel when not subscribed', () => {
+    const outcome = mockCancelSubscription({ plan: 'none' }, now);
+    expect(outcome.ok).toBe(false);
+  });
+
+  it('rejects duplicate cancel', () => {
+    const subscription = {
+      plan: 'light' as const,
+      expiresAt: new Date(now + SUBSCRIPTION_PERIOD_MS).toISOString(),
+      autoRenew: false as const,
+    };
+    const outcome = mockCancelSubscription(subscription, now);
+    expect(outcome.ok).toBe(false);
   });
 });
 

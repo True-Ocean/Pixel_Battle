@@ -65,4 +65,15 @@ describe('subscription benefits', () => {
       /^ライトプラン（.+まで）$/,
     );
   });
+
+  it('shows cancelled suffix when auto renew is disabled', () => {
+    const subscription = {
+      ...devSetSubscriptionPlan('premium', NOW),
+      autoRenew: false as const,
+    };
+    expect(formatSubscriptionPlanLabel(subscription, NOW)).toMatch(
+      /まで・解約済み）$/,
+    );
+    expect(hasPremiumAlwaysDouble(subscription, NOW)).toBe(true);
+  });
 });

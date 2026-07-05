@@ -180,6 +180,8 @@ export interface UserSubscription {
   expiresAt?: string;
   /** 次回月次配布（ISO 8601） */
   nextGrantAt?: string;
+  /** 自動更新（省略時 true）。false のとき契約満了まで特典継続・更新なし */
+  autoRenew?: boolean;
 }
 
 export interface SaveData {

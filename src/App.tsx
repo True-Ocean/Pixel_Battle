@@ -85,6 +85,7 @@ import {
   mockPurchaseTalisman,
   mockPurchaseUniversalShardPack,
   mockSubscribe,
+  mockCancelSubscription,
   normalizeShopPurchaseState,
   normalizeUserSubscription,
   getMockLifetimeSpendYen,
@@ -1027,6 +1028,18 @@ function App() {
     },
     [applyShopPurchaseResult],
   );
+
+  const handleCancelSubscribe = useCallback(() => {
+    const outcome = mockCancelSubscription(subscriptionRef.current);
+    if (outcome.ok) {
+      setSubscription(outcome.subscription);
+      subscriptionRef.current = outcome.subscription;
+      setShopPurchaseMessage(outcome.message);
+      persistSave({ subscription: outcome.subscription });
+    } else {
+      setShopPurchaseMessage(outcome.message);
+    }
+  }, [persistSave]);
 
   const updateActiveDeck = useCallback(
     (updater: (prev: DeckLayout) => DeckLayout) => {
@@ -3476,6 +3489,7 @@ function App() {
             onPurchaseTalisman={handlePurchaseTalisman}
             onPurchaseUniversalShard={handlePurchaseUniversalShard}
             onSubscribe={handleSubscribe}
+            onCancelSubscribe={handleCancelSubscribe}
             onDismissPurchaseMessage={() => setShopPurchaseMessage(null)}
           />
         )}

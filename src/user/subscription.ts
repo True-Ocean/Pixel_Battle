@@ -87,7 +87,9 @@ export function formatSubscriptionPlanLabel(
       ? new Date(subscription.expiresAt).toLocaleDateString('ja-JP')
       : null;
   if (expiresLabel != null) {
-    return `${def.label}（${expiresLabel}まで）`;
+    const cancelledSuffix =
+      subscription.autoRenew === false ? '・解約済み' : '';
+    return `${def.label}（${expiresLabel}まで${cancelledSuffix}）`;
   }
   return def.label;
 }
@@ -102,5 +104,6 @@ export function devSetSubscriptionPlan(
     plan,
     expiresAt,
     nextGrantAt: expiresAt,
+    autoRenew: true,
   };
 }

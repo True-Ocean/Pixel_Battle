@@ -79,6 +79,8 @@ export {
   mockPurchaseTalisman,
   mockPurchaseUniversalShardPack,
   mockSubscribe,
+  mockCancelSubscription,
+  canCancelSubscription,
   normalizeShopPurchaseState,
   normalizeUserSubscription,
   resolveJewelPackGrantAmount,
@@ -86,6 +88,7 @@ export {
 } from './shop';
 export type {
   MockSubscribeResult,
+  MockCancelSubscriptionResult,
   ShopPurchaseResult,
   SubscriptionPlanButtonState,
 } from './shop';
