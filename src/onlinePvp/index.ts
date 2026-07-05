@@ -83,3 +83,20 @@ export {
   applyOnlineBattleForfeit,
   subscribeOnlineBattleRoom,
 } from './roomApi';
+export {
+  deriveOnlineUiPhase,
+  computeOnlineWaitingForOpponent,
+  isOnlineUiInputLocked,
+  type OnlineUiPhase,
+  type OnlineReplayOverlay,
+  type ActionPickSubPhase,
+} from './deriveOnlineUiPhase';
+export {
+  derivePromotionUi,
+  promotionModeToUiPhase,
+  validFrontsForBack,
+  allPromotableBacks,
+  type PromotionDraft,
+  type DerivedPromotionUi,
+  type PromotionUiMode,
+} from './derivePromotionUi';
