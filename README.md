@@ -142,8 +142,9 @@ Specs: [`PROTOTYPE §4.8`](docs/PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション
 - [ ] 効果音（SE） / Sound effects  
 - [x] オフライン対人（公開デッキ一覧・**戦力補正**） / Offline PvP (public decks + power-based BP rescale)  
 - [x] 公開デッキ共有（Supabase・匿名認証） / Public deck sharing (Supabase)  
-- [x] アカウント連携（メール OTP・空クラウド保護・PWA） / Account link (email OTP, empty-cloud safe, PWA)  
-  - リリース前: アカウント削除・Apple/Google ログイン（[SUPABASE_SETUP](docs/SUPABASE_SETUP.md)）
+- [x] アカウント連携（メール＋パスワード・空クラウド保護・PWA） / Account link (email + password, empty-cloud safe, PWA)  
+  - [x] アカウント削除（Edge Function `delete-account`） / Account deletion  
+  - リリース前: Sign in with Apple / Google（[SUPABASE_SETUP](docs/SUPABASE_SETUP.md)）
 
 ---
 

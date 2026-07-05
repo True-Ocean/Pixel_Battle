@@ -244,10 +244,25 @@ export function getPublicGhostDeckById(id: string): PublicGhostDeck | null;
 | 作者名 | **UserProfile.username** |
 | 公開数 | 解放済みスロットはすべて可（最大5） |
 | 公開条件 | **バトル可能（ロストなし5枚）のみ**。不可になった公開スロットは自動で非公開化 |
+| DB 一意制約 | `(owner_id, slot_index)` — 同一 auth ユーザー・同一スロットは1行 |
 
 セットアップ手順: [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)  
 SQL: `supabase/migrations/001_public_ghost_decks.sql`  
 環境変数: `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`（`.env.example`）
+
+### 6.4 メール連携と公開デッキ
+
+メール連携・ログインで auth `user_id` が **匿名 → メールユーザー** に切り替わる。`(owner_id, slot_index)` は auth ごとに別行のため、対策しないと同一プレイヤー名の公開デッキが一覧に重複しうる。
+
+| タイミング | 動作 |
+|------------|------|
+| 連携・ログイン **直前** | 匿名セッションの公開行をすべて削除（`deleteAllPublishedDecksForCurrentOwner`） |
+| auth `user_id` **変更後** | 端末の `publishedDeckRemoteIds` をクリア。公開 ON のスロットを新 `owner_id` で再 upsert |
+| upsert / unpublish | stale な `remoteId`（旧 owner の UUID）は無視。非公開は `owner_id + slot_index` で delete |
+
+実装: `src/offlinePvp/publish.ts`・`republishPublishedDecks.ts`・`src/auth/emailLink.ts`（連携前削除）・`App.tsx`（認証切替時の再公開）
+
+ログアウト時（メール → 匿名）は端末の公開フラグのみクリアし、サーバー上のメールユーザー公開行は残す（再ログインで復帰可能）。
 
 ---
 
@@ -635,6 +650,7 @@ src/
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 1.6 | 2026-07-05 | §6.3 DB 一意制約追記。§6.4 メール連携と公開デッキ（auth 切替時の重複防止） |
 | 1.5 | 2026-07-04 | §11.4 ヘルプを CPU/対人戦共通構成に更新。マイデッキヘルプの公開説明を追記 |
 | 1.4 | 2026-07-04 | BP 補正をレベル再計算から**出撃デッキ戦力**への比率スケールに変更（履歴再戦と共通）。一覧バッジは戦力差 |
 | 1.3 | 2026-07-04 | 同梱シード（`seedGhostDecks.ts`）を削除。一覧は Supabase のみ |
