@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clearLocalPublishedDeckState,
+  clearPublishedDeckRemoteIds,
   normalizePublishedDeckRemoteIds,
   normalizePublishedDeckSlots,
   setPublishedRemoteId,
@@ -30,5 +32,22 @@ describe('publishedSlots', () => {
       'uuid-1',
     );
     expect(normalizePublishedDeckRemoteIds(next)[1]).toBe('uuid-1');
+  });
+
+  it('clears remote ids while keeping slot count', () => {
+    expect(clearPublishedDeckRemoteIds()).toEqual([
+      null,
+      null,
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  it('clears local publish flags and remote ids', () => {
+    expect(clearLocalPublishedDeckState()).toEqual({
+      slots: normalizePublishedDeckSlots(undefined),
+      remoteIds: clearPublishedDeckRemoteIds(),
+    });
   });
 });

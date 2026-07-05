@@ -1,4 +1,5 @@
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase/client';
+import { deleteAllPublishedDecksForCurrentOwner } from '../offlinePvp/publish';
 import { ensureAnonymousUserId } from './anonymous';
 import {
   assertEmailAllowedOnDevice,
@@ -7,6 +8,7 @@ import {
 } from './deviceLinkedEmail';
 import {
   getAuthUser,
+  isAnonymousUser,
   isEmailLinkedUser,
   resolveAccountEmail,
 } from './session';
@@ -109,6 +111,13 @@ async function restoreAnonymousSession(): Promise<void> {
   await ensureAnonymousUserId();
 }
 
+/** 匿名セッションの公開デッキを削除（メール連携・ログイン前。連携後に別 owner_id で重複しないため） */
+async function deleteAnonymousPublishedDecksBeforeAuthSwitch(): Promise<void> {
+  const user = await getAuthUser();
+  if (!user || !isAnonymousUser(user)) return;
+  await deleteAllPublishedDecksForCurrentOwner();
+}
+
 /**
  * メール＋パスワードでこの端末を連携する（新規登録）。
  * 無料枠ではメールテンプレートを編集できず OTP が使えないため、パスワード認証を使う。
@@ -168,6 +177,7 @@ export async function linkEmailToCurrentUser(
   }
 
   // 匿名セッションがあると signUp が競合しうるので一度外す（localStorage セーブは残る）
+  await deleteAnonymousPublishedDecksBeforeAuthSwitch();
   await client.auth.signOut();
 
   const { data, error } = await client.auth.signUp({
@@ -258,6 +268,7 @@ export async function signInWithEmailPassword(
     };
   }
 
+  await deleteAnonymousPublishedDecksBeforeAuthSwitch();
   await client.auth.signOut();
 
   const { data, error } = await client.auth.signInWithPassword({

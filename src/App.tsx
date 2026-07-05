@@ -48,9 +48,12 @@ import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, c
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
   canPublishDeck,
+  clearLocalPublishedDeckState,
+  clearPublishedDeckRemoteIds,
   ensureAnonymousUserId,
   normalizePublishedDeckRemoteIds,
   normalizePublishedDeckSlots,
+  republishOwnedPublishedDecks,
   setPublishedRemoteId,
   setPublishedSlot,
   unpublishDeck,
@@ -192,6 +195,7 @@ function App() {
   const [supabaseOwnerId, setSupabaseOwnerId] = useState<string | null>(null);
   const publishedDeckSlotsRef = useRef(publishedDeckSlots);
   const publishedDeckRemoteIdsRef = useRef(publishedDeckRemoteIds);
+  const authUserIdRef = useRef<string | null>(null);
   publishedDeckSlotsRef.current = publishedDeckSlots;
   publishedDeckRemoteIdsRef.current = publishedDeckRemoteIds;
   const [paletteShopUnlocks, setPaletteShopUnlocks] = useState<number[]>(() =>
@@ -561,13 +565,62 @@ function App() {
     void applyReconcile();
 
     const unsubscribe = subscribeAuthState((authUser) => {
+      const prevAuthUserId = authUserIdRef.current;
+      const nextAuthUserId = authUser?.id ?? null;
+      authUserIdRef.current = nextAuthUserId;
+
       if (authUser) setSupabaseOwnerId(authUser.id);
       syncDeviceLinkedEmailFromUser(authUser);
       if (!isEmailLinkedUser(authUser)) {
         cancelScheduledCloudSaveUpload();
-        return;
       }
-      void applyReconcile();
+
+      const authUserChanged =
+        prevAuthUserId !== null && prevAuthUserId !== nextAuthUserId;
+
+      if (authUserChanged) {
+        if (!isEmailLinkedUser(authUser)) {
+          const cleared = clearLocalPublishedDeckState();
+          publishedDeckSlotsRef.current = cleared.slots;
+          publishedDeckRemoteIdsRef.current = cleared.remoteIds;
+          setPublishedDeckSlots(cleared.slots);
+          setPublishedDeckRemoteIds(cleared.remoteIds);
+          persistSave({
+            publishedDeckSlots: cleared.slots,
+            publishedDeckRemoteIds: cleared.remoteIds,
+          });
+        } else {
+          const clearedIds = clearPublishedDeckRemoteIds();
+          publishedDeckRemoteIdsRef.current = clearedIds;
+          setPublishedDeckRemoteIds(clearedIds);
+          persistSave({ publishedDeckRemoteIds: clearedIds });
+          const profile = userRef.current;
+          if (profile && isProfileComplete(profile)) {
+            void republishOwnedPublishedDecks({
+              publishedSlots: publishedDeckSlotsRef.current,
+              remoteIds: clearedIds,
+              decks: decksRef.current,
+              user: profile,
+              unlockedDeckCount: unlockedDeckCountRef.current,
+              resetRemoteIds: true,
+            }).then((result) => {
+              if (!result.changed) return;
+              publishedDeckSlotsRef.current = result.slots;
+              publishedDeckRemoteIdsRef.current = result.remoteIds;
+              setPublishedDeckSlots(result.slots);
+              setPublishedDeckRemoteIds(result.remoteIds);
+              persistSave({
+                publishedDeckSlots: result.slots,
+                publishedDeckRemoteIds: result.remoteIds,
+              });
+            });
+          }
+        }
+      }
+
+      if (isEmailLinkedUser(authUser)) {
+        void applyReconcile();
+      }
     });
 
     return () => {
@@ -575,7 +628,7 @@ function App() {
       unsubscribe();
       cancelScheduledCloudSaveUpload();
     };
-  }, [runCloudReconcile]);
+  }, [persistSave, runCloudReconcile]);
 
   const handleToggleDeckPublish = useCallback(
     async (published: boolean) => {
@@ -669,47 +722,21 @@ function App() {
     let cancelled = false;
     const timer = window.setTimeout(() => {
       void (async () => {
-        let slots = publishedDeckSlotsRef.current;
-        let ids = publishedDeckRemoteIdsRef.current;
-        let changed = false;
-
-        for (let slotIndex = 0; slotIndex < unlockedDeckCount; slotIndex++) {
-          if (!slots[slotIndex]) continue;
-          const layout = normalizeDeckLayout(decks[slotIndex] ?? []);
-          if (!canPublishDeck(layout)) {
-            const result = await unpublishDeck({
-              slotIndex,
-              remoteId: ids[slotIndex],
-            });
-            if (cancelled) return;
-            if (result.ok) {
-              slots = setPublishedSlot(slots, slotIndex, false);
-              ids = setPublishedRemoteId(ids, slotIndex, null);
-              changed = true;
-            }
-            continue;
-          }
-          const result = await upsertPublishedDeck({
-            slotIndex,
-            deck: layout,
-            user: profile,
-            remoteId: ids[slotIndex],
-          });
-          if (cancelled) return;
-          if (result.ok && result.remoteId !== ids[slotIndex]) {
-            ids = setPublishedRemoteId(ids, slotIndex, result.remoteId);
-            changed = true;
-          }
-        }
-
-        if (cancelled || !changed) return;
-        publishedDeckSlotsRef.current = slots;
-        publishedDeckRemoteIdsRef.current = ids;
-        setPublishedDeckSlots(slots);
-        setPublishedDeckRemoteIds(ids);
+        const result = await republishOwnedPublishedDecks({
+          publishedSlots: publishedDeckSlotsRef.current,
+          remoteIds: publishedDeckRemoteIdsRef.current,
+          decks,
+          user: profile,
+          unlockedDeckCount,
+        });
+        if (cancelled || !result.changed) return;
+        publishedDeckSlotsRef.current = result.slots;
+        publishedDeckRemoteIdsRef.current = result.remoteIds;
+        setPublishedDeckSlots(result.slots);
+        setPublishedDeckRemoteIds(result.remoteIds);
         persistSave({
-          publishedDeckSlots: slots,
-          publishedDeckRemoteIds: ids,
+          publishedDeckSlots: result.slots,
+          publishedDeckRemoteIds: result.remoteIds,
         });
       })();
     }, 400);

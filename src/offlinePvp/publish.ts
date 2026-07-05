@@ -30,6 +30,37 @@ export function canPublishDeck(deck: DeckLayout): boolean {
   return isDeckBattleReady(normalizeDeckLayout(deck));
 }
 
+export function isPublishedRemoteIdForOwner(
+  row: { owner_id: string; slot_index: number } | null | undefined,
+  ownerId: string,
+  slotIndex: number,
+): boolean {
+  return (
+    row?.owner_id === ownerId &&
+    Math.floor(row.slot_index) === Math.floor(slotIndex)
+  );
+}
+
+/** 認証切替前に、現在セッション owner の公開行をすべて削除する */
+export async function deleteAllPublishedDecksForCurrentOwner(): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  const ownerId = await ensureAnonymousUserId();
+  if (!ownerId) return;
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const { error } = await supabase
+    .from('public_ghost_decks')
+    .delete()
+    .eq('owner_id', ownerId);
+  if (error) {
+    console.warn(
+      '[offlinePvp] failed to delete published decks before auth switch',
+      error.message,
+    );
+  }
+}
+
 export async function upsertPublishedDeck(options: {
   slotIndex: number;
   deck: DeckLayout;
@@ -72,11 +103,32 @@ export async function upsertPublishedDeck(options: {
     updated_at: new Date().toISOString(),
   };
 
-  if (options.remoteId) {
+  let remoteId = options.remoteId ?? null;
+  if (remoteId) {
+    const { data: existing, error: fetchError } = await supabase
+      .from('public_ghost_decks')
+      .select('id, owner_id, slot_index')
+      .eq('id', remoteId)
+      .maybeSingle();
+    if (fetchError) {
+      return { ok: false, error: fetchError.message };
+    }
+    if (
+      !isPublishedRemoteIdForOwner(
+        existing as { owner_id: string; slot_index: number } | null,
+        ownerId,
+        options.slotIndex,
+      )
+    ) {
+      remoteId = null;
+    }
+  }
+
+  if (remoteId) {
     const { data, error } = await supabase
       .from('public_ghost_decks')
       .update(payload)
-      .eq('id', options.remoteId)
+      .eq('id', remoteId)
       .eq('owner_id', ownerId)
       .select('id')
       .maybeSingle();
@@ -116,18 +168,11 @@ export async function unpublishDeck(options: {
     return { ok: false, error: 'Supabase が設定されていません' };
   }
 
-  let query = supabase
+  const { error } = await supabase
     .from('public_ghost_decks')
     .delete()
-    .eq('owner_id', ownerId);
-
-  if (options.remoteId) {
-    query = query.eq('id', options.remoteId);
-  } else {
-    query = query.eq('slot_index', options.slotIndex);
-  }
-
-  const { error } = await query;
+    .eq('owner_id', ownerId)
+    .eq('slot_index', options.slotIndex);
   if (error) {
     return { ok: false, error: error.message };
   }

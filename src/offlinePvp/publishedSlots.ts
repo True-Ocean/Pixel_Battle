@@ -46,3 +46,19 @@ export function setPublishedRemoteId(
   next[index] = remoteId;
   return next;
 }
+
+/** 認証 user_id 変更後に stale な remoteId を捨てる */
+export function clearPublishedDeckRemoteIds(): (string | null)[] {
+  return normalizePublishedDeckRemoteIds(undefined);
+}
+
+/** ログアウト等で端末の公開フラグだけ消す（サーバー上の公開行は残す） */
+export function clearLocalPublishedDeckState(): {
+  slots: boolean[];
+  remoteIds: (string | null)[];
+} {
+  return {
+    slots: normalizePublishedDeckSlots(undefined),
+    remoteIds: clearPublishedDeckRemoteIds(),
+  };
+}
