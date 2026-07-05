@@ -706,6 +706,12 @@ export function saveSave(data: SaveData): void {
   );
 }
 
+/** 端末のゲームセーブを削除（アカウント削除後の初期化用） */
+export function clearLocalSave(): void {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 /** バトル履歴のみ削除（他のセーブデータは維持） */
 export function resetBattleHistory(data: SaveData): SaveData {
   return {

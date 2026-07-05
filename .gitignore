@@ -46,3 +46,6 @@ coverage
 .DS_Store
 ._*
 Thumbs.db
+
+# Supabase CLI local state
+supabase/.temp/

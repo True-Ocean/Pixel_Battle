@@ -18,6 +18,7 @@ export {
   formatAuthError,
   MIN_PASSWORD_LENGTH,
 } from './emailLink';
+export { deleteAccount } from './deleteAccount';
 export {
   getAccountLinkStatus,
   getAuthSession,

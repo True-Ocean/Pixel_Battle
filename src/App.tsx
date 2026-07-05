@@ -43,7 +43,7 @@ import {
   reportPermanentDeckWinAchievements,
   syncPermanentOwnershipAchievements,
 } from './mission/permanentAchievementProgress';
-import { loadSave, saveSave, SAVE_SCHEMA_VERSION } from './storage';
+import { loadSave, saveSave, SAVE_SCHEMA_VERSION, clearLocalSave } from './storage';
 import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, setMemoryAlbumUnlockedRows, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, canRenameCardForFree, canRenameDeck, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
@@ -544,6 +544,44 @@ function App() {
     },
     [persistSave],
   );
+
+  const handleAccountDeleted = useCallback(() => {
+    cancelScheduledCloudSaveUpload();
+    clearLocalSave();
+    const fresh = loadSave();
+    const clearedPublish = clearLocalPublishedDeckState();
+
+    setUser(null);
+    setEconomy(fresh.economy ?? createInitialEconomy());
+    setInventory(fresh.inventory ?? createInitialInventory());
+    setTalismanStarterGranted(false);
+    setAdState(fresh.adState ?? createInitialAdState());
+    setDecks(fresh.decks);
+    setActiveDeckIndex(fresh.activeDeckIndex);
+    setLastBattleDeckIndex(fresh.lastBattleDeckIndex);
+    setUnlockedDeckCount(fresh.unlockedDeckCount);
+    setDeckNames(undefined);
+    setPublishedDeckSlots(clearedPublish.slots);
+    setPublishedDeckRemoteIds(clearedPublish.remoteIds);
+    publishedDeckSlotsRef.current = clearedPublish.slots;
+    publishedDeckRemoteIdsRef.current = clearedPublish.remoteIds;
+    setPaletteShopUnlocks([]);
+    setEditorShopUnlocks([]);
+    setMemoryAlbum(fresh.memoryAlbum ?? createInitialMemoryAlbum());
+    setShopPurchase(createInitialShopPurchaseState());
+    setSubscription(createInitialSubscription());
+    setMissionState(createInitialMissionState());
+    setBattleHistory([]);
+    setDeckIntroSeen(false);
+    setSupabaseOwnerId(null);
+    authUserIdRef.current = null;
+
+    void ensureAnonymousUserId().then((id) => {
+      if (id) setSupabaseOwnerId(id);
+    });
+
+    setScreen('setup');
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
@@ -3435,6 +3473,7 @@ function App() {
             onDevClearEditorShopUnlocks={handleDevClearEditorShopUnlocks}
             onCloudSaveUpload={handleCloudSaveUpload}
             onCloudRestoreDownload={handleCloudRestoreDownload}
+            onAccountDeleted={handleAccountDeleted}
             onUsernameChange={handleUsernameChange}
           />
         )}

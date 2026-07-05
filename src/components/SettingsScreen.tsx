@@ -1,15 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
 import {
+  deleteAccount,
   getDeviceLinkedEmail,
   linkEmailToCurrentUser,
   resolveAccountEmail,
   signInWithEmailPassword,
-  signOutAccount,
   subscribeAuthState,
   syncDeviceLinkedEmailFromUser,
-  unlinkAccountFromDevice,
   isEmailLinkedUser,
+  isValidPassword,
   type AuthActionResult,
 } from '../auth';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -84,6 +84,8 @@ export interface SettingsScreenProps {
   onCloudSaveUpload?: () => Promise<string>;
   /** メールアドレス連携済みのとき、クラウドデータを端末へ復元 */
   onCloudRestoreDownload?: () => Promise<string>;
+  /** アカウント削除成功後（端末データ初期化・画面遷移） */
+  onAccountDeleted?: () => void;
   /** ユーザー名変更（trim 済み・検証済み） */
   onUsernameChange: (username: string) => void;
 }
@@ -305,11 +307,13 @@ function AccountSection({
   onUsernameChange,
   onCloudSaveUpload,
   onCloudRestoreDownload,
+  onAccountDeleted,
 }: {
   username: string;
   onUsernameChange: (username: string) => void;
   onCloudSaveUpload?: () => Promise<string>;
   onCloudRestoreDownload?: () => Promise<string>;
+  onAccountDeleted?: () => void;
 }) {
   const configured = isSupabaseConfigured();
   const [authUser, setAuthUser] = useState<User | null>(null);
@@ -323,6 +327,9 @@ function AccountSection({
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
+  const [deleteWarnOpen, setDeleteWarnOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deletePasswordInput, setDeletePasswordInput] = useState('');
   const [cloudHasProgress, setCloudHasProgress] = useState<boolean | null>(null);
   const [lastSyncLabel, setLastSyncLabel] = useState(() =>
     formatCloudSyncTime(getLastCloudSyncAt()),
@@ -421,6 +428,38 @@ function AccountSection({
     setRestoreConfirmOpen(false);
     if (!onCloudRestoreDownload) return;
     void runCloudAction(onCloudRestoreDownload);
+  };
+
+  const closeDeleteDialogs = () => {
+    setDeleteWarnOpen(false);
+    setDeleteConfirmOpen(false);
+    setDeletePasswordInput('');
+  };
+
+  const handleDeleteAccountConfirm = () => {
+    void (async () => {
+      setBusy(true);
+      setNotice(null);
+      setError(null);
+      try {
+        const result = await deleteAccount(deletePasswordInput);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        closeDeleteDialogs();
+        setNotice(result.message);
+        onAccountDeleted?.();
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : 'アカウント削除に失敗しました',
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   useEffect(() => {
@@ -640,58 +679,11 @@ function AccountSection({
                       )}
                       <button
                         type="button"
-                        className="settings-account-btn"
+                        className="settings-account-btn settings-account-btn--danger"
                         disabled={busy}
-                        onClick={() => {
-                          void (async () => {
-                            setBusy(true);
-                            setNotice(null);
-                            setError(null);
-                            try {
-                              const result = await signOutAccount();
-                              applyAuthActionResult(result, setNotice, setError);
-                              refreshDeviceLinkedEmail();
-                            } catch (caught) {
-                              setError(
-                                caught instanceof Error
-                                  ? caught.message
-                                  : 'ログアウトに失敗しました',
-                              );
-                            } finally {
-                              setBusy(false);
-                            }
-                          })();
-                        }}
+                        onClick={() => setDeleteWarnOpen(true)}
                       >
-                        ログアウト
-                      </button>
-                      <button
-                        type="button"
-                        className="settings-account-btn"
-                        disabled={busy}
-                        onClick={() => {
-                          void (async () => {
-                            setBusy(true);
-                            setNotice(null);
-                            setError(null);
-                            try {
-                              const result = await unlinkAccountFromDevice();
-                              applyAuthActionResult(result, setNotice, setError);
-                              refreshDeviceLinkedEmail();
-                              if (result.ok) setEmailInput('');
-                            } catch (caught) {
-                              setError(
-                                caught instanceof Error
-                                  ? caught.message
-                                  : '連携解除に失敗しました',
-                              );
-                            } finally {
-                              setBusy(false);
-                            }
-                          })();
-                        }}
-                      >
-                        連携を解除
+                        アカウントを削除
                       </button>
                     </div>
                   </>
@@ -760,43 +752,6 @@ function AccountSection({
                       >
                         ログイン（復元用）
                       </button>
-                      {deviceLinkedEmail != null && (
-                        <button
-                          type="button"
-                          className="settings-account-btn"
-                          disabled={busy}
-                          onClick={() => {
-                            void (async () => {
-                              setBusy(true);
-                              setNotice(null);
-                              setError(null);
-                              try {
-                                const result = await unlinkAccountFromDevice();
-                                applyAuthActionResult(
-                                  result,
-                                  setNotice,
-                                  setError,
-                                );
-                                refreshDeviceLinkedEmail();
-                                if (result.ok) {
-                                  setEmailInput('');
-                                  setPasswordInput('');
-                                }
-                              } catch (caught) {
-                                setError(
-                                  caught instanceof Error
-                                    ? caught.message
-                                    : '連携解除に失敗しました',
-                                );
-                              } finally {
-                                setBusy(false);
-                              }
-                            })();
-                          }}
-                        >
-                          連携を解除
-                        </button>
-                      )}
                     </div>
                   </div>
                 )}
@@ -833,6 +788,65 @@ function AccountSection({
         confirmDisabled={busy}
         onConfirm={handleRestoreConfirm}
         onCancel={() => setRestoreConfirmOpen(false)}
+      />
+      <ConfirmDialog
+        open={deleteWarnOpen}
+        title="アカウントを削除"
+        message={
+          <>
+            次のデータが<strong>完全に削除</strong>され、元に戻せません。
+            <ul className="settings-account-delete-list">
+              <li>クラウド上のセーブデータ</li>
+              <li>公開中の対人戦デッキ</li>
+              <li>メールアドレスとパスワード（アカウント）</li>
+              <li>この端末のゲームデータ</li>
+            </ul>
+            続行しますか？
+          </>
+        }
+        confirmLabel="削除の確認へ"
+        cancelLabel="キャンセル"
+        confirmVariant="danger"
+        confirmDisabled={busy}
+        onConfirm={() => {
+          setDeleteWarnOpen(false);
+          setDeleteConfirmOpen(true);
+        }}
+        onCancel={closeDeleteDialogs}
+      />
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="アカウント削除の最終確認"
+        message={
+          <>
+            パスワードを入力して削除を確定してください。
+            <label
+              className="settings-account-label settings-account-delete-password"
+              htmlFor="settings-account-delete-password"
+            >
+              パスワード
+            </label>
+            <input
+              id="settings-account-delete-password"
+              type="password"
+              className="settings-account-input"
+              autoComplete="current-password"
+              placeholder="6文字以上"
+              value={deletePasswordInput}
+              disabled={busy}
+              onChange={(event) => {
+                setDeletePasswordInput(event.target.value);
+                if (error) setError(null);
+              }}
+            />
+          </>
+        }
+        confirmLabel="削除する"
+        cancelLabel="キャンセル"
+        confirmVariant="danger"
+        confirmDisabled={busy || !isValidPassword(deletePasswordInput)}
+        onConfirm={handleDeleteAccountConfirm}
+        onCancel={closeDeleteDialogs}
       />
     </SettingsSection>
   );
@@ -872,6 +886,7 @@ export function SettingsScreen({
   onDevClearEditorShopUnlocks,
   onCloudSaveUpload,
   onCloudRestoreDownload,
+  onAccountDeleted,
   onUsernameChange,
 }: SettingsScreenProps) {
   const [devLevelInput, setDevLevelInput] = useState(
@@ -1139,6 +1154,7 @@ export function SettingsScreen({
           onUsernameChange={onUsernameChange}
           onCloudSaveUpload={onCloudSaveUpload}
           onCloudRestoreDownload={onCloudRestoreDownload}
+          onAccountDeleted={onAccountDeleted}
         />
 
         <SettingsSection title="戦績" compact>

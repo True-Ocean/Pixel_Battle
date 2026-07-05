@@ -84,9 +84,9 @@ https://true-ocean.github.io/Pixel_Battle/
 6. 確認後の auth `user_id` はメールユーザー側。端末の `localStorage` セーブは残り、同期で `player_saves` へ上がる
 7. 連携後はローカル保存が debounce 付きで自動同期。**クラウドに保存** / **クラウドから復元** で手動操作可（復元は端末に進行があるとき確認ダイアログ）
 8. **既に登録済みメールで「この端末を連携」した場合**: 同じパスワードならログインにフォールバック。違う場合は「ログイン（復元用）」を案内
-9. 端末ごとに連携メールは固定。**連携を解除**は端末の表示・セッション解除のみ（`auth.users` / `player_saves` は残る）。同じメールで再び使うときは **ログイン（復元用）**。アカウントごと消すのはダッシュボードの Users 削除、またはリリース前の「アカウント削除」
+9. 連携済みユーザーは **アカウントを削除** からクラウドアカウント・セーブ・公開デッキを削除できる（下記 Edge Function 必須）。端末のゲームデータも初期化され、ユーザー名入力からやり直す
 
-実装: `src/auth/`（`linkEmailToCurrentUser` / `signInWithEmailPassword`）・`src/cloudSave/sync.ts`（`hasPlayableProgress` / `resolveSyncDirection`）
+実装: `src/auth/`（`linkEmailToCurrentUser` / `signInWithEmailPassword` / `deleteAccount`）・`src/cloudSave/sync.ts`（`hasPlayableProgress` / `resolveSyncDirection`）
 
 #### 同期の安全策
 
@@ -98,6 +98,31 @@ https://true-ocean.github.io/Pixel_Battle/
 
 `player_saves` が空でも `auth.users` にメールだけある状態は起こりうる（認証だけ先にできた場合）。そのときはログイン後に端末進行をアップロードする。
 
+### アカウント削除（Edge Function）
+
+設定の **アカウントを削除** は次を消します。
+
+| 対象 | 動作 |
+|------|------|
+| `auth.users` | Edge Function から admin API で削除 |
+| `player_saves` / `public_ghost_decks` | `auth.users` 削除で **CASCADE** |
+| 端末 `localStorage` | 削除成功後にアプリ側でクリア → ユーザー名入力画面へ |
+
+**初回セットアップ（1 回）**
+
+1. [Supabase CLI](https://supabase.com/docs/guides/cli) をインストールし、プロジェクトにログイン
+2. リポジトリ直下で Edge Function をデプロイ:
+
+```bash
+supabase functions deploy delete-account --project-ref YOUR_PROJECT_REF
+```
+
+3. デプロイ後、Dashboard → **Edge Functions** → `delete-account` が表示されることを確認
+
+`SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` は Supabase が Functions 実行環境に自動注入します。**service_role を `.env` やフロントに置かないこと。**
+
+UI は二段階確認（削除内容の説明 → パスワード入力）です。
+
 ### 将来実装（リリース前）
 
 プロトタイプではメールアドレス連携＋クラウド同期まで。次は **アプリ／ストア公開に近くなってから** 着手する。  
@@ -105,7 +130,6 @@ https://true-ocean.github.io/Pixel_Battle/
 
 | 項目 | 内容 | 備考 |
 |------|------|------|
-| **アカウント削除** | Auth ユーザー削除、`player_saves` 削除（CASCADE）、公開デッキ行の扱いを定義 | いまの「連携を解除」は端末紐づけ解除のみ。ストア審査では削除導線が求められることが多い |
 | **Sign in with Apple** | OAuth。匿名セッションへの `linkIdentity` を維持 | iOS / App Store で外部ログインを出す場合にほぼ必須 |
 | **Google ログイン** | OAuth。同上 | Web / Android 向け。Apple と併用可 |
 | **日本語メール／独自 SMTP** | 将来 OTP や通知メールを使う場合の件名・本文日本語化 | 無料枠ではテンプレート編集不可のため、現状はパスワード認証 |
@@ -118,8 +142,7 @@ https://true-ocean.github.io/Pixel_Battle/
 - クラウドセーブは **メールアドレス連携済み** のときだけ同期する
 - **バトル履歴（`battleHistory`）は端末専用**。アップロード時はキーごと含めない（空配列も書かない）。ダウンロード時は端末の履歴を維持する（`saveForCloudUpload` / `mergeLocalOnlyFields`）
 - **空クラウドで端末進行を消さない**（上表）
-- **連携を解除 ≠ アカウント削除**。解除後の再接続はログイン
-- アカウント削除（リリース前）時は端末セーブの扱いを UI で明示する
+- **アカウント削除** は Edge Function `delete-account` 経由。端末セーブも初期化する（UI で明示）
 
 ## 4. アプリに接続情報を渡す
 
@@ -161,3 +184,4 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...（anon public）
 | 連携ボタンを押しても完了しない／確認メールを求められる | **Authentication → Providers → Email** で **Confirm email** が OFF か |
 | メールまたはパスワードが正しくありません | 登録時と違うパスワード、または未登録メールでログインしていないか |
 | **permission denied for table player_saves** | `003_player_saves.sql` 未実行、または GRANT 不足。SQL Editor で `004_player_saves_grant.sql`（または 003 全体）を実行 |
+| アカウント削除が失敗／未設定メッセージ | `delete-account` Edge Function をデプロイ済みか。Network タブで `/functions/v1/delete-account` の応答を確認 |

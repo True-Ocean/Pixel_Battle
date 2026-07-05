@@ -11,7 +11,9 @@ export type AuthFailReason =
   | 'rate_limited'
   | 'device_email_locked'
   | 'email_already_registered'
-  | 'email_confirmation_required';
+  | 'email_confirmation_required'
+  | 'not_linked'
+  | 'delete_failed';
 
 export type AuthActionResult =
   | { ok: true; message: string }

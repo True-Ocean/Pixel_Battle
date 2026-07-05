@@ -3973,6 +3973,24 @@ button.battle-hub-deck-icon.is-move-target {
   color: #fff;
 }
 
+.settings-account-btn--danger {
+  border-color: #dc2626;
+  background: #fff;
+  color: #b91c1c;
+}
+
+.settings-account-delete-list {
+  margin: 0.5rem 0 0.75rem;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.settings-account-delete-password {
+  display: block;
+  margin-top: 0.75rem;
+}
+
 .settings-account-notice,
 .settings-account-error {
   margin: 0;
