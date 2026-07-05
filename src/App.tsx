@@ -7,11 +7,12 @@ import {
 } from './auth';
 import {
   cancelScheduledCloudSaveUpload,
+  downloadCloudSaveNow,
   ensureLocalClientUpdatedAt,
   reconcileCloudSave,
   scheduleCloudSaveUpload,
-  syncCloudSaveNow,
   touchLocalClientUpdatedAt,
+  uploadCloudSaveNow,
   writeLocalClientUpdatedAt,
 } from './cloudSave';
 import { appendBattleHistory, createBattleHistoryEntry, CPU_OPPONENT_LABEL } from './battleHistory';
@@ -512,15 +513,20 @@ function App() {
     return result;
   }, [applyDownloadedCloudSave]);
 
-  const handleCloudSyncNow = useCallback(async (): Promise<string> => {
-    const result = await syncCloudSaveNow(loadSave());
-    if (!result.ok) return result.error;
+  const handleCloudSaveUpload = useCallback(async (): Promise<string> => {
+    const result = await uploadCloudSaveNow(loadSave());
+    if (!result.ok) throw new Error(result.error);
+    return 'クラウドに保存しました';
+  }, []);
+
+  const handleCloudRestoreDownload = useCallback(async (): Promise<string> => {
+    const result = await downloadCloudSaveNow(loadSave());
+    if (!result.ok) throw new Error(result.error);
     if (result.action === 'downloaded') {
       applyDownloadedCloudSave(result.save, result.clientUpdatedAt);
       return 'クラウドから復元しました';
     }
-    if (result.action === 'uploaded') return 'クラウドに保存しました';
-    return 'すでに最新です';
+    throw new Error('クラウドに復元できるデータがありません');
   }, [applyDownloadedCloudSave]);
 
   const handleUsernameChange = useCallback(
@@ -3400,7 +3406,8 @@ function App() {
             onDevClearPaletteShopUnlocks={handleDevClearPaletteShopUnlocks}
             onDevUnlockAllEditorTools={handleDevUnlockAllEditorTools}
             onDevClearEditorShopUnlocks={handleDevClearEditorShopUnlocks}
-            onCloudSyncNow={handleCloudSyncNow}
+            onCloudSaveUpload={handleCloudSaveUpload}
+            onCloudRestoreDownload={handleCloudRestoreDownload}
             onUsernameChange={handleUsernameChange}
           />
         )}

@@ -16,6 +16,8 @@ export {
   resolveSyncDirection,
   saveForCloudUpload,
   scheduleCloudSaveUpload,
+  uploadCloudSaveNow,
+  downloadCloudSaveNow,
   syncCloudSaveNow,
 } from './sync';
 export type { ReconcileCloudSaveResult, SyncDirection } from './sync';

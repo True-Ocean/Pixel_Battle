@@ -12,6 +12,13 @@ import {
   isEmailLinkedUser,
   type AuthActionResult,
 } from '../auth';
+import { ConfirmDialog } from './ConfirmDialog';
+import {
+  fetchPlayerSave,
+  getLastCloudSyncAt,
+  hasPlayableProgress,
+} from '../cloudSave';
+import { loadSave } from '../storage';
 import {
   DECK_SLOT_COUNT,
   DECK_SLOT_INITIAL_UNLOCKED,
@@ -73,8 +80,10 @@ export interface SettingsScreenProps {
   onDevClearPaletteShopUnlocks: () => string;
   onDevUnlockAllEditorTools: () => string;
   onDevClearEditorShopUnlocks: () => string;
-  /** メールアドレス連携済みのときクラウドと突き合わせる */
-  onCloudSyncNow?: () => Promise<string>;
+  /** メールアドレス連携済みのとき、端末データをクラウドへ保存 */
+  onCloudSaveUpload?: () => Promise<string>;
+  /** メールアドレス連携済みのとき、クラウドデータを端末へ復元 */
+  onCloudRestoreDownload?: () => Promise<string>;
   /** ユーザー名変更（trim 済み・検証済み） */
   onUsernameChange: (username: string) => void;
 }
@@ -284,14 +293,23 @@ function applyAuthActionResult(
   onFailure(result.error);
 }
 
+function formatCloudSyncTime(iso: string | null): string {
+  if (!iso) return '—';
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return '—';
+  return new Date(ms).toLocaleString('ja-JP');
+}
+
 function AccountSection({
   username,
   onUsernameChange,
-  onCloudSyncNow,
+  onCloudSaveUpload,
+  onCloudRestoreDownload,
 }: {
   username: string;
   onUsernameChange: (username: string) => void;
-  onCloudSyncNow?: () => Promise<string>;
+  onCloudSaveUpload?: () => Promise<string>;
+  onCloudRestoreDownload?: () => Promise<string>;
 }) {
   const configured = isSupabaseConfigured();
   const [authUser, setAuthUser] = useState<User | null>(null);
@@ -304,6 +322,11 @@ function AccountSection({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
+  const [cloudHasProgress, setCloudHasProgress] = useState<boolean | null>(null);
+  const [lastSyncLabel, setLastSyncLabel] = useState(() =>
+    formatCloudSyncTime(getLastCloudSyncAt()),
+  );
 
   useEffect(() => {
     setUsernameInput(username);
@@ -326,6 +349,79 @@ function AccountSection({
   const linked = isEmailLinkedUser(authUser);
   const email = resolveAccountEmail(authUser);
   const boundEmail = email ?? deviceLinkedEmail;
+
+  useEffect(() => {
+    if (mailExpanded && linked) {
+      setLastSyncLabel(formatCloudSyncTime(getLastCloudSyncAt()));
+    }
+  }, [mailExpanded, linked]);
+
+  useEffect(() => {
+    if (!mailExpanded || !linked || !configured) {
+      setCloudHasProgress(null);
+      return;
+    }
+    let cancelled = false;
+    setCloudHasProgress(null);
+    void fetchPlayerSave().then((result) => {
+      if (cancelled) return;
+      if (!result.ok || result.data == null) {
+        setCloudHasProgress(false);
+        return;
+      }
+      setCloudHasProgress(hasPlayableProgress(result.data.save));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mailExpanded, linked, configured]);
+
+  const localHasProgress = hasPlayableProgress(loadSave());
+
+  const refreshSyncStatus = () => {
+    setLastSyncLabel(formatCloudSyncTime(getLastCloudSyncAt()));
+  };
+
+  const runCloudAction = async (action: () => Promise<string>) => {
+    setBusy(true);
+    setNotice(null);
+    setError(null);
+    try {
+      const message = await action();
+      setNotice(message);
+      refreshSyncStatus();
+      if (mailExpanded && linked && configured) {
+        void fetchPlayerSave().then((result) => {
+          if (!result.ok || result.data == null) {
+            setCloudHasProgress(false);
+            return;
+          }
+          setCloudHasProgress(hasPlayableProgress(result.data.save));
+        });
+      }
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : '操作に失敗しました',
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRestoreRequest = () => {
+    if (localHasProgress) {
+      setRestoreConfirmOpen(true);
+      return;
+    }
+    if (!onCloudRestoreDownload) return;
+    void runCloudAction(onCloudRestoreDownload);
+  };
+
+  const handleRestoreConfirm = () => {
+    setRestoreConfirmOpen(false);
+    if (!onCloudRestoreDownload) return;
+    void runCloudAction(onCloudRestoreDownload);
+  };
 
   useEffect(() => {
     if (linked) {
@@ -499,33 +595,47 @@ function AccountSection({
                       disabled
                       readOnly
                     />
+                    <p className="settings-section-note muted settings-account-cloud-status">
+                      最終同期: {lastSyncLabel}
+                      <br />
+                      この端末: {localHasProgress ? 'データあり' : 'データなし'}
+                      <br />
+                      クラウド:{' '}
+                      {cloudHasProgress == null
+                        ? '確認中…'
+                        : cloudHasProgress
+                          ? 'データあり'
+                          : 'データなし'}
+                    </p>
                     <div className="settings-account-actions">
-                      {onCloudSyncNow && (
+                      {onCloudSaveUpload && (
                         <button
                           type="button"
                           className="settings-account-btn settings-account-btn--primary"
                           disabled={busy}
                           onClick={() => {
-                            void (async () => {
-                              setBusy(true);
-                              setNotice(null);
-                              setError(null);
-                              try {
-                                const message = await onCloudSyncNow();
-                                setNotice(message);
-                              } catch (caught) {
-                                setError(
-                                  caught instanceof Error
-                                    ? caught.message
-                                    : '同期に失敗しました',
-                                );
-                              } finally {
-                                setBusy(false);
-                              }
-                            })();
+                            void runCloudAction(onCloudSaveUpload);
                           }}
                         >
-                          今すぐ同期
+                          クラウドに保存
+                        </button>
+                      )}
+                      {onCloudRestoreDownload && (
+                        <button
+                          type="button"
+                          className="settings-account-btn"
+                          disabled={
+                            busy ||
+                            cloudHasProgress === false
+                          }
+                          title={
+                            cloudHasProgress === false
+                              ? 'クラウドに復元できるデータがありません'
+                              : undefined
+                          }
+                          onClick={handleRestoreRequest}
+                        >
+                          クラウドから復元
                         </button>
                       )}
                       <button
@@ -705,6 +815,25 @@ function AccountSection({
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={restoreConfirmOpen}
+        title="クラウドから復元"
+        message={
+          <>
+            この端末の現在のゲームデータは、クラウドのデータで置き換わります。
+            <br />
+            バトル履歴はこの端末に残ります。
+            <br />
+            続行しますか？
+          </>
+        }
+        confirmLabel="復元する"
+        cancelLabel="キャンセル"
+        confirmVariant="danger"
+        confirmDisabled={busy}
+        onConfirm={handleRestoreConfirm}
+        onCancel={() => setRestoreConfirmOpen(false)}
+      />
     </SettingsSection>
   );
 }
@@ -741,7 +870,8 @@ export function SettingsScreen({
   onDevClearPaletteShopUnlocks,
   onDevUnlockAllEditorTools,
   onDevClearEditorShopUnlocks,
-  onCloudSyncNow,
+  onCloudSaveUpload,
+  onCloudRestoreDownload,
   onUsernameChange,
 }: SettingsScreenProps) {
   const [devLevelInput, setDevLevelInput] = useState(
@@ -1007,7 +1137,8 @@ export function SettingsScreen({
         <AccountSection
           username={user.username}
           onUsernameChange={onUsernameChange}
-          onCloudSyncNow={onCloudSyncNow}
+          onCloudSaveUpload={onCloudSaveUpload}
+          onCloudRestoreDownload={onCloudRestoreDownload}
         />
 
         <SettingsSection title="戦績" compact>

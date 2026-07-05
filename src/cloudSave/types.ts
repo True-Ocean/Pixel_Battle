@@ -5,7 +5,8 @@ export type CloudSaveFailReason =
   | 'not_authenticated'
   | 'fetch_failed'
   | 'upsert_failed'
-  | 'invalid_save';
+  | 'invalid_save'
+  | 'empty_cloud';
 
 export type CloudSaveResult<T> =
   | { ok: true; data: T }

@@ -208,7 +208,75 @@ export function scheduleCloudSaveUpload(save: SaveData): void {
   });
 }
 
-/** 設定の「今すぐ同期」用。debounce を待たず突き合わせる */
+/** 設定の「クラウドに保存」。端末 → クラウドのみ（双方向判定なし） */
+export async function uploadCloudSaveNow(
+  localSave: SaveData,
+): Promise<ReconcileCloudSaveResult> {
+  cancelScheduledCloudSaveUpload();
+  const user = await getAuthUser();
+  if (!canSyncCloudSave(user)) {
+    return {
+      ok: false,
+      reason: 'not_authenticated',
+      error: 'メールアドレス連携が必要です',
+    };
+  }
+
+  ensureLocalClientUpdatedAt();
+  const localAt = hasPlayableProgress(localSave)
+    ? touchLocalClientUpdatedAt()
+    : readLocalClientUpdatedAt();
+  return uploadSave(localSave, localAt);
+}
+
+/** 設定の「クラウドから復元」。クラウド → 端末のみ（空クラウドは拒否） */
+export async function downloadCloudSaveNow(
+  localSave: SaveData,
+): Promise<ReconcileCloudSaveResult> {
+  cancelScheduledCloudSaveUpload();
+  const user = await getAuthUser();
+  if (!canSyncCloudSave(user)) {
+    return {
+      ok: false,
+      reason: 'not_authenticated',
+      error: 'メールアドレス連携が必要です',
+    };
+  }
+
+  if (reconcileInFlight) {
+    return { ok: true, action: 'noop' };
+  }
+  reconcileInFlight = true;
+  try {
+    const fetched = await fetchPlayerSave();
+    if (!fetched.ok) {
+      return { ok: false, reason: fetched.reason, error: fetched.error };
+    }
+    if (
+      fetched.data == null ||
+      !hasPlayableProgress(fetched.data.save)
+    ) {
+      return {
+        ok: false,
+        reason: 'empty_cloud',
+        error: 'クラウドに復元できるデータがありません',
+      };
+    }
+
+    writeLocalClientUpdatedAt(fetched.data.clientUpdatedAt);
+    lastCloudSyncAt = new Date().toISOString();
+    return {
+      ok: true,
+      action: 'downloaded',
+      save: mergeLocalOnlyFields(fetched.data.save, localSave),
+      clientUpdatedAt: fetched.data.clientUpdatedAt,
+    };
+  } finally {
+    reconcileInFlight = false;
+  }
+}
+
+/** @deprecated uploadCloudSaveNow / downloadCloudSaveNow を使用 */
 export async function syncCloudSaveNow(
   localSave: SaveData,
 ): Promise<ReconcileCloudSaveResult> {
