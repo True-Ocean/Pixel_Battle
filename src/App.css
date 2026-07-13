@@ -2154,6 +2154,23 @@ button.battle-hub-deck-icon.is-move-target {
   font-weight: 700;
 }
 
+.battle-mode-screen-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.battle-mode-screen-title-row .offline-pvp-list-title,
+.battle-mode-screen-title-row .battle-hub-deck-select-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.battle-mode-help-btn {
+  flex-shrink: 0;
+}
+
 .offline-pvp-list-hint {
   margin: 0;
   font-size: 0.82rem;

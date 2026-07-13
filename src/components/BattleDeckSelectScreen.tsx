@@ -6,6 +6,7 @@ import {
   type CSSProperties,
 } from 'react';
 import { DECK_MAX } from '../config/balance';
+import type { HelpTopic } from '../config/helpContent';
 import {
   countDeckCards,
   getBattleReadyDeckIndices,
@@ -24,6 +25,8 @@ import type { Card, DeckLayout } from '../types';
 import { getRarityMeta } from '../config/rarity';
 import { BattleCard } from './BattleCard';
 import { BattleHubCardDetailOverlay } from './BattleHubCardDetailOverlay';
+import { HelpInfoButton } from './HelpInfoButton';
+import { HelpPanelModal } from './HelpPanelModal';
 
 type BattleHubDeckStatus = 'ready' | 'incomplete';
 type DeckReadinessMode = 'battle' | 'historyRematch';
@@ -49,6 +52,8 @@ export interface BattleDeckSelectScreenProps {
   startButtonLabel?: string;
   startBattleDisabled?: boolean;
   waitingStatusMessage?: string;
+  /** 指定時、タイトル右上にモード説明ヘルプを表示 */
+  modeHelp?: HelpTopic;
   onStartBattle: (deckIndex: number) => void;
   onBack: () => void;
   onGoToMyDeck: (deckIndex: number, cardId: string) => void;
@@ -91,12 +96,14 @@ export function BattleDeckSelectScreen({
   startButtonLabel = 'バトル開始',
   startBattleDisabled = false,
   waitingStatusMessage,
+  modeHelp,
   onStartBattle,
   onBack,
   onGoToMyDeck,
   onReorderDeckAt,
   onMoveCardBetweenDecks,
 }: BattleDeckSelectScreenProps) {
+  const [helpOpen, setHelpOpen] = useState(false);
   const readyIndices = useMemo(
     () => getReadyDeckIndicesForMode(decks, unlockedDeckCount, deckReadinessMode),
     [decks, unlockedDeckCount, deckReadinessMode],
@@ -219,7 +226,16 @@ export function BattleDeckSelectScreen({
         >
           {backLabel}
         </button>
-        <h2 className="battle-hub-deck-select-title">{title}</h2>
+        <div className="battle-mode-screen-title-row">
+          <h2 className="battle-hub-deck-select-title">{title}</h2>
+          {modeHelp && (
+            <HelpInfoButton
+              className="battle-mode-help-btn"
+              ariaLabel={`${modeHelp.title}のヘルプ`}
+              onClick={() => setHelpOpen(true)}
+            />
+          )}
+        </div>
       </div>
 
       <div className="battle-hub-body">
@@ -411,6 +427,12 @@ export function BattleDeckSelectScreen({
             onGoToMyDeck(detailTarget.deckIndex, detailTarget.card.id);
             setDetailTarget(null);
           }}
+        />
+      )}
+      {helpOpen && modeHelp && (
+        <HelpPanelModal
+          topic={modeHelp}
+          onClose={() => setHelpOpen(false)}
         />
       )}
     </section>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { DeckLayout } from '../types';
-import { getBattleHubHelp } from '../config/helpContent';
+import { getBattleHubHelp, getCpuBattleModeHelp } from '../config/helpContent';
 import {
   OFFLINE_PVP_MIN_USER_LEVEL,
   isOfflinePvpUnlockedAtUserLevel,
@@ -63,6 +63,8 @@ export function BattleHubScreen({
         deckNames={deckNames}
         unlockedDeckCount={unlockedDeckCount}
         lastBattleDeckIndex={lastBattleDeckIndex}
+        title="CPU戦"
+        modeHelp={getCpuBattleModeHelp()}
         onStartBattle={onStartBattle}
         onBack={() => setView('modes')}
         onGoToMyDeck={onGoToMyDeck}
@@ -89,7 +91,7 @@ export function BattleHubScreen({
           <div className="battle-hub-mode-panel-head">
             <HelpInfoButton
               className="battle-hub-help-btn"
-              ariaLabel="バトルの進め方"
+              ariaLabel="バトルについて"
               onClick={() => setHelpOpen(true)}
             />
           </div>

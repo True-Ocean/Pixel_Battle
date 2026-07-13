@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { computeDeckPower } from '../card';
+import { getOfflinePvpModeHelp } from '../config/helpContent';
 import { getRarityMeta } from '../config/rarity';
 import {
   getPublicGhostDeckListEmptyMessage,
@@ -8,6 +9,8 @@ import {
 } from '../offlinePvp';
 import type { Card } from '../types';
 import { CardPreview } from './CardPreview';
+import { HelpInfoButton } from './HelpInfoButton';
+import { HelpPanelModal } from './HelpPanelModal';
 import { OfflinePvpDeckDetailOverlay } from './OfflinePvpDeckDetailOverlay';
 
 interface OfflinePvpDeckListScreenProps {
@@ -57,6 +60,8 @@ export function OfflinePvpDeckListScreen({
   const [emptyTitle, setEmptyTitle] = useState('公開デッキがありません');
   const [emptyHint, setEmptyHint] = useState<string | undefined>();
   const [selected, setSelected] = useState<PublicGhostDeck | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const modeHelp = getOfflinePvpModeHelp();
 
   useEffect(() => {
     let cancelled = false;
@@ -91,7 +96,14 @@ export function OfflinePvpDeckListScreen({
         >
           モード選択に戻る
         </button>
-        <h1 className="offline-pvp-list-title">対人戦（オフライン）</h1>
+        <div className="battle-mode-screen-title-row">
+          <h1 className="offline-pvp-list-title">対人戦（オフライン）</h1>
+          <HelpInfoButton
+            className="battle-mode-help-btn"
+            ariaLabel={`${modeHelp.title}のヘルプ`}
+            onClick={() => setHelpOpen(true)}
+          />
+        </div>
         <p className="offline-pvp-list-hint muted">
           対戦したいデッキをタップ
         </p>
@@ -160,6 +172,9 @@ export function OfflinePvpDeckListScreen({
             onChallenge(ghost);
           }}
         />
+      )}
+      {helpOpen && (
+        <HelpPanelModal topic={modeHelp} onClose={() => setHelpOpen(false)} />
       )}
     </section>
   );

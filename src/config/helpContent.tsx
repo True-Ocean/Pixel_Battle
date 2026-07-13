@@ -39,6 +39,11 @@ export function getVisibleHelpSections(
 
 export { getBattleHubHelp } from './battleHubHelp';
 export { getBattleHistoryHelp } from './battleHistoryHelp';
+export {
+  getCpuBattleModeHelp,
+  getOfflinePvpModeHelp,
+  getOnlinePvpModeHelp,
+} from './battleModeHelp';
 
 function HelpDefinedItem({
   label,

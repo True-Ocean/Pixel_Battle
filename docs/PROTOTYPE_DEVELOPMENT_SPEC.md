@@ -490,7 +490,7 @@ src/
 
 | 項目 | 内容 |
 |------|------|
-| バトルハブ | 右上 **?**（`HelpInfoButton`）→ `HelpPanelModal`。内容は `getBattleHubHelp(userLevel)`（CPU戦・対人戦オフライン共通の流れ＋モードのちがい・Lost 等。Lv ゲート付きセクションあり） |
+| バトルハブ | 右上 **?**（`HelpInfoButton`）→ `HelpPanelModal`。内容は `getBattleHubHelp(userLevel)`（流れ・操作・Lost 等。Lv ゲート付きセクションあり）。各モードの説明は遷移先右上の？（`getCpuBattleModeHelp` / `getOfflinePvpModeHelp` / `getOnlinePvpModeHelp`） |
 | バトル履歴 | **バトル履歴**サブタブ時のみ右上 **?** → `getBattleHistoryHelp()`（一覧・対戦詳細の見方。再戦ルールは再戦開始モーダル側） |
 | エディタ | 右上 **?** → `getEditorHelp(isEditing)`（新規/編集で文言切替） |
 | マイデッキ | ヘッダ右 **?** → `getDeckHelp()`（カードの見方・デッキ名変更・対人戦公開・並べ替え） |

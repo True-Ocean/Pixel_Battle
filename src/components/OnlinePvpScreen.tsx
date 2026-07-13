@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { DeckLayout } from '../types';
 import { getDeckCards, isDeckBattleReady, normalizeDeckLayout } from '../deckSlots';
+import { getOnlinePvpModeHelp } from '../config/helpContent';
 import {
   ONLINE_PVP_MIN_WALLET_PX,
   createOnlineBattleRoom,
@@ -17,7 +18,9 @@ import {
   type OnlineRoomResult,
 } from '../onlinePvp';
 import { BattleDeckSelectScreen } from './BattleDeckSelectScreen';
+import { HelpInfoButton } from './HelpInfoButton';
 import { HelpInlinePxIcon } from './HelpInlineEconomy';
+import { HelpPanelModal } from './HelpPanelModal';
 
 type OnlinePvpPhase = 'entry' | 'lobby' | 'deckSelect';
 
@@ -92,6 +95,8 @@ export function OnlinePvpScreen({
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const modeHelp = getOnlinePvpModeHelp();
   const advancingRef = useRef(false);
   const roleRef = useRef<OnlineBattleRole | null>(resumeRole ?? null);
   roleRef.current = role;
@@ -363,7 +368,14 @@ export function OnlinePvpScreen({
           <button type="button" className="battle-hub-back-btn" onClick={onBack}>
             モード選択に戻る
           </button>
-          <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
+          <div className="battle-mode-screen-title-row">
+            <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
+            <HelpInfoButton
+              className="battle-mode-help-btn"
+              ariaLabel={`${modeHelp.title}のヘルプ`}
+              onClick={() => setHelpOpen(true)}
+            />
+          </div>
         </header>
         <div className="online-pvp-entry-body online-pvp-lobby-body">
           <div className="online-pvp-lobby-content">
@@ -378,6 +390,9 @@ export function OnlinePvpScreen({
             </p>
           </div>
         </div>
+        {helpOpen && (
+          <HelpPanelModal topic={modeHelp} onClose={() => setHelpOpen(false)} />
+        )}
       </section>
     );
   }
@@ -388,7 +403,14 @@ export function OnlinePvpScreen({
         <button type="button" className="battle-hub-back-btn" onClick={onBack}>
           モード選択に戻る
         </button>
-        <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
+        <div className="battle-mode-screen-title-row">
+          <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
+          <HelpInfoButton
+            className="battle-mode-help-btn"
+            ariaLabel={`${modeHelp.title}のヘルプ`}
+            onClick={() => setHelpOpen(true)}
+          />
+        </div>
       </header>
 
       <div className="online-pvp-entry-body">
@@ -448,6 +470,9 @@ export function OnlinePvpScreen({
           )}
         </div>
       </div>
+      {helpOpen && (
+        <HelpPanelModal topic={modeHelp} onClose={() => setHelpOpen(false)} />
+      )}
     </section>
   );
 }
