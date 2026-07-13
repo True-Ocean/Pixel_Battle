@@ -54,11 +54,13 @@ describe('onlinePvp display', () => {
       myPrevious: 100,
       myNext: 160,
       transfer: 60,
+      playerWon: true,
     });
     expect(buildOnlinePxBalanceSnapshot(40, false, 60)).toEqual({
       myPrevious: 100,
       myNext: 40,
       transfer: 60,
+      playerWon: false,
     });
   });
 
@@ -120,6 +122,16 @@ describe('onlinePvp display', () => {
         'host',
       ),
     ).toBeUndefined();
+    expect(
+      onlineRematchHint(
+        room({
+          status: 'closed',
+          closedByRole: 'guest',
+          hostRematchReady: true,
+        }),
+        'host',
+      ),
+    ).toBe('再戦の返答を待っている間に相手が退出しました');
   });
 
   it('onlineRematchInsufficientPxHint', () => {

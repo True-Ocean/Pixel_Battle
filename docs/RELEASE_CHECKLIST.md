@@ -1,7 +1,7 @@
 # リリース準備チェックリスト
 
 **運用**: 気づいたら追記する生きたリスト。完了したら `[x]` にし、必要なら日付を残す。  
-**関連**: [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) / [PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) / [ECONOMY_ROADMAP.md](./ECONOMY_ROADMAP.md)
+**関連**: [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) / [PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) / [ECONOMY_ROADMAP.md](./ECONOMY_ROADMAP.md) / [online-pvp-spec.md](./online-pvp-spec.md)
 
 ---
 
@@ -39,8 +39,8 @@
 - [ ] 別端末ログインで復元できること
 - [ ] `player_saves` のサイズ・無料枠の見積もり（想定ユーザー数）
 - [ ] 本番 Supabase のバックアップ方針
-- [ ] マイグレーション（`001`〜`003` 等）が本番に適用済みであること
-- [ ] RLS（`player_saves` / `public_ghost_decks`）で他人のデータが読めないこと
+- [ ] マイグレーション（`001`〜`004` 公開デッキ・セーブ、`005`〜`015` フレンド対戦）が本番に適用済みであること
+- [ ] RLS（`player_saves` / `public_ghost_decks` / `online_battle_rooms`）で他人のデータが読めないこと
 
 ## 3. オフライン対人・経済
 
@@ -49,6 +49,13 @@
 - [ ] 挑戦者のみ経済（戦利品・Lost）、作者デッキ不変
 - [ ] CPU戦 / 対人オフラインの戦績が分かれて記録されること
 - [ ] 広告モックを本番広告に差し替える計画（Web / アプリ）
+
+## 3b. フレンド対戦（オンライン）
+
+- [ ] migration **015**（`REPLICA IDENTITY FULL`）適用済み
+- [ ] 2端末でルーム作成〜バトル〜clash 再生〜勝敗〜px 移動〜再戦／退出（[online-pvp-spec §8](./online-pvp-spec.md#8-受け入れ条件)）
+- [ ] Lost が発生しないこと（フレンドルーム）
+- [ ] 退出・再戦希望の相手向けメッセージ確認
 
 ## 4. PWA・モバイル
 

@@ -21,14 +21,32 @@ import {
 } from '../game';
 import { buildDefeatedCpuLootCards } from '../battle/graveyardLoot';
 import type { Card, BattleOutcomeCore } from '../types';
-import type { BattleActionChoice, BattleActionType, BoardPosition } from '../types/battle';
+import type {
+  BattleActionChoice,
+  BattleActionType,
+  BattleState,
+  BoardPosition,
+} from '../types/battle';
 import { applyOnlineNinjaStalemateBreak } from '../onlinePvp/roomApi';
 import type { OnlineUiPhase } from '../onlinePvp/deriveOnlineUiPhase';
+import {
+  onlineClashReplayKey,
+  playbackEventsToResolveResult,
+  shouldStartOnlineClashReplay,
+  toLocalClashPlaybackEvents,
+  toLocalPoisonDots,
+} from '../onlinePvp/onlineClashPlayback';
+import { flipBattleStateForGuest } from '../onlinePvp/battleSync';
 import type { OnlineBattleRole, OnlineBattleRoom } from '../onlinePvp/types';
-import type { BattleUiPhase } from './useBattle';
+import { CLASH_MS } from './battleClashTypes';
+import type { BattlePlayback } from './battlePlaybackTypes';
+import {
+  createBattlePlayback,
+  initialPlaybackBoardState,
+} from './createBattlePlayback';
+import { useClashPlaybackAdvance } from './useClashPlaybackAdvance';
+import type { BattleUiPhase, TurnStartPlayback } from './useBattle';
 import { useOnlineBattleSession } from './useOnlineBattleSession';
-
-const CLASH_REPLAY_STUB_MS = 400;
 
 function mapOnlineUiPhaseToBattle(uiPhase: OnlineUiPhase | null): BattleUiPhase {
   if (uiPhase == null) return 'pickMain';
@@ -50,6 +68,7 @@ export interface UseOnlineBattleControllerOptions {
   playerCards: Card[];
   cpuCards: Card[];
   onFinish: (outcome: BattleOutcomeCore) => void;
+  onRoomSync?: (room: OnlineBattleRoom) => void;
 }
 
 export function useOnlineBattleController({
@@ -58,36 +77,219 @@ export function useOnlineBattleController({
   playerCards,
   cpuCards,
   onFinish,
+  onRoomSync,
 }: UseOnlineBattleControllerOptions) {
-  const session = useOnlineBattleSession({ room, role });
+  const session = useOnlineBattleSession({ room, role, onRoomSync });
   const [pendingActor, setPendingActor] = useState<BoardPosition | null>(null);
   const [pendingAction, setPendingAction] = useState<BattleActionType | null>(null);
+  const [playback, setPlayback] = useState<BattlePlayback | null>(null);
+  const [turnStartPlayback, setTurnStartPlayback] =
+    useState<TurnStartPlayback | null>(null);
+  const [displayState, setDisplayState] = useState<BattleState | null>(null);
   const outcomeSavedRef = useRef(false);
-  const lastClashRevisionRef = useRef<number | null>(null);
+  const playedClashKeyRef = useRef<string | null>(null);
+  const playedPoisonKeyRef = useRef<string | null>(null);
+  const seededRoomIdRef = useRef<string | null>(null);
   const stalemateBreakRef = useRef(false);
 
-  const state =
-    session.localState ??
-    createBattleState(playerCards, cpuCards);
+  const authoritativeState =
+    session.localState ?? createBattleState(playerCards, cpuCards);
+  const state = displayState ?? authoritativeState;
 
-  const effectivePhase: BattleUiPhase = mapOnlineUiPhaseToBattle(
-    session.uiPhase,
-  );
-  const result = getBattleResult(state);
+  const mappedPhase: BattleUiPhase = mapOnlineUiPhaseToBattle(session.uiPhase);
+  const result = getBattleResult(authoritativeState);
   const selectionTurn = getSelectionTurn(state);
   const pendingPromoteFrom = session.promotionDraft.from;
 
+  // rematch_wait 確定〜再生 effect 起動前に ended へ落ちないようにする
+  const pendingClashReplay =
+    room != null &&
+    Boolean(room.lastClash?.playbackEvents) &&
+    shouldStartOnlineClashReplay(room, playedClashKeyRef.current);
+
+  const effectivePhase: BattleUiPhase = (() => {
+    if (playback) return 'clash';
+    if (turnStartPlayback) return 'turnStartPoison';
+    if (pendingClashReplay) return 'clash';
+    if (
+      result &&
+      mappedPhase !== 'clash' &&
+      mappedPhase !== 'turnStartPoison'
+    ) {
+      return 'ended';
+    }
+    return mappedPhase;
+  })();
+
+  const releaseReplayToRoom = useCallback(() => {
+    setPlayback(null);
+    setTurnStartPlayback(null);
+    setDisplayState(null);
+    session.setReplayOverlay(null);
+  }, [session.setReplayOverlay]);
+
+  const releaseReplayRef = useRef(releaseReplayToRoom);
+  releaseReplayRef.current = releaseReplayToRoom;
+
+  const startPoisonReplay = useCallback(
+    (clashKey: string) => {
+      const lastClash = room?.lastClash;
+      if (!lastClash?.poisonDots?.length || !lastClash.stateBeforePoison) {
+        releaseReplayRef.current();
+        return;
+      }
+      if (playedPoisonKeyRef.current === clashKey) {
+        releaseReplayRef.current();
+        return;
+      }
+      playedPoisonKeyRef.current = clashKey;
+      const localBefore =
+        role === 'guest'
+          ? flipBattleStateForGuest(lastClash.stateBeforePoison)
+          : lastClash.stateBeforePoison;
+      const localAfter = lastClash.stateAfterPoison
+        ? role === 'guest'
+          ? flipBattleStateForGuest(lastClash.stateAfterPoison)
+          : lastClash.stateAfterPoison
+        : authoritativeState;
+      setPlayback(null);
+      setDisplayState(localBefore);
+      setTurnStartPlayback({
+        poisonDots: toLocalPoisonDots(lastClash.poisonDots, role),
+        stateAfter: localAfter,
+        poisonSubPhase: 'damage',
+      });
+      session.setReplayOverlay({ kind: 'turnStartPoison' });
+    },
+    [authoritativeState, role, room?.lastClash, session.setReplayOverlay],
+  );
+
+  const startPoisonReplayRef = useRef(startPoisonReplay);
+  startPoisonReplayRef.current = startPoisonReplay;
+
+  const finishClashPlayback = useCallback(() => {
+    const lastClash = room?.lastClash;
+    const clashKey = lastClash
+      ? onlineClashReplayKey(lastClash.turn, lastClash.preClashRevision)
+      : null;
+    setPlayback(null);
+    if (
+      clashKey &&
+      lastClash?.poisonDots &&
+      lastClash.poisonDots.length > 0 &&
+      lastClash.stateBeforePoison
+    ) {
+      startPoisonReplayRef.current(clashKey);
+      return;
+    }
+    releaseReplayRef.current();
+  }, [room?.lastClash]);
+
+  // §7.2: last_clash.playbackEvents を再生（resolveTurn 再実行禁止）
   useEffect(() => {
-    if (!room?.lastClash) return;
-    const revision = room.battleRevision;
-    if (lastClashRevisionRef.current === revision) return;
-    lastClashRevisionRef.current = revision;
+    if (!room) return;
+
+    // ルーム入場時の既存 lastClash は再生せず既読扱い（リロードで古い演出を避ける）
+    if (seededRoomIdRef.current !== room.id) {
+      seededRoomIdRef.current = room.id;
+      if (room.lastClash) {
+        const key = onlineClashReplayKey(
+          room.lastClash.turn,
+          room.lastClash.preClashRevision,
+        );
+        playedClashKeyRef.current = key;
+        playedPoisonKeyRef.current = room.lastClash.poisonDots?.length
+          ? key
+          : null;
+      } else {
+        playedClashKeyRef.current = null;
+        playedPoisonKeyRef.current = null;
+      }
+      return;
+    }
+
+    if (!room.lastClash?.playbackEvents) return;
+    const lastClash = room.lastClash;
+    const clashKey = onlineClashReplayKey(
+      lastClash.turn,
+      lastClash.preClashRevision,
+    );
+    if (playedClashKeyRef.current === clashKey) {
+      // clash 再生済みで、あとから poisonDots が載った場合（昇格後 turn_start）
+      if (
+        lastClash.poisonDots &&
+        lastClash.poisonDots.length > 0 &&
+        lastClash.stateBeforePoison &&
+        playedPoisonKeyRef.current !== clashKey &&
+        !playback &&
+        !turnStartPlayback &&
+        session.replayOverlay == null
+      ) {
+        startPoisonReplayRef.current(clashKey);
+      }
+      return;
+    }
+    // 古い last_clash や revision が進みすぎたものは再生せず既読にする
+    if (!shouldStartOnlineClashReplay(room, playedClashKeyRef.current)) {
+      playedClashKeyRef.current = clashKey;
+      if (lastClash.poisonDots?.length) {
+        playedPoisonKeyRef.current = clashKey;
+      }
+      return;
+    }
+    playedClashKeyRef.current = clashKey;
+    playedPoisonKeyRef.current = null;
+    const localEvents = toLocalClashPlaybackEvents(
+      lastClash.playbackEvents,
+      role,
+    );
+    const nextPlayback = createBattlePlayback(
+      playbackEventsToResolveResult(localEvents),
+    );
+    setDisplayState(
+      initialPlaybackBoardState(localEvents.preClashState, nextPlayback),
+    );
+    setPlayback(nextPlayback);
+    setTurnStartPlayback(null);
     session.setReplayOverlay({ kind: 'clash' });
-    const timer = window.setTimeout(() => {
-      session.setReplayOverlay(null);
-    }, CLASH_REPLAY_STUB_MS);
-    return () => window.clearTimeout(timer);
-  }, [room?.battleRevision, room?.lastClash, session.setReplayOverlay]);
+    // room.id / lastClash キー変化と再生中フラグのみ。コールバック identity は ref 経由。
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally narrow
+  }, [
+    playback,
+    role,
+    room?.id,
+    room?.battleRevision,
+    room?.lastClash,
+    session.replayOverlay,
+    session.setReplayOverlay,
+    turnStartPlayback,
+  ]);
+
+  useClashPlaybackAdvance(
+    playback,
+    effectivePhase,
+    setPlayback,
+    setDisplayState,
+    finishClashPlayback,
+  );
+
+  useEffect(() => {
+    if (!turnStartPlayback || effectivePhase !== 'turnStartPoison') return;
+    if (turnStartPlayback.poisonSubPhase === 'damage') {
+      const t = window.setTimeout(
+        () =>
+          setTurnStartPlayback((p) =>
+            p ? { ...p, poisonSubPhase: 'bp' } : null,
+          ),
+        CLASH_MS.damage,
+      );
+      return () => window.clearTimeout(t);
+    }
+    const t = window.setTimeout(() => {
+      releaseReplayToRoom();
+    }, CLASH_MS.bp);
+    return () => window.clearTimeout(t);
+  }, [turnStartPlayback, effectivePhase, releaseReplayToRoom]);
 
   useEffect(() => {
     const auto = session.promotion.autoSubmit;
@@ -441,8 +643,11 @@ export function useOnlineBattleController({
   }, [session]);
 
   const isActionablePosition = useCallback(
-    (position: BoardPosition) => availableActionsFor(position).length > 0,
-    [availableActionsFor],
+    (position: BoardPosition) => {
+      if (session.inputLocked || session.waitingForOpponent) return false;
+      return availableActionsFor(position).length > 0;
+    },
+    [availableActionsFor, session.inputLocked, session.waitingForOpponent],
   );
 
   const isValidTargetPosition = useCallback(
@@ -593,13 +798,19 @@ export function useOnlineBattleController({
     if (session.promotion.hint && effectivePhase.startsWith('promote')) {
       return session.promotion.hint;
     }
-    if (effectivePhase === 'waitOpponentPromotion') {
-      return '相手の前衛補充を待っています…';
-    }
     if (session.waitingForOpponent) {
       return '相手の選択を待っています…';
     }
+    if (effectivePhase === 'waitOpponentPromotion') {
+      return '相手の前衛補充を待っています…';
+    }
     if (effectivePhase === 'ended') return null;
+    if (effectivePhase === 'clash' && playback) {
+      if (playback.phase === 'heal') return '回復';
+      if (playback.phase === 'illuminate') return 'ステルス解除';
+      if (playback.phase === 'shield') return '盾付与';
+      if (playback.phase === 'attack') return '攻撃判定中';
+    }
     if (effectivePhase === 'clash') return '攻撃判定中';
     if (effectivePhase === 'turnStartPoison') return '毒ダメージ';
     if (
@@ -679,6 +890,7 @@ export function useOnlineBattleController({
     effectivePhase,
     pendingAction,
     pendingActor,
+    playback,
     selectionTurn,
     session.promotion.hint,
     session.waitingForOpponent,
@@ -689,7 +901,7 @@ export function useOnlineBattleController({
     .map((u, i) => (u.currentBp > 0 && u.position !== 'defeated' ? i : -1))
     .filter((i) => i >= 0);
 
-  const turnLabel = `TURN ${state.turn + 1}`;
+  const turnLabel = `TURN ${authoritativeState.turn + 1}`;
 
   return {
     state,
@@ -697,12 +909,9 @@ export function useOnlineBattleController({
     cpuCards,
     playerAlive,
     clash: null,
-    playback: null,
-    turnStartPlayback: null,
-    effectivePhase:
-      result && effectivePhase !== 'clash' && effectivePhase !== 'turnStartPoison'
-        ? 'ended'
-        : effectivePhase,
+    playback,
+    turnStartPlayback,
+    effectivePhase,
     pendingMain: null,
     pendingActor,
     pendingAction,

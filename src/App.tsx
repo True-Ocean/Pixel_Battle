@@ -24,6 +24,7 @@ import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, applyCardRevive, computeDeckPower, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, hasCardUserNote, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
+import { getBattleResult } from './game';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
 import { createInitialMissionState } from './user/missionState';
 import { getBattlesDayKey, getMockAdsWatchedTotal, recordMockAdWatched } from './user/adState';
@@ -65,8 +66,12 @@ import {
 import {
   canContinueOnlinePvpSession,
   closeOnlineBattleRoom,
+  finalizeOnlineBattleIfEnded,
+  applyOnlinePvpWalletTransfer,
+  syncOnlineWalletBalance,
   isOnlinePvpUnlockedAtUserLevel,
   opponentIdentity,
+  shouldApplyOnlineRoomUpdate,
   shouldReturnToOnlineDeckSelect,
   submitOnlineRematchReady,
   submitOnlineSetup,
@@ -357,6 +362,8 @@ function App() {
   const isOnlinePvpRef = useRef(false);
   const onlinePvpRoomRef = useRef<OnlineBattleRoom | null>(null);
   const onlinePvpRoleRef = useRef<OnlineBattleRole | null>(null);
+  /** rematch_wait の px 移動を両端末で冪等に1回だけ適用するためのキー */
+  const onlinePxSettledKeyRef = useRef<string | null>(null);
   const onlineBattleSetupMountRef = useRef<{
     roomId: string;
     status: OnlineBattleRoom['status'];
@@ -1118,6 +1125,7 @@ function App() {
     onlinePvpRoomRef.current = null;
     onlinePvpRoleRef.current = null;
     onlineBattleSetupMountRef.current = null;
+    onlinePxSettledKeyRef.current = null;
   }, []);
 
   const leaveOnlinePvpRoom = useCallback(
@@ -1196,9 +1204,12 @@ function App() {
 
   const handleOnlineRoomUpdated = useCallback(
     (room: OnlineBattleRoom, role: OnlineBattleRole) => {
-      setOnlinePvpRoom(room);
+      const current = onlinePvpRoomRef.current;
+      if (shouldApplyOnlineRoomUpdate(current, room)) {
+        setOnlinePvpRoom(room);
+        onlinePvpRoomRef.current = room;
+      }
       setOnlinePvpRole(role);
-      onlinePvpRoomRef.current = room;
       onlinePvpRoleRef.current = role;
 
       if (
@@ -2494,6 +2505,40 @@ function App() {
     [persistSave],
   );
 
+  const applyOnlinePvpPxSettlement = useCallback(
+    (room: OnlineBattleRoom, playerWon: boolean) => {
+      if (room.status !== 'rematch_wait' || room.lastTransferPx == null) return;
+      const transfer = room.lastTransferPx;
+      const key = `${room.id}:${room.battleRevision}:${transfer}`;
+      if (onlinePxSettledKeyRef.current === key) return;
+      onlinePxSettledKeyRef.current = key;
+
+      const { nextWalletPx } = applyOnlinePvpWalletTransfer(
+        economyRef.current.freePixels,
+        playerWon,
+        transfer,
+      );
+      if (nextWalletPx !== economyRef.current.freePixels) {
+        const nextEconomy = setFreePixels(economyRef.current, nextWalletPx);
+        economyRef.current = nextEconomy;
+        setEconomy(nextEconomy);
+        persistSave({ economy: nextEconomy });
+      }
+
+      const role = onlinePvpRoleRef.current;
+      if (role) {
+        void syncOnlineWalletBalance(room.id, role, nextWalletPx).then((synced) => {
+          if (!synced.ok) return;
+          if (shouldApplyOnlineRoomUpdate(onlinePvpRoomRef.current, synced.data)) {
+            setOnlinePvpRoom(synced.data);
+            onlinePvpRoomRef.current = synced.data;
+          }
+        });
+      }
+    },
+    [persistSave],
+  );
+
   const finalizeOnlineBattleOutcome = useCallback(
     (outcome: BattleOutcome) => {
       const prevUser = userRef.current;
@@ -2520,6 +2565,9 @@ function App() {
       );
       const battleMissionEvents: Array<{ type: MissionEventType; amount?: number }> =
         [{ type: 'battle_play' }];
+      if (outcome.winner === 'player') {
+        battleMissionEvents.push({ type: 'battle_win' });
+      }
       let missionResult = applyMissionEvents(
         missionStateRef.current,
         battleMissionEvents,
@@ -2553,8 +2601,20 @@ function App() {
       setDecks(nextDecks);
       setBattleHistory(nextHistory);
       battleStartSnapshotRef.current = null;
+
+      const room = onlinePvpRoomRef.current;
+      if (room) {
+        void finalizeOnlineBattleIfEnded(room).then((result) => {
+          if (!result.ok) return;
+          if (shouldApplyOnlineRoomUpdate(onlinePvpRoomRef.current, result.data)) {
+            setOnlinePvpRoom(result.data);
+            onlinePvpRoomRef.current = result.data;
+          }
+          applyOnlinePvpPxSettlement(result.data, outcome.winner === 'player');
+        });
+      }
     },
-    [persistSave],
+    [applyOnlinePvpPxSettlement, persistSave],
   );
 
   const finalizeHistoryRematchOutcome = useCallback(
@@ -3260,6 +3320,8 @@ function App() {
   useEffect(() => {
     if (!isOnlinePvp || !onlinePvpRoom?.id) return;
     return subscribeOnlineBattleRoom(onlinePvpRoom.id, (room) => {
+      const current = onlinePvpRoomRef.current;
+      if (!shouldApplyOnlineRoomUpdate(current, room)) return;
       setOnlinePvpRoom(room);
       onlinePvpRoomRef.current = room;
       const role = onlinePvpRoleRef.current;
@@ -3273,9 +3335,29 @@ function App() {
       ) {
         const myDeck = role === 'host' ? room.hostDeck : room.guestDeck;
         const oppDeck = role === 'host' ? room.guestDeck : room.hostDeck;
-        setBattlePlayerDeck(structuredClone(myDeck));
-        setCpuDeck(structuredClone(oppDeck));
+        const deckKey = `${myDeck.map((c) => `${c.id}:${c.bp}`).join(',')}|${oppDeck.map((c) => `${c.id}:${c.bp}`).join(',')}`;
+        const mountCtx = onlineBattleSetupMountRef.current;
+        if (mountCtx?.roomId !== room.id || mountCtx?.deckKey !== deckKey) {
+          setBattlePlayerDeck(structuredClone(myDeck));
+          setCpuDeck(structuredClone(oppDeck));
+          onlineBattleSetupMountRef.current = {
+            roomId: room.id,
+            status: room.status,
+            deckKey,
+          };
+        }
         setCpuOpponent(opponentIdentity(room, role));
+      }
+      if (room.status === 'rematch_wait' && room.lastTransferPx != null && role && room.battleState) {
+        const hostResult = getBattleResult(room.battleState);
+        if (hostResult) {
+          const playerWon =
+            role === 'host' ? hostResult === 'player' : hostResult === 'cpu';
+          applyOnlinePvpPxSettlement(room, playerWon);
+        }
+      }
+      if (room.status === 'deck_select') {
+        onlinePxSettledKeyRef.current = null;
       }
       if (
         room.status === 'closed' &&
@@ -3283,14 +3365,30 @@ function App() {
         role &&
         room.closedByRole !== role
       ) {
-        setOnlinePvpOpponentLeftOpen(true);
+        // バトル終了後は終了モーダル側で案内する
+        if (!battleEndDock) {
+          setOnlinePvpOpponentLeftOpen(true);
+        }
       }
       if (screen === 'battleSetup' && shouldReturnToOnlineDeckSelect(room)) {
         setBattleEndDock(false);
         setScreen('onlinePvp');
       }
     });
-  }, [isOnlinePvp, onlinePvpRoom?.id, screen]);
+  }, [
+    applyOnlinePvpPxSettlement,
+    battleEndDock,
+    isOnlinePvp,
+    onlinePvpRoom?.id,
+    screen,
+  ]);
+
+  const syncOnlinePvpRoom = useCallback((room: OnlineBattleRoom) => {
+    const current = onlinePvpRoomRef.current;
+    if (!shouldApplyOnlineRoomUpdate(current, room)) return;
+    setOnlinePvpRoom(room);
+    onlinePvpRoomRef.current = room;
+  }, []);
 
   const handleOnlineSubmitSetup = useCallback(
     (formation: Parameters<typeof submitOnlineSetup>[2]) => {
@@ -3312,8 +3410,10 @@ function App() {
     }
     void submitOnlineRematchReady(room.id, role).then((result) => {
       if (result.ok) {
-        setOnlinePvpRoom(result.data);
-        onlinePvpRoomRef.current = result.data;
+        if (shouldApplyOnlineRoomUpdate(onlinePvpRoomRef.current, result.data)) {
+          setOnlinePvpRoom(result.data);
+          onlinePvpRoomRef.current = result.data;
+        }
         if (result.data.status === 'deck_select') {
           setBattleEndDock(false);
           setScreen('onlinePvp');
@@ -3332,7 +3432,17 @@ function App() {
           canRematch: canContinueOnlinePvpSession(economy.freePixels),
           onSubmitSetup: handleOnlineSubmitSetup,
           onRematchReady: handleOnlineRematchReady,
-          onLeaveRoom: () => void leaveOnlinePvpRoom(),
+          onLeaveRoom: () => {
+            const room = onlinePvpRoomRef.current;
+            const role = onlinePvpRoleRef.current;
+            const opponentAlreadyLeft =
+              room?.status === 'closed' &&
+              room.closedByRole != null &&
+              role != null &&
+              room.closedByRole !== role;
+            void leaveOnlinePvpRoom({ skipClose: opponentAlreadyLeft });
+          },
+          onRoomSync: syncOnlinePvpRoom,
         }
       : undefined;
 

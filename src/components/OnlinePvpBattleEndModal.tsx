@@ -12,8 +12,12 @@ interface OnlinePvpBattleEndModalProps {
   rematchDisabled?: boolean;
   rematchButtonLabel?: string;
   showRematchButton?: boolean;
+  /** 再戦希望・相手退出などの案内 */
+  statusHint?: string | null;
   pxOutcome?: OnlinePxBalanceSnapshot | null;
   canRematch?: boolean;
+  /** 相手退出後は退出ボタンを OK にする */
+  leaveButtonLabel?: string;
   onRematch: () => void;
   onLeave: () => void;
 }
@@ -24,8 +28,10 @@ export function OnlinePvpBattleEndModal({
   rematchDisabled = false,
   rematchButtonLabel = '再戦希望',
   showRematchButton = true,
+  statusHint = null,
   pxOutcome = null,
   canRematch = true,
+  leaveButtonLabel = 'ルームから退出',
   onRematch,
   onLeave,
 }: OnlinePvpBattleEndModalProps) {
@@ -59,6 +65,9 @@ export function OnlinePvpBattleEndModal({
 
   const insufficientPxHint =
     canRematch === false ? onlineRematchInsufficientPxHint(false) : undefined;
+  const transfer = pxOutcome?.transfer ?? 0;
+  const showPx = pxOutcome != null && transfer > 0;
+  const gained = pxOutcome?.playerWon === true;
 
   return createPortal(
     <div className="graveyard-pick-backdrop">
@@ -68,9 +77,11 @@ export function OnlinePvpBattleEndModal({
         aria-modal="true"
         aria-labelledby="online-pvp-end-modal-result"
         aria-describedby={
-          pxOutcome && pxOutcome.transfer > 0
+          showPx
             ? 'online-pvp-end-modal-px'
-            : undefined
+            : statusHint
+              ? 'online-pvp-end-modal-status'
+              : undefined
         }
       >
         <p
@@ -81,14 +92,30 @@ export function OnlinePvpBattleEndModal({
         >
           {won ? 'WIN' : 'LOSE'}
         </p>
-        {pxOutcome && pxOutcome.transfer > 0 ? (
+        {showPx ? (
           <p
             id="online-pvp-end-modal-px"
-            className="online-pvp-end-panel-px-reward"
+            className={`online-pvp-end-panel-px-reward${
+              gained ? '' : ' online-pvp-end-panel-px-reward--loss'
+            }`}
           >
-            <span className="online-pvp-end-panel-px-reward-plus">+</span>
+            <span className="online-pvp-end-panel-px-reward-plus">
+              {gained ? '+' : '−'}
+            </span>
             <HelpInlinePxIcon />
-            <span>{pxOutcome.transfer.toLocaleString()}ゲット！</span>
+            <span>
+              {transfer.toLocaleString()}
+              {gained ? 'ゲット！' : ''}
+            </span>
+          </p>
+        ) : null}
+
+        {statusHint ? (
+          <p
+            id="online-pvp-end-modal-status"
+            className="online-pvp-end-panel-hint"
+          >
+            {statusHint}
           </p>
         ) : null}
 
@@ -113,7 +140,7 @@ export function OnlinePvpBattleEndModal({
           }`}
           onClick={onLeave}
         >
-          ルームから退出
+          {leaveButtonLabel}
         </button>
       </div>
     </div>,

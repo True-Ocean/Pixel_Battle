@@ -1,13 +1,14 @@
-# 簡単！真剣！お絵描きピクセルバトル！ — オンライン対人戦 実装仕様書（v2）
+# 簡単！真剣！お絵描きピクセルバトル！ — フレンド対戦（オンライン）実装仕様書（v2）
 
 | 項目 | 内容 |
 |------|------|
-| ドキュメント版 | 1.0 |
-| 最終更新 | 2026-07-05 |
+| ドキュメント版 | 1.2 |
+| 最終更新 | 2026-07-13 |
 | 対象 | ウェブプロトタイプ（React + Vite + TypeScript + Supabase） |
-| 関連 | [ECONOMY_SPEC §13.3](./ECONOMY_SPEC.md#133-オンライン対人戦--将来構想保留) / [OFFLINE_PVP_SPEC](./OFFLINE_PVP_SPEC.md) / [SUPABASE_SETUP](./SUPABASE_SETUP.md) |
+| 関連 | [ECONOMY_SPEC §13.3](./ECONOMY_SPEC.md#133-オンライン対人戦) / [OFFLINE_PVP_SPEC](./OFFLINE_PVP_SPEC.md) / [SUPABASE_SETUP](./SUPABASE_SETUP.md) / [ECONOMY_ROADMAP §1.8](./ECONOMY_ROADMAP.md#18-対人戦の段階的導入) |
 | 実装ブランチ | `feature/online-pvp-v2` |
 | 参照アーカイブ | `archive/online-pvp-v0`（凍結・マージしない） |
+| 実装状況 | **P0〜P6 実装済み**（merge 前の 2 端末手動受け入れは §8） |
 
 ---
 
@@ -33,10 +34,13 @@
 
 ### 1.1 目的
 
-- **2人のフレンド**がルームコードで同時にバトルできる **オンライン対人戦（真剣勝負）** を実装する。
+- **2人のフレンド**がルームコードで同時にバトルできる **フレンド対戦（オンライン）**（フレンドルーム）を実装する。
+- UI ラベル: バトルハブ・画面タイトル・ヘルプは **「フレンド対戦（オンライン）」**（旧称「対人戦（オンライン）」は使わない）。
 - 盤面・フェーズの **唯一の正本は Supabase 上の `online_battle_rooms` 1行** とする。
 - クライアントは **描画 + 入力送信** のみ。ターン解決・昇格・ターン開始は **サーバー（`roomApi`）** が行う。
 - **操作不能・フェーズ飛ばし（昇格前に行動選択）をゼロ** にすることを最優先とする。
+- **同一ルームでの連続再戦**を前提とする（デッキ選択に戻り何度でも対戦できる）。
+- 勝敗 UI は **最終 clash 再生が終わってから** WIN/LOSE・終了モーダルを出す。
 
 ### 1.2 非目的（v2 スコープ外）
 
@@ -48,12 +52,15 @@
 | Reconnect 自動復旧の完全実装 | v2 は切断猶予・forfeit のみ |
 | `useBattle` へのオンライン後付け | v0 で破綻。v2 では禁止 |
 | 不整合の事後修復 API 依存 | 書き込み時 prevent を正とする |
+| **カード Lost（敗北ロスト）** | 連続再戦のため。Lost は将来の **真剣勝負モード** で別途 |
 
 ### 1.3 経済・ルールの正
 
-- 勝者が相手墓地1枚を選び px・かけら取得、敗者は **同じ1枚** が Lost — [ECONOMY_SPEC §13.3](./ECONOMY_SPEC.md#133-オンライン対人戦--将来構想保留)
+- **px 移動のみ**（勝者生存数 × 20、上限 100）。勝者プラス・敗者マイナス。敗者残高でクランプ。冪等キーで二重送金しない
+- **Lost / 墓地からのカード奪取は行わない**（フレンドルーム）。真剣勝負モードの Lost は [ECONOMY_SPEC §13.3](./ECONOMY_SPEC.md#133-オンライン対人戦) の将来構想として残す
 - 戦闘エンジン（`resolveTurn` / 昇格 / 毒DoT）は **`src/game/` を変更せず流用**
 - 解放レベル: **Lv10**（オフライン対人と同じ）
+- 終了後: `rematch_wait` + `last_transfer_px`。再戦希望／退出の相手向けコピーは §8.1
 
 ---
 
@@ -259,10 +266,11 @@ function deriveOnlineUiPhase(input: {
 | 再生 | サーバー確定済み `battle_state` の差分を **イベント列**として表示 |
 | 最小 v2 | アニメ簡略化（短い演出 → 確定盤面表示）でも可。**再シミュレーションは禁止** |
 
-### 7.2 将来（アニメ充実）
+### 7.2 再生データ（実装済み）
 
-- `last_clash` に `playbackEvents: TurnPlaybackEvent[]` を追加する migration を検討
-- サーバー `resolveOnlineClash` 内で `createTurnPlayback(result)` を生成し JSON 保存
+- サーバー `resolveOnlineClash` が `last_clash.playbackEvents` を生成・保存
+- クライアントは `onlineClashReplay` / `useClashPlaybackAdvance` で **再生のみ**（`resolveTurn` 再実行禁止）
+- Realtime の部分 UPDATE で `battle_state` が欠ける問題は migration **015**（`REPLICA IDENTITY FULL`）で対処
 
 ### 7.3 毒 DoT（ターン開始）
 
@@ -273,7 +281,7 @@ function deriveOnlineUiPhase(input: {
 
 ## 8. 受け入れ条件
 
-**すべて満たすまで v2 を merge しない。**
+**コード上 P0〜P6 は実装済み。** merge 前に §8.1 を **実機2台**で確認する。
 
 ### 8.1 機能（2端末手動）
 
@@ -283,19 +291,26 @@ function deriveOnlineUiPhase(input: {
 - [ ] 昇格 1択: 自動または 1タップで完了
 - [ ] TURN 2 以降も同様
 - [ ] 相手の昇格待ち表示
-- [ ] 勝敗 → px 移動・Lost（勝者が墓地1枚選択）→ 再戦 or 退出
+- [ ] 最終 clash 再生完了後に WIN/LOSE・終了モーダル
+- [ ] 勝敗 → **px 移動（Lost なし・所持反映）** → 再戦 or 退出
+- [ ] 再戦希望中は「相手の返答を待っています…」＋「ルームから退出」を維持
+- [ ] 一方が退出 → 相手に「相手が退出しました」＋再戦ボタン非表示
+- [ ] 一方が再戦希望 → 相手に「相手が再戦を希望しています」
+- [ ] 再戦希望済みのとき相手が退出 → その旨を表示
 
 ### 8.2 データ
 
 - [ ] Supabase 上で `battle_phase='select'` かつ `onlinePromotionNeeded(battle_state)=true` の行が **存在しない**
 - [ ] clash 後 `battle_revision` が単調増加
+- [ ] migration **015**（`REPLICA IDENTITY FULL`）適用済み
 
 ### 8.3 自動テスト
 
-- [ ] `onlineBattleAuthority` — 昇格判定・1択自動・不変条件
-- [ ] `deriveOnlineUiPhase` — select+昇格必要 → promoteUnit
-- [ ] `roomApi` 結合 — mock Supabase で select→clash→promotion→select 一周期
-- [ ] 回帰: guest flip 後も host と同じ promotion 必要性
+- [x] `onlineBattleAuthority` — 昇格判定・1択自動・不変条件
+- [x] `deriveOnlineUiPhase` — select+昇格必要 → promoteUnit（replay / rematch_wait 優先含む）
+- [x] `roomApi` 結合 — mock Supabase で select→clash→promotion→select 一周期
+- [x] clash 再生・終了経済まわりの単体（`onlineClashReplay` 等）
+- [ ] 回帰: guest flip 後も host と同じ promotion 必要性（手動でも可）
 
 ---
 
@@ -328,6 +343,7 @@ function deriveOnlineUiPhase(input: {
 | `supabase/migrations/012` | stale room cleanup |
 | `supabase/migrations/013` | escrow 廃止 cleanup |
 | `supabase/migrations/014` | `power_balance_applied` |
+| `supabase/migrations/015` | `REPLICA IDENTITY FULL`（Realtime 部分 UPDATE 対策） |
 | `src/onlinePvp/constants.ts` | レベル・px・TTL 定数 |
 | `src/onlinePvp/roomCode.ts` | ルームコード生成 |
 | `src/onlinePvp/unlock.ts` | Lv10 解放 |
@@ -377,23 +393,23 @@ git checkout archive/online-pvp-v0 -- src/onlinePvp/constants.ts
 # … §10.1 のファイルを順に
 ```
 
-migration は **番号順に Supabase へ適用**。既に DB に 005〜009 がある環境では 010〜014 のみ。
+migration は **番号順に Supabase へ適用**。既に DB に 005〜014 がある環境では **015** を追加適用。一括適用は `supabase/apply_migrations_010_014.sql` / `apply_migration_015_replica_identity.sql` も参照。
 
 ---
 
 ## 11. 実装フェーズ
 
-| フェーズ | 内容 | 完了条件 |
-|----------|------|----------|
-| **P0** | 本仕様書 commit | `docs/online-pvp-spec.md` on v2 |
-| **P1** | §10.1 資産移植 + migration 適用 | ルーム作成〜setup まで通る |
-| **P2** | `roomApi` v2 整理（§3・§5） | 単体テスト: clash→promotion→select |
-| **P3** | `useOnlineBattleSession` + `deriveOnlineUiPhase` | §6 導出テスト pass |
-| **P4** | バトル UI 接続（`BattleSetupScreen`） | §8.1 前半 |
-| **P5** | clash 再生（§7 最小） | 2端末 TURN 1〜2 |
-| **P6** | 終了・経済・再戦 | §8 全項目 |
+| フェーズ | 内容 | 状態 |
+|----------|------|------|
+| **P0** | 本仕様書 | ✅ |
+| **P1** | §10.1 資産移植 + migration 適用 | ✅ |
+| **P2** | `roomApi` v2 整理（§3・§5） | ✅ |
+| **P3** | `useOnlineBattleSession` + `deriveOnlineUiPhase` | ✅ |
+| **P4** | バトル UI 接続（`BattleSetupScreen`） | ✅ |
+| **P5** | clash 再生（§7・`playbackEvents`） | ✅ |
+| **P6** | 終了・経済・再戦 UX・UI 名「フレンド対戦（オンライン）」 | ✅ |
 
-**各フェーズ末に commit**（日本語メッセージ）。merge は P6 完了後。
+merge 前に §8.1 手動受け入れを完了する。
 
 ---
 
@@ -420,4 +436,6 @@ migration は **番号順に Supabase へ適用**。既に DB に 005〜009 が�
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 1.2 | 2026-07-13 | P0〜P6 実装済みを反映。UI 名「フレンド対戦（オンライン）」。clash 再生・015・終了 px／再戦 UX。受け入れは merge 前手動確認 |
+| 1.1 | 2026-07-13 | フレンドルーム方針を明記。Lost なし・連続再戦。再戦/退出 UX を受け入れ条件へ |
 | 1.0 | 2026-07-05 | 初版。v0 凍結後の v2 全面再設計。archive 資産整理 |

@@ -3,7 +3,6 @@ import type { DeckLayout } from '../types';
 import { getDeckCards, isDeckBattleReady, normalizeDeckLayout } from '../deckSlots';
 import {
   ONLINE_PVP_MIN_WALLET_PX,
-  ONLINE_PVP_PX_PER_SURVIVOR,
   createOnlineBattleRoom,
   fetchOnlineBattleRoom,
   joinOnlineBattleRoom,
@@ -338,7 +337,7 @@ export function OnlinePvpScreen({
           unlockedDeckCount={unlockedDeckCount}
           lastBattleDeckIndex={lastBattleDeckIndex}
           backLabel="ルームに戻る"
-          title="対人戦（オンライン）"
+          title="フレンド対戦（オンライン）"
           startButtonLabel="デッキ確定"
           waitingStatusMessage={waitingStatusMessage}
           startBattleDisabled={deckConfirmed || busy}
@@ -364,23 +363,20 @@ export function OnlinePvpScreen({
           <button type="button" className="battle-hub-back-btn" onClick={onBack}>
             モード選択に戻る
           </button>
-          <h1 className="offline-pvp-list-title">対人戦（オンライン）</h1>
+          <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
         </header>
-        <div className="online-pvp-lobby-panel">
-          <p className="online-pvp-room-code-label">ルームコード</p>
-          <p className="online-pvp-room-code" aria-live="polite">
-            {room.code}
-          </p>
-          <p className="muted online-pvp-lobby-hint">
-            相手にコードを伝えて参加してもらってください
-          </p>
-          <p className="muted">
-            1勝あたり {ONLINE_PVP_PX_PER_SURVIVOR}×生存枚数 px（最大{' '}
-            {ONLINE_PVP_MIN_WALLET_PX}px）が敗者から勝者へ移動します
-          </p>
-          <p className="online-pvp-lobby-status">
-            {room.guestUserId ? '相手が参加しました' : '相手の参加を待っています…'}
-          </p>
+        <div className="online-pvp-entry-body online-pvp-lobby-body">
+          <div className="online-pvp-lobby-content">
+            <div className="online-pvp-lobby-panel">
+              <p className="online-pvp-room-code-label">ルームコード</p>
+              <p className="online-pvp-room-code" aria-live="polite">
+                {padRoomCode(room.code)}
+              </p>
+            </div>
+            <p className="online-pvp-lobby-wait-hint">
+              相手が入室するまで、この画面でお待ちください。
+            </p>
+          </div>
         </div>
       </section>
     );
@@ -392,58 +388,66 @@ export function OnlinePvpScreen({
         <button type="button" className="battle-hub-back-btn" onClick={onBack}>
           モード選択に戻る
         </button>
-        <h1 className="offline-pvp-list-title">対人戦（オンライン）</h1>
+        <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
       </header>
 
-      {!supabaseConfigured && (
-        <p className="muted records-history-empty-hint">
-          Supabase 未設定のため利用できません
-        </p>
-      )}
+      <div className="online-pvp-entry-body">
+        <div className="online-pvp-entry-panel">
+          {!supabaseConfigured && (
+            <p className="muted online-pvp-entry-notice">
+              Supabase 未設定のため利用できません
+            </p>
+          )}
 
-      <div className="online-pvp-entry-actions">
-        <button
-          type="button"
-          className="battle-hub-mode-btn"
-          disabled={busy || !supabaseConfigured || !canAffordEntry}
-          onClick={() => void handleCreate()}
-        >
-          ルームを作る
-        </button>
-        <div className="online-pvp-join-row">
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={6}
-            className="online-pvp-code-input"
-            placeholder="6桁コード"
-            value={joinCode}
-            onChange={(e) => setJoinCode(normalizeRoomCodeInput(e.target.value))}
-            aria-label="ルームコード"
-          />
+          <p className="muted online-pvp-wallet-hint">
+            最低
+            <HelpInlinePxIcon />
+            {ONLINE_PVP_MIN_WALLET_PX}が必要です
+          </p>
+
           <button
             type="button"
-            className="battle-hub-mode-btn"
+            className="battle-hub-mode-btn online-pvp-action-btn"
             disabled={busy || !supabaseConfigured || !canAffordEntry}
-            onClick={() => void handleJoin()}
+            onClick={() => void handleCreate()}
           >
-            参加
+            ルームを作る
           </button>
+
+          <div className="online-pvp-join-section">
+            <p className="online-pvp-join-hint">
+              コード入力：他のユーザーのルームに入室
+            </p>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              className="online-pvp-code-input"
+              placeholder="6桁コード"
+              value={joinCode}
+              onChange={(e) =>
+                setJoinCode(normalizeRoomCodeInput(e.target.value))
+              }
+              aria-label="ルームコード"
+            />
+            <button
+              type="button"
+              className="battle-hub-mode-btn online-pvp-action-btn"
+              disabled={busy || !supabaseConfigured || !canAffordEntry}
+              onClick={() => void handleJoin()}
+            >
+              入室
+            </button>
+          </div>
+
+          {error && (
+            <p className="online-pvp-error" role="alert">
+              {error}
+            </p>
+          )}
         </div>
       </div>
-
-      <p className="muted online-pvp-wallet-hint">
-        最低
-        <HelpInlinePxIcon />
-        {ONLINE_PVP_MIN_WALLET_PX}が必要です
-      </p>
-
-      {error && (
-        <p className="online-pvp-error" role="alert">
-          {error}
-        </p>
-      )}
     </section>
   );
 }

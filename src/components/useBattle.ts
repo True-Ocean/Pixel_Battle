@@ -37,6 +37,14 @@ import type {
   BoardPosition,
 } from '../types/battle';
 import { CLASH_MS } from './battleClashTypes';
+import type { BattlePlayback } from './battlePlaybackTypes';
+import {
+  createBattlePlayback,
+  initialPlaybackBoardState,
+} from './createBattlePlayback';
+import { useClashPlaybackAdvance } from './useClashPlaybackAdvance';
+
+export type { BattlePlayback } from './battlePlaybackTypes';
 
 export type BattleUiPhase =
   | 'opening'
@@ -61,21 +69,6 @@ export interface TurnStartPlayback {
 export interface StealthStalematePlayback {
   stateAfter: BattleState;
   logLine: string;
-}
-
-export interface BattlePlayback {
-  attacks: ReturnType<typeof resolveTurn>['attacks'];
-  shields: ReturnType<typeof resolveTurn>['shields'];
-  heals: ReturnType<typeof resolveTurn>['heals'];
-  illuminates: ReturnType<typeof resolveTurn>['illuminates'];
-  shieldState: BattleState;
-  stateAfterHeals: BattleState;
-  stateAfterIlluminates: BattleState;
-  pendingNext: BattleState;
-  attackIndex: number;
-  attackSubPhase: 'damage' | 'bp';
-  healSubPhase: 'damage' | 'bp';
-  phase: 'heal' | 'illuminate' | 'shield' | 'attack' | 'done';
 }
 
 export function useBattle(
@@ -247,150 +240,13 @@ export function useBattle(
     return () => window.clearTimeout(t);
   }, [stealthStalematePlayback, uiPhase, finishPlayback]);
 
-  useEffect(() => {
-    if (!playback || uiPhase !== 'clash') return;
-    if (playback.phase === 'heal') {
-      if (playback.healSubPhase === 'damage') {
-        const t = window.setTimeout(
-          () =>
-            setPlayback((p) =>
-              p ? { ...p, healSubPhase: 'bp' } : null,
-            ),
-          CLASH_MS.damage,
-        );
-        return () => window.clearTimeout(t);
-      }
-      const t = window.setTimeout(
-        () => {
-          const firstAttack = playback.attacks[0];
-          const nextPhase =
-            playback.illuminates.length > 0
-              ? 'illuminate'
-              : playback.shields.length > 0
-                ? 'shield'
-                : firstAttack
-                  ? 'attack'
-                  : 'done';
-          if (nextPhase === 'illuminate') {
-            setState(playback.stateAfterHeals);
-          } else if (nextPhase === 'shield' || nextPhase === 'attack') {
-            setState(playback.stateAfterIlluminates);
-            setState(playback.shieldState);
-          } else {
-            setState(playback.stateAfterIlluminates);
-          }
-          setPlayback((p) =>
-            p
-              ? {
-                  ...p,
-                  phase: nextPhase,
-                  attackIndex: 0,
-                  attackSubPhase: 'damage',
-                }
-              : null,
-          );
-        },
-        CLASH_MS.bp,
-      );
-      return () => window.clearTimeout(t);
-    }
-    if (playback.phase === 'illuminate') {
-      const t = window.setTimeout(
-        () => {
-          const firstAttack = playback.attacks[0];
-          const nextPhase =
-            playback.shields.length > 0
-              ? 'shield'
-              : firstAttack
-                ? 'attack'
-                : 'done';
-          setState(playback.stateAfterIlluminates);
-          if (nextPhase === 'shield' || nextPhase === 'attack') {
-            setState(playback.shieldState);
-          }
-          setPlayback((p) =>
-            p
-              ? {
-                  ...p,
-                  phase: nextPhase,
-                  attackIndex: 0,
-                  attackSubPhase: 'damage',
-                }
-              : null,
-          );
-        },
-        CLASH_MS.damage + CLASH_MS.bp,
-      );
-      return () => window.clearTimeout(t);
-    }
-    if (playback.phase === 'shield') {
-      const t = window.setTimeout(
-        () => {
-          const firstAttack = playback.attacks[0];
-          if (firstAttack) {
-            setPlayback((p) =>
-              p
-                ? {
-                    ...p,
-                    phase: 'attack',
-                    attackIndex: 0,
-                    attackSubPhase: 'damage',
-                  }
-                : null,
-            );
-          } else {
-            setPlayback((p) => (p ? { ...p, phase: 'done' } : null));
-          }
-        },
-        CLASH_MS.bp,
-      );
-      return () => window.clearTimeout(t);
-    }
-    if (playback.phase === 'attack') {
-      const attack = playback.attacks[playback.attackIndex];
-      if (!attack) {
-        setPlayback((p) => (p ? { ...p, phase: 'done' } : null));
-        return;
-      }
-      if (playback.attackSubPhase === 'damage') {
-        const t = window.setTimeout(
-          () =>
-            setPlayback((p) =>
-              p ? { ...p, attackSubPhase: 'bp' } : null,
-            ),
-          CLASH_MS.damage,
-        );
-        return () => window.clearTimeout(t);
-      }
-      const t = window.setTimeout(
-        () => {
-          const nextIndex = playback.attackIndex + 1;
-          const nextAttack = playback.attacks[nextIndex];
-          setState(attack.stateAfter);
-          if (nextAttack) {
-            setPlayback((p) =>
-              p
-                ? {
-                    ...p,
-                    attackIndex: nextIndex,
-                    attackSubPhase: 'damage',
-                  }
-                : null,
-            );
-          } else {
-            setPlayback((p) => (p ? { ...p, phase: 'done' } : null));
-          }
-        },
-        CLASH_MS.bp,
-      );
-      return () => window.clearTimeout(t);
-    }
-    const t = window.setTimeout(
-      () => finishPlayback(playback.pendingNext),
-      CLASH_MS.exit,
-    );
-    return () => window.clearTimeout(t);
-  }, [playback, uiPhase, finishPlayback]);
+  useClashPlaybackAdvance(
+    playback,
+    uiPhase,
+    setPlayback,
+    setState,
+    finishPlayback,
+  );
 
   const selectionTurn = getSelectionTurn(state);
   const availableActionsFor = useCallback(
@@ -425,32 +281,9 @@ export function useBattle(
     (playerChoice: BattleActionChoice) => {
       const cpuChoice = pickCpuAction(state);
       const result = resolveTurn(state, { player: playerChoice, cpu: cpuChoice });
-      const firstAttack = result.attacks[0];
-      const hasHeals = result.heals.length > 0;
-      const hasIlluminates = result.illuminates.length > 0;
-      setState(hasHeals || hasIlluminates ? state : result.shieldState);
-      setPlayback({
-        attacks: result.attacks,
-        shields: result.shields,
-        heals: result.heals,
-        illuminates: result.illuminates,
-        shieldState: result.shieldState,
-        stateAfterHeals: result.stateAfterHeals,
-        stateAfterIlluminates: result.stateAfterIlluminates,
-        pendingNext: result.state,
-        attackIndex: 0,
-        attackSubPhase: 'damage',
-        healSubPhase: 'damage',
-        phase: hasHeals
-          ? 'heal'
-          : hasIlluminates
-            ? 'illuminate'
-            : result.shields.length > 0
-              ? 'shield'
-              : firstAttack
-                ? 'attack'
-                : 'done',
-      });
+      const playbackNext = createBattlePlayback(result);
+      setState(initialPlaybackBoardState(state, playbackNext));
+      setPlayback(playbackNext);
       setUiPhase('clash');
     },
     [state],

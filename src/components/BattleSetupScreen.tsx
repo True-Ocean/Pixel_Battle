@@ -37,9 +37,12 @@ import type { OnlineBattleRoom, OnlineBattleRole } from '../onlinePvp';
 import {
   buildOnlinePxBalanceSnapshot,
   calcOnlinePvpBattleTransfer,
+  clampOnlinePvpWalletTransfer,
   cardsToFormation,
   computeOnlineSetupSecondsRemaining,
   countFieldSurvivors,
+  formationToSlots,
+  myBalance,
   onlineRematchButtonLabel,
   onlineRematchHint,
   opponentWalletPx,
@@ -156,6 +159,7 @@ interface BattleSetupScreenProps {
     onSubmitSetup: (formation: ReturnType<typeof cardsToFormation>) => void;
     onRematchReady: () => void;
     onLeaveRoom: () => void;
+    onRoomSync: (room: OnlineBattleRoom) => void;
   };
 }
 
@@ -1702,6 +1706,7 @@ function BattleSession({
     canRematch: boolean;
     onRematchReady: () => void;
     onLeaveRoom: () => void;
+    onRoomSync: (room: OnlineBattleRoom) => void;
   };
 }) {
   const offlineBattle = useBattle(
@@ -1715,6 +1720,7 @@ function BattleSession({
     playerCards,
     cpuCards,
     onFinish,
+    onRoomSync: onlinePvpContext?.onRoomSync,
   });
   const battle = onlinePvpContext ? onlineBattle : offlineBattle;
   const ended = battle.effectivePhase === 'ended' && battle.result != null;
@@ -1753,12 +1759,18 @@ function BattleSession({
     }
   }, [ended]);
 
+  // 相手退出時は再戦希望中でも終了モーダルを再表示
   useEffect(() => {
-    if (myRematchReady) {
-      setShowEndModal(false);
+    if (!onlinePvpContext || !ended) return;
+    const opponentLeft =
+      onlinePvpContext.room.status === 'closed' &&
+      onlinePvpContext.room.closedByRole != null &&
+      onlinePvpContext.room.closedByRole !== onlinePvpContext.role;
+    if (opponentLeft) {
+      setShowEndModal(true);
       setLeaveConfirmOpen(false);
     }
-  }, [myRematchReady]);
+  }, [ended, onlinePvpContext]);
 
   const resolvedEndActions =
     onlinePvpContext != null
@@ -1783,15 +1795,23 @@ function BattleSession({
     const winnerUnits = playerWon
       ? battle.state.player
       : battle.state.cpu;
-    const transfer =
+    const desired =
       onlinePvpContext.room.lastTransferPx ??
       calcOnlinePvpBattleTransfer(countFieldSurvivors(winnerUnits));
-    if (transfer <= 0) return null;
-    return buildOnlinePxBalanceSnapshot(
-      onlinePvpContext.walletPx,
-      playerWon,
-      transfer,
-    );
+    if (desired <= 0) return null;
+    const { room, role, walletPx } = onlinePvpContext;
+    if (room.status === 'rematch_wait' && room.lastTransferPx != null) {
+      return buildOnlinePxBalanceSnapshot(
+        myBalance(room, role),
+        playerWon,
+        room.lastTransferPx,
+      );
+    }
+    const applied = playerWon
+      ? desired
+      : clampOnlinePvpWalletTransfer(desired, walletPx);
+    const walletAfter = playerWon ? walletPx + applied : walletPx - applied;
+    return buildOnlinePxBalanceSnapshot(walletAfter, playerWon, applied);
   }, [
     battle.result,
     battle.state.cpu,
@@ -1902,7 +1922,7 @@ function BattleSession({
     ended &&
     onlinePvpContext &&
     endModalDismissedForLog &&
-    !myRematchReady &&
+    !showEndModal &&
     battle.state.events.length > 0 &&
     onOpenBattleLog
       ? {
@@ -1933,28 +1953,35 @@ function BattleSession({
               ? '相手の前衛補充を待っています…'
               : undefined
         }
-        onlineRematchHintText={onlineRematchHintText}
+        onlineRematchHintText={
+          showEndModal ? undefined : onlineRematchHintText
+        }
         onlinePostBattleActions={onlinePostBattleActions}
-        onlineRematchWaiting={onlineRematchWaiting}
+        onlineRematchWaiting={onlineRematchWaiting && !showEndModal}
         forceEndedGuideLayout={onlinePvpContext != null && ended}
       />
       {onlinePvpContext && battle.result != null ? (
         <>
           <OnlinePvpBattleEndModal
-            open={showEndModal && !myRematchReady}
+            open={showEndModal}
             won={battle.result === 'player'}
             rematchDisabled={rematchBlocked}
             rematchButtonLabel={onlineRematchButtonLabelText}
-            showRematchButton={!opponentLeftRoom}
+            showRematchButton={!opponentLeftRoom && !myRematchReady}
+            statusHint={onlineRematchHintText}
             pxOutcome={onlinePxOutcome}
             canRematch={onlinePvpContext.canRematch}
+            leaveButtonLabel={opponentLeftRoom ? 'OK' : 'ルームから退出'}
             onRematch={() => {
-              setShowEndModal(false);
               onlinePvpContext.onRematchReady();
             }}
             onLeave={() => {
-              setShowEndModal(false);
-              setEndModalDismissedForLog(true);
+              if (opponentLeftRoom) {
+                setShowEndModal(false);
+                setEndModalDismissedForLog(true);
+                onlinePvpContext.onLeaveRoom();
+                return;
+              }
               setLeaveConfirmOpen(true);
             }}
           />
@@ -2065,11 +2092,40 @@ export function BattleSetupScreen({
   });
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
+  const syncedBattleFormationRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!isOnlinePvp || !onlinePvp) return;
     if (onlinePvp.room.status === 'battle') {
       setPhase('battle');
+      // バトル開始時のみサーバー配置でカード一覧を揃える（以降の realtime では触らない）
+      if (syncedBattleFormationRef.current !== onlinePvp.room.id) {
+        const myFormation =
+          onlinePvp.role === 'host'
+            ? onlinePvp.room.hostFormation
+            : onlinePvp.room.guestFormation;
+        const oppFormation =
+          onlinePvp.role === 'host'
+            ? onlinePvp.room.guestFormation
+            : onlinePvp.room.hostFormation;
+        const myDeck =
+          onlinePvp.role === 'host'
+            ? onlinePvp.room.hostDeck
+            : onlinePvp.room.guestDeck;
+        const oppDeck =
+          onlinePvp.role === 'host'
+            ? onlinePvp.room.guestDeck
+            : onlinePvp.room.hostDeck;
+        if (myFormation && myDeck) {
+          setPlayerSlots(formationToSlots(myFormation, myDeck));
+        }
+        if (oppFormation && oppDeck) {
+          setCpuSlots(formationToSlots(oppFormation, oppDeck));
+        }
+        syncedBattleFormationRef.current = onlinePvp.room.id;
+      }
     } else if (onlinePvp.room.status === 'setup') {
+      syncedBattleFormationRef.current = null;
       setPhase('setup');
       const myReady =
         onlinePvp.role === 'host'
@@ -2413,6 +2469,7 @@ export function BattleSetupScreen({
                       canRematch: onlinePvp.canRematch,
                       onRematchReady: onlinePvp.onRematchReady,
                       onLeaveRoom: onlinePvp.onLeaveRoom,
+                      onRoomSync: onlinePvp.onRoomSync,
                     }
                   : undefined
               }

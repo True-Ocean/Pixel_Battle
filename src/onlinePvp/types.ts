@@ -1,5 +1,7 @@
 import type { Card } from '../types';
 import type { BattleActionChoice, BattleState, BoardPosition } from '../types/battle';
+import type { PoisonDoTPlayback } from '../game/turnResult';
+import type { OnlineClashPlaybackEvents } from './onlineClashPlayback';
 
 export type OnlineBattleRoomStatus =
   | 'waiting'
@@ -18,14 +20,21 @@ export type OnlineBattlePhase =
   | 'promotion'
   | 'turn_start';
 
-/** clash 確定時のアニメ replay 用（host 視点の選択） */
+/** clash 確定時のアニメ replay 用（host 視点・§7.2 playbackEvents） */
 export interface OnlineLastClash {
   turn: number;
   hostChoice: BattleActionChoice;
   guestChoice: BattleActionChoice;
   preClashRevision: number;
+  /** サーバー resolveTurn 結果のイベント列（再シミュレーション禁止） */
+  playbackEvents: OnlineClashPlaybackEvents;
+  /** turn_start 連鎖で付与された毒 DoT（なければ空/省略） */
+  poisonDots?: PoisonDoTPlayback[];
+  /** 毒 DoT 適用前（overlay 開始盤面） */
+  stateBeforePoison?: BattleState;
+  /** 毒 DoT 適用後 */
+  stateAfterPoison?: BattleState;
 }
-
 export interface OnlineBattleRoomRow {
   id: string;
   code: string;

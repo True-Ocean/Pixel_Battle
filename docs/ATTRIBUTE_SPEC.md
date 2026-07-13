@@ -2,10 +2,10 @@
 
 | 項目 | 内容 |
 |------|------|
-| ドキュメント版 | 2.5 |
-| 最終更新 | 2026-07-04 |
+| ドキュメント版 | 2.6 |
+| 最終更新 | 2026-07-13 |
 | 対象 | ウェブプロトタイプ → 将来 Unity / API |
-| 関連 | [プロトタイプ開発指示書](./PROTOTYPE_DEVELOPMENT_SPEC.md) / [効果音仕様](./SFX_SPEC.md) / [経済仕様書](./ECONOMY_SPEC.md) |
+| 関連 | [プロトタイプ開発指示書](./PROTOTYPE_DEVELOPMENT_SPEC.md) / [効果音仕様](./SFX_SPEC.md) / [経済仕様書](./ECONOMY_SPEC.md) / [フレンド対戦（オンライン）](./online-pvp-spec.md) |
 | 実装 | `src/config/attributes.ts`（表示マスタ）、`src/config/battleGuideCommon.ts`（詳細説明内の用語ガイド）、`src/card/rollAttribute.ts`（作成・リタッチ抽選）、`src/card/attributeChange.ts`（属性変更・BP 再算出）、`src/game/`（戦闘エンジン） |
 
 ---
@@ -537,7 +537,7 @@
 | 3 | 前衛でも全属性「近接 OR 特殊」に **統一** するか（§1.3 将来方針） |
 | 4 | AI 属性決定への移行時期（現行は §3.2 のランダム抽選） |
 | 5 | 属性リタッチ/セレクト時の **限界突破かけら** 変更をモーダルで明示するか |
-| 6 | オフライン対人の敗北時墓地選択 — **v1 は CPU と同じランダム**（[OFFLINE_PVP_SPEC §9.4](./OFFLINE_PVP_SPEC.md#94-敗北時墓地選択g4-v1-確定) / [ECONOMY §13.2.6](./ECONOMY_SPEC.md#1326-未確定事項実装仮決め)）。オンライン・フレンドは勝者選択＝敗者 Lost（§13.3） |
+| 6 | オフライン対人の敗北時墓地選択 — **v1 は CPU と同じランダム**（[OFFLINE_PVP_SPEC §9.4](./OFFLINE_PVP_SPEC.md#94-敗北時墓地選択g4-v1-確定) / [ECONOMY §13.2.6](./ECONOMY_SPEC.md#1326-未確定事項実装仮決め)）。**フレンド対戦（オンライン）現行は Lost なし**（[online-pvp-spec](./online-pvp-spec.md)）。勝者選択＝敗者 Lost は将来の真剣勝負（[ECONOMY §13.3](./ECONOMY_SPEC.md#133-オンライン対人戦)） |
 | 7 | 将来属性（§11）の **解放 Lv・内部 ID・tie-break 優先度・BP レシオ** の確定 — **照（Lv46）は §4.11 で確定済み** |
 | 8 | 将来属性（§11）の **段階投入**（11 属性一括 vs 3 束×2〜3 属性） |
 
@@ -829,6 +829,7 @@ Lv51 以降（[§3.1](#31-一覧)、[PROTOTYPE §5.9](./PROTOTYPE_DEVELOPMENT_SP
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.6 | 2026-07-13 | §10 TBD #6 — フレンド対戦現行は Lost なし。真剣勝負 Lost は将来 |
 | 2.5 | 2026-07-04 | §10 TBD #6 — G4 v1 仮決め（ランダム）を OFFLINE_PVP_SPEC へ参照 |
 | 2.4 | 2026-07-04 | §10 TBD #6 — オフライン対人の敗北選択（G4）とオンライン・フレンドの相互ロストを ECONOMY §13 に合わせて更新 |
 | 2.3 | 2026-07-04 | §3.3 リネーム — プレミアム無料をクロス参照（ECONOMY §8.2） |

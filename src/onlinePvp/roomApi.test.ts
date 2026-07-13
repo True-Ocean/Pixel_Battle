@@ -214,6 +214,14 @@ describe('roomApi battle phase chaining', () => {
     expect(resolved.data.guestPendingAction).toBeNull();
     expect(resolved.data.battleRevision).toBe(3);
     expect(resolved.data.battleState!.turn).toBe(1);
+    expect(resolved.data.lastClash).not.toBeNull();
+    expect(resolved.data.lastClash?.playbackEvents).toBeDefined();
+    expect(resolved.data.lastClash?.playbackEvents.preClashState.turn).toBe(0);
+    expect(resolved.data.lastClash?.playbackEvents.pendingNext.turn).toBe(1);
+    // turn_start 連鎖後も last_clash を残し、毒 DoT 情報を付与する
+    expect(Array.isArray(resolved.data.lastClash?.poisonDots)).toBe(true);
+    expect(resolved.data.lastClash?.stateBeforePoison).toBeDefined();
+    expect(resolved.data.lastClash?.stateAfterPoison).toBeDefined();
   });
 
   it('submitOnlinePromotion は昇格完了後 turn_start から select まで連鎖する', async () => {

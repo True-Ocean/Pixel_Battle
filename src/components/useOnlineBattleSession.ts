@@ -27,6 +27,8 @@ export interface BuildOnlineBattleSessionViewInput {
   promotionDraft: PromotionDraft;
   replayOverlay: OnlineReplayOverlay | null;
   actionPickSubPhase?: ActionPickSubPhase;
+  /** 送信直後〜Realtime 反映前の楽観的ロック */
+  choiceSubmitPending?: boolean;
 }
 
 export interface OnlineBattleSessionView {
@@ -51,6 +53,7 @@ export function buildOnlineBattleSessionView(
 ): OnlineBattleSessionView {
   const { room, role, promotionDraft, replayOverlay } = input;
   const actionPickSubPhase = input.actionPickSubPhase ?? 'main';
+  const choiceSubmitPending = input.choiceSubmitPending ?? false;
 
   if (!room?.battleState) {
     return {
@@ -63,7 +66,8 @@ export function buildOnlineBattleSessionView(
   }
 
   const localState = toLocalBattleState(room.battleState, role);
-  const waitingForOpponent = computeOnlineWaitingForOpponent(room, role);
+  const waitingForOpponent =
+    choiceSubmitPending || computeOnlineWaitingForOpponent(room, role);
   const promotion = derivePromotionUi(
     localState,
     room.battlePhase,
@@ -90,6 +94,7 @@ export function buildOnlineBattleSessionView(
 export interface UseOnlineBattleSessionOptions {
   room: OnlineBattleRoom | null;
   role: OnlineBattleRole;
+  onRoomSync?: (room: OnlineBattleRoom) => void;
 }
 
 export interface UseOnlineBattleSessionResult extends OnlineBattleSessionView {
@@ -113,6 +118,7 @@ export interface UseOnlineBattleSessionResult extends OnlineBattleSessionView {
 export function useOnlineBattleSession({
   room,
   role,
+  onRoomSync,
 }: UseOnlineBattleSessionOptions): UseOnlineBattleSessionResult {
   const [promotionDraft, setPromotionDraft] = useState<PromotionDraft>({
     from: null,
@@ -121,6 +127,18 @@ export function useOnlineBattleSession({
     useState<ActionPickSubPhase>('main');
   const [replayOverlay, setReplayOverlay] =
     useState<OnlineReplayOverlay | null>(null);
+  /** 送信時点の battleRevision。同 revision かつ未反映のあいだだけ楽観ロック */
+  const [optimisticSubmitRev, setOptimisticSubmitRev] = useState<number | null>(
+    null,
+  );
+
+  const choiceSubmitPending =
+    optimisticSubmitRev != null &&
+    room != null &&
+    room.battleRevision === optimisticSubmitRev &&
+    room.battlePhase === 'select' &&
+    (role === 'host' ? room.hostPendingAction : room.guestPendingAction) ==
+      null;
 
   const view = useMemo(
     () =>
@@ -130,14 +148,23 @@ export function useOnlineBattleSession({
         promotionDraft,
         replayOverlay,
         actionPickSubPhase,
+        choiceSubmitPending,
       }),
-    [room, role, promotionDraft, replayOverlay, actionPickSubPhase],
+    [
+      room,
+      role,
+      promotionDraft,
+      replayOverlay,
+      actionPickSubPhase,
+      choiceSubmitPending,
+    ],
   );
 
   useEffect(() => {
     if (!view.localState) return;
     if (getPendingPromotionFronts(view.localState.player).length === 0) {
-      setPromotionDraft({ from: null });
+      // 既に from=null なら同一参照を返し、無限 setState ループを防ぐ
+      setPromotionDraft((prev) => (prev.from == null ? prev : { from: null }));
     }
   }, [room?.battleRevision, view.localState]);
 
@@ -150,7 +177,7 @@ export function useOnlineBattleSession({
       view.uiPhase !== 'pickShield' &&
       view.uiPhase !== 'pickHeal'
     ) {
-      setActionPickSubPhase('main');
+      setActionPickSubPhase((prev) => (prev === 'main' ? prev : 'main'));
     }
   }, [view.uiPhase]);
 
@@ -172,9 +199,17 @@ export function useOnlineBattleSession({
         });
       }
       setActionPickSubPhase('main');
-      return submitOnlineBattleChoice(room.id, role, choice);
+      setOptimisticSubmitRev(room.battleRevision);
+      return submitOnlineBattleChoice(room.id, role, choice).then((result) => {
+        if (result.ok) {
+          onRoomSync?.(result.data);
+        } else {
+          setOptimisticSubmitRev(null);
+        }
+        return result;
+      });
     },
-    [room, role],
+    [onRoomSync, room, role],
   );
 
   const submitPromotion = useCallback(
@@ -189,11 +224,12 @@ export function useOnlineBattleSession({
       return submitOnlinePromotion(room.id, role, from, to).then((result) => {
         if (result.ok) {
           setPromotionDraft({ from: null });
+          onRoomSync?.(result.data);
         }
         return result;
       });
     },
-    [room, role],
+    [onRoomSync, room, role],
   );
 
   return {

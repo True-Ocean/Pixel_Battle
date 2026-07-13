@@ -2,7 +2,7 @@ import type { Card } from '../types';
 import type { BattleActionChoice, BattleState, BoardPosition } from '../types/battle';
 import { ensureAnonymousUserId } from '../auth/anonymous';
 import { resolveTurn, promoteUnit } from '../game/resolveTurn';
-import { resolveNinjaStealthStalemate } from '../game';
+import { getBattleResult, resolveNinjaStealthStalemate } from '../game';
 import { buildOnlineTurnRandomSeed, createSeededRandom } from '../game/seededRandom';
 import { pickPassAction } from '../game/actionChoices';
 import { getSupabaseClient } from '../supabase/client';
@@ -13,6 +13,7 @@ import {
 } from './constants';
 import {
   calcOnlinePvpBattleTransfer,
+  clampOnlinePvpWalletTransfer,
   countFieldSurvivors,
 } from './stakes';
 import { generateRoomCode, normalizeRoomCodeInput, isValidRoomCode, padRoomCode } from './roomCode';
@@ -29,6 +30,7 @@ import {
   onlinePromotionNeeded,
   targetOnlineBattlePhaseForState,
 } from './onlineBattleAuthority';
+import { buildOnlineClashPlaybackEvents } from './onlineClashPlayback';
 import type {
   OnlineBattleFormation,
   OnlineBattleRole,
@@ -75,7 +77,9 @@ export async function fetchOnlineBattleRoom(
   if (error || !data) {
     return { ok: false, code: 'room_not_found', message: 'ルームが見つかりません' };
   }
-  return { ok: true, data: mapOnlineBattleRoom(data as OnlineBattleRoomRow) };
+  const row = data as OnlineBattleRoomRow;
+  cacheOnlineRoomRow(id, row);
+  return { ok: true, data: mapOnlineBattleRoom(row) };
 }
 
 async function fetchRoomById(id: string): Promise<OnlineRoomResult<OnlineBattleRoom>> {
@@ -368,7 +372,9 @@ export async function updateOnlineBattleRoom(
   if (error || !data) {
     return { ok: false, code: 'network_error', message: error?.message ?? '更新失敗' };
   }
-  return { ok: true, data: mapOnlineBattleRoom(data as OnlineBattleRoomRow) };
+  const row = data as OnlineBattleRoomRow;
+  cacheOnlineRoomRow(roomId, row);
+  return { ok: true, data: mapOnlineBattleRoom(row) };
 }
 
 export async function submitOnlineDeck(
@@ -543,14 +549,28 @@ async function advanceTurnStartInternal(
     );
   }
   const turnStart = startNextTurn(promotedState);
-  assertOnlineBattlePhaseInvariant('select', turnStart.stateAfterDot);
+  let afterDot = autoCompleteForcedPromotions(turnStart.stateAfterDot);
+  // 毒 DoT で撃破→前衛空きが発生しうる。assert で落とさず promotion へ。
+  const nextPhase = onlinePromotionNeeded(afterDot) ? 'promotion' : 'select';
+  if (nextPhase === 'select') {
+    assertOnlineBattlePhaseInvariant('select', afterDot);
+  }
+  const enrichedLastClash: OnlineLastClash | null = room.lastClash
+    ? {
+        ...room.lastClash,
+        poisonDots: turnStart.poisonDots,
+        stateBeforePoison: turnStart.stateBeforeDot,
+        stateAfterPoison: afterDot,
+      }
+    : null;
   const preRevision = room.battleRevision;
   const { data, error } = await supabase
     .from('online_battle_rooms')
     .update({
-      battle_state: turnStart.stateAfterDot,
-      battle_phase: 'select',
-      last_clash: null,
+      battle_state: afterDot,
+      battle_phase: nextPhase,
+      // last_clash はクライアント再生用に残す（次 clash で上書き）
+      last_clash: enrichedLastClash,
       battle_revision: preRevision + 1,
       updated_at: new Date().toISOString(),
     })
@@ -567,12 +587,21 @@ async function advanceTurnStartInternal(
     return fetchRoomAfterConditionalMiss(room.id);
   }
 
-  return { ok: true, data: mapOnlineBattleRoom(data as OnlineBattleRoomRow) };
+  const row = data as OnlineBattleRoomRow;
+  cacheOnlineRoomRow(room.id, row);
+  const mapped = mapOnlineBattleRoom(row);
+  if (mapped.battleState && getBattleResult(mapped.battleState) != null) {
+    return finalizeOnlineBattleIfEnded(mapped);
+  }
+  return { ok: true, data: mapped };
 }
 
 async function chainTurnStartToSelect(
   room: OnlineBattleRoom,
 ): Promise<OnlineRoomResult<OnlineBattleRoom>> {
+  if (room.battleState && getBattleResult(room.battleState) != null) {
+    return finalizeOnlineBattleIfEnded(room);
+  }
   if (room.battlePhase === 'turn_start') {
     return advanceTurnStartInternal(room);
   }
@@ -608,9 +637,10 @@ async function resolveOnlineClash(
   const guestChoice = room.guestPendingAction;
   const preClashRevision = room.battleRevision;
   const clashTurn = room.battleState.turn;
+  const preClashState = room.battleState;
 
   const result = resolveTurn(
-    room.battleState,
+    preClashState,
     { player: hostChoice, cpu: guestChoice },
     {
       random: createSeededRandom(
@@ -631,6 +661,7 @@ async function resolveOnlineClash(
     hostChoice,
     guestChoice,
     preClashRevision,
+    playbackEvents: buildOnlineClashPlaybackEvents(preClashState, result),
   };
 
   const { data, error } = await supabase
@@ -663,7 +694,12 @@ async function resolveOnlineClash(
     return { ok: true, data: room };
   }
 
-  const resultRoom = mapOnlineBattleRoom(data as OnlineBattleRoomRow);
+  const row = data as OnlineBattleRoomRow;
+  cacheOnlineRoomRow(room.id, row);
+  const resultRoom = mapOnlineBattleRoom(row);
+  if (resultRoom.battleState && getBattleResult(resultRoom.battleState) != null) {
+    return finalizeOnlineBattleIfEnded(resultRoom);
+  }
   return chainTurnStartToSelect(resultRoom);
 }
 
@@ -806,22 +842,19 @@ export async function applyOnlineBattleForfeit(
 export async function finalizeOnlineBattleIfEnded(
   room: OnlineBattleRoom,
 ): Promise<OnlineRoomResult<OnlineBattleRoom>> {
+  if (room.status === 'rematch_wait') {
+    return { ok: true, data: room };
+  }
   if (room.status !== 'battle' || !room.battleState) {
     return { ok: true, data: room };
   }
-  const state = room.battleState;
-  const hostAlive = state.player.some(
-    (u) => u.currentBp > 0 && u.position !== 'defeated',
-  );
-  const cpuAlive = state.cpu.some(
-    (u) => u.currentBp > 0 && u.position !== 'defeated',
-  );
-  if (hostAlive && cpuAlive) {
+  const result = getBattleResult(room.battleState);
+  if (result == null) {
     return { ok: true, data: room };
   }
-  const winnerRole: 'host' | 'guest' =
-    hostAlive && !cpuAlive ? 'host' : 'guest';
-  const winnerUnits = winnerRole === 'host' ? state.player : state.cpu;
+  const winnerRole: 'host' | 'guest' = result === 'player' ? 'host' : 'guest';
+  const winnerUnits =
+    winnerRole === 'host' ? room.battleState.player : room.battleState.cpu;
   const survivors = countFieldSurvivors(winnerUnits);
   const desired = calcOnlinePvpBattleTransfer(survivors);
   return finalizeOnlineBattle(room.id, room, winnerRole, desired, false);
@@ -830,24 +863,64 @@ export async function finalizeOnlineBattleIfEnded(
 async function finalizeOnlineBattle(
   roomId: string,
   room: OnlineBattleRoom,
-  _winnerRole: 'host' | 'guest',
+  winnerRole: 'host' | 'guest',
   desiredTransfer: number,
   forfeit: boolean,
 ): Promise<OnlineRoomResult<OnlineBattleRoom>> {
-  const transfer = forfeit
+  if (room.status === 'rematch_wait') {
+    return { ok: true, data: room };
+  }
+
+  const desired = forfeit
     ? calcOnlinePvpBattleTransfer(1)
     : desiredTransfer;
+  const loserBalance =
+    winnerRole === 'host' ? (room.guestBalance ?? 0) : room.hostBalance;
+  const transfer = clampOnlinePvpWalletTransfer(desired, loserBalance);
+  const hostBalance =
+    winnerRole === 'host'
+      ? room.hostBalance + transfer
+      : room.hostBalance - transfer;
+  const guestBalance =
+    winnerRole === 'guest'
+      ? (room.guestBalance ?? 0) + transfer
+      : (room.guestBalance ?? 0) - transfer;
 
-  return updateOnlineBattleRoom(roomId, {
-    status: 'rematch_wait',
-    last_transfer_px: transfer,
-    host_rematch_ready: false,
-    guest_rematch_ready: false,
-    host_pending_action: null,
-    guest_pending_action: null,
-    disconnect_user_id: null,
-    disconnect_deadline: null,
-  });
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { ok: false, code: 'not_configured', message: 'Supabase 未設定' };
+  }
+
+  // 両クライアントが同時に終了検知しても、status=battle のときだけ1回確定する
+  const { data, error } = await supabase
+    .from('online_battle_rooms')
+    .update({
+      status: 'rematch_wait',
+      last_transfer_px: transfer,
+      host_balance: Math.max(0, hostBalance),
+      guest_balance: Math.max(0, guestBalance),
+      host_rematch_ready: false,
+      guest_rematch_ready: false,
+      host_pending_action: null,
+      guest_pending_action: null,
+      disconnect_user_id: null,
+      disconnect_deadline: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', roomId)
+    .eq('status', 'battle')
+    .select('*')
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, code: 'network_error', message: error.message };
+  }
+  if (!data) {
+    return fetchRoomById(roomId);
+  }
+  const row = data as OnlineBattleRoomRow;
+  cacheOnlineRoomRow(roomId, row);
+  return { ok: true, data: mapOnlineBattleRoom(row) };
 }
 
 export async function submitOnlineRematchReady(
@@ -925,9 +998,29 @@ type OnlineRoomListener = (room: OnlineBattleRoom) => void;
 interface OnlineRoomSubscription {
   listeners: Set<OnlineRoomListener>;
   teardown: () => void;
+  /** Realtime 部分 UPDATE をマージするための直近完全行 */
+  lastRow: OnlineBattleRoomRow | null;
 }
 
 const onlineRoomSubscriptions = new Map<string, OnlineRoomSubscription>();
+
+/** REST / Realtime で得た完全行をキャッシュ（subscribe 前でも no-op） */
+function cacheOnlineRoomRow(roomId: string, row: OnlineBattleRoomRow): void {
+  const sub = onlineRoomSubscriptions.get(roomId);
+  if (sub) {
+    sub.lastRow = row;
+  }
+}
+
+function mergeOnlineBattleRoomRow(
+  current: OnlineBattleRoomRow | null,
+  partial: Partial<OnlineBattleRoomRow>,
+): OnlineBattleRoomRow {
+  if (!current) {
+    return partial as OnlineBattleRoomRow;
+  }
+  return { ...current, ...partial };
+}
 
 function notifyOnlineRoomListeners(roomId: string, room: OnlineBattleRoom): void {
   const sub = onlineRoomSubscriptions.get(roomId);
@@ -958,18 +1051,23 @@ export function subscribeOnlineBattleRoom(
           filter: `id=eq.${roomId}`,
         },
         (payload) => {
-          if (payload.new) {
-            notifyOnlineRoomListeners(
-              roomId,
-              mapOnlineBattleRoom(payload.new as OnlineBattleRoomRow),
-            );
-          }
+          if (!payload.new) return;
+          const current = onlineRoomSubscriptions.get(roomId);
+          if (!current) return;
+          // default REPLICA IDENTITY では変更列のみ届く。直近行へマージしてから map する。
+          const merged = mergeOnlineBattleRoomRow(
+            current.lastRow,
+            payload.new as Partial<OnlineBattleRoomRow>,
+          );
+          current.lastRow = merged;
+          notifyOnlineRoomListeners(roomId, mapOnlineBattleRoom(merged));
         },
       )
       .subscribe();
 
     sub = {
       listeners,
+      lastRow: null,
       teardown: () => {
         void supabase.removeChannel(channel);
         onlineRoomSubscriptions.delete(roomId);

@@ -72,6 +72,8 @@ export function computeOnlineWaitingForOpponent(
 /**
  * オンライン PvP の UI フェーズを room 正本から 1 関数で導出する（§6.2 優先順位）。
  * battle 外は null（ルーム UI に委譲）。
+ * ただし rematch_wait / closed でも、再生オーバーレイ中は clash を優先し、
+ * 盤面がある終了後は ended を返す（最終 clash 完走 → WIN/LOSE のため）。
  */
 export function deriveOnlineUiPhase(
   input: DeriveOnlineUiPhaseInput,
@@ -85,12 +87,25 @@ export function deriveOnlineUiPhase(
   } = input;
   const actionPickSubPhase = input.actionPickSubPhase ?? 'main';
 
-  if (room.status !== 'battle' || room.battleState == null) {
-    return null;
-  }
-
+  // status に関わらず再生中は最優先（finalize で rematch_wait になっても clash を止めない）
   if (replayOverlay != null) {
     return replayOverlay.kind === 'clash' ? 'clashReplay' : 'turnStartPoison';
+  }
+
+  if (room.status === 'rematch_wait' && room.battleState != null) {
+    return 'ended';
+  }
+
+  if (
+    room.status === 'closed' &&
+    room.battleState != null &&
+    getBattleResult(localState) != null
+  ) {
+    return 'ended';
+  }
+
+  if (room.status !== 'battle' || room.battleState == null) {
+    return null;
   }
 
   if (getPendingPromotionFronts(localState.player).length > 0) {

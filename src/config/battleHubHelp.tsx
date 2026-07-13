@@ -8,13 +8,14 @@ import type { HelpTopic } from './helpContent';
 import { getVisibleHelpSections } from './helpContent';
 import { HelpInlineJewelCost, HelpInlinePxIcon } from '../components/HelpInlineEconomy';
 import { OFFLINE_PVP_MIN_USER_LEVEL } from '../offlinePvp/unlock';
+import { ONLINE_PVP_MIN_USER_LEVEL } from '../onlinePvp/constants';
 
 export function getBattleHubHelp(userLevel: number): HelpTopic {
   const sections: HelpTopic['sections'][number][] = [
     {
       title: 'バトルの流れ',
       items: [
-        'CPU戦または対人戦（オフライン）を選びます。',
+        'CPU戦または対人戦（オフライン）・フレンド対戦（オンライン）を選びます。',
         `カード ${DECK_MAX} 枚が揃い、すべてロスト中でないデッキが必要です。`,
         '相手が決まったら相手デッキを確認し、準備画面へ進みます。',
         '準備画面では、5 枚が前衛 2・後衛 3 にランダム配置された状態で始まります。タップで入れ替えできます。',
@@ -26,7 +27,8 @@ export function getBattleHubHelp(userLevel: number): HelpTopic {
       items: [
         'CPU戦：CPU とマッチングして対戦します。',
         `対人戦（オフライン）：ユーザーレベル ${OFFLINE_PVP_MIN_USER_LEVEL} 到達後、公開デッキ一覧から相手を選びます。相手の絵・属性はそのまま、BP だけあなたのデッキ戦力に合わせて調整されます。`,
-        'どちらのモードも、勝敗の報酬・ロストのルールは同じです。',
+        `フレンド対戦（オンライン）：ユーザーレベル ${ONLINE_PVP_MIN_USER_LEVEL} 到達後、ルームコードで友だちとリアルタイム対戦できます（Lost なし・px 移動のみ）。`,
+        'CPU戦と対人戦（オフライン）は、勝敗の報酬・ロストのルールは同じです。',
       ],
     },
     {

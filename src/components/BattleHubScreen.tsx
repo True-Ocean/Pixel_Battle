@@ -122,7 +122,7 @@ export function BattleHubScreen({
             disabled={!onlinePvpUnlocked || !supabaseConfigured}
             aria-disabled={!onlinePvpUnlocked || !supabaseConfigured}
           >
-            <span className="battle-hub-mode-btn-label">フレンド対戦</span>
+            <span className="battle-hub-mode-btn-label">フレンド対戦（オンライン）</span>
             {!onlinePvpUnlocked && (
               <span className="battle-hub-mode-btn-soon">
                 （Lv{ONLINE_PVP_MIN_USER_LEVEL}で解放）

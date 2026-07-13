@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { shouldReturnToOnlineDeckSelect } from './roomFlow';
+import {
+  shouldApplyOnlineRoomUpdate,
+  shouldReturnToOnlineDeckSelect,
+} from './roomFlow';
 import type { OnlineBattleRoom } from './types';
 
 function room(partial: Partial<OnlineBattleRoom>): OnlineBattleRoom {
@@ -76,5 +79,68 @@ describe('shouldReturnToOnlineDeckSelect', () => {
     expect(shouldReturnToOnlineDeckSelect(room({ status: 'setup' }))).toBe(
       false,
     );
+  });
+});
+
+describe('shouldApplyOnlineRoomUpdate', () => {
+  it('battle 中は古い battle_revision を拒否する', () => {
+    const current = room({
+      status: 'battle',
+      battleRevision: 5,
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+    const stale = room({
+      status: 'battle',
+      battleRevision: 3,
+      updatedAt: '2026-01-03T00:00:00.000Z',
+    });
+    expect(shouldApplyOnlineRoomUpdate(current, stale)).toBe(false);
+  });
+
+  it('同 revision の新しい updatedAt は許可する', () => {
+    const current = room({
+      status: 'battle',
+      battleRevision: 2,
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+    const next = room({
+      status: 'battle',
+      battleRevision: 2,
+      updatedAt: '2026-01-02T00:00:01.000Z',
+      hostPendingAction: {
+        type: 'pass',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+    });
+    expect(shouldApplyOnlineRoomUpdate(current, next)).toBe(true);
+  });
+
+  it('battle_state が消えた更新は拒否する', () => {
+    const current = room({
+      status: 'battle',
+      battleRevision: 2,
+      updatedAt: '2026-01-02T00:00:00.000Z',
+      battleState: {
+        player: [],
+        cpu: [],
+        turn: 1,
+        log: [],
+        events: [],
+      },
+    });
+    const wiped = room({
+      status: 'battle',
+      battleRevision: 2,
+      updatedAt: '2026-01-02T00:00:02.000Z',
+      battleState: null,
+    });
+    expect(shouldApplyOnlineRoomUpdate(current, wiped)).toBe(false);
+  });
+
+  it('status 変化は適用する', () => {
+    const current = room({ status: 'battle', battleRevision: 5 });
+    const next = room({ status: 'rematch_wait', battleRevision: 5 });
+    expect(shouldApplyOnlineRoomUpdate(current, next)).toBe(true);
   });
 });

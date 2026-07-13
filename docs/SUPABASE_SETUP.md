@@ -1,6 +1,6 @@
-# Supabase セットアップ（オフライン対人・公開デッキ）
+# Supabase セットアップ（公開デッキ・クラウドセーブ・フレンド対戦）
 
-フェーズ G（他ユーザーの公開デッキ共有）用の手順です。
+オフライン対人の公開デッキ共有、アカウント連携（`player_saves`）、および **フレンド対戦（オンライン）** のルーム表用の手順です。
 
 ## 1. プロジェクト作成
 
@@ -98,6 +98,17 @@ https://true-ocean.github.io/Pixel_Battle/
 
 `player_saves` が空でも `auth.users` にメールだけある状態は起こりうる（認証だけ先にできた場合）。そのときはログイン後に端末進行をアップロードする。
 
+## 3.2 フレンド対戦（オンライン）用テーブル
+
+`online_battle_rooms` および関連 RPC・RLS は migration **005〜015** です。詳細は [online-pvp-spec.md](./online-pvp-spec.md)。
+
+1. SQL Editor で `supabase/migrations/005_online_battle_rooms.sql` から **番号順**に実行（既に適用済みの番号はスキップ）
+2. 一括適用の補助: `supabase/apply_migrations_010_014.sql`（010〜014）／`supabase/apply_migration_015_replica_identity.sql`（015）
+3. **015 は必須**（`REPLICA IDENTITY FULL`）。未適用だと Realtime の部分 UPDATE で盤面が消えることがある
+4. スキーマ確認: `supabase/verify_online_pvp_schema.sql`
+
+Realtime で `online_battle_rooms` を購読する場合は、ダッシュボードの **Database → Replication**（または Publication）で当該テーブルが有効か確認する。
+
 ### アカウント削除（Edge Function）
 
 設定の **アカウントを削除** は次を消します。
@@ -185,3 +196,4 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...（anon public）
 | メールまたはパスワードが正しくありません | 登録時と違うパスワード、または未登録メールでログインしていないか |
 | **permission denied for table player_saves** | `003_player_saves.sql` 未実行、または GRANT 不足。SQL Editor で `004_player_saves_grant.sql`（または 003 全体）を実行 |
 | アカウント削除が失敗／未設定メッセージ | `delete-account` Edge Function をデプロイ済みか。Network タブで `/functions/v1/delete-account` の応答を確認 |
+| フレンド対戦で盤面が途中で消える／同期が壊れる | migration **015**（`REPLICA IDENTITY FULL`）適用済みか。`verify_online_pvp_schema.sql` で確認 |

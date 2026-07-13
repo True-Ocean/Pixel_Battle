@@ -1,5 +1,6 @@
 export {
   shouldReturnToOnlineDeckSelect,
+  shouldApplyOnlineRoomUpdate,
   isPostOnlineDeckSelectStatus,
 } from './roomFlow';
 export {
@@ -81,6 +82,7 @@ export {
   submitOnlinePromotion,
   applyOnlineNinjaStalemateBreak,
   applyOnlineBattleForfeit,
+  finalizeOnlineBattleIfEnded,
   subscribeOnlineBattleRoom,
   fetchOnlineBattleRoom,
   tryAdvanceToSetup,
@@ -102,3 +104,11 @@ export {
   type DerivedPromotionUi,
   type PromotionUiMode,
 } from './derivePromotionUi';
+export {
+  buildOnlineClashPlaybackEvents,
+  toLocalClashPlaybackEvents,
+  playbackEventsToResolveResult,
+  onlineClashReplayKey,
+  shouldStartOnlineClashReplay,
+  type OnlineClashPlaybackEvents,
+} from './onlineClashPlayback';

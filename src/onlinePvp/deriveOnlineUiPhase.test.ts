@@ -137,6 +137,64 @@ describe('deriveOnlineUiPhase', () => {
     ).toBe('clashReplay');
   });
 
+  it('rematch_wait でも replay overlay があれば clashReplay（最終 clash 完走用）', () => {
+    const cards = Array.from({ length: 5 }, (_, i) =>
+      stubCard(`C${i}`, 'attack', 50 + i),
+    );
+    let state = createBattleState(cards, cards);
+    state = {
+      ...state,
+      cpu: state.cpu.map((u) => ({
+        ...u,
+        position: 'defeated' as const,
+        currentBp: 0,
+      })),
+    };
+    const room = battleRoom(state, {
+      status: 'rematch_wait',
+      last_transfer_px: 60,
+    });
+
+    expect(
+      deriveOnlineUiPhase({
+        room,
+        localState: state,
+        promotionDraft: { from: null },
+        replayOverlay: { kind: 'clash' },
+        waitingForOpponent: false,
+      }),
+    ).toBe('clashReplay');
+  });
+
+  it('rematch_wait かつ overlay なし → ended', () => {
+    const cards = Array.from({ length: 5 }, (_, i) =>
+      stubCard(`C${i}`, 'attack', 50 + i),
+    );
+    let state = createBattleState(cards, cards);
+    state = {
+      ...state,
+      cpu: state.cpu.map((u) => ({
+        ...u,
+        position: 'defeated' as const,
+        currentBp: 0,
+      })),
+    };
+    const room = battleRoom(state, {
+      status: 'rematch_wait',
+      last_transfer_px: 60,
+    });
+
+    expect(
+      deriveOnlineUiPhase({
+        room,
+        localState: state,
+        promotionDraft: { from: null },
+        replayOverlay: null,
+        waitingForOpponent: false,
+      }),
+    ).toBe('ended');
+  });
+
   it('自分の昇格完了・相手未完了 → waitOpponentPromotion', () => {
     const cards = Array.from({ length: 5 }, (_, i) =>
       stubCard(`C${i}`, 'attack', 50 + i),
