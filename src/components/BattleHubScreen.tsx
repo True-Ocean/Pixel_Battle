@@ -134,6 +134,15 @@ export function BattleHubScreen({
               <span className="battle-hub-mode-btn-soon">（要 Supabase）</span>
             )}
           </button>
+          <button
+            type="button"
+            className="battle-hub-mode-btn"
+            disabled
+            aria-disabled
+          >
+            <span className="battle-hub-mode-btn-label">真剣勝負！（オンライン）</span>
+            <span className="battle-hub-mode-btn-soon">（開発中）</span>
+          </button>
         </div>
         </div>
       </div>
