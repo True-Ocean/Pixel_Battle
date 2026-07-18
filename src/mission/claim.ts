@@ -7,6 +7,13 @@ import { addFreePixels, addJewels } from '../user/economy';
 import { addInventoryCount } from '../user/inventory';
 import type { UserEconomy, UserInventory } from '../types';
 import {
+  getCompletionBonusDefinition,
+  isCompletionBonusCategory,
+  isCompletionBonusClaimable,
+  markCompletionBonusClaimed,
+  type CompletionBonusCategory,
+} from './completionBonus';
+import {
   isMissionClaimable,
 } from './progress';
 import type {
@@ -213,6 +220,58 @@ function claimMissionList(
   };
 }
 
+/** デイリー・ウィークリー全達成ボーナスを個別に受け取る */
+export function claimCompletionBonus(
+  state: MissionState,
+  economy: UserEconomy,
+  inventory: UserInventory,
+  category: CompletionBonusCategory,
+  date: Date = new Date(),
+  userLevel: number = 1,
+): MissionBulkClaimResult | null {
+  if (!isCompletionBonusClaimable(state, category, userLevel)) return null;
+
+  const bonus = getCompletionBonusDefinition(category);
+  const granted = applyReward(economy, inventory, bonus.reward);
+  return {
+    state: markCompletionBonusClaimed(state, category, date),
+    economy: granted.economy,
+    inventory: granted.inventory,
+    pxGranted: granted.pxGranted,
+    jewelsGranted: granted.jewelsGranted,
+    universalShardsGranted: granted.universalShardsGranted,
+    missionIds: [bonus.id],
+  };
+}
+
+function claimCompletionBonusIfAvailable(
+  result: MissionBulkClaimResult,
+  category: CompletionBonusCategory,
+  date: Date,
+  userLevel: number,
+): MissionBulkClaimResult {
+  const bonus = claimCompletionBonus(
+    result.state,
+    result.economy,
+    result.inventory,
+    category,
+    date,
+    userLevel,
+  );
+  if (!bonus) return result;
+
+  return {
+    state: bonus.state,
+    economy: bonus.economy,
+    inventory: bonus.inventory,
+    pxGranted: result.pxGranted + bonus.pxGranted,
+    jewelsGranted: result.jewelsGranted + bonus.jewelsGranted,
+    universalShardsGranted:
+      result.universalShardsGranted + bonus.universalShardsGranted,
+    missionIds: [...result.missionIds, ...bonus.missionIds],
+  };
+}
+
 export function claimAllMissions(
   state: MissionState,
   economy: UserEconomy,
@@ -221,7 +280,10 @@ export function claimAllMissions(
   userLevel: number = 1,
 ): MissionBulkClaimResult {
   const claimable = listClaimableMissions(state, userLevel);
-  return claimMissionList(state, economy, inventory, claimable, date);
+  let result = claimMissionList(state, economy, inventory, claimable, date);
+  result = claimCompletionBonusIfAvailable(result, 'daily', date, userLevel);
+  result = claimCompletionBonusIfAvailable(result, 'weekly', date, userLevel);
+  return result;
 }
 
 export function claimMissionsInCategory(
@@ -233,7 +295,10 @@ export function claimMissionsInCategory(
   userLevel: number = 1,
 ): MissionBulkClaimResult {
   const claimable = listClaimableMissionsInCategory(state, category, userLevel);
-  return claimMissionList(state, economy, inventory, claimable, date);
+  const result = claimMissionList(state, economy, inventory, claimable, date);
+  return isCompletionBonusCategory(category)
+    ? claimCompletionBonusIfAvailable(result, category, date, userLevel)
+    : result;
 }
 
 /** 達成済みだが未受取があるか */
@@ -241,5 +306,9 @@ export function hasUnclaimedRewards(
   state: MissionState,
   userLevel: number = 1,
 ): boolean {
-  return listClaimableMissions(state, userLevel).length > 0;
+  return (
+    listClaimableMissions(state, userLevel).length > 0 ||
+    isCompletionBonusClaimable(state, 'daily', userLevel) ||
+    isCompletionBonusClaimable(state, 'weekly', userLevel)
+  );
 }

@@ -6,10 +6,13 @@ import { createInitialMissionState } from '../user/missionState';
 import {
   applyMissionEvents,
   claimAllMissions,
+  claimCompletionBonus,
   claimMission,
   claimMissionsInCategory,
+  countUnclaimedMissions,
   getBeginnerMissions,
   getMissionById,
+  isCompletionBonusClaimable,
   reportMissionEvent,
 } from '../mission';
 import type { MissionEventType } from '../mission';
@@ -149,7 +152,7 @@ describe('mission progress and claim', () => {
     expect(state.entries.daily_history_rematch_win?.progress).toBe(1);
   });
 
-  it('grants jewel from daily cpu 5-win mission', () => {
+  it('grants two jewels only from daily cpu 5-win mission', () => {
     let state = createInitialMissionState(monday);
     state = reportMissionEvent(state, 'cpu_battle_win', 5, monday).state;
     const economy = createInitialEconomy();
@@ -162,17 +165,17 @@ describe('mission progress and claim', () => {
       'daily_cpu_battle_win_5',
       monday,
     )!;
-    expect(claimed.pxGranted).toBe(15);
-    expect(claimed.jewelsGranted).toBe(1);
-    expect(claimed.economy.jewels).toBe(1);
+    expect(claimed.pxGranted).toBe(0);
+    expect(claimed.jewelsGranted).toBe(2);
+    expect(claimed.economy.jewels).toBe(2);
   });
 
-  it('advances tiered weekly cpu win missions together', () => {
+  it('advances relaxed tiered weekly cpu win missions together', () => {
     let state = createInitialMissionState(monday);
-    state = reportMissionEvent(state, 'cpu_battle_win', 10, monday).state;
+    state = reportMissionEvent(state, 'cpu_battle_win', 5, monday).state;
 
-    expect(state.entries.weekly_cpu_battle_win_10?.progress).toBe(10);
-    expect(state.entries.weekly_cpu_battle_win_20?.progress).toBe(10);
+    expect(state.entries.weekly_cpu_battle_win_10?.progress).toBe(5);
+    expect(state.entries.weekly_cpu_battle_win_20?.progress).toBe(5);
     expect(isMissionClaimable(state, getMissionById('weekly_cpu_battle_win_10')!)).toBe(
       true,
     );
@@ -193,7 +196,7 @@ describe('mission progress and claim', () => {
     expect(state.entries.daily_cpu_battle_win_3?.progress).toBe(3);
   });
 
-  it('grants jewel from daily offline pvp 3-win mission at level 10', () => {
+  it('grants two jewels only from daily offline pvp 3-win mission at level 10', () => {
     let state = createInitialMissionState(monday);
     state = reportMissionEvent(state, 'offline_pvp_battle_win', 3, monday, 10).state;
     const economy = createInitialEconomy();
@@ -207,9 +210,9 @@ describe('mission progress and claim', () => {
       monday,
       10,
     )!;
-    expect(claimed.pxGranted).toBe(10);
-    expect(claimed.jewelsGranted).toBe(1);
-    expect(claimed.economy.jewels).toBe(1);
+    expect(claimed.pxGranted).toBe(0);
+    expect(claimed.jewelsGranted).toBe(2);
+    expect(claimed.economy.jewels).toBe(2);
   });
 
   it('does not progress daily cpu 5-win mission at level 10', () => {
@@ -226,12 +229,12 @@ describe('mission progress and claim', () => {
     expect(state.entries.weekly_offline_pvp_battle_win_10).toBeUndefined();
   });
 
-  it('advances tiered weekly offline pvp win missions together at level 10', () => {
+  it('advances relaxed tiered weekly offline pvp win missions together at level 10', () => {
     let state = createInitialMissionState(monday);
-    state = reportMissionEvent(state, 'offline_pvp_battle_win', 10, monday, 10).state;
+    state = reportMissionEvent(state, 'offline_pvp_battle_win', 5, monday, 10).state;
 
-    expect(state.entries.weekly_offline_pvp_battle_win_10?.progress).toBe(10);
-    expect(state.entries.weekly_offline_pvp_battle_win_20?.progress).toBe(10);
+    expect(state.entries.weekly_offline_pvp_battle_win_10?.progress).toBe(5);
+    expect(state.entries.weekly_offline_pvp_battle_win_20?.progress).toBe(5);
     expect(
       isMissionClaimable(state, getMissionById('weekly_offline_pvp_battle_win_10')!),
     ).toBe(true);
@@ -317,6 +320,129 @@ describe('mission progress and claim', () => {
     expect(bulk.missionIds.sort()).toEqual(['daily_card_edit', 'daily_login'].sort());
     expect(bulk.pxGranted).toBe(10);
     expect(isMissionClaimable(bulk.state, getMissionById('beginner_create_card')!)).toBe(false);
+  });
+
+  it('grants the daily completion bonus once and resets it the next day', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'app_open', 1, monday).state;
+    state = reportMissionEvent(state, 'cpu_battle_win', 5, monday).state;
+    state = reportMissionEvent(state, 'card_edit_saved', 1, monday).state;
+    state = reportMissionEvent(state, 'history_rematch_win', 1, monday).state;
+
+    expect(isCompletionBonusClaimable(state, 'daily')).toBe(true);
+    expect(countUnclaimedMissions(state)).toBe(9);
+
+    const claimed = claimMissionsInCategory(
+      state,
+      createInitialEconomy(),
+      createInitialInventory(),
+      'daily',
+      monday,
+    );
+    expect(claimed.missionIds).toContain('daily_completion_bonus');
+    expect(claimed.jewelsGranted).toBe(4);
+    expect(claimed.state.dailyCompletionBonusClaimedAt).toBeTruthy();
+    expect(isCompletionBonusClaimable(claimed.state, 'daily')).toBe(false);
+
+    const again = claimMissionsInCategory(
+      claimed.state,
+      claimed.economy,
+      claimed.inventory,
+      'daily',
+      monday,
+    );
+    expect(again.missionIds).toEqual([]);
+    expect(again.jewelsGranted).toBe(0);
+
+    const reset = applyMissionResets(claimed.state, tuesday);
+    expect(reset.dailyCompletionBonusClaimedAt).toBeUndefined();
+  });
+
+  it('claims only the completion bonus from its individual receive button', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'app_open', 1, monday).state;
+    state = reportMissionEvent(state, 'cpu_battle_win', 5, monday).state;
+    state = reportMissionEvent(state, 'card_edit_saved', 1, monday).state;
+    state = reportMissionEvent(state, 'history_rematch_win', 1, monday).state;
+
+    const claimed = claimCompletionBonus(
+      state,
+      createInitialEconomy(),
+      createInitialInventory(),
+      'daily',
+      monday,
+    )!;
+    expect(claimed.missionIds).toEqual(['daily_completion_bonus']);
+    expect(claimed.jewelsGranted).toBe(2);
+    expect(claimed.economy.jewels).toBe(2);
+    expect(claimed.state.entries.daily_login?.claimedAt).toBeUndefined();
+
+    expect(
+      claimCompletionBonus(
+        claimed.state,
+        claimed.economy,
+        claimed.inventory,
+        'daily',
+        monday,
+      ),
+    ).toBeNull();
+  });
+
+  it('grants the weekly completion bonus with the reduced jewel rewards', () => {
+    let state = createInitialMissionState(monday);
+    for (let day = 0; day < 5; day += 1) {
+      state = reportMissionEvent(
+        state,
+        'app_open',
+        1,
+        new Date(monday.getTime() + day * 24 * 60 * 60 * 1000),
+      ).state;
+    }
+    state = reportMissionEvent(state, 'cpu_battle_win', 10, monday).state;
+    state = reportMissionEvent(state, 'attribute_retouch', 1, monday).state;
+    state = reportMissionEvent(state, 'limit_break', 1, monday).state;
+
+    expect(isCompletionBonusClaimable(state, 'weekly')).toBe(true);
+
+    const claimed = claimMissionsInCategory(
+      state,
+      createInitialEconomy(),
+      createInitialInventory(),
+      'weekly',
+      monday,
+    );
+    expect(claimed.missionIds).toContain('weekly_completion_bonus');
+    expect(claimed.jewelsGranted).toBe(8);
+    expect(claimed.state.weeklyCompletionBonusClaimedAt).toBeTruthy();
+
+    const reset = applyMissionResets(claimed.state, nextMonday);
+    expect(reset.weeklyCompletionBonusClaimedAt).toBeUndefined();
+  });
+
+  it('uses three jewels for both jewel-paying weekly missions', () => {
+    let state = createInitialMissionState(monday);
+    state = reportMissionEvent(state, 'offline_pvp_battle_win', 10, monday, 10).state;
+    state = reportMissionEvent(state, 'limit_break', 1, monday, 10).state;
+
+    const pvp = claimMission(
+      state,
+      createInitialEconomy(),
+      createInitialInventory(),
+      'weekly_offline_pvp_battle_win_20',
+      monday,
+      10,
+    )!;
+    expect(pvp.jewelsGranted).toBe(3);
+
+    const limitBreak = claimMission(
+      pvp.state,
+      pvp.economy,
+      pvp.inventory,
+      'weekly_limit_break',
+      monday,
+      10,
+    )!;
+    expect(limitBreak.jewelsGranted).toBe(3);
   });
 
   it('tracks all beginner missions in parallel', () => {

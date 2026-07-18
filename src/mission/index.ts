@@ -8,6 +8,7 @@ export {
 export type { MissionId } from '../config/missions';
 export {
   claimAllMissions,
+  claimCompletionBonus,
   claimMission,
   claimMissionsInCategory,
   hasUnclaimedRewards,
@@ -24,6 +25,14 @@ export {
   reportMissionEvent,
   shouldShowBeginnerMissions,
 } from './progress';
+export {
+  getCompletionBonusClaimedAt,
+  getCompletionBonusDefinition,
+  getCompletionBonusProgress,
+  isCompletionBonusCategory,
+  isCompletionBonusClaimable,
+} from './completionBonus';
+export type { CompletionBonusCategory } from './completionBonus';
 export { applyMissionResets, getMissionWeekKey, hasMissionPeriodExpired } from './reset';
 export {
   canShowMissionChallenge,

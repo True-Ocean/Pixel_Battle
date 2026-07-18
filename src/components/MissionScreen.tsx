@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { MissionCategory, MissionState } from '../mission/types';
+import type {
+  CompletionBonusCategory,
+  MissionCategory,
+  MissionState,
+} from '../mission';
 import {
   countUnclaimedMissions,
+  isCompletionBonusClaimable,
   listClaimableMissionsInCategory,
   shouldShowBeginnerMissions,
 } from '../mission';
@@ -24,6 +29,7 @@ interface MissionScreenProps {
   userLevel: number;
   missionState: MissionState;
   onClaimMission: (missionId: string) => void;
+  onClaimCompletionBonus: (category: CompletionBonusCategory) => void;
   onClaimCategoryMissions: (category: MissionCategory) => MissionClaimSummary | null;
   onChallengeMission: (missionId: string) => void;
 }
@@ -36,6 +42,7 @@ export function MissionScreen({
   userLevel,
   missionState,
   onClaimMission,
+  onClaimCompletionBonus,
   onClaimCategoryMissions,
   onChallengeMission,
 }: MissionScreenProps) {
@@ -56,8 +63,12 @@ export function MissionScreen({
     () => ({
       beginner: listClaimableMissionsInCategory(missionState, 'beginner', userLevel)
         .length,
-      daily: listClaimableMissionsInCategory(missionState, 'daily', userLevel).length,
-      weekly: listClaimableMissionsInCategory(missionState, 'weekly', userLevel).length,
+      daily:
+        listClaimableMissionsInCategory(missionState, 'daily', userLevel).length +
+        Number(isCompletionBonusClaimable(missionState, 'daily', userLevel)),
+      weekly:
+        listClaimableMissionsInCategory(missionState, 'weekly', userLevel).length +
+        Number(isCompletionBonusClaimable(missionState, 'weekly', userLevel)),
       permanent: listClaimableMissionsInCategory(missionState, 'permanent', userLevel)
         .length,
     }),
@@ -155,6 +166,7 @@ export function MissionScreen({
               missionState={missionState}
               userLevel={userLevel}
               onClaim={onClaimMission}
+              onClaimCompletionBonus={onClaimCompletionBonus}
               onBulkClaim={handleBulkClaim}
               onChallenge={onChallengeMission}
             />

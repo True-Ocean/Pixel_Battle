@@ -68,6 +68,16 @@ export function normalizeMissionState(
     typeof candidate.appOpenDayKey === 'string' && candidate.appOpenDayKey.length > 0
       ? candidate.appOpenDayKey
       : undefined;
+  const dailyCompletionBonusClaimedAt =
+    typeof candidate.dailyCompletionBonusClaimedAt === 'string' &&
+    candidate.dailyCompletionBonusClaimedAt.length > 0
+      ? candidate.dailyCompletionBonusClaimedAt
+      : undefined;
+  const weeklyCompletionBonusClaimedAt =
+    typeof candidate.weeklyCompletionBonusClaimedAt === 'string' &&
+    candidate.weeklyCompletionBonusClaimedAt.length > 0
+      ? candidate.weeklyCompletionBonusClaimedAt
+      : undefined;
 
   const permanentTierCaps: MissionState['permanentTierCaps'] = {};
   if (
@@ -89,6 +99,12 @@ export function normalizeMissionState(
     dailyDayKey: storedDailyKey,
     weeklyWeekKey: storedWeeklyKey,
     beginnerCompleted: candidate.beginnerCompleted === true,
+    ...(dailyCompletionBonusClaimedAt
+      ? { dailyCompletionBonusClaimedAt }
+      : {}),
+    ...(weeklyCompletionBonusClaimedAt
+      ? { weeklyCompletionBonusClaimedAt }
+      : {}),
     ...(appOpenDayKey ? { appOpenDayKey } : {}),
     ...(Object.keys(permanentTierCaps).length > 0
       ? { permanentTierCaps }

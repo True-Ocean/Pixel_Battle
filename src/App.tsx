@@ -31,6 +31,7 @@ import { getBattlesDayKey, getMockAdsWatchedTotal, recordMockAdWatched } from '.
 import { applyMissionResets, hasMissionPeriodExpired } from './mission/reset';
 import {
   applyMissionEvents,
+  claimCompletionBonus,
   claimMission,
   claimMissionsInCategory,
   countUnclaimedMissions,
@@ -38,7 +39,11 @@ import {
   getMissionById,
   getMissionChallengeTarget,
 } from './mission';
-import type { MissionCategory, MissionEventType } from './mission';
+import type {
+  CompletionBonusCategory,
+  MissionCategory,
+  MissionEventType,
+} from './mission';
 import {
   mergeMissionEventResults,
   reportPermanentDeckWinAchievements,
@@ -3543,11 +3548,39 @@ function App() {
         userLevel,
       );
       if (!result) return;
+      missionStateRef.current = result.state;
       setMissionState(result.state);
       setEconomy(result.economy);
       setInventory(result.inventory);
       economyRef.current = result.economy;
       inventoryRef.current = result.inventory;
+      persistSave({
+        missionState: result.state,
+        economy: result.economy,
+        inventory: result.inventory,
+      });
+    },
+    [persistSave],
+  );
+
+  const handleClaimCompletionBonus = useCallback(
+    (category: CompletionBonusCategory) => {
+      const userLevel = userRef.current?.level ?? 1;
+      const result = claimCompletionBonus(
+        missionStateRef.current,
+        economyRef.current,
+        inventoryRef.current,
+        category,
+        new Date(),
+        userLevel,
+      );
+      if (!result) return;
+      missionStateRef.current = result.state;
+      economyRef.current = result.economy;
+      inventoryRef.current = result.inventory;
+      setMissionState(result.state);
+      setEconomy(result.economy);
+      setInventory(result.inventory);
       persistSave({
         missionState: result.state,
         economy: result.economy,
@@ -3569,6 +3602,7 @@ function App() {
         userLevel,
       );
       if (result.missionIds.length === 0) return null;
+      missionStateRef.current = result.state;
       setMissionState(result.state);
       setEconomy(result.economy);
       setInventory(result.inventory);
@@ -3808,6 +3842,7 @@ function App() {
             userLevel={user?.level ?? 1}
             missionState={missionState}
             onClaimMission={handleClaimMission}
+            onClaimCompletionBonus={handleClaimCompletionBonus}
             onClaimCategoryMissions={handleClaimCategoryMissions}
             onChallengeMission={handleChallengeMission}
           />

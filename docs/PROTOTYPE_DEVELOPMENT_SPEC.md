@@ -2,8 +2,8 @@
 
 | 項目 | 内容 |
 |------|------|
-| ドキュメント版 | 2.37 |
-| 最終更新 | 2026-07-13 |
+| ドキュメント版 | 2.38 |
+| 最終更新 | 2026-07-18 |
 | 関連 | [属性・戦闘効果仕様](./ATTRIBUTE_SPEC.md) / [効果音仕様](./SFX_SPEC.md) / [経済仕様](./ECONOMY_SPEC.md) / [経済ロードマップ](./ECONOMY_ROADMAP.md) / [オフライン対人実装仕様](./OFFLINE_PVP_SPEC.md) / [フレンド対戦（オンライン）実装仕様](./online-pvp-spec.md) |
 | 対象 | ウェブプロトタイプ（React + Vite + TypeScript） |
 | 本番想定 | Unity（クライアント）＋ API / DB（将来） |
@@ -351,8 +351,8 @@ src/
 
 | カテゴリ | リセット | 備考 |
 |----------|----------|------|
-| デイリー | **JST 0:00** 日次 | 未受取の達成進捗も消える（翌日再挑戦） |
-| ウィークリー | **月曜 JST 0:00** 週次 | 同上 |
+| デイリー | **JST 0:00** 日次 | 未受取の達成進捗も消える（翌日再挑戦）。**全達成ボーナス**受取状態もリセット |
+| ウィークリー | **月曜 JST 0:00** 週次 | 同上（**全達成ボーナス**受取状態もリセット） |
 | 常設 | なし | 累計進捗。tier cap 到達ミッション **受取** で次 +100 段を自動追加（[§4.8.5](#485-常設ミッション)） |
 | ビギナー | なし | 全件 **受取済み** でタブ非表示 + `beginnerCompleted` |
 
@@ -388,8 +388,9 @@ src/
 | 操作 | 挙動 |
 |------|------|
 | 個別 **受取** | px / 💎 を即付与。**モーダルなし** |
-| **一括受取** | カテゴリタブ内・リスト直上。**サマリーモーダル**あり |
+| **一括受取** | カテゴリタブ内・リスト直上。**サマリーモーダル**あり。デイリー/ウィークリーは受取可能な**全達成ボーナス**も合算 |
 | **挑戦** | 未達成ミッションのみ。関連画面へ遷移 |
+| **全達成ボーナス** | デイリー/ウィークリーのみ。通常ミッションと同じカード形式（`MissionCompletionBonusCard`）でリスト先頭に表示。対象カテゴリの**表示中ミッションを全達成**すると受取可能。達成前は**挑戦ボタン非表示**、受取可能で**受取**、受取後は**受取済**（`daily_completion_bonus` 💎2 / `weekly_completion_bonus` 💎5）。個別受取はボーナスのみ付与 |
 | 受取済み | デイリー/ウィークリー: **受取済**（グレー・リスト下部）。常設: **一覧から非表示** |
 | 達成トースト | 画面上部中央・4秒。「ミッション達成！報酬を受け取ろう」 |
 | 未受取バッジ | Dock ミッション / 画面内サブタブ |
@@ -464,11 +465,13 @@ src/
 | テスト | 同一入力で 2 回 sync しても `state` 参照が変わらないこと（`permanentAchievementProgress.test.ts`） |
 | 呼び出し側 | `App.tsx` の `syncAndPersistOwnershipAchievements` は `result.state !== prev` のときのみ `setMissionState` / 永続化 |
 
-#### 4.8.6 報酬概要（2026-06 時点・`missions.ts`）
+#### 4.8.6 報酬概要（2026-07 時点・`missions.ts`）
 
-**デイリー**（6件・日計 **45 px + 💎1**）: ログイン 5 / CPU 1勝 5 / 3勝 10 / 5勝 15+💎1 / 編集 5 / 履歴再戦勝利 5
+**デイリー**（Lv により6〜7件）: ログイン 5px / CPU 1勝 5px / 3勝 10px / **5勝 💎2**（Lv10未満）/ 対人 1勝 5px・**3勝 💎2**（Lv10以上）/ 編集 5px / 履歴再戦勝利 5px。**全達成ボーナス 💎2**（`daily_completion_bonus`）
 
-**ウィークリー**（7件・週計 **65 px + 💎10**）: ログイン5日 10 / CPU 10・20・30勝 10+20+💎5 / 履歴再戦2勝 10 / リタッチ 15 / 限界突破 💎5
+**ウィークリー**（7件）: ログイン5日 10px / CPU **5勝 10px・10勝 20px** / 対人 **5勝 10px・10勝 💎3** / リタッチ 15px / 限界突破 💎3。**全達成ボーナス 💎5**（`weekly_completion_bonus`）
+
+> CPU 戦・対人戦の勝利数は 10/20 → **5/10** に緩和。ジュエル報酬は 💎のみ（px 併用は廃止）に統一し、デイリー CPU5勝・対人3勝は **💎2**、ウィークリーの💎報酬は各 **💎3** に調整。全達成ボーナスの対象は**その時点で表示中（レベル制限適用後）のミッション**で、`completedAt` が揃った時点で受取可能。
 
 **経済連動**（[ECONOMY §10](./ECONOMY_SPEC.md#10-レベル報酬)）: レベルアップ **100 px + 💎10**、バトル勝利 px **×0.5**（`BATTLE_VICTORY_PX_MULTIPLIER`）
 
@@ -483,8 +486,9 @@ src/
 | 属性・レア度判定 | `src/mission/attributeCollection.ts` |
 | 達成型同期 | `src/mission/permanentAchievementProgress.ts`（所持系は idempotent。§4.8.5.3） |
 | エンジン | `src/mission/{progress,claim,reset,navigation,display,toast}.ts` |
-| 永続化 | `src/user/missionState.ts`（`permanentTierCaps` 含む） |
-| UI | `MissionScreen`, `MissionCard`, `MissionListPanel`, … |
+| 全達成ボーナス | `src/mission/completionBonus.ts`（定義・受取可能判定・受取フラグ） |
+| 永続化 | `src/user/missionState.ts`（`permanentTierCaps` / `daily・weeklyCompletionBonusClaimedAt` 含む） |
+| UI | `MissionScreen`, `MissionCard`, `MissionCompletionBonusCard`, `MissionListPanel`, … |
 
 ### 4.9 ヘルプ・初回案内
 
@@ -1600,6 +1604,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | 76 | アカウント削除 | 設定から **アカウントを削除**（二段階＋パスワード）。Edge Function `delete-account`。ログアウト・連携解除は UI から削除 |
 | 77 | 公開デッキ auth | メール連携前後の `owner_id` 変更で重複しないよう、連携前削除・`remoteId` 検証・再公開（`src/offlinePvp/`） |
 | 78 | フレンド対戦オンライン | ルームコード・サーバー正本・clash 再生・px 移動のみ（Lost なし）・連続再戦。UI 名「フレンド対戦（オンライン）」。真剣勝負 Lost は将来（[online-pvp-spec](./online-pvp-spec.md)） |
+| 79 | ミッション報酬調整・全達成ボーナス | ウィークリー勝利数 10/20→**5/10** 緩和・💎報酬を各**💎3**に統一。デイリー CPU5勝/対人3勝を**💎2**（px併用廃止）。デイリー/ウィークリー**全達成ボーナス**（💎2/💎5）を通常ミッション形式カードで追加（§4.8） |
 
 ---
 
@@ -1607,6 +1612,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| 2.38 | 2026-07-18 | §4.8 — ウィークリー勝利数を 10/20→5/10 に緩和・💎報酬を各💎3に統一。デイリー CPU5勝/対人3勝を💎2（px併用廃止）。デイリー/ウィークリー全達成ボーナス（💎2/💎5）を追加。決定履歴 #79 |
 | 2.37 | 2026-07-13 | §1 / §4.7 / §14.3 — フレンド対戦（オンライン）実装済み。決定履歴 #78。関連に online-pvp-spec |
 | 2.36 | 2026-07-05 | §1.3 / §4.11 — アカウント削除実装、同期 UI 分割、公開デッキ auth 整合、設定 UI 整理。決定履歴 #75〜77 |
 | 2.35 | 2026-07-04 | §4.4 / §5.6 / §13 — 追加色を💎一本化・右列Lv50/下段は上段解放後に同期。削除済み定数を定数表から除去。決定履歴 #74 |

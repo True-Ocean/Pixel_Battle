@@ -190,7 +190,7 @@
 | デッキ3〜 💎 解放 | ✅ `unlockDeckWithJewels()`・`canUnlockDeckSlotWithJewels`・`DeckUnlockModal`（フェーズ3） |
 | 💎 不足→ショップ誘導 | **不採用**（deep link は実装しない） |
 | **サブスク特典（§11.5 / §12.2）** | ✅ ライト CM 解除・プレ常時2倍・**リネーム無料**・カードノート・**デッキ名変更**（ライト/プレ。`canRenameDeck`） |
-| **ミッション** | ✅ デイリー6/ウィークリー7/常設 16 カウンター+属性・R/SR トラック/ビギナー12 STEP（[PROTOTYPE §4.8](./PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション)） |
+| **ミッション** | ✅ デイリー6〜7/ウィークリー7（+**全達成ボーナス** 💎2/💎5）/常設 16 カウンター+属性・R/SR トラック/ビギナー12 STEP（[PROTOTYPE §4.8](./PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション)） |
 | **BGM** | ✅ `bgmPlayer` / `soundEnabled` / 設定画面トグル（[PROTOTYPE §4.10](./PROTOTYPE_DEVELOPMENT_SPEC.md#410-サウンドbgm)） |
 | **ヘルプ** | ✅ バトルハブ/エディタ/バトル履歴/マイデッキ/思い出アルバム ? モーダル・マイデッキ初回案内（[PROTOTYPE §4.9](./PROTOTYPE_DEVELOPMENT_SPEC.md#49-ヘルプ初回案内)） |
 | **照属性（Lv46）** | ✅ 戦闘実装（[ATTRIBUTE_SPEC §4.11](./ATTRIBUTE_SPEC.md#411-照illuminate実装済み)） |

@@ -1,9 +1,9 @@
 import {
   getBeginnerMissions,
-  getMissionById,
   getMissionDefinitions,
 } from '../config/missions';
 import { getBattlesDayKey } from '../user/adState';
+import { isCompletionBonusClaimable } from './completionBonus';
 import { applyMissionResets } from './reset';
 import type {
   MissionDefinition,
@@ -88,10 +88,15 @@ export function countUnclaimedMissions(
   state: MissionState,
   userLevel: number = 1,
 ): number {
-  return getMissionDefinitions(state, userLevel).filter((mission) => {
+  const missionCount = getMissionDefinitions(state, userLevel).filter((mission) => {
     if (mission.category === 'beginner' && state.beginnerCompleted) return false;
     return isMissionClaimable(state, mission);
   }).length;
+  return (
+    missionCount +
+    Number(isCompletionBonusClaimable(state, 'daily', userLevel)) +
+    Number(isCompletionBonusClaimable(state, 'weekly', userLevel))
+  );
 }
 
 /** ゲーム内イベントを報告し進捗を更新 */

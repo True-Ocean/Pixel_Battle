@@ -1721,15 +1721,11 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .mission-reward-chips {
-  display: grid;
-  grid-template-columns: 3.75rem 2.75rem;
-  column-gap: 0.2rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.2rem;
   align-items: center;
   width: 100%;
-}
-
-.mission-reward-chips--jewels-only {
-  grid-template-columns: 3.75rem;
 }
 
 .mission-reward-chip-slot {

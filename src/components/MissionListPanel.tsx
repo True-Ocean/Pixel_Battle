@@ -1,17 +1,26 @@
 import { getBeginnerMissions, getMissionsByCategory } from '../config/missions';
 import {
+  getCompletionBonusClaimedAt,
   isMissionClaimed,
+  isCompletionBonusCategory,
+  isCompletionBonusClaimable,
   listClaimableMissionsInCategory,
   sortMissionsForDisplay,
 } from '../mission';
-import type { MissionCategory, MissionState } from '../mission/types';
+import type {
+  CompletionBonusCategory,
+  MissionCategory,
+  MissionState,
+} from '../mission';
 import { MissionCard } from './MissionCard';
+import { MissionCompletionBonusCard } from './MissionCompletionBonusCard';
 
 interface MissionListPanelProps {
   category: MissionCategory;
   missionState: MissionState;
   userLevel: number;
   onClaim: (missionId: string) => void;
+  onClaimCompletionBonus: (category: CompletionBonusCategory) => void;
   onBulkClaim: (category: MissionCategory) => void;
   onChallenge: (missionId: string) => void;
 }
@@ -21,6 +30,7 @@ export function MissionListPanel({
   missionState,
   userLevel,
   onClaim,
+  onClaimCompletionBonus,
   onBulkClaim,
   onChallenge,
 }: MissionListPanelProps) {
@@ -32,11 +42,25 @@ export function MissionListPanel({
     category,
   );
   const reorderCompleted = category !== 'beginner';
+  const completionBonusCategory = isCompletionBonusCategory(category)
+    ? category
+    : null;
+  const completionBonusClaimed =
+    completionBonusCategory != null &&
+    getCompletionBonusClaimedAt(missionState, completionBonusCategory) != null;
   const claimableCount = listClaimableMissionsInCategory(
     missionState,
     category,
     userLevel,
-  ).length;
+  ).length +
+    Number(
+      completionBonusCategory != null &&
+        isCompletionBonusClaimable(
+          missionState,
+          completionBonusCategory,
+          userLevel,
+        ),
+    );
   const beginnerClaimedCount =
     category === 'beginner'
       ? missions.filter((mission) => isMissionClaimed(missionState, mission)).length
@@ -85,6 +109,14 @@ export function MissionListPanel({
           .join(' ')}
         aria-label="ミッション一覧"
       >
+        {completionBonusCategory && !completionBonusClaimed && (
+          <MissionCompletionBonusCard
+            category={completionBonusCategory}
+            missionState={missionState}
+            userLevel={userLevel}
+            onClaim={onClaimCompletionBonus}
+          />
+        )}
         {missions.map((mission) => (
           <MissionCard
             key={mission.id}
@@ -94,6 +126,14 @@ export function MissionListPanel({
             onChallenge={onChallenge}
           />
         ))}
+        {completionBonusCategory && completionBonusClaimed && (
+          <MissionCompletionBonusCard
+            category={completionBonusCategory}
+            missionState={missionState}
+            userLevel={userLevel}
+            onClaim={onClaimCompletionBonus}
+          />
+        )}
       </ul>
     </div>
   );

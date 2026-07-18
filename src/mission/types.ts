@@ -78,6 +78,10 @@ export interface MissionProgressEntry {
 export interface MissionState {
   dailyDayKey: string;
   weeklyWeekKey: string;
+  /** 当日のデイリー全達成ボーナス受取日時 */
+  dailyCompletionBonusClaimedAt?: string;
+  /** 当週のウィークリー全達成ボーナス受取日時 */
+  weeklyCompletionBonusClaimedAt?: string;
   /** ビギナー枠をすべて受取済み */
   beginnerCompleted?: boolean;
   /** 当日初回起動を記録した日次キー */

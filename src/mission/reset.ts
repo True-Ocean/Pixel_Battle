@@ -70,6 +70,7 @@ export function applyMissionResets(
   if (state.dailyDayKey !== dailyDayKey) {
     next = clearCategoryProgress(next, 'daily');
     next.dailyDayKey = dailyDayKey;
+    next.dailyCompletionBonusClaimedAt = undefined;
     if (state.appOpenDayKey != null && state.appOpenDayKey !== dailyDayKey) {
       next.appOpenDayKey = undefined;
     }
@@ -78,6 +79,7 @@ export function applyMissionResets(
   if (state.weeklyWeekKey !== weeklyWeekKey) {
     next = clearCategoryProgress(next, 'weekly');
     next.weeklyWeekKey = weeklyWeekKey;
+    next.weeklyCompletionBonusClaimedAt = undefined;
   }
 
   return next;
