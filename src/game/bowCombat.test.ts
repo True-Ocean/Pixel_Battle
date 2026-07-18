@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Card } from '../types';
+import type { BoardPosition } from '../types/battle';
 import { createCardFromDrawing } from '../card';
 import { createEmptyGrid } from '../canvas';
 import { BOW_ARROWS_PER_BATTLE } from '../config/balance';
@@ -38,12 +39,12 @@ describe('bowCombat', () => {
       cards('C'),
     );
     const bow = state.player.find((u) => u.attribute === 'bow')!;
-    expect(getBowTargets(state.player, state.cpu, bow.position)).toContain(
-      'frontLeft',
-    );
-    expect(getBowTargets(state.player, state.cpu, bow.position)).toContain(
-      'backLeft',
-    );
+    expect(
+      getBowTargets(state.player, state.cpu, bow.position as BoardPosition),
+    ).toContain('frontLeft');
+    expect(
+      getBowTargets(state.player, state.cpu, bow.position as BoardPosition),
+    ).toContain('backLeft');
 
     state.player[0]!.position = 'defeated';
     state.player[0]!.currentBp = 0;
@@ -84,12 +85,14 @@ describe('bowCombat', () => {
     );
     const bow = state.player.find((u) => u.attribute === 'bow')!;
     bow.bowArrowsRemaining = 0;
-    expect(getBowTargets(state.player, state.cpu, bow.position)).toEqual([]);
+    expect(
+      getBowTargets(state.player, state.cpu, bow.position as BoardPosition),
+    ).toEqual([]);
     expect(
       getActionTypesForUnit(
         state.player,
         state.cpu,
-        bow.position,
+        bow.position as BoardPosition,
         getSelectionTurn(state),
       ),
     ).toEqual([]);

@@ -15,7 +15,6 @@ function unit(
     attribute: 'attack',
     maxBp: 100,
     currentBp: 80,
-    position: partial.position,
     defenseShieldUsed: false,
     hasShield: false,
     poisonStacks: [],

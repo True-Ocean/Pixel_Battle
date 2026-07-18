@@ -16,7 +16,8 @@ export type BattleActionType =
   | 'dualAttack'
   | 'heal'
   | 'storm'
-  | 'illuminate';
+  | 'illuminate'
+  | 'pass';
 
 /** 毒 DoT スタック（Phase 4 で付与処理） */
 export interface PoisonStack {
@@ -110,6 +111,10 @@ export interface BattleEvent {
   targetShieldBroken?: boolean;
   /** 近接など: 攻撃側の盾が消費された */
   actorShieldBroken?: boolean;
+  /** 剣属性の追加貫通ダメージ（damageToTarget に含む） */
+  piercingDamageToTarget?: number;
+  /** 剣属性の反撃による追加貫通ダメージ（damageToActor に含む） */
+  piercingDamageToActor?: number;
   healAmount?: number;
   poisonStacksCleared?: number;
   freezeCleared?: boolean;

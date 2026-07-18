@@ -8,7 +8,6 @@ import { applyLoadBpRecalc, BP_CALC_VERSION, rescaleDeckBp } from '../card';
 import {
   clampDeckSlotIndex,
   clampUnlockedDeckCount,
-  countDeckCards,
   createEmptyDeckSlots,
   getDeckCards,
   normalizeDeckLayout,

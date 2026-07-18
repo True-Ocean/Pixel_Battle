@@ -16,7 +16,7 @@ import {
   clampOnlinePvpWalletTransfer,
   countFieldSurvivors,
 } from './stakes';
-import { generateRoomCode, normalizeRoomCodeInput, isValidRoomCode, padRoomCode } from './roomCode';
+import { generateRoomCode, padRoomCode } from './roomCode';
 import {
   createOnlineBattleState,
   formationToSlots,

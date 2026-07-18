@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from 'react';
 import { canReviveLostCard, computeDeckPower, isCardLost, isTalismanEquipped, type LimitBreakShardSpendPlan } from '../card';
 import {
   calcReviveCost,
@@ -38,7 +38,6 @@ import { DeckUnlockModal } from './DeckUnlockModal';
 import { HelpInfoButton } from './HelpInfoButton';
 import { HelpPanelModal } from './HelpPanelModal';
 import { LostCardDeckNoticeModal } from './LostCardDeckNoticeModal';
-import { TalismanCardBadge } from './TalismanCardBadge';
 import { TalismanIcon } from './TalismanIcon';
 import { JewelAmount } from './JewelIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
@@ -78,7 +77,7 @@ export interface DeckScreenProps {
   onLimitBreakCard: (id: string, spend: LimitBreakShardSpendPlan) => void;
   onRetouchCardAttribute: (
     cardId: string,
-  ) => AttributeRetouchResult | { error: string };
+  ) => AttributeRetouchResult | { error: ReactNode };
   onCommitRetouchCardAttribute: () => void;
   onSelectCardAttribute: (cardId: string, attribute: Attribute) => AttributeSelectOutcome;
   paletteShopUnlocks?: readonly number[];

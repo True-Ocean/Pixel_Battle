@@ -45,6 +45,28 @@ describe('formatBattleLog', () => {
     );
   });
 
+  it('剣の貫通ダメージが盾破壊後に通ったことを明示する', () => {
+    const events: BattleEvent[] = [
+      { type: 'turn_start', turn: 1 },
+      {
+        type: 'attack',
+        turn: 1,
+        actionKind: 'melee',
+        actor: { name: 'SR剣士', attribute: 'attack', bp: 100, bpAfter: 57 },
+        target: { name: '盾兵', attribute: 'defense', bp: 86, bpAfter: 46 },
+        damageToTarget: 40,
+        damageToActor: 43,
+        piercingDamageToTarget: 40,
+        targetShieldBroken: true,
+      },
+    ];
+
+    const groups = formatBattleLog(events);
+    expect(groups[0].lines[0]).toBe(
+      'SR剣士（剣・BP100）が 盾兵（盾・BP86）に近接攻撃 → 盾兵の盾が破壊され、盾兵に40貫通ダメージを与え、SR剣士は43ダメージを受けた',
+    );
+  });
+
   it('近接攻撃側の盾が壊れた場合も攻撃ログに含める', () => {
     const events: BattleEvent[] = [
       { type: 'turn_start', turn: 1 },

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Attribute, Card } from '../types';
+import type { Attribute, Card, CardRarity } from '../types';
+import type { BoardPosition } from '../types/battle';
 import { createCardFromDrawing } from '../card';
 import { createEmptyGrid } from '../canvas';
 import {
@@ -17,12 +18,17 @@ import { formatBattleLog } from './formatBattleLog';
 import { startNextTurn } from './startNextTurn';
 import { pickCpuAction } from './cpu';
 
-function stubCard(name: string, attr: Attribute, bp: number): Card {
+function stubCard(
+  name: string,
+  attr: Attribute,
+  bp: number,
+  rarity: CardRarity = 'N',
+): Card {
   const grid = createEmptyGrid().map((row, i) =>
     row.map(() => (i === 0 ? '#ff0000' : null)),
   );
   const c = createCardFromDrawing(name, grid);
-  return { ...c, attribute: attr, bp };
+  return { ...c, attribute: attr, bp, rarity };
 }
 
 function cards(prefix: string): Card[] {
@@ -159,6 +165,107 @@ describe('battle', () => {
     expect(state.player[0].currentBp).toBe(47);
     expect(state.cpu[0].currentBp).toBe(86);
     expect(state.cpu[0].hasShield).toBe(false);
+  });
+
+  it.each([
+    ['R', 120, 20],
+    ['SR', 140, 40],
+    ['UR', 140, 40],
+    ['L', 140, 40],
+  ] as const)(
+    '%s剣は通常ダメージにレア度別の貫通ダメージを追加する',
+    (rarity, expectedDamage, expectedPiercing) => {
+      const state = createBattleState(
+        [
+          stubCard('剣', 'attack', 100, rarity),
+          ...cards('P').slice(1),
+        ],
+        [
+          stubCard('敵', 'power', 200),
+          ...cards('C').slice(1),
+        ],
+      );
+
+      const result = resolveTurn(state, {
+        player: {
+          type: 'meleeAttack',
+          actorPosition: 'frontLeft',
+          targetPosition: 'frontLeft',
+        },
+        cpu: {
+          type: 'grantShield',
+          actorPosition: 'backCenter',
+          targetPosition: 'frontRight',
+        },
+      });
+
+      expect(result.state.cpu[0].currentBp).toBe(200 - expectedDamage);
+      expect(result.attacks[0].damage).toBe(expectedDamage);
+      expect(result.attacks[0].piercingDamage).toBe(expectedPiercing);
+    },
+  );
+
+  it('SR剣は盾を破壊した後に貫通ダメージだけを与える', () => {
+    const state = createBattleState(
+      [
+        stubCard('SR剣', 'attack', 100, 'SR'),
+        ...cards('P').slice(1),
+      ],
+      [
+        stubCard('盾持ち', 'power', 200),
+        ...cards('C').slice(1),
+      ],
+    );
+    state.cpu[0].hasShield = true;
+
+    const result = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    });
+
+    expect(result.state.cpu[0].hasShield).toBe(false);
+    expect(result.state.cpu[0].currentBp).toBe(160);
+    expect(result.attacks[0].blocked).toBe(true);
+    expect(result.attacks[0].damage).toBe(40);
+    expect(result.attacks[0].piercingDamage).toBe(40);
+  });
+
+  it('剣属性の反撃にも貫通ダメージを追加する', () => {
+    const state = createBattleState(
+      [
+        stubCard('攻撃側', 'power', 200),
+        ...cards('P').slice(1),
+      ],
+      [
+        stubCard('SR剣', 'attack', 100, 'SR'),
+        ...cards('C').slice(1),
+      ],
+    );
+
+    const result = resolveTurn(state, {
+      player: {
+        type: 'meleeAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'grantShield',
+        actorPosition: 'backCenter',
+        targetPosition: 'frontRight',
+      },
+    });
+
+    expect(result.state.player[0].currentBp).toBe(110);
+    expect(result.attacks[0].attackerDamage).toBe(90);
+    expect(result.attacks[0].attackerPiercingDamage).toBe(40);
   });
 
   it('複数攻撃は攻撃側BPが高い順に処理する', () => {
@@ -526,7 +633,7 @@ describe('battle', () => {
       getActionTypesForUnit(
         state.player,
         state.cpu,
-        bow.position,
+        bow.position as BoardPosition,
         getSelectionTurn(state),
       ),
     ).toEqual([]);

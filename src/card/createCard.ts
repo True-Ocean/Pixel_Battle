@@ -119,7 +119,7 @@ export function deriveCardStats(
   } = {},
 ): CardDraft {
   const { allowedColors } = resolvePaletteUnlock(userLevel, options);
-  const { trimmed, ratios } = validateDrawingInput(name, pixels, allowedColors);
+  const { ratios } = validateDrawingInput(name, pixels, allowedColors);
   const attribute =
     options.forceAttribute ?? rollAttribute(userLevel, options.random);
   const bpBlend = computeBpBlend(pixels, ratios);
@@ -154,7 +154,7 @@ export function createCardFromDrawing(
     options,
   );
   const normalized = normalizeGrid(pixels, allowedColors);
-  const { attribute, bp, ratios } = deriveCardStats(finalName, normalized, userLevel, {
+  const { attribute, ratios } = deriveCardStats(finalName, normalized, userLevel, {
     forceAttribute: options.forceAttribute,
     random: options.random,
     paletteShopUnlocks: options.paletteShopUnlocks,

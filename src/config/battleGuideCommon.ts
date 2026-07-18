@@ -3,6 +3,7 @@
 export type BattleGuideTermId =
   | 'melee'
   | 'shield'
+  | 'piercingDamage'
   | 'shieldGrant'
   | 'bowAttack'
   | 'dualSecondaryAttack'
@@ -39,7 +40,23 @@ export const SHIELD_GUIDE: BattleGuideTerm = {
   id: 'shield',
   label: '盾',
   title: '盾',
-  items: ['敵の攻撃を1回無効にする', '敵から攻撃を受けると消滅する'],
+  items: [
+    '敵の通常ダメージを1回無効にする',
+    '敵から攻撃を受けると消滅する',
+    '剣属性の貫通ダメージは、盾が消滅した後に受ける',
+  ],
+  compact: true,
+};
+
+export const PIERCING_DAMAGE_GUIDE: BattleGuideTerm = {
+  id: 'piercingDamage',
+  label: '貫通ダメージ',
+  title: '貫通ダメージ',
+  items: [
+    '剣属性のRは現在BPの20%、SR以上は40%を通常ダメージに追加する',
+    '盾持ちには通常ダメージを防がれた後、貫通ダメージだけを与える',
+    '貫通ダメージによる追加の反撃は受けない',
+  ],
   compact: true,
 };
 
@@ -153,6 +170,7 @@ export const ILLUMINATE_GUIDE: BattleGuideTerm = {
 export const BATTLE_GUIDE_TERMS: Record<BattleGuideTermId, BattleGuideTerm> = {
   melee: MELEE_ATTACK_GUIDE,
   shield: SHIELD_GUIDE,
+  piercingDamage: PIERCING_DAMAGE_GUIDE,
   shieldGrant: SHIELD_GRANT_GUIDE,
   bowAttack: BOW_ATTACK_GUIDE,
   dualSecondaryAttack: DUAL_SECONDARY_ATTACK_GUIDE,

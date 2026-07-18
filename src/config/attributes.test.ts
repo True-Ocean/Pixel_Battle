@@ -5,8 +5,10 @@ describe('attributes', () => {
   it('maps attack to 剣', () => {
     expect(getAttributeMeta('attack')).toEqual(ATTRIBUTE_META.attack);
     expect(ATTRIBUTE_META.attack.label).toBe('剣');
-    expect(ATTRIBUTE_META.attack.description).toBe('通常攻撃のみ（特殊能力なし）');
+    expect(ATTRIBUTE_META.attack.description).toContain('貫通ダメージ');
     expect(ATTRIBUTE_META.attack.battleGuide).toContain('近接攻撃');
+    expect(ATTRIBUTE_META.attack.battleGuide).toContain('Rは現在BPの20%');
+    expect(ATTRIBUTE_META.attack.battleGuide).toContain('SR以上は40%');
   });
 
   it('maps defense to 盾', () => {

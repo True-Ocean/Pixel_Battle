@@ -10,7 +10,6 @@ import {
   syncDeviceLinkedEmailFromUser,
   isEmailLinkedUser,
   isValidPassword,
-  type AuthActionResult,
 } from '../auth';
 import { ConfirmDialog } from './ConfirmDialog';
 import {
@@ -281,18 +280,6 @@ function SettingsDevNotices({ messages }: { messages: (string | null)[] }) {
       ))}
     </div>
   );
-}
-
-function applyAuthActionResult(
-  result: AuthActionResult,
-  onSuccess: (message: string) => void,
-  onFailure: (message: string) => void,
-): void {
-  if (result.ok === true) {
-    onSuccess(result.message);
-    return;
-  }
-  onFailure(result.error);
 }
 
 function formatCloudSyncTime(iso: string | null): string {

@@ -519,6 +519,9 @@ export function mockCancelSubscription(
   if (subscription.autoRenew === false) {
     return { ok: false, message: 'すでに解約手続き済みです。' };
   }
+  if (subscription.plan === 'none') {
+    return { ok: false, message: '加入中のプランがありません。' };
+  }
 
   const plan = getSubscriptionPlanById(subscription.plan);
   const expiresLabel =

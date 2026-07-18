@@ -1,11 +1,11 @@
-import type { Card, BattleOutcome } from '../types';
+import type { Card, BattleOutcomeCore } from '../types';
 import { BattleBoard } from './BattleBoard';
 import { useBattle } from './useBattle';
 
 interface BattleScreenProps {
   playerCards: Card[];
   cpuCards: Card[];
-  onFinish: (result: BattleOutcome) => void;
+  onFinish: (result: BattleOutcomeCore) => void;
 }
 
 /** 準備を経由しない直接戦闘用（通常は SetupBattleSession を使用） */

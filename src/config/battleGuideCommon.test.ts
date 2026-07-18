@@ -8,6 +8,7 @@ import {
   ILLUMINATE_GUIDE,
   LINKABLE_BATTLE_GUIDE_TERMS,
   MELEE_ATTACK_GUIDE,
+  PIERCING_DAMAGE_GUIDE,
   POISON_EFFECT_GUIDE,
   SHIELD_GRANT_GUIDE,
   SHIELD_GUIDE,
@@ -25,10 +26,11 @@ describe('MELEE_ATTACK_GUIDE', () => {
 });
 
 describe('shield battle guide terms', () => {
-  it('盾の説明を2項目に分ける', () => {
+  it('盾と貫通ダメージの関係を説明する', () => {
     expect(SHIELD_GUIDE.items).toEqual([
-      '敵の攻撃を1回無効にする',
+      '敵の通常ダメージを1回無効にする',
       '敵から攻撃を受けると消滅する',
+      '剣属性の貫通ダメージは、盾が消滅した後に受ける',
     ]);
     expect(SHIELD_GUIDE.compact).toBe(true);
   });
@@ -44,6 +46,15 @@ describe('shield battle guide terms', () => {
   it('リンク化は長いラベル（盾付与）を盾より先にマッチする', () => {
     const labels = LINKABLE_BATTLE_GUIDE_TERMS.map((term) => term.label);
     expect(labels.indexOf('盾付与')).toBeLessThan(labels.indexOf('盾'));
+  });
+});
+
+describe('piercing damage battle guide term', () => {
+  it('レア度別の割合と盾への効果を説明する', () => {
+    expect(PIERCING_DAMAGE_GUIDE.items[0]).toContain('Rは現在BPの20%');
+    expect(PIERCING_DAMAGE_GUIDE.items[0]).toContain('SR以上は40%');
+    expect(PIERCING_DAMAGE_GUIDE.items[1]).toContain('盾持ち');
+    expect(PIERCING_DAMAGE_GUIDE.compact).toBe(true);
   });
 });
 

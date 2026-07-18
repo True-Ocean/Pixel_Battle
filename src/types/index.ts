@@ -1,5 +1,6 @@
 /** 全11属性（docs/ATTRIBUTE_SPEC.md §3） */
-export type { MissionState } from '../mission/types';
+import type { MissionState } from '../mission/types';
+export type { MissionState };
 export type Attribute =
   | 'attack'
   | 'defense'

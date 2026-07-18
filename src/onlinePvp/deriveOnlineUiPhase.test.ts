@@ -277,7 +277,11 @@ describe('computeOnlineWaitingForOpponent', () => {
     const state = createBattleState(cards, cards);
     const room = battleRoom(state, {
       battle_phase: 'select',
-      host_pending_action: { type: 'pass' },
+      host_pending_action: {
+        type: 'pass',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
       guest_pending_action: null,
     });
 

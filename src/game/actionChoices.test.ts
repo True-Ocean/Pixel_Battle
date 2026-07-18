@@ -8,7 +8,6 @@ import {
   hasBattleActionChoices,
   pickPassAction,
 } from './actionChoices';
-import { pickCpuAction } from './cpu';
 import { resolveTurn } from './resolveTurn';
 
 function stubCard(name: string, attr: Attribute, bp: number): Card {

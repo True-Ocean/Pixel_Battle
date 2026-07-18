@@ -33,7 +33,7 @@ function getEntry(state: MissionState, missionId: string): MissionProgressEntry 
 }
 
 function isAchievementProgressable(
-  mission: MissionDefinition,
+  _mission: MissionDefinition,
   entry: MissionProgressEntry,
 ): boolean {
   if (entry.claimedAt != null) return false;

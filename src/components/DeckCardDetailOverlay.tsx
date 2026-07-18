@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   canLimitBreakCard,
@@ -36,7 +36,7 @@ interface DeckCardDetailOverlayProps {
   onLimitBreak: (spend: LimitBreakShardSpendPlan) => void;
   onRetouchCardAttribute: (
     cardId: string,
-  ) => AttributeRetouchResult | { error: string };
+  ) => AttributeRetouchResult | { error: ReactNode };
   onCommitRetouchCardAttribute: () => void;
   onSelectCardAttribute: (cardId: string, attribute: Attribute) => AttributeSelectOutcome;
   paletteShopUnlocks?: readonly number[];

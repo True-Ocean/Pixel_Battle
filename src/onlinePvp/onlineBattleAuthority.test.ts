@@ -5,7 +5,6 @@ import type { Attribute, Card } from '../types';
 import { createBattleState, getPendingPromotionFronts } from '../game/battleState';
 import {
   autoCompleteForcedPromotions,
-  nextPhaseAfterClash,
   onlinePromotionNeeded,
   targetOnlineBattlePhaseForState,
 } from './onlineBattleAuthority';

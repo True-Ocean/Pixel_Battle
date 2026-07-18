@@ -184,6 +184,15 @@ export const HEAL_BP_RATIO = 0.6;
 /** 毒スタック1つあたりの DoT（付与時 currentBp 比）。ATTRIBUTE_SPEC §4.6 */
 export const POISON_DOT_RATIO = 0.3;
 
+/** 剣属性の貫通ダメージ（currentBp 比）。SR 以上は 40%。ATTRIBUTE_SPEC §4.1 */
+export const ATTACK_PIERCING_DAMAGE_RATIO: Record<CardRarity, number> = {
+  N: 0,
+  R: 0.2,
+  SR: 0.4,
+  UR: 0.4,
+  L: 0.4,
+};
+
 /** 氷属性の基本BP係数（攻撃比）。凍結の付加価値分を抑えた値。ATTRIBUTE_SPEC §4.8 */
 export const ICE_BP_RATIO = 0.88;
 
@@ -217,10 +226,6 @@ export const RARITY_BP_MULTIPLIER: Record<CardRarity, number> = {
   UR: 1.22,
   L: 1.3,
 };
-
-function clampUserLevel(userLevel: number): number {
-  return Math.max(USER_INITIAL_LEVEL, Math.min(MAX_USER_LEVEL, userLevel));
-}
 
 function resolveUserLevelForBp(
   userLevel: number,

@@ -1,5 +1,5 @@
 import { useEffect, type RefObject } from 'react';
-import type { Card, BattleOutcome } from '../types';
+import type { Card, BattleOutcomeCore } from '../types';
 import { SetupBoardBattle } from './SetupBoardBattle';
 import { useBattle } from './useBattle';
 
@@ -7,7 +7,7 @@ interface SetupBattleSessionProps {
   playerCards: Card[];
   cpuCards: Card[];
   boardRef: RefObject<HTMLDivElement | null>;
-  onFinish: (outcome: BattleOutcome) => void;
+  onFinish: (outcome: BattleOutcomeCore) => void;
   onEndedChange?: (ended: boolean, persistOutcome: () => void) => void;
 }
 

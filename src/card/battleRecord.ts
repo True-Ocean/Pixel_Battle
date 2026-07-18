@@ -1,4 +1,4 @@
-import type { Card, DeckLayout } from '../types';
+import type { DeckLayout } from '../types';
 
 /** 出撃カードの生存/墓地送りに応じて wins（生存）/ losses（墓地）を更新する */
 export function applyCardSurvivalRecords(

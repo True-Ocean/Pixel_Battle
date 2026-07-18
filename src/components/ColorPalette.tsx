@@ -4,7 +4,6 @@ import {
   PALETTE_EDITOR_COLOR_COUNT,
 } from '../config/palette';
 import {
-  canOfferPaletteJewelPurchase,
   isBottomRowJewelPaletteIndex,
   isJewelPaletteIndex,
   isRightColumnJewelPaletteIndex,
@@ -60,7 +59,7 @@ export function ColorPalette({
         const active = brushColor === color;
         const isLight = LIGHT_SWATCH_COLORS.has(color.toLowerCase());
 
-        let title = label;
+        let title: string = label;
         if (!unlocked) {
           if (isBottomRowJewelPaletteIndex(index)) {
             const topIndex = index - 10;

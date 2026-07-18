@@ -118,11 +118,11 @@ export function BattleCard({
   const showRarityFrame = rarity !== 'N' && !faceDown;
   const rarityMeta = showRarityFrame ? getRarityMeta(rarity) : null;
   const rarityStyle: CSSProperties | undefined = rarityMeta
-    ? {
+    ? ({
         '--rarity-border': rarityMeta.rowBorder,
         '--rarity-bg': rarityMeta.rowBg,
         '--rarity-shadow': rarityMeta.rowBoxShadow ?? 'none',
-      }
+      } as CSSProperties)
     : undefined;
   const classNames = [
     'battle-card',

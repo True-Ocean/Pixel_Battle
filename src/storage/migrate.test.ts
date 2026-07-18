@@ -2,15 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { createEmptyDeckSlots } from '../deckSlots';
 import { SAVE_SCHEMA_VERSION, normalizeSaveData } from './index';
 import { createInitialAdState } from '../user/adState';
-import { createInitialEconomy } from '../user/economy';
 import { createInitialInventory } from '../user/inventory';
-import type { SaveData } from '../types';
+import type { SaveData, UserEconomy } from '../types';
 
 function baseSave(overrides: Partial<SaveData> = {}): SaveData {
   return {
     schemaVersion: SAVE_SCHEMA_VERSION,
     user: null,
-    economy: { freePixels: 1200 },
+    economy: { freePixels: 1200 } as UserEconomy,
     decks: createEmptyDeckSlots(),
     activeDeckIndex: 0,
     lastBattleDeckIndex: 0,

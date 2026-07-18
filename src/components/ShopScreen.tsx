@@ -86,9 +86,10 @@ export function ShopScreen({
     subscription.expiresAt != null
       ? new Date(subscription.expiresAt).toLocaleDateString('ja-JP')
       : '契約満了日';
+  const activeSubscriptionPlan = getActiveSubscriptionPlan(subscription);
   const cancelConfirmPlanLabel =
-    getActiveSubscriptionPlan(subscription) !== 'none'
-      ? getSubscriptionPlanById(getActiveSubscriptionPlan(subscription)).label
+    activeSubscriptionPlan !== 'none'
+      ? getSubscriptionPlanById(activeSubscriptionPlan).label
       : '会員プラン';
 
   return (

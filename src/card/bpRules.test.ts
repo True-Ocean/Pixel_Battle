@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { gridSize } from '../canvas';
 import { createCardFromDrawing, updateCardFromDrawing } from './createCard';
 import {
   applyLoadBpRecalc,
@@ -143,6 +142,8 @@ describe('rescaleCardBp', () => {
   it('レベルアップで BP を下げない', () => {
     const card = createCardFromDrawing('lv', fillGrid('#ff0000'), {
       userLevel: 20,
+      forceAttribute: 'attack',
+      random: () => 0,
     });
     const boosted = { ...card, bp: card.bp + 40 };
 

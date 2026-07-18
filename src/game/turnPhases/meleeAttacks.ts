@@ -17,6 +17,7 @@ import {
 import { grantPoisonStack } from '../poisonCombat';
 import type { BattleLogActionKind } from '../../types/battle';
 import type { BattleEvent } from '../../types/battle';
+import { ATTACK_PIERCING_DAMAGE_RATIO } from '../../config/balance';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
 import {
   getDisplayTurn,
@@ -142,6 +143,14 @@ function counterDamage(target: BattleUnit, bidirectional: boolean): number {
   return Math.round(raw * MELEE_COUNTER_RATIO_ONE_SIDED);
 }
 
+/** 剣属性が近接・反撃で与える、レア度に応じた追加貫通ダメージ。 */
+export function calcAttackPiercingDamage(unit: BattleUnit): number {
+  if (unit.attribute !== 'attack') return 0;
+  return Math.round(
+    unit.currentBp * ATTACK_PIERCING_DAMAGE_RATIO[unit.rarity],
+  );
+}
+
 export function applyMeleeBattle(
   state: BattleState,
   player: BattleUnit[],
@@ -162,27 +171,31 @@ export function applyMeleeBattle(
   const selectionTurn = getSelectionTurn(next);
   const targetFrozenAtMelee = isFrozen(attack.target, selectionTurn);
   const actorShieldBroken = attackerHadShield && !targetFrozenAtMelee;
-
-  let damageToTarget = attack.attacker.currentBp;
-  let damageToAttacker = shouldApplyNinjaFirstStrike(
+  const ninjaFirstStrike = shouldApplyNinjaFirstStrike(
     attack.attacker,
     attack.bidirectional,
-  )
+  );
+  const counterPrevented = ninjaFirstStrike || targetFrozenAtMelee;
+  const piercingDamageToTarget = calcAttackPiercingDamage(attack.attacker);
+  const piercingDamageToAttacker = counterPrevented
     ? 0
-    : counterDamage(attack.target, attack.bidirectional);
-  if (targetFrozenAtMelee) {
-    damageToAttacker = 0;
-  }
+    : calcAttackPiercingDamage(attack.target);
+
+  let damageToTarget = attack.attacker.currentBp + piercingDamageToTarget;
+  let damageToAttacker = counterPrevented
+    ? 0
+    : counterDamage(attack.target, attack.bidirectional) +
+      piercingDamageToAttacker;
 
   const deferredStatusEvents: BattleEvent[] = [];
 
   if (actorShieldBroken) {
-    damageToAttacker = 0;
+    damageToAttacker = piercingDamageToAttacker;
     attack.attacker.hasShield = false;
     next = appendLog(next, `${attack.attacker.name} の盾が攻撃で壊れた`);
   }
   if (targetShieldConsumed) {
-    damageToTarget = 0;
+    damageToTarget = piercingDamageToTarget;
     attack.target.hasShield = false;
     next = appendLog(next, `${attack.target.name} の盾が攻撃を防いだ`);
   }
@@ -287,6 +300,8 @@ export function applyMeleeBattle(
     attackerDamage: damageToAttacker,
     attackerBpFrom,
     attackerBpTo: attack.attacker.currentBp,
+    piercingDamage: piercingDamageToTarget,
+    attackerPiercingDamage: piercingDamageToAttacker,
     poisonGranted,
     poisonCounterGranted,
     iceGranted,
@@ -317,6 +332,8 @@ export function applyMeleeBattle(
     target: unitSnapshot(attack.target, bpFrom, attack.target.currentBp),
     damageToTarget,
     damageToActor: damageToAttacker,
+    piercingDamageToTarget,
+    piercingDamageToActor: piercingDamageToAttacker,
     damage: damageToTarget,
     targetShieldBroken: targetShieldConsumed,
     actorShieldBroken,

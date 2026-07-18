@@ -381,9 +381,7 @@ function App() {
     playerDeck: Card[];
     playerLevel: number;
   } | null>(null);
-  const battleOutcomeHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const battleOutcomeHoldTimerRef = useRef<number | null>(null);
   const settingsReturnScreenRef = useRef<ScreenId>('deck');
   userRef.current = user;
   economyRef.current = economy;
@@ -439,7 +437,7 @@ function App() {
       inventory?: UserInventory;
       adState?: AdState;
       talismanStarterGranted?: boolean;
-      decks?: Card[][];
+      decks?: DeckLayout[];
       activeDeckIndex?: number;
       lastBattleDeckIndex?: number;
       unlockedDeckCount?: number;

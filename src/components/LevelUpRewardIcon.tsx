@@ -1,5 +1,4 @@
 import { PALETTE_16 } from '../config/balance';
-import { PALETTE_COLOR_LABELS } from '../config/palette';
 import { getAttributeMeta } from '../config/attributes';
 import {
   calcLevelUpJewels,

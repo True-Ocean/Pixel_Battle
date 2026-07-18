@@ -57,12 +57,22 @@ function formatMeleeDamageSuffix(event: BattleEvent): string {
   const target = event.target!;
   const dealt = event.damageToTarget ?? event.damage ?? 0;
   const received = event.damageToActor ?? 0;
+  const targetPiercing = event.piercingDamageToTarget ?? 0;
+  const actorPiercing = event.piercingDamageToActor ?? 0;
   const targetPart = event.targetShieldBroken
-    ? `${target.name}の盾が破壊された`
-    : `${target.name}に${dealt}ダメージを与え`;
+    ? targetPiercing > 0
+      ? `${target.name}の盾が破壊され、${target.name}に${targetPiercing}貫通ダメージを与え`
+      : `${target.name}の盾が破壊された`
+    : targetPiercing > 0
+      ? `${target.name}に${dealt}ダメージ（うち${targetPiercing}貫通）を与え`
+      : `${target.name}に${dealt}ダメージを与え`;
   const actorPart = event.actorShieldBroken
-    ? `${actor.name}の盾が破壊された`
-    : `${actor.name}は${received}ダメージを受けた`;
+    ? actorPiercing > 0
+      ? `${actor.name}の盾が破壊され、${actor.name}は${actorPiercing}貫通ダメージを受けた`
+      : `${actor.name}の盾が破壊された`
+    : actorPiercing > 0
+      ? `${actor.name}は${received}ダメージ（うち${actorPiercing}貫通）を受けた`
+      : `${actor.name}は${received}ダメージを受けた`;
   return `${targetPart}、${actorPart}`;
 }
 

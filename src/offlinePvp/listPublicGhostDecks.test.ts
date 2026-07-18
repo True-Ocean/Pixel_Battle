@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   getPublicGhostDeckById,
   getPublicGhostDeckListEmptyMessage,
@@ -7,6 +7,18 @@ import {
 } from './listPublicGhostDecks';
 import type { PublicGhostDeck } from './types';
 import type { Card } from '../types';
+
+// Supabase の設定状況（.env）に依存せず、未設定パスを固定で検証する。
+vi.mock('./publish', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./publish')>();
+  return {
+    ...actual,
+    fetchRemotePublicGhostDecks: vi.fn(async () => ({
+      ok: false as const,
+      error: 'not_configured',
+    })),
+  };
+});
 
 function stubCard(id: string): Card {
   return {

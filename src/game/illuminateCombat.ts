@@ -27,8 +27,8 @@ export function canUseIlluminateAction(
 }
 
 export function getIlluminateSelectionHint(
-  actor: BattleUnit,
-  enemyField: BattleUnit[],
+  _actor: BattleUnit,
+  _enemyField: BattleUnit[],
   includeMeleeOption: boolean,
 ): string {
   if (includeMeleeOption) {

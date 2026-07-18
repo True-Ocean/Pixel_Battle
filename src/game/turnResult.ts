@@ -29,6 +29,10 @@ export interface AttackPlayback {
   attackerDamage: number;
   attackerBpFrom: number;
   attackerBpTo: number;
+  /** 防御側が受ける剣属性の追加貫通ダメージ（damage に含む） */
+  piercingDamage?: number;
+  /** 攻撃側が受ける剣属性の追加貫通ダメージ（attackerDamage に含む） */
+  attackerPiercingDamage?: number;
   /** 両属性の副攻撃（§4.5） */
   secondaryToPosition?: BoardPosition;
   secondaryDamage?: number;

@@ -29,7 +29,11 @@ export function createInitialAdState(date: Date = new Date()): AdState {
 
 export function normalizeAdState(raw: unknown, date: Date = new Date()): AdState {
   if (!raw || typeof raw !== 'object') return createInitialAdState(date);
-  const candidate = raw as Partial<AdState>;
+  const candidate = raw as Partial<AdState> & {
+    /** 旧セーブの互換フィールド（battleStarts へ統合） */
+    normalBattleStarts?: unknown;
+    historyRematchStarts?: unknown;
+  };
   const hasEverCompletedBattleDeck = candidate.hasEverCompletedBattleDeck === true;
   const battlesToday = normalizeNonNegativeInt(candidate.battlesToday);
   const battlesDayKey =

@@ -44,12 +44,15 @@ export function pickStormTargets(
 ): BoardPosition[] {
   const alive = getStormTargetableUnits(enemyField);
   if (alive.length === 0) return [];
-  if (alive.length === 1) return [alive[0]!.position];
+  if (alive.length === 1) return [alive[0]!.position as BoardPosition];
 
   const firstIdx = Math.floor(random() * alive.length);
   let secondIdx = Math.floor(random() * (alive.length - 1));
   if (secondIdx >= firstIdx) secondIdx += 1;
-  return [alive[firstIdx]!.position, alive[secondIdx]!.position];
+  return [
+    alive[firstIdx]!.position as BoardPosition,
+    alive[secondIdx]!.position as BoardPosition,
+  ];
 }
 
 export function calcStormDamage(attackerBp: number): number {

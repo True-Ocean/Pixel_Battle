@@ -17,7 +17,6 @@ function unit(partial: Partial<BattleUnit> & Pick<BattleUnit, 'position'>): Batt
     attribute: 'heal',
     maxBp: 100,
     currentBp: 80,
-    position: partial.position,
     defenseShieldUsed: false,
     hasShield: false,
     poisonStacks: [],
