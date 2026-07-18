@@ -1301,13 +1301,15 @@ button.battle-hub-deck-icon.is-move-target {
 .battle-hub-back-btn {
   align-self: flex-start;
   margin: 0;
-  padding: 0.35rem 0.1rem;
-  border: none;
-  background: transparent;
-  color: #646cff;
+  min-height: 2rem;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
   font: inherit;
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -2252,20 +2254,22 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .battle-mode-screen-title-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) 2rem;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  column-gap: 0.25rem;
 }
 
 .battle-mode-screen-title-row .offline-pvp-list-title,
 .battle-mode-screen-title-row .battle-hub-deck-select-title {
-  flex: 1;
+  grid-column: 2;
   min-width: 0;
+  text-align: center;
 }
 
 .battle-mode-help-btn {
-  flex-shrink: 0;
+  grid-column: 3;
+  justify-self: end;
 }
 
 .offline-pvp-list-hint {
@@ -2319,23 +2323,49 @@ button.battle-hub-deck-icon.is-move-target {
   word-break: break-word;
 }
 
-.offline-pvp-detail-profile-link {
+.offline-pvp-detail-profile-link,
+.records-history-profile-link {
   appearance: none;
-  border: 0;
-  padding: 0;
-  background: transparent;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 0.2rem 0.5rem;
+  background: linear-gradient(180deg, #fff 0%, #eff6ff 100%);
   color: inherit;
   font: inherit;
-  text-decoration: underline;
-  text-decoration-color: #93c5fd;
-  text-underline-offset: 0.2em;
+  box-shadow: 0 1px 2px rgb(30 64 175 / 10%);
   cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    transform 120ms ease;
 }
 
-.offline-pvp-detail-profile-link:focus-visible {
+.offline-pvp-detail-profile-link:hover,
+.records-history-profile-link:hover {
+  border-color: #60a5fa;
+  background: #dbeafe;
+}
+
+.offline-pvp-detail-profile-link:active,
+.records-history-profile-link:active {
+  transform: translateY(1px);
+}
+
+.offline-pvp-detail-profile-link:focus-visible,
+.records-history-profile-link:focus-visible {
   outline: 2px solid #2563eb;
-  outline-offset: 3px;
-  border-radius: 2px;
+  outline-offset: 2px;
+}
+
+.profile-link-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .offline-pvp-detail-meta-row {
@@ -3047,25 +3077,6 @@ button.battle-hub-deck-icon.is-move-target {
   font-size: 0.95rem;
   font-weight: 600;
   color: #1e293b;
-}
-
-.records-history-profile-link {
-  appearance: none;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-decoration: underline;
-  text-decoration-color: #93c5fd;
-  text-underline-offset: 0.2em;
-  cursor: pointer;
-}
-
-.records-history-profile-link:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 3px;
-  border-radius: 2px;
 }
 
 .records-history-result-win {
@@ -5103,33 +5114,37 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .memory-album-back {
-  align-self: flex-start;
-  border: none;
-  background: none;
-  padding: 0;
+  grid-column: 1;
+  justify-self: start;
+  min-height: 2rem;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
   font: inherit;
-  font-size: 0.84rem;
-  color: #646cff;
+  font-size: 0.82rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .memory-album-header-title-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
   gap: 0.35rem;
 }
 
 .memory-album-header-title-row h1 {
+  grid-column: 2;
   margin: 0;
   font-size: 1.15rem;
-  flex: 1;
-  min-width: 0;
+  text-align: center;
 }
 
 .memory-album-help-btn {
-  flex-shrink: 0;
-  margin-top: 0.1rem;
+  grid-column: 3;
+  justify-self: end;
 }
 
 .memory-album-meta {
@@ -5216,15 +5231,49 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .memory-album-expand-message {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
+  text-align: left;
 }
 
-.memory-album-expand-insufficient {
-  margin-top: 0.35rem;
+.memory-album-expand-dialog-title {
+  text-align: center;
+}
+
+.memory-album-expand-offer-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.memory-album-expand-offer-actions .deck-unlock-confirm-btn {
+  margin-bottom: 0;
+}
+
+.memory-album-expand-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.memory-album-expand-confirm:disabled {
+  border-color: #cbd5e1;
+  background: #e5e7eb;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.memory-album-expand-confirm-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.memory-album-expand-confirm-jewel {
+  width: 1.1em;
+  height: 1.1em;
+  flex: 0 0 auto;
 }
 
 .memory-album-tile {
@@ -5507,6 +5556,7 @@ button.battle-hub-deck-icon.is-move-target {
 .deck-unlock-title {
   margin: 0 0 0.45rem;
   font-size: 1.02rem;
+  text-align: center;
 }
 
 .deck-unlock-message {
@@ -5563,6 +5613,10 @@ button.battle-hub-deck-icon.is-move-target {
   margin-bottom: 0.75rem;
 }
 
+.deck-unlock-panel--ready {
+  width: min(100%, 16rem);
+}
+
 .deck-unlock-confirm-btn {
   box-sizing: border-box;
   width: 100%;
@@ -5586,6 +5640,41 @@ button.battle-hub-deck-icon.is-move-target {
 .deck-unlock-confirm-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.deck-unlock-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.deck-unlock-actions .deck-unlock-confirm-btn {
+  width: auto;
+  min-width: 0;
+  margin-bottom: 0;
+  flex-direction: row;
+  gap: 0.35rem;
+  line-height: 1.25;
+}
+
+.deck-unlock-confirm-label {
+  white-space: nowrap;
+}
+
+.confirm-dialog-actions .memory-album-expand-confirm {
+  margin-bottom: 0;
+}
+
+.deck-unlock-confirm-dialog {
+  width: min(100%, 16rem);
+}
+
+.deck-unlock-confirm-dialog .confirm-dialog-title {
+  text-align: center;
+}
+
+.memory-album-expand-dialog {
+  width: min(100%, 16rem);
 }
 
 .deck-unlock-confirm-jewel {

@@ -67,7 +67,7 @@ interface MemoryAlbumFullDialogProps {
   cardName: string;
   jewelCost: number;
   canAffordUnlock: boolean;
-  onUnlockRow: () => void;
+  onRequestExpand: () => void;
   onDelete: () => void;
   onCancel: () => void;
 }
@@ -77,7 +77,7 @@ export function MemoryAlbumFullDialog({
   cardName,
   jewelCost,
   canAffordUnlock,
-  onUnlockRow,
+  onRequestExpand,
   onDelete,
   onCancel,
 }: MemoryAlbumFullDialogProps) {
@@ -103,7 +103,7 @@ export function MemoryAlbumFullDialog({
             type="button"
             className={`memory-album-full-unlock${canAffordUnlock ? '' : ' memory-album-full-unlock--pending'}`}
             disabled={!canAffordUnlock}
-            onClick={onUnlockRow}
+            onClick={onRequestExpand}
           >
             <span>アルバム拡張</span>
             <JewelAmount
@@ -132,18 +132,78 @@ export function MemoryAlbumFullDialog({
 export const MEMORY_ALBUM_SAVE_CONFIRM_MESSAGE =
   'アルバムに保存すると、デッキに戻すことはできなくなり、閲覧のみ可能となります。よろしいですか？';
 
-interface MemoryAlbumExpandConfirmDialogProps {
+interface MemoryAlbumExpandOfferDialogProps {
   open: boolean;
   jewelCost: number;
   canAfford: boolean;
+  onRequestExpand: () => void;
+  onCancel: () => void;
+}
+
+/** アルバム拡張の最初のモーダル（コスト表示付き） */
+export function MemoryAlbumExpandOfferDialog({
+  open,
+  jewelCost,
+  canAfford,
+  onRequestExpand,
+  onCancel,
+}: MemoryAlbumExpandOfferDialogProps) {
+  if (!open) return null;
+
+  return createPortal(
+    <div className="confirm-dialog-backdrop" onClick={onCancel}>
+      <div
+        className="confirm-dialog memory-album-expand-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="memory-album-expand-offer-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2
+          id="memory-album-expand-offer-title"
+          className="confirm-dialog-title memory-album-expand-dialog-title"
+        >
+          アルバム拡張
+        </h2>
+        {!canAfford && (
+          <p className="confirm-dialog-message">ジュエルが不足しています。</p>
+        )}
+        <div className="memory-album-expand-offer-actions">
+          <button
+            type="button"
+            className="deck-unlock-confirm-btn"
+            disabled={!canAfford}
+            aria-label={`アルバム拡張、ジュエル ${jewelCost.toLocaleString()}`}
+            onClick={onRequestExpand}
+          >
+            <span>拡張する</span>
+            <JewelAmount
+              amount={jewelCost}
+              className="memory-album-expand-confirm-cost"
+              iconClassName="memory-album-expand-confirm-jewel"
+            />
+          </button>
+          <button type="button" className="confirm-dialog-cancel" onClick={onCancel}>
+            キャンセル
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+interface MemoryAlbumExpandConfirmDialogProps {
+  open: boolean;
+  jewelCost: number;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
+/** アルバム拡張の最終確認（誤タップ防止） */
 export function MemoryAlbumExpandConfirmDialog({
   open,
   jewelCost,
-  canAfford,
   onConfirm,
   onCancel,
 }: MemoryAlbumExpandConfirmDialogProps) {
@@ -158,27 +218,29 @@ export function MemoryAlbumExpandConfirmDialog({
         aria-labelledby="memory-album-expand-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 id="memory-album-expand-title" className="confirm-dialog-title">
+        <h2
+          id="memory-album-expand-title"
+          className="confirm-dialog-title memory-album-expand-dialog-title"
+        >
           アルバム拡張
         </h2>
-        <p className="confirm-dialog-message memory-album-expand-message">
+        <p
+          className="confirm-dialog-message"
+          aria-label={`ジュエル ${jewelCost.toLocaleString()}を使ってアルバムを拡張します。よろしいですか？`}
+        >
           <JewelAmount
             amount={jewelCost}
-            className="memory-album-expand-message-jewel"
-            iconClassName="memory-album-expand-message-jewel-icon"
+            className="confirm-dialog-jewel-amount"
+            iconClassName="confirm-dialog-jewel-icon"
           />
-          <span>でアルバムを拡張します。よろしいですか？</span>
+          を使ってアルバムを拡張します。
+          <br />
+          よろしいですか？
         </p>
-        {!canAfford && (
-          <p className="confirm-dialog-message muted memory-album-expand-insufficient">
-            ジュエルが不足しています。
-          </p>
-        )}
         <div className="confirm-dialog-actions">
           <button
             type="button"
-            className="confirm-dialog-confirm"
-            disabled={!canAfford}
+            className="confirm-dialog-confirm confirm-dialog-confirm-primary"
             onClick={onConfirm}
           >
             拡張する

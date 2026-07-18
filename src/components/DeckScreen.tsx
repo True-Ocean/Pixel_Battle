@@ -26,7 +26,7 @@ import { CardPreview } from './CardPreview';
 import { DeckCardRowBody } from './DeckCardRowBody';
 import { RarityBadge } from './RarityBadge';
 import { CardDeleteResultModal } from './CardDeleteResultModal';
-import { CardDeckDispositionDialog, MemoryAlbumFullDialog, MEMORY_ALBUM_SAVE_CONFIRM_MESSAGE } from './MemoryAlbumDialogs';
+import { CardDeckDispositionDialog, MemoryAlbumFullDialog, MemoryAlbumExpandConfirmDialog, MEMORY_ALBUM_SAVE_CONFIRM_MESSAGE } from './MemoryAlbumDialogs';
 import { ConfirmDialog } from './ConfirmDialog';
 import { InlinePxCost } from './HelpInlineEconomy';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
@@ -355,6 +355,7 @@ export function DeckScreen({
   const [pendingDisposition, setPendingDisposition] = useState<Card | null>(null);
   const [pendingAlbumAdd, setPendingAlbumAdd] = useState<Card | null>(null);
   const [pendingAlbumFull, setPendingAlbumFull] = useState<Card | null>(null);
+  const [albumExpandConfirmOpen, setAlbumExpandConfirmOpen] = useState(false);
   const [pendingEquipTalisman, setPendingEquipTalisman] = useState<Card | null>(null);
   const [pendingUnequipTalisman, setPendingUnequipTalisman] = useState<Card | null>(null);
   const [unlockModalSlot, setUnlockModalSlot] = useState<number | null>(null);
@@ -536,6 +537,7 @@ export function DeckScreen({
     if (memoryAlbumHasSpace({ ...memoryAlbum, unlockedRows: memoryAlbum.unlockedRows + 1 })) {
       const result = onAddCardToMemoryAlbum(card.id);
       setPendingAlbumFull(null);
+      setAlbumExpandConfirmOpen(false);
       if (result === 'ok') {
         onDetailCardIdChange(null);
       }
@@ -548,10 +550,16 @@ export function DeckScreen({
     pendingAlbumFull,
   ]);
 
+  const handleAlbumExpandConfirmCancel = useCallback(() => {
+    setAlbumExpandConfirmOpen(false);
+    setPendingAlbumFull(null);
+  }, []);
+
   const handleAlbumFullDelete = useCallback(() => {
     if (!pendingAlbumFull) return;
     handleDeleteRequest(pendingAlbumFull);
     setPendingAlbumFull(null);
+    setAlbumExpandConfirmOpen(false);
   }, [handleDeleteRequest, pendingAlbumFull]);
 
   const showTalismanUi =
@@ -1370,13 +1378,23 @@ export function DeckScreen({
       />
 
       <MemoryAlbumFullDialog
-        open={pendingAlbumFull != null}
+        open={pendingAlbumFull != null && !albumExpandConfirmOpen}
         cardName={pendingAlbumFull?.name ?? ''}
         jewelCost={JEWEL_COST_MEMORY_ALBUM_ROW}
         canAffordUnlock={jewels >= JEWEL_COST_MEMORY_ALBUM_ROW}
-        onUnlockRow={handleAlbumFullUnlock}
+        onRequestExpand={() => {
+          if (jewels < JEWEL_COST_MEMORY_ALBUM_ROW) return;
+          setAlbumExpandConfirmOpen(true);
+        }}
         onDelete={handleAlbumFullDelete}
         onCancel={() => setPendingAlbumFull(null)}
+      />
+
+      <MemoryAlbumExpandConfirmDialog
+        open={albumExpandConfirmOpen}
+        jewelCost={JEWEL_COST_MEMORY_ALBUM_ROW}
+        onConfirm={handleAlbumFullUnlock}
+        onCancel={handleAlbumExpandConfirmCancel}
       />
 
       <ConfirmDialog

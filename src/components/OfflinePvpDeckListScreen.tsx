@@ -102,7 +102,7 @@ export function OfflinePvpDeckListScreen({
           className="battle-hub-back-btn"
           onClick={onBack}
         >
-          モード選択に戻る
+          戻る
         </button>
         <div className="battle-mode-screen-title-row">
           <h1 className="offline-pvp-list-title">対人戦（オフライン）</h1>

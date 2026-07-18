@@ -13,7 +13,10 @@ import { CardPreview } from './CardPreview';
 import { HelpInfoButton } from './HelpInfoButton';
 import { HelpPanelModal } from './HelpPanelModal';
 import { MemoryAlbumDetailOverlay } from './MemoryAlbumDetailOverlay';
-import { MemoryAlbumExpandConfirmDialog } from './MemoryAlbumDialogs';
+import {
+  MemoryAlbumExpandConfirmDialog,
+  MemoryAlbumExpandOfferDialog,
+} from './MemoryAlbumDialogs';
 
 interface MemoryAlbumScreenProps {
   album: MemoryAlbumState;
@@ -125,6 +128,7 @@ export function MemoryAlbumScreen({
 }: MemoryAlbumScreenProps) {
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [expandOfferOpen, setExpandOfferOpen] = useState(false);
   const [expandConfirmOpen, setExpandConfirmOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
 
@@ -136,20 +140,25 @@ export function MemoryAlbumScreen({
       ? album.cards.find((card) => card.id === detailCardId) ?? null
       : null;
 
+  const closeExpandFlow = () => {
+    setExpandOfferOpen(false);
+    setExpandConfirmOpen(false);
+  };
+
   const handleConfirmExpand = () => {
     setUnlockError(null);
     const error = onUnlockRow();
-    setExpandConfirmOpen(false);
+    closeExpandFlow();
     if (error) setUnlockError(error);
   };
 
   return (
     <section className="screen memory-album-screen">
       <header className="memory-album-header">
-        <button type="button" className="memory-album-back" onClick={onBack}>
-          マイデッキに戻る
-        </button>
         <div className="memory-album-header-title-row">
+          <button type="button" className="memory-album-back" onClick={onBack}>
+            戻る
+          </button>
           <h1>思い出アルバム</h1>
           <HelpInfoButton
             className="memory-album-help-btn"
@@ -183,7 +192,8 @@ export function MemoryAlbumScreen({
               onClick={() => {
                 if (!isNextExpansion) return;
                 setUnlockError(null);
-                setExpandConfirmOpen(true);
+                setExpandConfirmOpen(false);
+                setExpandOfferOpen(true);
               }}
             />
           );
@@ -196,12 +206,22 @@ export function MemoryAlbumScreen({
         </p>
       )}
 
+      <MemoryAlbumExpandOfferDialog
+        open={expandOfferOpen && !expandConfirmOpen}
+        jewelCost={JEWEL_COST_MEMORY_ALBUM_ROW}
+        canAfford={canAffordUnlock}
+        onRequestExpand={() => {
+          if (!canAffordUnlock) return;
+          setExpandConfirmOpen(true);
+        }}
+        onCancel={closeExpandFlow}
+      />
+
       <MemoryAlbumExpandConfirmDialog
         open={expandConfirmOpen}
         jewelCost={JEWEL_COST_MEMORY_ALBUM_ROW}
-        canAfford={canAffordUnlock}
         onConfirm={handleConfirmExpand}
-        onCancel={() => setExpandConfirmOpen(false)}
+        onCancel={closeExpandFlow}
       />
 
       {helpOpen && (

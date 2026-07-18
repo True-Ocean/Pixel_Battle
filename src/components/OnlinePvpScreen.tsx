@@ -385,7 +385,7 @@ export function OnlinePvpScreen({
       <section className="screen screen-online-pvp-lobby">
         <header className="offline-pvp-list-header">
           <button type="button" className="battle-hub-back-btn" onClick={onBack}>
-            モード選択に戻る
+            戻る
           </button>
           <div className="battle-mode-screen-title-row">
             <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
@@ -420,7 +420,7 @@ export function OnlinePvpScreen({
     <section className="screen screen-online-pvp-entry">
       <header className="offline-pvp-list-header">
         <button type="button" className="battle-hub-back-btn" onClick={onBack}>
-          モード選択に戻る
+          戻る
         </button>
         <div className="battle-mode-screen-title-row">
           <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>

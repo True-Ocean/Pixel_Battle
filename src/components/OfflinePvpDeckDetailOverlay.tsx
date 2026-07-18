@@ -83,9 +83,10 @@ export function OfflinePvpDeckDetailOverlay({
                 <button
                   type="button"
                   className="offline-pvp-detail-profile-link"
+                  aria-label={`${ghost.authorName}のプロフィールを開く`}
                   onClick={() => onOpenProfile(ghost)}
                 >
-                  {ghost.authorName}
+                  <span className="profile-link-name">{ghost.authorName}</span>
                 </button>
               </h2>
               <p className="offline-pvp-detail-meta-row">

@@ -4236,7 +4236,6 @@ function App() {
           <ProfileScreen
             user={remoteProfileView.user}
             publishedDecks={remoteProfileView.publishedDecks}
-            loading={remoteProfileView.status === 'loading'}
             loadError={remoteProfileView.status === 'error'}
             onRetry={
               remoteProfileView.ownerId

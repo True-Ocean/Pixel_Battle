@@ -88,9 +88,12 @@ export function BattleHistoryDetailOverlay({
                   <button
                     type="button"
                     className="records-history-profile-link"
+                    aria-label={`${entry.opponentName}のプロフィールを開く`}
                     onClick={() => onOpenOpponentProfile(entry)}
                   >
-                    {entry.opponentName}
+                    <span className="profile-link-name">
+                      {entry.opponentName}
+                    </span>
                   </button>
                 )}
                 <span className="records-history-opponent-level"> Lv.{entry.opponentLevel}</span>

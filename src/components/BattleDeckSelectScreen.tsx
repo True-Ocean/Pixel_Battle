@@ -90,7 +90,7 @@ export function BattleDeckSelectScreen({
   unlockedDeckCount,
   lastBattleDeckIndex,
   deckReadinessMode = 'battle',
-  backLabel = 'モード選択に戻る',
+  backLabel = '戻る',
   title = 'デッキ選択',
   startButtonLabel = 'バトル開始',
   startBattleDisabled = false,

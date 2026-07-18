@@ -30,7 +30,6 @@ export interface ProfileScreenProps {
   /** 他ユーザー閲覧時は省略し、プランを表示しない。 */
   subscription?: UserSubscription;
   publishedDecks: readonly ProfilePublishedDeck[];
-  loading?: boolean;
   loadError?: boolean;
   onRetry?: () => void;
   onBack: () => void;
@@ -77,7 +76,6 @@ export function ProfileScreen({
   user,
   subscription,
   publishedDecks,
-  loading = false,
   loadError = false,
   onRetry,
   onBack,
@@ -102,14 +100,12 @@ export function ProfileScreen({
       </header>
 
       <div className="profile-body">
-        {(loading || loadError) && (
+        {loadError && (
           <div className="profile-load-status" role="status">
             <span>
-              {loading
-                ? '最新のプロフィールを読み込み中…'
-                : '最新情報を取得できなかったため、対戦時の情報を表示しています。'}
+              最新情報を取得できなかったため、対戦時の情報を表示しています。
             </span>
-            {loadError && onRetry && (
+            {onRetry && (
               <button type="button" onClick={onRetry}>
                 再読み込み
               </button>

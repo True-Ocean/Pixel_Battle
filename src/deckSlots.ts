@@ -209,7 +209,9 @@ export function getDeckUnlockModalContent(
   return {
     title,
     message: '',
-    jewelUnlockMessage,
+    jewelUnlockMessage: canUnlockWithJewels
+      ? undefined
+      : jewelUnlockMessage,
     showJewelCost: false,
     canUnlockWithJewels,
   };
