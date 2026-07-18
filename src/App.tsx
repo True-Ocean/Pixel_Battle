@@ -58,6 +58,7 @@ import {
   clearPublishedDeckRemoteIds,
   ensureAnonymousUserId,
   isOfflinePvpUnlockedAtUserLevel,
+  listPublicGhostDecksByOwnerId,
   normalizePublishedDeckRemoteIds,
   normalizePublishedDeckSlots,
   OFFLINE_PVP_MIN_USER_LEVEL,
@@ -162,7 +163,11 @@ import { HistoryRematchRewardModal } from './components/HistoryRematchRewardModa
 import { RecordsScreen } from './components/RecordsScreen';
 import { InventoryScreen } from './components/InventoryScreen';
 import { SettingsScreen } from './components/SettingsScreen';
-import { ProfileScreen } from './components/ProfileScreen';
+import {
+  ProfileScreen,
+  type ProfileDisplayUser,
+  type ProfilePublishedDeck,
+} from './components/ProfileScreen';
 import { AvatarDetailScreen } from './components/AvatarDetailScreen';
 import { AvatarEditorScreen } from './components/AvatarEditorScreen';
 import { ShopScreen } from './components/ShopScreen';
@@ -171,6 +176,10 @@ import { TitleScreen } from './components/TitleScreen';
 import { DeckIntroModal } from './components/DeckIntroModal';
 import { UserProfileBar } from './components/UserProfileBar';
 import { isDockVisible, isTabId, type TabId } from './navigation/screenIds';
+import {
+  getPublicProfileByOwnerId,
+  saveCurrentPublicProfile,
+} from './publicProfile';
 import { normalizeSoundEnabled } from './user/preferences';
 import { bgmPlayer } from './audio/bgmPlayer';
 import { useBgm } from './audio/useBgm';
@@ -178,6 +187,80 @@ import './App.css';
 
 function initialScreen(user: UserProfile | null): ScreenId {
   return isProfileComplete(user) ? 'deck' : 'setup';
+}
+
+interface RemoteProfileSource {
+  ownerId?: string;
+  user: ProfileDisplayUser;
+  publishedDecks: ProfilePublishedDeck[];
+}
+
+interface RemoteProfileView extends RemoteProfileSource {
+  source: RemoteProfileSource;
+  status: 'loading' | 'loaded' | 'error' | 'snapshot';
+}
+
+function createRemoteProfileSourceFromGhost(
+  ghost: PublicGhostDeck,
+): RemoteProfileSource {
+  return {
+    ...(ghost.ownerId ? { ownerId: ghost.ownerId } : {}),
+    user: {
+      username: ghost.authorName,
+      level: ghost.authorLevel,
+      cpuBattleWins: null,
+      cpuBattleLosses: null,
+      offlinePvpBattleWins: ghost.offlinePvpWins,
+      offlinePvpBattleLosses: ghost.offlinePvpLosses,
+      onlinePvpBattleWins: null,
+      onlinePvpBattleLosses: null,
+    },
+    publishedDecks: [
+      {
+        slotIndex: ghost.slotIndex,
+        name: ghost.deckName,
+        cards: ghost.deck,
+      },
+    ],
+  };
+}
+
+function createRemoteProfileSourceFromHistory(
+  entry: BattleHistoryEntry,
+): RemoteProfileSource {
+  return {
+    ...(entry.opponentOwnerId
+      ? { ownerId: entry.opponentOwnerId }
+      : {}),
+    user: {
+      username: entry.opponentName,
+      level: entry.opponentLevel,
+      cpuBattleWins: null,
+      cpuBattleLosses: null,
+      offlinePvpBattleWins: null,
+      offlinePvpBattleLosses: null,
+      onlinePvpBattleWins: null,
+      onlinePvpBattleLosses: null,
+    },
+    publishedDecks: [
+      {
+        slotIndex: 0,
+        name: '対戦時のデッキ',
+        cards: entry.opponentDeck,
+      },
+    ],
+  };
+}
+
+function createRemoteProfileSnapshot(
+  source: RemoteProfileSource,
+  status: RemoteProfileView['status'],
+): RemoteProfileView {
+  return {
+    source,
+    ...source,
+    status,
+  };
 }
 
 function App() {
@@ -364,6 +447,8 @@ function App() {
     outcomeLine?: string;
   } | null>(null);
   const [deleteResult, setDeleteResult] = useState<CardDeleteOutcome | null>(null);
+  const [remoteProfileView, setRemoteProfileView] =
+    useState<RemoteProfileView | null>(null);
 
   const userRef = useRef(user);
   const economyRef = useRef(economy);
@@ -405,6 +490,7 @@ function App() {
   const battleOutcomeHoldTimerRef = useRef<number | null>(null);
   const settingsReturnScreenRef = useRef<ScreenId>('deck');
   const profileReturnScreenRef = useRef<ScreenId>('deck');
+  const remoteProfileRequestRef = useRef(0);
   useEffect(() => {
     userRef.current = user;
     economyRef.current = economy;
@@ -660,6 +746,21 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!isSupabaseConfigured() || !isProfileComplete(user)) return;
+    const timeoutId = window.setTimeout(() => {
+      void saveCurrentPublicProfile(user).then((result) => {
+        if (!result.ok && result.reason === 'save_failed') {
+          console.warn(
+            '[publicProfile] failed to sync current profile',
+            result.error,
+          );
+        }
+      });
+    }, 800);
+    return () => window.clearTimeout(timeoutId);
+  }, [user]);
+
+  useEffect(() => {
     if (!isSupabaseConfigured()) return;
     ensureLocalClientUpdatedAt();
     let cancelled = false;
@@ -707,6 +808,7 @@ function App() {
               publishedSlots: publishedDeckSlotsRef.current,
               remoteIds: clearedIds,
               decks: decksRef.current,
+              deckNames: deckNamesRef.current,
               user: profile,
               unlockedDeckCount: unlockedDeckCountRef.current,
               resetRemoteIds: true,
@@ -766,6 +868,7 @@ function App() {
       if (published) {
         const result = await upsertPublishedDeck({
           slotIndex,
+          deckName: getDeckDisplayName(slotIndex, deckNamesRef.current),
           deck: layout,
           user: profile,
           remoteId: publishedDeckRemoteIdsRef.current[slotIndex],
@@ -842,6 +945,7 @@ function App() {
           publishedSlots: publishedDeckSlotsRef.current,
           remoteIds: publishedDeckRemoteIdsRef.current,
           decks,
+          deckNames,
           user: profile,
           unlockedDeckCount,
         });
@@ -861,7 +965,7 @@ function App() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [decks, persistSave, unlockedDeckCount, user]);
+  }, [deckNames, decks, persistSave, unlockedDeckCount, user]);
 
   const reportAndPersistMissionEvents = useCallback(
     (
@@ -2456,15 +2560,25 @@ function App() {
       }
       const nextHistory = appendBattleHistory(
         battleHistoryRef.current,
-        createBattleHistoryEntry(outcome, {
-          playerDeck:
-            battleStartSnapshotRef.current?.playerDeck ??
-            getDeckCards(prevActiveDeck),
-          playerLevel:
-            battleStartSnapshotRef.current?.playerLevel ??
-            prevUser?.level ??
-            1,
-        }),
+        createBattleHistoryEntry(
+          outcome,
+          {
+            playerDeck:
+              battleStartSnapshotRef.current?.playerDeck ??
+              getDeckCards(prevActiveDeck),
+            playerLevel:
+              battleStartSnapshotRef.current?.playerLevel ??
+              prevUser?.level ??
+              1,
+          },
+          {
+            opponentOwnerId: isOfflinePvpRef.current
+              ? offlinePvpGhostRef.current?.ownerId
+              : isHistoryRematchRef.current
+                ? historyRematchEntryRef.current?.opponentOwnerId
+                : undefined,
+          },
+        ),
       );
       const lastBattleIndex =
         battleStartSnapshotRef.current?.deckIndex ?? deckIndex;
@@ -2601,17 +2715,29 @@ function App() {
         outcome.defeatedPlayerCardIds,
       );
       const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextActiveDeck);
+      const historyRoom = onlinePvpRoomRef.current;
+      const historyRole = onlinePvpRoleRef.current;
+      const opponentOwnerId =
+        historyRoom && historyRole
+          ? historyRole === 'host'
+            ? historyRoom.guestUserId
+            : historyRoom.hostUserId
+          : undefined;
       const nextHistory = appendBattleHistory(
         battleHistoryRef.current,
-        createBattleHistoryEntry(outcome, {
-          playerDeck:
-            battleStartSnapshotRef.current?.playerDeck ??
-            getDeckCards(prevActiveDeck),
-          playerLevel:
-            battleStartSnapshotRef.current?.playerLevel ??
-            prevUser?.level ??
-            1,
-        }),
+        createBattleHistoryEntry(
+          outcome,
+          {
+            playerDeck:
+              battleStartSnapshotRef.current?.playerDeck ??
+              getDeckCards(prevActiveDeck),
+            playerLevel:
+              battleStartSnapshotRef.current?.playerLevel ??
+              prevUser?.level ??
+              1,
+          },
+          { opponentOwnerId },
+        ),
       );
       const battleMissionEvents: Array<{ type: MissionEventType; amount?: number }> =
         [{ type: 'battle_play' }];
@@ -2921,6 +3047,7 @@ function App() {
             publishedSlots: publishedDeckSlotsRef.current,
             remoteIds: publishedDeckRemoteIdsRef.current,
             decks: nextDecks,
+            deckNames: deckNamesRef.current,
             user: nextUser,
             unlockedDeckCount: unlockedDeckCountRef.current,
           });
@@ -3757,13 +3884,78 @@ function App() {
   );
 
   const openProfile = useCallback(() => {
+    remoteProfileRequestRef.current += 1;
+    setRemoteProfileView(null);
     profileReturnScreenRef.current = screen;
     setScreen('profile');
   }, [screen]);
 
   const closeProfile = useCallback(() => {
+    remoteProfileRequestRef.current += 1;
+    setRemoteProfileView(null);
     setScreen(profileReturnScreenRef.current);
   }, []);
+
+  const loadRemoteProfile = useCallback(async (source: RemoteProfileSource) => {
+    const requestId = ++remoteProfileRequestRef.current;
+    const snapshot = createRemoteProfileSnapshot(source, 'loading');
+    setRemoteProfileView(snapshot);
+
+    if (!source.ownerId) {
+      setRemoteProfileView(createRemoteProfileSnapshot(source, 'snapshot'));
+      return;
+    }
+
+    try {
+      const [profileResult, decksResult] = await Promise.all([
+        getPublicProfileByOwnerId(source.ownerId),
+        listPublicGhostDecksByOwnerId(source.ownerId),
+      ]);
+      if (remoteProfileRequestRef.current !== requestId) return;
+
+      const publicProfile =
+        profileResult.ok && profileResult.profile
+          ? profileResult.profile
+          : null;
+      const publishedDecks = decksResult.ok
+        ? decksResult.decks.map((deck) => ({
+            slotIndex: deck.slotIndex,
+            name: deck.deckName,
+            cards: deck.deck,
+          }))
+        : snapshot.publishedDecks;
+      setRemoteProfileView({
+        source,
+        ownerId: source.ownerId,
+        user: publicProfile ?? snapshot.user,
+        publishedDecks,
+        status:
+          publicProfile != null && decksResult.ok ? 'loaded' : 'error',
+      });
+    } catch (error) {
+      if (remoteProfileRequestRef.current !== requestId) return;
+      console.warn('[publicProfile] failed to load remote profile', error);
+      setRemoteProfileView(createRemoteProfileSnapshot(source, 'error'));
+    }
+  }, []);
+
+  const openRemoteProfile = useCallback(
+    (ghost: PublicGhostDeck) => {
+      profileReturnScreenRef.current = screen;
+      setScreen('profile');
+      void loadRemoteProfile(createRemoteProfileSourceFromGhost(ghost));
+    },
+    [loadRemoteProfile, screen],
+  );
+
+  const openHistoryOpponentProfile = useCallback(
+    (entry: BattleHistoryEntry) => {
+      profileReturnScreenRef.current = screen;
+      setScreen('profile');
+      void loadRemoteProfile(createRemoteProfileSourceFromHistory(entry));
+    },
+    [loadRemoteProfile, screen],
+  );
 
   const saveAvatar = useCallback(
     (avatar: NonNullable<UserProfile['avatar']>) => {
@@ -3957,6 +4149,7 @@ function App() {
             excludeOwnerId={supabaseOwnerId}
             canBattle={hasOfflinePvpBattleDeck}
             onBack={closeOfflinePvpList}
+            onOpenProfile={openRemoteProfile}
             onChallenge={startOfflinePvpDeckSelect}
           />
         )}
@@ -4012,6 +4205,7 @@ function App() {
             battleHistory={battleHistory}
             canRematch={hasHistoryRematchDeck(decks, unlockedDeckCount)}
             onRequestRematch={requestHistoryRematch}
+            onOpenOpponentProfile={openHistoryOpponentProfile}
             onBack={closeRecords}
             onOpponentCardView={handleHistoryOpponentCardView}
           />
@@ -4038,7 +4232,22 @@ function App() {
             equippedTalismanCount={equippedTalismanCount}
           />
         )}
-        {screen === 'profile' && user && (
+        {screen === 'profile' && remoteProfileView && (
+          <ProfileScreen
+            user={remoteProfileView.user}
+            publishedDecks={remoteProfileView.publishedDecks}
+            loading={remoteProfileView.status === 'loading'}
+            loadError={remoteProfileView.status === 'error'}
+            onRetry={
+              remoteProfileView.ownerId
+                ? () => void loadRemoteProfile(remoteProfileView.source)
+                : undefined
+            }
+            onBack={closeProfile}
+            onOpenAvatar={() => setScreen('avatarDetail')}
+          />
+        )}
+        {screen === 'profile' && !remoteProfileView && user && (
           <ProfileScreen
             user={user}
             subscription={subscription}
@@ -4047,7 +4256,13 @@ function App() {
             onOpenAvatar={() => setScreen('avatarDetail')}
           />
         )}
-        {screen === 'avatarDetail' && user && (
+        {screen === 'avatarDetail' && remoteProfileView && (
+          <AvatarDetailScreen
+            user={remoteProfileView.user}
+            onBack={() => setScreen('profile')}
+          />
+        )}
+        {screen === 'avatarDetail' && !remoteProfileView && user && (
           <AvatarDetailScreen
             user={user}
             onBack={() => setScreen('profile')}

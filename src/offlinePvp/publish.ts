@@ -15,6 +15,8 @@ function isCardArray(value: unknown): value is Card[] {
 export function rowToPublicGhostDeck(row: PublicGhostDeckRow) {
   return {
     id: row.id,
+    slotIndex: row.slot_index,
+    deckName: row.deck_name?.trim() || `公開デッキ${row.slot_index + 1}`,
     authorName: row.author_name,
     authorLevel: row.author_level,
     offlinePvpWins: row.offline_pvp_wins,
@@ -63,6 +65,7 @@ export async function deleteAllPublishedDecksForCurrentOwner(): Promise<void> {
 
 export async function upsertPublishedDeck(options: {
   slotIndex: number;
+  deckName: string;
   deck: DeckLayout;
   user: UserProfile;
   remoteId?: string | null;
@@ -95,6 +98,7 @@ export async function upsertPublishedDeck(options: {
   const payload = {
     owner_id: ownerId,
     slot_index: options.slotIndex,
+    deck_name: options.deckName.trim() || `デッキ${options.slotIndex + 1}`,
     author_name: options.user.username,
     author_level: options.user.level,
     offline_pvp_wins: options.user.offlinePvpBattleWins ?? 0,
@@ -179,7 +183,9 @@ export async function unpublishDeck(options: {
   return { ok: true };
 }
 
-export async function fetchRemotePublicGhostDecks(): Promise<
+export async function fetchRemotePublicGhostDecks(options?: {
+  ownerId?: string;
+}): Promise<
   | { ok: true; rows: PublicGhostDeckRow[] }
   | { ok: false; error: string }
 > {
@@ -192,12 +198,18 @@ export async function fetchRemotePublicGhostDecks(): Promise<
     return { ok: false, error: 'not_configured' };
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('public_ghost_decks')
     .select(
-      'id, owner_id, slot_index, author_name, author_level, offline_pvp_wins, offline_pvp_losses, deck, published_at, updated_at',
-    )
-    .order('author_level', { ascending: true });
+      'id, owner_id, slot_index, deck_name, author_name, author_level, offline_pvp_wins, offline_pvp_losses, deck, published_at, updated_at',
+    );
+  if (options?.ownerId) {
+    query = query.eq('owner_id', options.ownerId);
+  }
+  const { data, error } = await query.order(
+    options?.ownerId ? 'slot_index' : 'author_level',
+    { ascending: true },
+  );
 
   if (error) {
     return { ok: false, error: error.message };
@@ -210,6 +222,12 @@ export async function fetchRemotePublicGhostDecks(): Promise<
     if (typeof record.id !== 'string') continue;
     if (typeof record.owner_id !== 'string') continue;
     if (typeof record.slot_index !== 'number') continue;
+    if (
+      record.deck_name != null &&
+      typeof record.deck_name !== 'string'
+    ) {
+      continue;
+    }
     if (typeof record.author_name !== 'string') continue;
     if (typeof record.author_level !== 'number') continue;
     if (!isCardArray(record.deck)) continue;
@@ -226,6 +244,8 @@ export async function fetchRemotePublicGhostDecks(): Promise<
       id: record.id,
       owner_id: record.owner_id,
       slot_index: Math.floor(record.slot_index),
+      deck_name:
+        typeof record.deck_name === 'string' ? record.deck_name : null,
       author_name: record.author_name,
       author_level: Math.floor(record.author_level),
       offline_pvp_wins: wins,

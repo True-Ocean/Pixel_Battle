@@ -10,6 +10,7 @@ interface BattleHistoryDetailOverlayProps {
   canRematch: boolean;
   onClose: () => void;
   onRematch: (entry: BattleHistoryEntry) => void;
+  onOpenOpponentProfile: (entry: BattleHistoryEntry) => void;
   onOpponentCardView?: () => void;
 }
 
@@ -18,6 +19,7 @@ export function BattleHistoryDetailOverlay({
   canRematch,
   onClose,
   onRematch,
+  onOpenOpponentProfile,
   onOpponentCardView,
 }: BattleHistoryDetailOverlayProps) {
   const [notice, setNotice] = useState<string | null>(null);
@@ -79,7 +81,18 @@ export function BattleHistoryDetailOverlay({
                 </span>
               </p>
               <p className="records-history-detail-opponent">
-                vs {entry.opponentName}
+                vs{' '}
+                {isCpuOpponent ? (
+                  entry.opponentName
+                ) : (
+                  <button
+                    type="button"
+                    className="records-history-profile-link"
+                    onClick={() => onOpenOpponentProfile(entry)}
+                  >
+                    {entry.opponentName}
+                  </button>
+                )}
                 <span className="records-history-opponent-level"> Lv.{entry.opponentLevel}</span>
               </p>
               <p className="records-history-detail-power muted">

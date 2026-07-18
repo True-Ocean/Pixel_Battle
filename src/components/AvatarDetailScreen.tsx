@@ -3,8 +3,10 @@ import type { UserProfile } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PixelIconPreview } from './PixelIconPreview';
 
+export type AvatarDetailUser = Pick<UserProfile, 'username' | 'avatar'>;
+
 interface AvatarDetailScreenProps {
-  user: UserProfile;
+  user: AvatarDetailUser;
   onBack: () => void;
   /** 省略時は閲覧専用 */
   onEdit?: () => void;

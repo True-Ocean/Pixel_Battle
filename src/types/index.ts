@@ -159,6 +159,8 @@ export interface BattleHistoryEntry {
   playedAt: string;
   winner: 'player' | 'cpu';
   opponentName: string;
+  /** サーバープロフィール参照用。CPU戦と旧履歴では未設定 */
+  opponentOwnerId?: string;
   opponentLevel: number;
   opponentDeckPower: number;
   playerDeckPower: number;

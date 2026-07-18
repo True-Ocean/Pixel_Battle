@@ -12,6 +12,7 @@ interface RecordsScreenProps {
   battleHistory: BattleHistoryEntry[];
   canRematch: boolean;
   onRequestRematch: (entry: BattleHistoryEntry) => void;
+  onOpenOpponentProfile: (entry: BattleHistoryEntry) => void;
   onBack: () => void;
   onOpponentCardView?: () => void;
 }
@@ -20,6 +21,7 @@ export function RecordsScreen({
   battleHistory,
   canRematch,
   onRequestRematch,
+  onOpenOpponentProfile,
   onBack,
   onOpponentCardView,
 }: RecordsScreenProps) {
@@ -84,6 +86,10 @@ export function RecordsScreen({
           entry={selectedEntry}
           canRematch={canRematch}
           onClose={() => setSelectedEntry(null)}
+          onOpenOpponentProfile={(entry) => {
+            setSelectedEntry(null);
+            onOpenOpponentProfile(entry);
+          }}
           onRematch={(entry) => {
             setSelectedEntry(null);
             onRequestRematch(entry);

@@ -1,5 +1,5 @@
 import { DECK_SLOT_COUNT } from '../config/balance';
-import { normalizeDeckLayout } from '../deckSlots';
+import { getDeckDisplayName, normalizeDeckLayout } from '../deckSlots';
 import type { DeckLayout, UserProfile } from '../types';
 import { canPublishDeck, unpublishDeck, upsertPublishedDeck } from './publish';
 import {
@@ -39,6 +39,7 @@ export async function republishOwnedPublishedDecks(options: {
   publishedSlots: readonly boolean[];
   remoteIds: readonly (string | null)[];
   decks: readonly DeckLayout[];
+  deckNames?: string[];
   user: UserProfile;
   unlockedDeckCount: number;
   /** true のとき stored remoteId を無視する（auth user_id 変更後） */
@@ -76,6 +77,7 @@ export async function republishOwnedPublishedDecks(options: {
     }
     const result = await upsertPublishedDeck({
       slotIndex,
+      deckName: getDeckDisplayName(slotIndex, options.deckNames),
       deck: layout,
       user: options.user,
       remoteId: ids[slotIndex],

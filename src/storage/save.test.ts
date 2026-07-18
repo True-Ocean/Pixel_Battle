@@ -120,6 +120,28 @@ describe('saveSave merge', () => {
       nextGrantAt: '2099-01-01T00:00:00.000Z',
     });
   });
+
+  it('keeps opponent owner id in battle history', () => {
+    const opponentCard = makeCard('相手カード', 100);
+    saveSave({
+      ...baseSave(),
+      battleHistory: [
+        {
+          id: 'history-1',
+          playedAt: '2026-07-18T00:00:00.000Z',
+          winner: 'player',
+          opponentName: '対戦相手',
+          opponentOwnerId: 'owner-a',
+          opponentLevel: 10,
+          opponentDeckPower: 100,
+          playerDeckPower: 120,
+          opponentDeck: [opponentCard],
+        },
+      ],
+    });
+
+    expect(loadSave().battleHistory?.[0]?.opponentOwnerId).toBe('owner-a');
+  });
 });
 
 describe('loadSave BP recalc', () => {

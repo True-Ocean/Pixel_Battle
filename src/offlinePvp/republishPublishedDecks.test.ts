@@ -44,12 +44,15 @@ describe('republishOwnedPublishedDecks', () => {
       publishedSlots: [true, false, false, false, false],
       remoteIds: [null, null, null, null, null],
       decks: createEmptyDeckSlots(),
+      deckNames: ['最強デッキ'],
       user,
       unlockedDeckCount: 1,
     });
 
     expect(unpublishDeck).not.toHaveBeenCalled();
-    expect(upsertPublishedDeck).toHaveBeenCalledTimes(1);
+    expect(upsertPublishedDeck).toHaveBeenCalledWith(
+      expect.objectContaining({ slotIndex: 0, deckName: '最強デッキ' }),
+    );
     expect(result.remoteIds[0]).toBe('new-remote-id');
     expect(result.changed).toBe(true);
   });

@@ -17,12 +17,15 @@ export interface BattleHistoryPlayerSnapshot {
 export function createBattleHistoryEntry(
   outcome: BattleOutcome,
   playerSnapshot: BattleHistoryPlayerSnapshot,
+  options?: { opponentOwnerId?: string | null },
 ): BattleHistoryEntry {
+  const opponentOwnerId = options?.opponentOwnerId?.trim();
   return {
     id: createId(),
     playedAt: new Date().toISOString(),
     winner: outcome.winner,
     opponentName: outcome.opponent.name,
+    ...(opponentOwnerId ? { opponentOwnerId } : {}),
     opponentLevel: outcome.opponent.level,
     opponentDeckPower: outcome.opponentDeckPower,
     playerDeckPower: outcome.playerDeckPower,

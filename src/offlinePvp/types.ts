@@ -3,6 +3,10 @@ import type { Card } from '../types';
 /** 公開ゴーストデッキ（プール上のスナップショット） */
 export interface PublicGhostDeck {
   id: string;
+  /** 公開元のデッキスロット */
+  slotIndex: number;
+  /** 公開時点のデッキ名 */
+  deckName: string;
   /** 一覧・履歴・バトル中に表示する作者名 */
   authorName: string;
   /** 作者のユーザーレベル（公開時点） */
@@ -23,6 +27,7 @@ export interface PublicGhostDeckRow {
   id: string;
   owner_id: string;
   slot_index: number;
+  deck_name: string | null;
   author_name: string;
   author_level: number;
   offline_pvp_wins: number;

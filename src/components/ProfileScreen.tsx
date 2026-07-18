@@ -7,6 +7,18 @@ import { CardDetailViewOverlay } from './CardDetailViewOverlay';
 import { CardPreview } from './CardPreview';
 import { PixelIconPreview } from './PixelIconPreview';
 
+export interface ProfileDisplayUser {
+  username: string;
+  avatar?: UserProfile['avatar'];
+  level: number;
+  cpuBattleWins: number | null;
+  cpuBattleLosses: number | null;
+  offlinePvpBattleWins: number | null;
+  offlinePvpBattleLosses: number | null;
+  onlinePvpBattleWins: number | null;
+  onlinePvpBattleLosses: number | null;
+}
+
 export interface ProfilePublishedDeck {
   slotIndex: number;
   name: string;
@@ -14,16 +26,21 @@ export interface ProfilePublishedDeck {
 }
 
 export interface ProfileScreenProps {
-  user: UserProfile;
-  subscription: UserSubscription;
+  user: ProfileDisplayUser;
+  /** 他ユーザー閲覧時は省略し、プランを表示しない。 */
+  subscription?: UserSubscription;
   publishedDecks: readonly ProfilePublishedDeck[];
+  loading?: boolean;
+  loadError?: boolean;
+  onRetry?: () => void;
   onBack: () => void;
   onOpenAvatar: () => void;
 }
 
 const AVATAR_PREVIEW_SIZE = 96;
 
-function formatWinRate(wins: number, losses: number): string {
+function formatWinRate(wins: number | null, losses: number | null): string {
+  if (wins == null || losses == null) return '—';
   const total = wins + losses;
   if (total === 0) return '—';
   return `${Math.round((wins / total) * 100)}%`;
@@ -35,15 +52,19 @@ function ProfileRecordRow({
   losses,
 }: {
   label: string;
-  wins: number;
-  losses: number;
+  wins: number | null;
+  losses: number | null;
 }) {
   return (
     <div className="profile-record-row">
       <span className="profile-record-label">{label}</span>
       <span className="profile-record-stats">
-        <span className="profile-record-wins">{wins}勝</span>
-        <span className="profile-record-losses">{losses}敗</span>
+        <span className="profile-record-wins">
+          {wins == null ? '—' : `${wins}勝`}
+        </span>
+        <span className="profile-record-losses">
+          {losses == null ? '—' : `${losses}敗`}
+        </span>
         <span className="profile-record-rate" aria-label="勝率">
           {formatWinRate(wins, losses)}
         </span>
@@ -56,11 +77,16 @@ export function ProfileScreen({
   user,
   subscription,
   publishedDecks,
+  loading = false,
+  loadError = false,
+  onRetry,
   onBack,
   onOpenAvatar,
 }: ProfileScreenProps) {
   const [detailCard, setDetailCard] = useState<Card | null>(null);
-  const activePlan = getActiveSubscriptionPlan(subscription);
+  const activePlan = subscription
+    ? getActiveSubscriptionPlan(subscription)
+    : 'none';
   const planLabel =
     activePlan === 'none' ? null : getSubscriptionPlanById(activePlan).label;
   const trimmedName = user.username.trim();
@@ -76,6 +102,21 @@ export function ProfileScreen({
       </header>
 
       <div className="profile-body">
+        {(loading || loadError) && (
+          <div className="profile-load-status" role="status">
+            <span>
+              {loading
+                ? '最新のプロフィールを読み込み中…'
+                : '最新情報を取得できなかったため、対戦時の情報を表示しています。'}
+            </span>
+            {loadError && onRetry && (
+              <button type="button" onClick={onRetry}>
+                再読み込み
+              </button>
+            )}
+          </div>
+        )}
+
         <button
           type="button"
           className="profile-avatar-frame"

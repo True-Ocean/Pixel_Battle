@@ -75,14 +75,19 @@ describe('createBattleHistoryEntry', () => {
       },
     };
 
-    const entry = createBattleHistoryEntry(outcome, {
-      playerDeck: [playerCard],
-      playerLevel: 7,
-    });
+    const entry = createBattleHistoryEntry(
+      outcome,
+      {
+        playerDeck: [playerCard],
+        playerLevel: 7,
+      },
+      { opponentOwnerId: ' owner-a ' },
+    );
 
     expect(entry.playerDeck).toEqual([playerCard]);
     expect(entry.playerLevel).toBe(7);
     expect(entry.opponentName).toBe('CPU');
+    expect(entry.opponentOwnerId).toBe('owner-a');
     expect(entry.winner).toBe('player');
   });
 });

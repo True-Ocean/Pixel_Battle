@@ -18,6 +18,7 @@ export {
   getPublicGhostDeckById,
   getPublicGhostDeckListEmptyMessage,
   listPublicGhostDecks,
+  listPublicGhostDecksByOwnerId,
   sortByViewerLevel,
 } from './listPublicGhostDecks';
 export type { ListPublicGhostDecksResult } from './listPublicGhostDecks';

@@ -3,9 +3,11 @@ import {
   getPublicGhostDeckById,
   getPublicGhostDeckListEmptyMessage,
   listPublicGhostDecks,
+  listPublicGhostDecksByOwnerId,
   sortByViewerLevel,
 } from './listPublicGhostDecks';
-import type { PublicGhostDeck } from './types';
+import { fetchRemotePublicGhostDecks } from './publish';
+import type { PublicGhostDeck, PublicGhostDeckRow } from './types';
 import type { Card } from '../types';
 
 // Supabase の設定状況（.env）に依存せず、未設定パスを固定で検証する。
@@ -44,6 +46,8 @@ function stubDeck(
 ): PublicGhostDeck {
   return {
     id,
+    slotIndex: 0,
+    deckName: id,
     authorName: id,
     authorLevel,
     offlinePvpWins: 0,
@@ -59,12 +63,54 @@ function stubDeck(
   };
 }
 
+function stubRow(id: string, slotIndex: number): PublicGhostDeckRow {
+  return {
+    id,
+    owner_id: 'owner-a',
+    slot_index: slotIndex,
+    deck_name: `デッキ${slotIndex + 1}`,
+    author_name: 'tester',
+    author_level: 10,
+    offline_pvp_wins: 0,
+    offline_pvp_losses: 0,
+    deck: [
+      stubCard(`${id}-0`),
+      stubCard(`${id}-1`),
+      stubCard(`${id}-2`),
+      stubCard(`${id}-3`),
+      stubCard(`${id}-4`),
+    ],
+    published_at: '2026-07-18T00:00:00.000Z',
+    updated_at: '2026-07-18T00:00:00.000Z',
+  };
+}
+
 describe('listPublicGhostDecks', () => {
   it('returns not_configured when supabase is not configured', async () => {
     const result = await listPublicGhostDecks(10);
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.reason).toBe('not_configured');
+    }
+  });
+});
+
+describe('listPublicGhostDecksByOwnerId', () => {
+  it('requests one owner and returns decks in slot order', async () => {
+    vi.mocked(fetchRemotePublicGhostDecks).mockResolvedValueOnce({
+      ok: true,
+      rows: [stubRow('deck-c', 2), stubRow('deck-a', 0)],
+    });
+    const result = await listPublicGhostDecksByOwnerId('owner-a');
+    expect(fetchRemotePublicGhostDecks).toHaveBeenCalledWith({
+      ownerId: 'owner-a',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.decks.map((deck) => deck.id)).toEqual([
+        'deck-a',
+        'deck-c',
+      ]);
     }
   });
 });

@@ -264,11 +264,17 @@ function parseBattleHistory(raw: unknown): BattleHistoryEntry[] {
       typeof record.playerLevel === 'number'
         ? Math.floor(record.playerLevel)
         : undefined;
+    const opponentOwnerId =
+      typeof record.opponentOwnerId === 'string' &&
+      record.opponentOwnerId.trim() !== ''
+        ? record.opponentOwnerId.trim()
+        : undefined;
     entries.push({
       id: record.id,
       playedAt: record.playedAt,
       winner: record.winner,
       opponentName: record.opponentName,
+      ...(opponentOwnerId ? { opponentOwnerId } : {}),
       opponentLevel: Math.floor(record.opponentLevel),
       opponentDeckPower: Math.floor(record.opponentDeckPower),
       playerDeckPower: Math.floor(record.playerDeckPower),

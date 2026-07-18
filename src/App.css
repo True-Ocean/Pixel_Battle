@@ -2319,6 +2319,25 @@ button.battle-hub-deck-icon.is-move-target {
   word-break: break-word;
 }
 
+.offline-pvp-detail-profile-link {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: #93c5fd;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.offline-pvp-detail-profile-link:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
 .offline-pvp-detail-meta-row {
   display: inline-flex;
   flex-wrap: wrap;
@@ -3028,6 +3047,25 @@ button.battle-hub-deck-icon.is-move-target {
   font-size: 0.95rem;
   font-weight: 600;
   color: #1e293b;
+}
+
+.records-history-profile-link {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: #93c5fd;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.records-history-profile-link:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 .records-history-result-win {
@@ -14701,6 +14739,34 @@ button.battle-card {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0.25rem 0.1rem 0.5rem;
+}
+
+.profile-load-status {
+  box-sizing: border-box;
+  width: min(100%, 24rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #475569;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.profile-load-status button {
+  flex: 0 0 auto;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  padding: 0.3rem 0.55rem;
+  background: #fff;
+  color: #1d4ed8;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .profile-avatar-frame {

@@ -11,6 +11,7 @@ interface OfflinePvpDeckDetailOverlayProps {
   viewerDeckPower: number | null;
   canBattle: boolean;
   onClose: () => void;
+  onOpenProfile: (ghost: PublicGhostDeck) => void;
   onChallenge: (ghost: PublicGhostDeck) => void;
 }
 
@@ -19,6 +20,7 @@ export function OfflinePvpDeckDetailOverlay({
   viewerDeckPower,
   canBattle,
   onClose,
+  onOpenProfile,
   onChallenge,
 }: OfflinePvpDeckDetailOverlayProps) {
   const [notice, setNotice] = useState<string | null>(null);
@@ -78,7 +80,13 @@ export function OfflinePvpDeckDetailOverlay({
                 id="offline-pvp-detail-title"
                 className="offline-pvp-detail-username"
               >
-                {ghost.authorName}
+                <button
+                  type="button"
+                  className="offline-pvp-detail-profile-link"
+                  onClick={() => onOpenProfile(ghost)}
+                >
+                  {ghost.authorName}
+                </button>
               </h2>
               <p className="offline-pvp-detail-meta-row">
                 <span className="offline-pvp-detail-meta-level">

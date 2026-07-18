@@ -20,6 +20,7 @@ interface OfflinePvpDeckListScreenProps {
   excludeOwnerId?: string | null;
   canBattle: boolean;
   onBack: () => void;
+  onOpenProfile: (ghost: PublicGhostDeck) => void;
   onChallenge: (ghost: PublicGhostDeck) => void;
 }
 
@@ -53,6 +54,7 @@ export function OfflinePvpDeckListScreen({
   excludeOwnerId = null,
   canBattle,
   onBack,
+  onOpenProfile,
   onChallenge,
 }: OfflinePvpDeckListScreenProps) {
   const [ghosts, setGhosts] = useState<PublicGhostDeck[]>([]);
@@ -173,6 +175,10 @@ export function OfflinePvpDeckListScreen({
           viewerDeckPower={viewerDeckPower}
           canBattle={canBattle}
           onClose={() => setSelected(null)}
+          onOpenProfile={(ghost) => {
+            setSelected(null);
+            onOpenProfile(ghost);
+          }}
           onChallenge={(ghost) => {
             setSelected(null);
             onChallenge(ghost);
