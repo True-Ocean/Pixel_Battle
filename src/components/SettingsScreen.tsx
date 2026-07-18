@@ -31,7 +31,7 @@ import {
 } from '../config/economy';
 import { clampUnlockedDeckCount } from '../deckSlots';
 import { isSupabaseConfigured } from '../supabase/client';
-import { getLevelProgress, validateUsername } from '../user';
+import { validateUsername } from '../user';
 import type { SubscriptionPlan, UserProfile } from '../types';
 
 // prop / 派生値が変化したときだけ描画時に state を同期するヘルパー。
@@ -988,9 +988,6 @@ export function SettingsScreen({
     );
   }
 
-  const { progress, isMaxLevel } = getLevelProgress(user);
-  const percent = Math.round(progress * 100);
-
   const handleDevApply = () => {
     const parsed = Number.parseInt(devLevelInput, 10);
     if (!Number.isFinite(parsed) || parsed < 1 || parsed > MAX_USER_LEVEL) {
@@ -1136,35 +1133,6 @@ export function SettingsScreen({
           onCloudRestoreDownload={onCloudRestoreDownload}
           onAccountDeleted={onAccountDeleted}
         />
-
-        <SettingsSection title="戦績" compact>
-          <SettingsRow label="レベル" value={`Lv.${user.level}`} />
-          <div className="settings-progress-wrap">
-            <div className="settings-progress-label">
-              {isMaxLevel ? 'レベル上限' : `次のレベルまで ${percent}%`}
-            </div>
-            <div
-              className={`settings-progress${isMaxLevel ? ' is-max' : ''}`}
-              role="progressbar"
-              aria-valuenow={percent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <div
-                className="settings-progress-fill"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
-          </div>
-          <SettingsRow
-            label="CPU戦"
-            value={`${user.cpuBattleWins}勝 ${user.cpuBattleLosses}敗`}
-          />
-          <SettingsRow
-            label="対人戦（オフライン）"
-            value={`${user.offlinePvpBattleWins}勝 ${user.offlinePvpBattleLosses}敗`}
-          />
-        </SettingsSection>
 
         <SettingsSection title="サブスク・課金" compact>
           <SettingsRow label="サブスク" value={subscriptionLabel} />

@@ -735,6 +735,8 @@ export function resetBattleRecords(data: SaveData): SaveData {
           cpuBattleLosses: 0,
           offlinePvpBattleWins: 0,
           offlinePvpBattleLosses: 0,
+          onlinePvpBattleWins: 0,
+          onlinePvpBattleLosses: 0,
         }
       : null,
     economy: createInitialEconomy(),

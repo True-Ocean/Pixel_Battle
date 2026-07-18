@@ -89,7 +89,8 @@ export function hasPlayableProgress(save: SaveData): boolean {
     const wins =
       (user.battleWins ?? 0) +
       (user.cpuBattleWins ?? 0) +
-      (user.offlinePvpBattleWins ?? 0);
+      (user.offlinePvpBattleWins ?? 0) +
+      (user.onlinePvpBattleWins ?? 0);
     if (wins > 0) return true;
   }
   const deckCards =

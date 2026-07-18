@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { DECK_NAME_MAX_LENGTH } from '../config/balance';
-import { getDeckDisplayName, isDeckNameTakenByOtherDeck, sanitizeDeckNameInput } from '../deckSlots';
+import { isDeckNameTakenByOtherDeck, sanitizeDeckNameInput } from '../deckSlots';
 
 interface DeckRenameDialogProps {
   deckIndex: number;
@@ -94,8 +94,7 @@ export function DeckRenameDialog({
           デッキ名を変更
         </h2>
         <p className="deck-rename-message muted">
-          {getDeckDisplayName(deckIndex, deckNames)} の名前を入力してください。空欄にすると
-          {defaultLabel} 表示に戻ります。
+          空欄にすると{defaultLabel} 表示に戻ります。
         </p>
         <label className="deck-rename-label" htmlFor={inputId}>
           デッキ名

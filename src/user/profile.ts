@@ -12,7 +12,7 @@ import {
   USERNAME_MAX_LENGTH,
 } from '../config/balance';
 import { DEV_USER_LEVEL_OVERRIDE } from '../config/devUserLevel';
-import type { UserEconomy, UserInventory, UserProfile } from '../types';
+import type { PixelGrid, UserEconomy, UserInventory, UserProfile } from '../types';
 import { addFreePixels, addJewels } from './economy';
 import { addInventoryCount } from './inventory';
 import {
@@ -130,6 +130,34 @@ export function createInitialProfile(username: string): UserProfile {
     cpuBattleLosses: 0,
     offlinePvpBattleWins: 0,
     offlinePvpBattleLosses: 0,
+    onlinePvpBattleWins: 0,
+    onlinePvpBattleLosses: 0,
+  };
+}
+
+function normalizeAvatar(raw: unknown): UserProfile['avatar'] {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const candidate = raw as { pixels?: unknown; canvasSize?: unknown };
+  const { canvasSize, pixels } = candidate;
+  if (
+    !Number.isInteger(canvasSize) ||
+    (canvasSize as number) < 16 ||
+    (canvasSize as number) > 34 ||
+    !Array.isArray(pixels) ||
+    pixels.length !== canvasSize
+  ) {
+    return undefined;
+  }
+  const validPixels = pixels.every(
+    (row) =>
+      Array.isArray(row) &&
+      row.length === canvasSize &&
+      row.every((color) => color === null || typeof color === 'string'),
+  );
+  if (!validPixels) return undefined;
+  return {
+    canvasSize: canvasSize as number,
+    pixels: pixels.map((row) => [...row]) as PixelGrid,
   };
 }
 
@@ -158,7 +186,9 @@ export function normalizeUserProfile(raw: unknown): UserProfile | null {
     typeof candidate.cpuBattleWins === 'number' ||
     typeof candidate.cpuBattleLosses === 'number' ||
     typeof candidate.offlinePvpBattleWins === 'number' ||
-    typeof candidate.offlinePvpBattleLosses === 'number';
+    typeof candidate.offlinePvpBattleLosses === 'number' ||
+    typeof candidate.onlinePvpBattleWins === 'number' ||
+    typeof candidate.onlinePvpBattleLosses === 'number';
   const cpuBattleWins =
     typeof candidate.cpuBattleWins === 'number' && candidate.cpuBattleWins >= 0
       ? Math.floor(candidate.cpuBattleWins)
@@ -182,11 +212,25 @@ export function normalizeUserProfile(raw: unknown): UserProfile | null {
     candidate.offlinePvpBattleLosses >= 0
       ? Math.floor(candidate.offlinePvpBattleLosses)
       : 0;
-  const battleWins = cpuBattleWins + offlinePvpBattleWins;
-  const battleLosses = cpuBattleLosses + offlinePvpBattleLosses;
+  const onlinePvpBattleWins =
+    typeof candidate.onlinePvpBattleWins === 'number' &&
+    candidate.onlinePvpBattleWins >= 0
+      ? Math.floor(candidate.onlinePvpBattleWins)
+      : 0;
+  const onlinePvpBattleLosses =
+    typeof candidate.onlinePvpBattleLosses === 'number' &&
+    candidate.onlinePvpBattleLosses >= 0
+      ? Math.floor(candidate.onlinePvpBattleLosses)
+      : 0;
+  const battleWins =
+    cpuBattleWins + offlinePvpBattleWins + onlinePvpBattleWins;
+  const battleLosses =
+    cpuBattleLosses + offlinePvpBattleLosses + onlinePvpBattleLosses;
+  const avatar = normalizeAvatar(candidate.avatar);
 
   return {
     username,
+    ...(avatar ? { avatar } : {}),
     level,
     exp,
     battleWins,
@@ -195,10 +239,12 @@ export function normalizeUserProfile(raw: unknown): UserProfile | null {
     cpuBattleLosses,
     offlinePvpBattleWins,
     offlinePvpBattleLosses,
+    onlinePvpBattleWins,
+    onlinePvpBattleLosses,
   };
 }
 
-export type BattleRecordMode = 'cpu' | 'offlinePvp';
+export type BattleRecordMode = 'cpu' | 'offlinePvp' | 'onlinePvp';
 
 export interface BattleExpInput {
   winner: 'player' | 'cpu';
@@ -308,6 +354,8 @@ export function recordUserBattleOutcome(
   const cpuLosses = withExp.cpuBattleLosses ?? 0;
   const pvpWins = withExp.offlinePvpBattleWins ?? 0;
   const pvpLosses = withExp.offlinePvpBattleLosses ?? 0;
+  const onlinePvpWins = withExp.onlinePvpBattleWins ?? 0;
+  const onlinePvpLosses = withExp.onlinePvpBattleLosses ?? 0;
   return {
     user: {
       ...withExp,
@@ -316,13 +364,19 @@ export function recordUserBattleOutcome(
       offlinePvpBattleWins: pvpWins + (mode === 'offlinePvp' ? winDelta : 0),
       offlinePvpBattleLosses:
         pvpLosses + (mode === 'offlinePvp' ? lossDelta : 0),
+      onlinePvpBattleWins:
+        onlinePvpWins + (mode === 'onlinePvp' ? winDelta : 0),
+      onlinePvpBattleLosses:
+        onlinePvpLosses + (mode === 'onlinePvp' ? lossDelta : 0),
       battleWins:
         cpuWins +
         pvpWins +
+        onlinePvpWins +
         winDelta,
       battleLosses:
         cpuLosses +
         pvpLosses +
+        onlinePvpLosses +
         lossDelta,
     },
     economy: nextEconomy,

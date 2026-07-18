@@ -1,24 +1,34 @@
-import type { UserProfile } from '../types';
-import { getLevelProgress } from '../user';
+import type { UserProfile, UserSubscription } from '../types';
+import { getActiveSubscriptionPlan, getLevelProgress } from '../user';
 import { HamburgerMenuIcon } from './HamburgerMenuIcon';
 import { JewelIcon } from './JewelIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
 
 interface UserProfileBarProps {
   user: UserProfile;
+  subscription: UserSubscription;
   /** 所持 px（freePixels） */
   freePixels: number;
   /** 所持ジュエル */
   jewels: number;
+  onOpenProfile: () => void;
   onOpenSettings: () => void;
 }
 
 export function UserProfileBar({
   user,
+  subscription,
   freePixels,
   jewels,
+  onOpenProfile,
   onOpenSettings,
 }: UserProfileBarProps) {
+  const activeSubscriptionPlan = getActiveSubscriptionPlan(subscription);
+  const subscriptionBadge = activeSubscriptionPlan === 'premium'
+    ? { label: 'プレミアムプラン加入中' }
+    : activeSubscriptionPlan === 'light'
+      ? { label: 'ライトプラン加入中' }
+      : null;
   const { progress, isMaxLevel, expInLevel, expToNext } = getLevelProgress(user);
   const percent = Math.round(progress * 100);
   const expInLevelDisplay = Math.max(0, Math.floor(expInLevel));
@@ -31,11 +41,44 @@ export function UserProfileBar({
       <div className="user-profile-bar" aria-label="ユーザープロフィール">
         <div className="user-profile-main">
           <div className="user-profile-left">
-            <span className="user-profile-level-badge-shell" aria-hidden="true">
+            <span
+              className={`user-profile-level-badge-shell user-profile-level-badge-shell--${activeSubscriptionPlan}`}
+              aria-hidden="true"
+            >
               <span className="user-profile-level-badge">{user.level}</span>
             </span>
             <div className="user-profile-left-body">
-              <span className="user-profile-name">{user.username}</span>
+              <button
+                type="button"
+                className="user-profile-name-row"
+                aria-label={`${user.username}のプロフィールを開く`}
+                onClick={onOpenProfile}
+              >
+                <span className="user-profile-name">{user.username}</span>
+                {subscriptionBadge && (
+                  <span
+                    className={`user-profile-subscription-badge user-profile-subscription-badge--${activeSubscriptionPlan}`}
+                    role="img"
+                    aria-label={subscriptionBadge.label}
+                    title={subscriptionBadge.label}
+                  >
+                    <svg
+                      className="user-profile-subscription-crown"
+                      viewBox="0 0 18 18"
+                      aria-hidden="true"
+                    >
+                      <path
+                        className="user-profile-subscription-crown-body"
+                        d="M1.5 4.5 5.4 8.2 8.8 1.8 12.2 8.2 16.1 4.5 14.7 14.2H2.9L1.5 4.5Z"
+                      />
+                      <path
+                        className="user-profile-subscription-crown-highlight"
+                        d="M4.1 11.8h9.4"
+                      />
+                    </svg>
+                  </span>
+                )}
+              </button>
               <div
                 className={`user-profile-progress${isMaxLevel ? ' is-max' : ''}`}
                 role="progressbar"

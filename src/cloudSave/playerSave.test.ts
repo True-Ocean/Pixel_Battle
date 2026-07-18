@@ -20,6 +20,8 @@ describe('hydrateSaveFromParsed / serializeSaveForStorage (cloudSave 用)', () =
         cpuBattleLosses: 0,
         offlinePvpBattleWins: 0,
         offlinePvpBattleLosses: 0,
+        onlinePvpBattleWins: 0,
+        onlinePvpBattleLosses: 0,
       },
       decks: [[null, null, null, null, null]],
       activeDeckIndex: 0,

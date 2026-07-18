@@ -79,6 +79,28 @@ describe('hasPlayableProgress', () => {
       ),
     ).toBe(true);
   });
+
+  it('is true when the user only has online PvP wins', () => {
+    expect(
+      hasPlayableProgress(
+        emptySave({
+          user: {
+            username: 'online',
+            level: 1,
+            exp: 0,
+            battleWins: 0,
+            battleLosses: 0,
+            cpuBattleWins: 0,
+            cpuBattleLosses: 0,
+            offlinePvpBattleWins: 0,
+            offlinePvpBattleLosses: 0,
+            onlinePvpBattleWins: 1,
+            onlinePvpBattleLosses: 0,
+          },
+        }),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe('resolveSyncDirection', () => {
@@ -141,12 +163,19 @@ describe('saveForCloudUpload', () => {
         cpuBattleLosses: 0,
         offlinePvpBattleWins: 0,
         offlinePvpBattleLosses: 0,
+        onlinePvpBattleWins: 0,
+        onlinePvpBattleLosses: 0,
+        avatar: {
+          pixels: Array.from({ length: 16 }, () => Array(16).fill(null)),
+          canvasSize: 16,
+        },
       },
     });
     const forCloud = saveForCloudUpload(local);
     expect(forCloud).not.toHaveProperty('battleHistory');
     expect(serializeSaveForStorage(forCloud)).not.toHaveProperty('battleHistory');
     expect(forCloud.user?.level).toBe(2);
+    expect(forCloud.user?.avatar).toEqual(local.user?.avatar);
     expect(local.battleHistory).toHaveLength(1);
   });
 });
@@ -178,6 +207,8 @@ describe('mergeLocalOnlyFields', () => {
         cpuBattleLosses: 0,
         offlinePvpBattleWins: 0,
         offlinePvpBattleLosses: 0,
+        onlinePvpBattleWins: 0,
+        onlinePvpBattleLosses: 0,
       },
     });
     const merged = mergeLocalOnlyFields(cloud, local);

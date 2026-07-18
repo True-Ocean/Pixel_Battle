@@ -37,6 +37,8 @@ describe('resetBattleHistory', () => {
         cpuBattleLosses: 2,
         offlinePvpBattleWins: 2,
         offlinePvpBattleLosses: 1,
+        onlinePvpBattleWins: 0,
+        onlinePvpBattleLosses: 0,
       },
       economy: { freePixels: 500, jewels: 2 },
       inventory: {
@@ -90,6 +92,12 @@ describe('resetBattleRecords', () => {
         cpuBattleLosses: 2,
         offlinePvpBattleWins: 2,
         offlinePvpBattleLosses: 1,
+        onlinePvpBattleWins: 3,
+        onlinePvpBattleLosses: 4,
+        avatar: {
+          pixels: Array.from({ length: 16 }, () => Array(16).fill(null)),
+          canvasSize: 16,
+        },
       },
       decks,
       activeDeckIndex: 0,
@@ -114,6 +122,12 @@ describe('resetBattleRecords', () => {
         cpuBattleLosses: 0,
         offlinePvpBattleWins: 0,
         offlinePvpBattleLosses: 0,
+        onlinePvpBattleWins: 0,
+        onlinePvpBattleLosses: 0,
+        avatar: {
+          pixels: Array.from({ length: 16 }, () => Array(16).fill(null)),
+          canvasSize: 16,
+        },
       },
       economy: { freePixels: 0, jewels: 0 },
       inventory: {

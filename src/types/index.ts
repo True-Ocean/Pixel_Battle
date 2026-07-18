@@ -100,9 +100,14 @@ export interface AdState {
 /** ユーザープロフィール（localStorage 永続化） */
 export interface UserProfile {
   username: string;
+  /** ユーザーアバター（未作成時は undefined） */
+  avatar?: {
+    pixels: PixelGrid;
+    canvasSize: number;
+  };
   level: number;
   exp: number;
-  /** 全モード合計の勝利数（CPU + 対人オフライン） */
+  /** 全モード合計の勝利数（CPU + 対人オフライン + 対人オンライン） */
   battleWins: number;
   /** 全モード合計の敗北数 */
   battleLosses: number;
@@ -114,6 +119,10 @@ export interface UserProfile {
   offlinePvpBattleWins: number;
   /** 対人戦（オフライン）の敗北数 */
   offlinePvpBattleLosses: number;
+  /** 対人戦（オンライン）の勝利数 */
+  onlinePvpBattleWins: number;
+  /** 対人戦（オンライン）の敗北数 */
+  onlinePvpBattleLosses: number;
 }
 
 /** バトル終了時に永続化へ渡す結果 */
@@ -247,6 +256,9 @@ export type ScreenId =
   | 'shop'
   | 'inventory'
   | 'settings'
+  | 'profile'
+  | 'avatarDetail'
+  | 'avatarEditor'
   | 'editor'
   | 'battleSetup'
   | 'battle'

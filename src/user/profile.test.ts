@@ -47,6 +47,8 @@ describe('createInitialProfile', () => {
       cpuBattleLosses: 0,
       offlinePvpBattleWins: 0,
       offlinePvpBattleLosses: 0,
+      onlinePvpBattleWins: 0,
+      onlinePvpBattleLosses: 0,
     });
   });
 });
@@ -130,6 +132,8 @@ describe('normalizeUserProfile', () => {
       cpuBattleLosses: 0,
       offlinePvpBattleWins: 0,
       offlinePvpBattleLosses: 0,
+      onlinePvpBattleWins: 0,
+      onlinePvpBattleLosses: 0,
     });
   });
 });
@@ -148,6 +152,8 @@ describe('isProfileComplete', () => {
         cpuBattleLosses: 0,
         offlinePvpBattleWins: 0,
         offlinePvpBattleLosses: 0,
+        onlinePvpBattleWins: 0,
+        onlinePvpBattleLosses: 0,
       }),
     ).toBe(true);
   });
@@ -164,6 +170,8 @@ describe('grantBattleExp', () => {
     cpuBattleLosses: 0,
     offlinePvpBattleWins: 0,
     offlinePvpBattleLosses: 0,
+    onlinePvpBattleWins: 0,
+    onlinePvpBattleLosses: 0,
   };
 
   it('adds exp from opponent deck power on victory', () => {
@@ -199,6 +207,8 @@ describe('recordUserBattleOutcome', () => {
     cpuBattleLosses: 1,
     offlinePvpBattleWins: 0,
     offlinePvpBattleLosses: 0,
+    onlinePvpBattleWins: 0,
+    onlinePvpBattleLosses: 0,
   };
   const economy = createInitialEconomy();
   const inventory = createInitialInventory();
@@ -284,6 +294,18 @@ describe('recordUserBattleOutcome', () => {
     expect(user.cpuBattleWins).toBe(2);
     expect(user.offlinePvpBattleWins).toBe(1);
   });
+
+  it('records online PvP losses separately and includes them in totals', () => {
+    const user = recordUserBattleOutcome(base, economy, inventory, {
+      winner: 'cpu',
+      opponentDeckPower: 1000,
+      mode: 'onlinePvp',
+    }).user;
+    expect(user.battleLosses).toBe(2);
+    expect(user.cpuBattleLosses).toBe(1);
+    expect(user.offlinePvpBattleLosses).toBe(0);
+    expect(user.onlinePvpBattleLosses).toBe(1);
+  });
 });
 
 describe('normalizeUserProfile battle records', () => {
@@ -301,6 +323,68 @@ describe('normalizeUserProfile battle records', () => {
       cpuBattleLosses: 2,
       offlinePvpBattleWins: 0,
       offlinePvpBattleLosses: 0,
+      onlinePvpBattleWins: 0,
+      onlinePvpBattleLosses: 0,
     });
+  });
+
+  it('normalizes online records and recomputes all-mode totals', () => {
+    const profile = normalizeUserProfile({
+      username: 'online',
+      exp: 0,
+      battleWins: 99,
+      battleLosses: 99,
+      cpuBattleWins: 1,
+      cpuBattleLosses: 2,
+      offlinePvpBattleWins: 3,
+      offlinePvpBattleLosses: 4,
+      onlinePvpBattleWins: 5,
+      onlinePvpBattleLosses: 6,
+    });
+    expect(profile).toMatchObject({
+      battleWins: 9,
+      battleLosses: 12,
+      onlinePvpBattleWins: 5,
+      onlinePvpBattleLosses: 6,
+    });
+  });
+});
+
+describe('normalizeUserProfile avatar', () => {
+  it('accepts a square 16-34 avatar with string or null colors', () => {
+    const pixels = Array.from({ length: 16 }, () =>
+      Array.from({ length: 16 }, () => null as string | null),
+    );
+    pixels[0][0] = '#123456';
+    expect(
+      normalizeUserProfile({
+        username: 'avatar',
+        exp: 0,
+        avatar: { pixels, canvasSize: 16 },
+      })?.avatar,
+    ).toEqual({ pixels, canvasSize: 16 });
+  });
+
+  it.each([
+    { pixels: Array.from({ length: 15 }, () => Array(15).fill(null)), canvasSize: 15 },
+    { pixels: Array.from({ length: 16 }, () => Array(15).fill(null)), canvasSize: 16 },
+    {
+      pixels: Array.from({ length: 16 }, () => Array(16).fill(null)),
+      canvasSize: 17,
+    },
+    {
+      pixels: Array.from({ length: 16 }, () => Array(16).fill(null)),
+      canvasSize: 16,
+      corrupt: true,
+    },
+  ])('drops malformed avatars', ({ pixels, canvasSize, corrupt }) => {
+    if (corrupt) pixels[0][0] = 42;
+    expect(
+      normalizeUserProfile({
+        username: 'avatar',
+        exp: 0,
+        avatar: { pixels, canvasSize },
+      })?.avatar,
+    ).toBeUndefined();
   });
 });

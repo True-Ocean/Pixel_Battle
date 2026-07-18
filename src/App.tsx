@@ -162,6 +162,9 @@ import { HistoryRematchRewardModal } from './components/HistoryRematchRewardModa
 import { RecordsScreen } from './components/RecordsScreen';
 import { InventoryScreen } from './components/InventoryScreen';
 import { SettingsScreen } from './components/SettingsScreen';
+import { ProfileScreen } from './components/ProfileScreen';
+import { AvatarDetailScreen } from './components/AvatarDetailScreen';
+import { AvatarEditorScreen } from './components/AvatarEditorScreen';
 import { ShopScreen } from './components/ShopScreen';
 import { SetupScreen } from './components/SetupScreen';
 import { TitleScreen } from './components/TitleScreen';
@@ -261,6 +264,26 @@ function App() {
   const activeDeckCardCount = useMemo(
     () => countDeckCards(activeDeck),
     [activeDeck],
+  );
+
+  const profilePublishedDecks = useMemo(
+    () =>
+      Array.from({ length: unlockedDeckCount }, (_, slotIndex) => {
+        if (publishedDeckSlots[slotIndex] !== true) return null;
+        const layout = normalizeDeckLayout(decks[slotIndex] ?? []);
+        if (!canPublishDeck(layout)) return null;
+        return {
+          slotIndex,
+          name: getDeckDisplayName(slotIndex, deckNames),
+          cards: getDeckCards(layout),
+        };
+      }).filter((deck) => deck != null),
+    [
+      deckNames,
+      decks,
+      publishedDeckSlots,
+      unlockedDeckCount,
+    ],
   );
 
   const equippedTalismanCount = useMemo(
@@ -381,6 +404,7 @@ function App() {
   } | null>(null);
   const battleOutcomeHoldTimerRef = useRef<number | null>(null);
   const settingsReturnScreenRef = useRef<ScreenId>('deck');
+  const profileReturnScreenRef = useRef<ScreenId>('deck');
   useEffect(() => {
     userRef.current = user;
     economyRef.current = economy;
@@ -2555,6 +2579,19 @@ function App() {
   const finalizeOnlineBattleOutcome = useCallback(
     (outcome: BattleOutcome) => {
       const prevUser = userRef.current;
+      const onlineWinDelta = outcome.winner === 'player' ? 1 : 0;
+      const onlineLossDelta = outcome.winner === 'cpu' ? 1 : 0;
+      const nextUser = prevUser
+        ? {
+            ...prevUser,
+            battleWins: prevUser.battleWins + onlineWinDelta,
+            battleLosses: prevUser.battleLosses + onlineLossDelta,
+            onlinePvpBattleWins:
+              prevUser.onlinePvpBattleWins + onlineWinDelta,
+            onlinePvpBattleLosses:
+              prevUser.onlinePvpBattleLosses + onlineLossDelta,
+          }
+        : null;
       const prevDecks = decksRef.current;
       const deckIndex = activeDeckIndexRef.current;
       const prevActiveDeck = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
@@ -2606,10 +2643,15 @@ function App() {
         setMissionCompleteToast(toastMessage);
       }
       persistSave({
+        ...(nextUser ? { user: nextUser } : {}),
         decks: nextDecks,
         battleHistory: nextHistory,
         missionState: nextMissionState,
       });
+      if (nextUser) {
+        userRef.current = nextUser;
+        setUser(nextUser);
+      }
       decksRef.current = nextDecks;
       setDecks(nextDecks);
       setBattleHistory(nextHistory);
@@ -3714,6 +3756,38 @@ function App() {
     user?.level ?? 1,
   );
 
+  const openProfile = useCallback(() => {
+    profileReturnScreenRef.current = screen;
+    setScreen('profile');
+  }, [screen]);
+
+  const closeProfile = useCallback(() => {
+    setScreen(profileReturnScreenRef.current);
+  }, []);
+
+  const saveAvatar = useCallback(
+    (avatar: NonNullable<UserProfile['avatar']>) => {
+      const currentUser = userRef.current;
+      if (!currentUser) return;
+      const nextUser = { ...currentUser, avatar };
+      userRef.current = nextUser;
+      setUser(nextUser);
+      persistSave({ user: nextUser });
+      setScreen('avatarDetail');
+    },
+    [persistSave],
+  );
+
+  const deleteAvatar = useCallback(() => {
+    const currentUser = userRef.current;
+    if (!currentUser?.avatar) return;
+    const nextUser = { ...currentUser };
+    delete nextUser.avatar;
+    userRef.current = nextUser;
+    setUser(nextUser);
+    persistSave({ user: nextUser });
+  }, [persistSave]);
+
   const openSettings = useCallback(() => {
     if (isTabId(screen) || screen === 'records') {
       settingsReturnScreenRef.current = screen;
@@ -3750,8 +3824,10 @@ function App() {
         <header className="app-header app-header--profile">
           <UserProfileBar
             user={user}
+            subscription={subscription}
             freePixels={economy.freePixels}
             jewels={economy.jewels}
+            onOpenProfile={openProfile}
             onOpenSettings={openSettings}
           />
         </header>
@@ -3960,6 +4036,30 @@ function App() {
           <InventoryScreen
             inventory={inventory}
             equippedTalismanCount={equippedTalismanCount}
+          />
+        )}
+        {screen === 'profile' && user && (
+          <ProfileScreen
+            user={user}
+            subscription={subscription}
+            publishedDecks={profilePublishedDecks}
+            onBack={closeProfile}
+            onOpenAvatar={() => setScreen('avatarDetail')}
+          />
+        )}
+        {screen === 'avatarDetail' && user && (
+          <AvatarDetailScreen
+            user={user}
+            onBack={() => setScreen('profile')}
+            onEdit={() => setScreen('avatarEditor')}
+            onDelete={deleteAvatar}
+          />
+        )}
+        {screen === 'avatarEditor' && user && (
+          <AvatarEditorScreen
+            avatar={user.avatar}
+            onBack={() => setScreen('avatarDetail')}
+            onSave={saveAvatar}
           />
         )}
         {screen === 'settings' && (
