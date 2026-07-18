@@ -15013,6 +15013,7 @@ button.battle-card {
   box-sizing: border-box;
   width: 6rem;
   height: 6rem;
+  padding: 0;
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -15328,9 +15329,10 @@ button.battle-card {
 }
 
 .avatar-detail-frame {
+  --avatar-detail-size: min(16rem, 76vw);
   flex: 0 0 auto;
-  width: min(16rem, 76vw);
-  aspect-ratio: 1;
+  width: var(--avatar-detail-size);
+  height: var(--avatar-detail-size);
   margin-top: clamp(3rem, 12dvh, 7.5rem);
   display: grid;
   place-items: center;
