@@ -163,7 +163,6 @@ export function ProfileScreen({
         <section className="profile-decks" aria-labelledby="profile-decks-title">
           <div className="profile-decks-heading">
             <h2 id="profile-decks-title">公開デッキ</h2>
-            <span>{publishedDecks.length}件</span>
           </div>
 
           {publishedDecks.length === 0 ? (

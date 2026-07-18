@@ -33,7 +33,7 @@ export function RecordsScreen({
     <section className="screen screen-records">
       <header className="records-header">
         <button type="button" className="records-back-btn" onClick={onBack}>
-          バトルに戻る
+          戻る
         </button>
         <div className="records-help-slot" aria-hidden={subTab !== 'history'}>
           {subTab === 'history' && (
