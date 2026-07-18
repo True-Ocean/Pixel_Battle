@@ -6,7 +6,6 @@ import { getBattleResult, resolveNinjaStealthStalemate } from '../game';
 import { buildOnlineTurnRandomSeed, createSeededRandom } from '../game/seededRandom';
 import { pickPassAction } from '../game/actionChoices';
 import { getSupabaseClient } from '../supabase/client';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   ONLINE_PVP_DISCONNECT_GRACE_SEC,
   ONLINE_PVP_ROOM_TTL_MINUTES,
@@ -51,15 +50,6 @@ function disconnectDeadlineIso(): string {
   return new Date(
     Date.now() + ONLINE_PVP_DISCONNECT_GRACE_SEC * 1000,
   ).toISOString();
-}
-
-/** pg_cron 未設定環境向け: 古いルーム削除を非同期で試行 */
-function fireStaleOnlineRoomCleanup(supabase: SupabaseClient): void {
-  void supabase.rpc('cleanup_stale_online_battle_rooms').then(({ error }) => {
-    if (error && import.meta.env.DEV) {
-      console.warn('[onlinePvp] cleanup_stale_online_battle_rooms:', error.message);
-    }
-  });
 }
 
 export async function fetchOnlineBattleRoom(
@@ -126,8 +116,6 @@ export async function createOnlineBattleRoom(input: {
   if (!userId) {
     return { ok: false, code: 'auth_failed', message: 'ログインに失敗しました' };
   }
-
-  fireStaleOnlineRoomCleanup(supabase);
 
   for (let attempt = 0; attempt < 8; attempt++) {
     const code = generateRoomCode();
@@ -967,10 +955,6 @@ export async function closeOnlineBattleRoom(
   }
   const result = await updateOnlineBattleRoom(roomId, patch);
   if (!result.ok) return result;
-  const supabase = getSupabaseClient();
-  if (supabase) {
-    fireStaleOnlineRoomCleanup(supabase);
-  }
   return { ok: true, data: null };
 }
 

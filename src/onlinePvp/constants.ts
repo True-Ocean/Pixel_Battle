@@ -20,7 +20,7 @@ export const ONLINE_PVP_ROOM_CODE_LENGTH = 6;
 /** ルーム有効期限（分） */
 export const ONLINE_PVP_ROOM_TTL_MINUTES = 30;
 
-/** 非アクティブルームを DB に残す時間（時間）。cleanup_stale_online_battle_rooms と一致 */
+/** 非アクティブルームを DB に残す時間（時間）。pg_cron の cleanup_stale_online_battle_rooms と一致 */
 export const ONLINE_PVP_STALE_RETENTION_HOURS = 1;
 
 /** @deprecated ONLINE_PVP_STALE_RETENTION_HOURS を使用 */
