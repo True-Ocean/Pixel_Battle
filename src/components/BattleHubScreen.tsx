@@ -127,6 +127,13 @@ export function BattleHubScreen({
 
   return (
     <section className="screen screen-battle-hub screen-battle-hub-modes">
+      <div className="battle-mode-screen-toolbar battle-hub-mode-toolbar">
+        <HelpInfoButton
+          className="battle-hub-help-btn"
+          ariaLabel="バトルについて"
+          onClick={() => setHelpOpen(true)}
+        />
+      </div>
       <button
         type="button"
         className="battle-hub-records-btn"
@@ -139,13 +146,6 @@ export function BattleHubScreen({
       </button>
       <div className="battle-hub-center">
         <div className="battle-hub-mode-panel">
-          <div className="battle-hub-mode-panel-head">
-            <HelpInfoButton
-              className="battle-hub-help-btn"
-              ariaLabel="バトルについて"
-              onClick={() => setHelpOpen(true)}
-            />
-          </div>
           <div
             className="battle-hub-mode-list"
             role="group"

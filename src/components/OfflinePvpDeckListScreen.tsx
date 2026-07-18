@@ -97,20 +97,22 @@ export function OfflinePvpDeckListScreen({
   return (
     <section className="screen screen-offline-pvp-list">
       <header className="offline-pvp-list-header">
-        <button
-          type="button"
-          className="battle-hub-back-btn"
-          onClick={onBack}
-        >
-          戻る
-        </button>
-        <div className="battle-mode-screen-title-row">
-          <h1 className="offline-pvp-list-title">対人戦（オフライン）</h1>
+        <div className="battle-mode-screen-toolbar">
+          <button
+            type="button"
+            className="battle-hub-back-btn"
+            onClick={onBack}
+          >
+            戻る
+          </button>
           <HelpInfoButton
             className="battle-mode-help-btn"
             ariaLabel={`${modeHelp.title}のヘルプ`}
             onClick={() => setHelpOpen(true)}
           />
+        </div>
+        <div className="battle-mode-screen-title-row">
+          <h1 className="offline-pvp-list-title">対人戦（オフライン）</h1>
         </div>
         <p className="offline-pvp-list-hint muted">
           対戦したいデッキをタップ

@@ -384,16 +384,22 @@ export function OnlinePvpScreen({
     return (
       <section className="screen screen-online-pvp-lobby">
         <header className="offline-pvp-list-header">
-          <button type="button" className="battle-hub-back-btn" onClick={onBack}>
-            戻る
-          </button>
-          <div className="battle-mode-screen-title-row">
-            <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
+          <div className="battle-mode-screen-toolbar">
+            <button
+              type="button"
+              className="battle-hub-back-btn"
+              onClick={onBack}
+            >
+              戻る
+            </button>
             <HelpInfoButton
               className="battle-mode-help-btn"
               ariaLabel={`${modeHelp.title}のヘルプ`}
               onClick={() => setHelpOpen(true)}
             />
+          </div>
+          <div className="battle-mode-screen-title-row">
+            <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
           </div>
         </header>
         <div className="online-pvp-entry-body online-pvp-lobby-body">
@@ -419,16 +425,22 @@ export function OnlinePvpScreen({
   return (
     <section className="screen screen-online-pvp-entry">
       <header className="offline-pvp-list-header">
-        <button type="button" className="battle-hub-back-btn" onClick={onBack}>
-          戻る
-        </button>
-        <div className="battle-mode-screen-title-row">
-          <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
+        <div className="battle-mode-screen-toolbar">
+          <button
+            type="button"
+            className="battle-hub-back-btn"
+            onClick={onBack}
+          >
+            戻る
+          </button>
           <HelpInfoButton
             className="battle-mode-help-btn"
             ariaLabel={`${modeHelp.title}のヘルプ`}
             onClick={() => setHelpOpen(true)}
           />
+        </div>
+        <div className="battle-mode-screen-title-row">
+          <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
         </div>
       </header>
 

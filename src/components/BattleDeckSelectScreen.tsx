@@ -225,18 +225,17 @@ export function BattleDeckSelectScreen({
       }`}
     >
       <div className="battle-hub-deck-select-head">
-        <button
-          type="button"
-          className="battle-hub-back-btn"
-          onClick={() => {
-            setSelectedSlot(null);
-            onBack();
-          }}
-        >
-          {backLabel}
-        </button>
-        <div className="battle-mode-screen-title-row">
-          <h2 className="battle-hub-deck-select-title">{title}</h2>
+        <div className="battle-mode-screen-toolbar">
+          <button
+            type="button"
+            className="battle-hub-back-btn"
+            onClick={() => {
+              setSelectedSlot(null);
+              onBack();
+            }}
+          >
+            {backLabel}
+          </button>
           {modeHelp && (
             <HelpInfoButton
               className="battle-mode-help-btn"
@@ -244,6 +243,9 @@ export function BattleDeckSelectScreen({
               onClick={() => setHelpOpen(true)}
             />
           )}
+        </div>
+        <div className="battle-mode-screen-title-row">
+          <h2 className="battle-hub-deck-select-title">{title}</h2>
         </div>
       </div>
 
