@@ -223,8 +223,6 @@ function App() {
   const publishedDeckSlotsRef = useRef(publishedDeckSlots);
   const publishedDeckRemoteIdsRef = useRef(publishedDeckRemoteIds);
   const authUserIdRef = useRef<string | null>(null);
-  publishedDeckSlotsRef.current = publishedDeckSlots;
-  publishedDeckRemoteIdsRef.current = publishedDeckRemoteIds;
   const [paletteShopUnlocks, setPaletteShopUnlocks] = useState<number[]>(() =>
     normalizePaletteShopUnlocks(initialSave.paletteShopUnlocks),
   );
@@ -253,7 +251,7 @@ function App() {
   const [deckIntroSeen, setDeckIntroSeen] = useState(
     () => initialSave.deckIntroSeen === true,
   );
-  const [deckIntroOpen, setDeckIntroOpen] = useState(false);
+  const deckIntroSeenPersistedRef = useRef(initialSave.deckIntroSeen === true);
 
   const activeDeck = useMemo(
     () => normalizeDeckLayout(decks[activeDeckIndex] ?? []),
@@ -383,27 +381,31 @@ function App() {
   } | null>(null);
   const battleOutcomeHoldTimerRef = useRef<number | null>(null);
   const settingsReturnScreenRef = useRef<ScreenId>('deck');
-  userRef.current = user;
-  economyRef.current = economy;
-  inventoryRef.current = inventory;
-  talismanStarterGrantedRef.current = talismanStarterGranted;
-  adStateRef.current = adState;
-  decksRef.current = decks;
-  activeDeckIndexRef.current = activeDeckIndex;
-  lastBattleDeckIndexRef.current = lastBattleDeckIndex;
-  unlockedDeckCountRef.current = unlockedDeckCount;
-  battleHistoryRef.current = battleHistory;
-  deckNamesRef.current = deckNames;
-  paletteShopUnlocksRef.current = paletteShopUnlocks;
-  editorShopUnlocksRef.current = editorShopUnlocks;
-  memoryAlbumRef.current = memoryAlbum;
-  shopPurchaseRef.current = shopPurchase;
-  subscriptionRef.current = subscription;
-  missionStateRef.current = missionState;
-  screenRef.current = screen;
-  isOnlinePvpRef.current = isOnlinePvp;
-  onlinePvpRoomRef.current = onlinePvpRoom;
-  onlinePvpRoleRef.current = onlinePvpRole;
+  useEffect(() => {
+    userRef.current = user;
+    economyRef.current = economy;
+    inventoryRef.current = inventory;
+    talismanStarterGrantedRef.current = talismanStarterGranted;
+    adStateRef.current = adState;
+    decksRef.current = decks;
+    activeDeckIndexRef.current = activeDeckIndex;
+    lastBattleDeckIndexRef.current = lastBattleDeckIndex;
+    unlockedDeckCountRef.current = unlockedDeckCount;
+    battleHistoryRef.current = battleHistory;
+    deckNamesRef.current = deckNames;
+    paletteShopUnlocksRef.current = paletteShopUnlocks;
+    editorShopUnlocksRef.current = editorShopUnlocks;
+    memoryAlbumRef.current = memoryAlbum;
+    shopPurchaseRef.current = shopPurchase;
+    subscriptionRef.current = subscription;
+    missionStateRef.current = missionState;
+    screenRef.current = screen;
+    isOnlinePvpRef.current = isOnlinePvp;
+    onlinePvpRoomRef.current = onlinePvpRoom;
+    onlinePvpRoleRef.current = onlinePvpRole;
+    publishedDeckSlotsRef.current = publishedDeckSlots;
+    publishedDeckRemoteIdsRef.current = publishedDeckRemoteIds;
+  });
 
   const devPreferSavedLevelRef = useRef(initialSave.devPreferSavedLevel === true);
   const devFileOverrideLevelRef = useRef<number | null | undefined>(
@@ -510,7 +512,7 @@ function App() {
       saveSave(payload);
       scheduleCloudSaveUpload(payload);
     },
-    [activeDeckIndex, adState, deckIntroSeen, decks, economy, inventory, lastBattleDeckIndex, missionState, paletteShopUnlocks, shopPurchase, soundEnabled, subscription, talismanStarterGranted, unlockedDeckCount, user],
+    [activeDeckIndex, deckIntroSeen, decks, lastBattleDeckIndex, soundEnabled, unlockedDeckCount, user],
   );
 
   const applyDownloadedCloudSave = useCallback(
@@ -541,6 +543,7 @@ function App() {
       );
       setSoundEnabled(normalizeSoundEnabled(save.soundEnabled));
       setDeckIntroSeen(save.deckIntroSeen === true);
+      deckIntroSeenPersistedRef.current = save.deckIntroSeen === true;
       setBattleHistory(save.battleHistory ?? []);
       if (save.devPreferSavedLevel === true) {
         devPreferSavedLevelRef.current = true;
@@ -912,20 +915,27 @@ function App() {
   }, [missionCompleteToast]);
 
   const dismissDeckIntro = useCallback(() => {
-    setDeckIntroOpen(false);
     setDeckIntroSeen(true);
-    persistSave({ deckIntroSeen: true });
-  }, [persistSave]);
+  }, []);
 
+  // イントロ未読でデッキ画面に入ったときの表示可否は state 同期ではなく描画時に導出する。
+  const deckIntroPending =
+    !!user && !deckIntroSeen && screen === 'deck';
+  // デッキが満杯の状態で開いた場合はイントロを表示せず「既読」とみなす（描画時に state を調整）。
+  if (deckIntroPending && activeDeckCardCount >= DECK_MAX) {
+    setDeckIntroSeen(true);
+  }
+  const deckIntroOpen = deckIntroPending && activeDeckCardCount < DECK_MAX;
+
+  // 「既読」への変化のみを一度だけ永続化する（effect 内で setState はしない）。
   useEffect(() => {
-    if (!user || deckIntroSeen || screen !== 'deck') return;
-    if (activeDeckCardCount >= DECK_MAX) {
-      setDeckIntroSeen(true);
+    if (deckIntroSeen && !deckIntroSeenPersistedRef.current) {
+      deckIntroSeenPersistedRef.current = true;
       persistSave({ deckIntroSeen: true });
-      return;
+    } else if (!deckIntroSeen && deckIntroSeenPersistedRef.current) {
+      deckIntroSeenPersistedRef.current = false;
     }
-    setDeckIntroOpen(true);
-  }, [user, deckIntroSeen, screen, activeDeckCardCount, persistSave]);
+  }, [deckIntroSeen, persistSave]);
 
   const appOpenReportedDayKeyRef = useRef<string | null>(null);
 

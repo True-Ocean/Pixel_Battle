@@ -91,7 +91,6 @@ export function flipWinnerForGuest(
 
 export function mapWinnerRole(
   state: BattleState,
-  _perspective: OnlineBattleRole,
 ): 'player' | 'cpu' | null {
   const playerAlive = state.player.some(
     (u) => u.currentBp > 0 && u.position !== 'defeated',

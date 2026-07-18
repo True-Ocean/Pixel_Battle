@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   JEWEL_PACKS,
   SUBSCRIPTION_PLANS,
@@ -58,7 +58,6 @@ const JEWEL_PACK_PURCHASE_TOAST_RE =
 
 export function ShopScreen({
   economy,
-  inventory: _inventory,
   shopPurchase,
   subscription,
   initialTab = 'jewels',
@@ -73,9 +72,11 @@ export function ShopScreen({
   const [activeTab, setActiveTab] = useState<ShopTabId>(initialTab);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
-  useEffect(() => {
+  const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
+  if (initialTab !== prevInitialTab) {
+    setPrevInitialTab(initialTab);
     setActiveTab(initialTab);
-  }, [initialTab]);
+  }
   const normalizedPurchase = useMemo(
     () => getUniversalShardPurchasesToday(shopPurchase),
     [shopPurchase],

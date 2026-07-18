@@ -69,7 +69,7 @@ describe('startNextTurn', () => {
       stubCard('C4', 'defense', 50),
       stubCard('C5', 'attack', 40),
     ];
-    let state = createBattleState(playerDeck, cpuDeck);
+    const state = createBattleState(playerDeck, cpuDeck);
     state.player[0].currentBp = 16;
     state.player[0].poisonStacks = [
       { sourceCardId: 'poison-src', damagePerTurn: 16 },

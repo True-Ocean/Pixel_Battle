@@ -109,7 +109,7 @@ describe('mission reset', () => {
 
 describe('mission progress and claim', () => {
   it('records app_open once per day', () => {
-    let state = createInitialMissionState(monday);
+    const state = createInitialMissionState(monday);
     const first = reportMissionEvent(state, 'app_open', 1, monday);
     expect(first.newlyCompleted.map((m) => m.id)).toEqual(['daily_login']);
     const second = reportMissionEvent(first.state, 'app_open', 1, monday);
@@ -118,7 +118,7 @@ describe('mission progress and claim', () => {
   });
 
   it('applies multiple events in one call', () => {
-    let state = createInitialMissionState(monday);
+    const state = createInitialMissionState(monday);
     const result = applyMissionEvents(state, [
       { type: 'battle_play' },
       { type: 'battle_win' },

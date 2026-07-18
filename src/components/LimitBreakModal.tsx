@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   defaultLimitBreakAttrSpend,
@@ -62,23 +62,21 @@ export function LimitBreakModal({
     ),
   );
 
-  useEffect(() => {
-    if (!open) return;
-    setAttrSpend(
-      defaultLimitBreakAttrSpend(
-        attributeShardCount,
-        universalShardCount,
-        shardsRequired,
-      ),
-    );
-  }, [
-    open,
-    card.id,
-    card.rarity,
-    attributeShardCount,
-    universalShardCount,
-    shardsRequired,
-  ]);
+  const attrSpendResetKey = `${open}\u0000${card.id}\u0000${card.rarity}\u0000${attributeShardCount}\u0000${universalShardCount}\u0000${shardsRequired}`;
+  const [prevAttrSpendResetKey, setPrevAttrSpendResetKey] =
+    useState(attrSpendResetKey);
+  if (attrSpendResetKey !== prevAttrSpendResetKey) {
+    setPrevAttrSpendResetKey(attrSpendResetKey);
+    if (open) {
+      setAttrSpend(
+        defaultLimitBreakAttrSpend(
+          attributeShardCount,
+          universalShardCount,
+          shardsRequired,
+        ),
+      );
+    }
+  }
 
   if (!open) return null;
 

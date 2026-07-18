@@ -256,7 +256,7 @@ export function GraveyardPickModal({
             className="graveyard-pick-double-ad"
             onClick={() => onRequestVictoryDoubleAd(selected)}
           >
-            報酬2倍　🎬
+            報酬2倍 🎬
           </button>
         )}
       </div>

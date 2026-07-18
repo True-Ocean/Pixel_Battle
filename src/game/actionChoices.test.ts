@@ -37,7 +37,7 @@ describe('actionChoices', () => {
       stubCard('P4', 'attack', 50),
       stubCard('P5', 'attack', 50),
     ];
-    let state = createBattleState(playerDeck, cards('C'));
+    const state = createBattleState(playerDeck, cards('C'));
     for (const unit of state.player) {
       if (unit.position !== 'frontLeft' && unit.position !== 'backLeft') {
         unit.position = 'defeated';
@@ -59,7 +59,7 @@ describe('actionChoices', () => {
       stubCard('P4', 'attack', 50),
       stubCard('P5', 'attack', 50),
     ];
-    let state = createBattleState(playerDeck, cards('C'));
+    const state = createBattleState(playerDeck, cards('C'));
     for (const unit of state.player) {
       if (unit.position !== 'frontLeft' && unit.position !== 'backLeft') {
         unit.position = 'defeated';

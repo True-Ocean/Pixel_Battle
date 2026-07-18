@@ -132,8 +132,9 @@ export function getShieldTargets(field: BattleUnit[]): BoardPosition[] {
 /** 盾付与の対象（盾なし味方。自分も含むが、自分が盾所持中は対象外） */
 export function getShieldTargetsForActor(
   field: BattleUnit[],
-  _actorPosition: BoardPosition,
+  actorPosition: BoardPosition,
 ): BoardPosition[] {
+  void actorPosition;
   return getShieldTargets(field);
 }
 

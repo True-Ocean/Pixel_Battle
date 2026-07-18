@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+// editorToolIdForShopFeature は同ファイルのアイコンコンポーネントからのみ使うヘルパーのため同居させる
 import type { EditorShopUnlockId } from '../config/editorShop';
 import type { EditorToolId } from '../config/editorTools';
 

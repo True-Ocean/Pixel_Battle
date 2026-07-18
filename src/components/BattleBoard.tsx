@@ -103,6 +103,7 @@ export function BattleBoard({
         cpuCenter,
       ),
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- clash オブジェクトの identity churn を避け、参照する主要スロットのみ依存する
   }, [clash?.playerMain, clash?.cpuMain, inClash, layoutRef]);
 
   const arenaPlayerUnit = clash

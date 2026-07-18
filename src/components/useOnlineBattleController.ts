@@ -82,6 +82,9 @@ export function useOnlineBattleController({
   const session = useOnlineBattleSession({ room, role, onRoomSync });
   const [pendingActor, setPendingActor] = useState<BoardPosition | null>(null);
   const [pendingAction, setPendingAction] = useState<BattleActionType | null>(null);
+  const [prevBattleRevision, setPrevBattleRevision] = useState<
+    number | undefined
+  >(undefined);
   const [playback, setPlayback] = useState<BattlePlayback | null>(null);
   const [turnStartPlayback, setTurnStartPlayback] =
     useState<TurnStartPlayback | null>(null);
@@ -105,6 +108,7 @@ export function useOnlineBattleController({
   const pendingClashReplay =
     room != null &&
     Boolean(room.lastClash?.playbackEvents) &&
+    // eslint-disable-next-line react-hooks/refs -- playedClashKeyRef は effect 内でライブに読み書きする再生済みマーカーで、この描画では effectivePhase を同一レンダーで確定させるため意図的に参照する（state 化すると effect 内の最新値参照が壊れる）
     shouldStartOnlineClashReplay(room, playedClashKeyRef.current);
 
   const effectivePhase: BattleUiPhase = (() => {
@@ -126,10 +130,13 @@ export function useOnlineBattleController({
     setTurnStartPlayback(null);
     setDisplayState(null);
     session.setReplayOverlay(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- session の identity churn を避け、安定した setter のみ依存する
   }, [session.setReplayOverlay]);
 
   const releaseReplayRef = useRef(releaseReplayToRoom);
-  releaseReplayRef.current = releaseReplayToRoom;
+  useEffect(() => {
+    releaseReplayRef.current = releaseReplayToRoom;
+  }, [releaseReplayToRoom]);
 
   const startPoisonReplay = useCallback(
     (clashKey: string) => {
@@ -161,11 +168,14 @@ export function useOnlineBattleController({
       });
       session.setReplayOverlay({ kind: 'turnStartPoison' });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- session の identity churn を避け、安定した setter のみ依存する
     [authoritativeState, role, room?.lastClash, session.setReplayOverlay],
   );
 
   const startPoisonReplayRef = useRef(startPoisonReplay);
-  startPoisonReplayRef.current = startPoisonReplay;
+  useEffect(() => {
+    startPoisonReplayRef.current = startPoisonReplay;
+  }, [startPoisonReplay]);
 
   const finishClashPlayback = useCallback(() => {
     const lastClash = room?.lastClash;
@@ -295,12 +305,16 @@ export function useOnlineBattleController({
     const auto = session.promotion.autoSubmit;
     if (!auto || session.inputLocked) return;
     void session.submitPromotion(auto.from, auto.to);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- session の identity churn を避け、必要な値のみ依存する
   }, [session.promotion.autoSubmit, session.inputLocked, session.submitPromotion]);
 
-  useEffect(() => {
+  // バトルの revision（＝ターン進行）が変わったら選択中の UI 状態をリセットする。
+  // effect ではなく描画時の transition 検知で行う。
+  if (room?.battleRevision !== prevBattleRevision) {
+    setPrevBattleRevision(room?.battleRevision);
     setPendingActor(null);
     setPendingAction(null);
-  }, [room?.battleRevision]);
+  }
 
   const availableActionsFor = useCallback(
     (position: BoardPosition) =>
@@ -328,6 +342,7 @@ export function useOnlineBattleController({
     setPendingAction(null);
     session.setActionPickSubPhase('main');
     return true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- session の identity churn を避け、安定した setter のみ依存する
   }, [isStormPickPending, session.setActionPickSubPhase]);
 
   const commitTurn = useCallback(
@@ -358,6 +373,7 @@ export function useOnlineBattleController({
         });
         return;
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 選択肢が無い場合のパス自動提出。オンライン対戦の battle state に追従する状態機械で、描画時導出に置き換えるとターン同期が壊れる
       commitTurn(pickPassAction(state, 'player'));
     }
   }, [

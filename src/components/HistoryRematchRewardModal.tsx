@@ -145,7 +145,7 @@ export function HistoryRematchRewardModal({
               className="graveyard-pick-double-ad"
               onClick={onRequestVictoryDoubleAd}
             >
-              報酬2倍　🎬
+              報酬2倍 🎬
             </button>
           )}
       </div>

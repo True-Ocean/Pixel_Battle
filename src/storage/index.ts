@@ -141,7 +141,6 @@ function parseCard(raw: Record<string, unknown>): Card | null {
   if (bp == null) return null;
 
   const {
-    hp: _legacyHp,
     wins,
     losses,
     reviveCount,
@@ -153,6 +152,7 @@ function parseCard(raw: Record<string, unknown>): Card | null {
     canvasSize,
     ...rest
   } = raw;
+  delete rest.hp;
 
   const pixels = (rest as { pixels?: unknown }).pixels;
   const resolvedCanvasSize =
@@ -310,7 +310,7 @@ function buildDevSaveFields(
   };
 }
 
-function normalizeSaveFields(parsed: Record<string, unknown>, _decks: DeckLayout[]): Pick<
+function normalizeSaveFields(parsed: Record<string, unknown>): Pick<
   SaveData,
   'activeDeckIndex' | 'lastBattleDeckIndex' | 'unlockedDeckCount' | 'deckNames'
 > {
@@ -458,7 +458,7 @@ export function hydrateSaveFromParsed(
   const decks = normalizeDeckSlots(parseDecks(parsed));
   const battleHistory = parseBattleHistory(parsed.battleHistory);
   const { activeDeckIndex, lastBattleDeckIndex, unlockedDeckCount, deckNames } =
-    normalizeSaveFields(parsed, decks);
+    normalizeSaveFields(parsed);
   const { devPreferSavedLevel, devFileOverrideLevel } = parseDevSaveFields(parsed);
   const preferSaved = effectiveDevPreferSavedLevel(
     devPreferSavedLevel === true,

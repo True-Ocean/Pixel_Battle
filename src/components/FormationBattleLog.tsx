@@ -13,7 +13,7 @@ function buildNameList(names: readonly string[]): string[] {
   return [...new Set(names)].sort((a, b) => b.length - a.length);
 }
 
-export function splitColoredLogLine(
+function splitColoredLogLine(
   line: string,
   playerNames: readonly string[],
   cpuNames: readonly string[],

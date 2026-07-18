@@ -38,9 +38,17 @@ export function SetupFlightLayer({
   /** flipReveal 時のみ表にめくる（相手は常に裏のまま） */
   const [revealed, setRevealed] = useState(false);
 
-  useEffect(() => {
+  // 飛行対象・座標・flipReveal が変わったら、レンダー中に初期位置へ戻す。
+  // rAF で終点へ動かす一段目だけ effect に任せる。
+  const flightKey = `${card.id}\u0000${from.left}\u0000${from.top}\u0000${from.width}\u0000${from.height}\u0000${to.left}\u0000${to.top}\u0000${to.width}\u0000${to.height}\u0000${flipReveal}`;
+  const [prevFlightKey, setPrevFlightKey] = useState(flightKey);
+  if (flightKey !== prevFlightKey) {
+    setPrevFlightKey(flightKey);
     setAtEnd(false);
     setRevealed(false);
+  }
+
+  useEffect(() => {
     const id = requestAnimationFrame(() => {
       requestAnimationFrame(() => setAtEnd(true));
     });

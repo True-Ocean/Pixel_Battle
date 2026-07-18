@@ -251,24 +251,22 @@ export function EditorScreen({
       : null,
   );
 
-  editorSnapshotRef.current = { pixels, canvasSize };
-  editorHistoryRef.current = editorHistory;
-  editorFutureRef.current = editorFuture;
-
   useEffect(() => {
-    if (!isPaletteColorUnlocked(brushColor, userLevel, paletteShopUnlocks)) {
-      setBrushColor(PALETTE_16[0]!);
-    }
-  }, [userLevel, brushColor, paletteShopUnlocks]);
+    editorSnapshotRef.current = { pixels, canvasSize };
+    editorHistoryRef.current = editorHistory;
+    editorFutureRef.current = editorFuture;
+  }, [pixels, canvasSize, editorHistory, editorFuture]);
 
-  useEffect(() => {
-    if (
-      !isEditorToolImplemented(tool) ||
-      !isEditorToolAvailable(tool, userLevel, editorShopUnlocks)
-    ) {
-      setTool('pen');
-    }
-  }, [userLevel, tool, editorShopUnlocks]);
+  if (!isPaletteColorUnlocked(brushColor, userLevel, paletteShopUnlocks)) {
+    setBrushColor(PALETTE_16[0]!);
+  }
+
+  if (
+    !isEditorToolImplemented(tool) ||
+    !isEditorToolAvailable(tool, userLevel, editorShopUnlocks)
+  ) {
+    setTool('pen');
+  }
 
   const brushSizeUnlocked = isEditorFeatureUnlocked(
     'brushSize',

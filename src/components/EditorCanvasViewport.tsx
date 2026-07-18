@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+// applyPinchStep はコンポーネントの内部ロジックを共有する純粋関数で、単体テストからも参照するため同居させる
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 
 const MIN_ZOOM = 1;
@@ -118,14 +120,18 @@ export function EditorCanvasViewport({
   const multiTouchSessionRef = useRef(false);
   const zoomRef = useRef(zoom);
   const panRef = useRef(pan);
+  const [pinching, setPinching] = useState(false);
 
-  zoomRef.current = zoom;
-  panRef.current = pan;
+  useEffect(() => {
+    zoomRef.current = zoom;
+    panRef.current = pan;
+  }, [zoom, pan]);
 
   const syncDrawingBlocked = useCallback(() => {
+    const multiTouch = pointersRef.current.size >= 2;
+    setPinching(multiTouch);
     if (!blockDrawingRef) return;
-    blockDrawingRef.current =
-      multiTouchSessionRef.current || pointersRef.current.size >= 2;
+    blockDrawingRef.current = multiTouchSessionRef.current || multiTouch;
   }, [blockDrawingRef]);
 
   const resetView = useCallback(() => {
@@ -133,15 +139,23 @@ export function EditorCanvasViewport({
     setPan({ x: 0, y: 0 });
   }, []);
 
+  // zoom が無効化されたら、表示倍率と位置をレンダー中にリセットする。
+  const [prevZoomEnabled, setPrevZoomEnabled] = useState(zoomEnabled);
+  if (zoomEnabled !== prevZoomEnabled) {
+    setPrevZoomEnabled(zoomEnabled);
+    if (!zoomEnabled) {
+      resetView();
+    }
+  }
+
   useEffect(() => {
     if (!zoomEnabled) {
       multiTouchSessionRef.current = false;
       pointersRef.current.clear();
       lastPinchRef.current = null;
       syncDrawingBlocked();
-      resetView();
     }
-  }, [zoomEnabled, resetView, syncDrawingBlocked]);
+  }, [zoomEnabled, syncDrawingBlocked]);
 
   const beginPinch = (viewport: HTMLElement) => {
     const pts = [...pointersRef.current.values()];
@@ -252,7 +266,7 @@ export function EditorCanvasViewport({
       onPointerMoveCapture={handlePointerMoveCapture}
       onPointerUpCapture={handlePointerUpCapture}
       onPointerCancelCapture={handlePointerCancelCapture}
-      data-pinching={pointersRef.current.size >= 2 ? 'true' : undefined}
+      data-pinching={pinching ? 'true' : undefined}
     >
       <div
         className="editor-canvas-transform"

@@ -385,9 +385,11 @@ export function DeckScreen({
     };
   }, [reorderMode]);
 
-  useEffect(() => {
+  const [prevActiveDeckIndex, setPrevActiveDeckIndex] = useState(activeDeckIndex);
+  if (activeDeckIndex !== prevActiveDeckIndex) {
+    setPrevActiveDeckIndex(activeDeckIndex);
     setLostCardNoticePendingId(null);
-  }, [activeDeckIndex]);
+  }
 
   const selectedCard =
     detailCardId != null
@@ -817,33 +819,44 @@ export function DeckScreen({
     clearDeckTabLongPress();
   }, [clearDeckTabLongPress]);
 
-  const handleDeckTabSelect = (index: number) => {
-    if (longPressTriggeredRef.current) {
-      longPressTriggeredRef.current = false;
-      return;
-    }
-    if (dragState) return;
-    if (!isDeckSlotUnlocked(index, unlockedDeckCount)) {
-      setUnlockModalSlot(index);
-      return;
-    }
-    if (index === activeDeckIndex) {
-      if (onRenameDeck) {
-        const now = Date.now();
-        const lastTap = lastTabTapRef.current;
-        if (lastTap?.index === index && now - lastTap.at <= DECK_TAB_DOUBLE_TAP_MS) {
-          lastTabTapRef.current = null;
-          openDeckRenameDialog(index);
-          return;
-        }
-        lastTabTapRef.current = { index, at: now };
+  const handleDeckTabSelect = useCallback(
+    (index: number) => {
+      if (longPressTriggeredRef.current) {
+        longPressTriggeredRef.current = false;
+        return;
       }
-      return;
-    }
-    lastTabTapRef.current = null;
-    closeDetail();
-    onSelectDeckIndex(index);
-  };
+      if (dragState) return;
+      if (!isDeckSlotUnlocked(index, unlockedDeckCount)) {
+        setUnlockModalSlot(index);
+        return;
+      }
+      if (index === activeDeckIndex) {
+        if (onRenameDeck) {
+          const now = Date.now();
+          const lastTap = lastTabTapRef.current;
+          if (lastTap?.index === index && now - lastTap.at <= DECK_TAB_DOUBLE_TAP_MS) {
+            lastTabTapRef.current = null;
+            openDeckRenameDialog(index);
+            return;
+          }
+          lastTabTapRef.current = { index, at: now };
+        }
+        return;
+      }
+      lastTabTapRef.current = null;
+      closeDetail();
+      onSelectDeckIndex(index);
+    },
+    [
+      activeDeckIndex,
+      closeDetail,
+      dragState,
+      onRenameDeck,
+      onSelectDeckIndex,
+      openDeckRenameDialog,
+      unlockedDeckCount,
+    ],
+  );
 
   const selectedIsLost =
     selectedCard != null && isCardLost(selectedCard);

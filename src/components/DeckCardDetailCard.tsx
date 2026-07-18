@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { getAttributeMeta } from '../config/attributes';
 import type { BattleGuideTermId } from '../config/battleGuideCommon';
 import { canReviveLostCard, hasCardUserNote } from '../card';
@@ -56,11 +56,14 @@ export function DeckCardDetailCard({
   const battleGuide = attrMeta.battleGuide.trim();
   const showUserNote = hasCardUserNote(card);
 
-  useEffect(() => {
+  const resetKey = `${card.id}\u0000${card.attribute}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (resetKey !== prevResetKey) {
+    setPrevResetKey(resetKey);
     setAttrDetailOpen(false);
     setOpenTermId(null);
     setNoteViewOpen(false);
-  }, [card.id, card.attribute]);
+  }
 
   const cardStyle = {
     '--rarity-border': rarityMeta.rowBorder,

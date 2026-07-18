@@ -51,21 +51,27 @@ export function AttributeRetouchModal({
   const spinTimerRef = useRef<number | null>(null);
   const confirmedTimerRef = useRef<number | null>(null);
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (!open) {
       setPhase('confirm');
       setError(null);
       setResult(null);
       setRetouchAgainError(null);
       setDisplayAttribute('attack');
-      if (spinTimerRef.current != null) {
-        window.clearInterval(spinTimerRef.current);
-        spinTimerRef.current = null;
-      }
-      if (confirmedTimerRef.current != null) {
-        window.clearTimeout(confirmedTimerRef.current);
-        confirmedTimerRef.current = null;
-      }
+    }
+  }
+
+  useEffect(() => {
+    if (open) return;
+    if (spinTimerRef.current != null) {
+      window.clearInterval(spinTimerRef.current);
+      spinTimerRef.current = null;
+    }
+    if (confirmedTimerRef.current != null) {
+      window.clearTimeout(confirmedTimerRef.current);
+      confirmedTimerRef.current = null;
     }
   }, [open]);
 

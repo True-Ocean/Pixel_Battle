@@ -48,34 +48,29 @@ export function CardFlightLayer({
   bpToPlayer,
   bpToCpu,
 }: CardFlightLayerProps) {
-  const [motion, setMotion] = useState<FlightMotion>('atSlot');
-  const [impact, setImpact] = useState(false);
+  const [motion, setMotion] = useState<FlightMotion>(
+    phase === 'enter' ? 'atSlot' : 'atCenter',
+  );
+  const [impact, setImpact] = useState(phase === 'impact');
+
+  // phase が変わったら、その phase の初期表示をレンダー中に同期する。
+  // enter/exit の 2 段階アニメーションだけを effect の rAF に任せる。
+  const [prevPhase, setPrevPhase] = useState(phase);
+  if (phase !== prevPhase) {
+    setPrevPhase(phase);
+    setMotion(phase === 'enter' ? 'atSlot' : 'atCenter');
+    setImpact(phase === 'impact');
+  }
 
   useEffect(() => {
     if (phase === 'enter') {
-      setMotion('atSlot');
-      setImpact(false);
       const id = requestAnimationFrame(() => {
         requestAnimationFrame(() => setMotion('atCenter'));
       });
       return () => cancelAnimationFrame(id);
     }
 
-    if (phase === 'impact') {
-      setMotion('atCenter');
-      setImpact(true);
-      return;
-    }
-
-    if (phase === 'bp') {
-      setMotion('atCenter');
-      setImpact(false);
-      return;
-    }
-
     if (phase === 'exit') {
-      setMotion('atCenter');
-      setImpact(false);
       const id = requestAnimationFrame(() => {
         requestAnimationFrame(() => setMotion('atSlot'));
       });

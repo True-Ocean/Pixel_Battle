@@ -193,6 +193,7 @@ export function useBattle(
 
     const fronts = getPendingPromotionFronts(state.player);
     if (fronts.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 昇格フェーズの自動解決。battle state に追従する状態機械で、描画時導出に置き換えるとターン進行が壊れる
       finishPromotion(state);
       return;
     }
@@ -303,6 +304,7 @@ export function useBattle(
       if (isNinjaStealthStalemate(state)) {
         const { state: nextState, logLine } =
           resolveNinjaStealthStalemate(state);
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- 手詰まり(忍者ステルス)自動解決。battle state に追従する状態機械で、描画時導出に置き換えるとターン進行が壊れる
         setState(nextState);
         setStealthStalematePlayback({ stateAfter: nextState, logLine });
         setUiPhase('stalemateStealthBreak');
@@ -489,6 +491,7 @@ export function useBattle(
     [
       effectivePhase,
       state,
+      selectionTurn,
       pendingPromoteFrom,
       pendingActor,
       pendingAction,
@@ -721,6 +724,7 @@ export function useBattle(
     [
       effectivePhase,
       state,
+      selectionTurn,
       pendingPromoteFrom,
       pendingActor,
       pendingAction,

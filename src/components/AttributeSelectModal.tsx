@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getAttributeMeta } from '../config/attributes';
 import { getUnlockedAttributes } from '../config/attributeUnlock';
@@ -35,25 +35,31 @@ export function AttributeSelectModal({
   onSelect,
 }: AttributeSelectModalProps) {
   const unlocked = getUnlockedAttributes(userLevel);
-  const initialAttributeRef = useRef(card.attribute);
+  const [initialAttribute, setInitialAttribute] = useState(card.attribute);
   const [phase, setPhase] = useState<SelectPhase>('pick');
   const [selected, setSelected] = useState<Attribute>(card.attribute);
   const [selectResult, setSelectResult] = useState<AttributeSelectSuccess | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    initialAttributeRef.current = card.attribute;
-    setPhase('pick');
-    setSelected(card.attribute);
-    setSelectResult(null);
-    setError(null);
-  }, [open, card.id]);
+  // 属性選択成功後の card.attribute 更新で選択状態を巻き戻さないよう、
+  // 開閉とカード変更時のみレンダー中にリセットする
+  const resetKey = `${open}\u0000${card.id}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (resetKey !== prevResetKey) {
+    setPrevResetKey(resetKey);
+    if (open) {
+      setInitialAttribute(card.attribute);
+      setPhase('pick');
+      setSelected(card.attribute);
+      setSelectResult(null);
+      setError(null);
+    }
+  }
 
   if (!open) return null;
 
   const canAfford = canAffordAttributeSelect({ jewels });
-  const attributeChanged = selected !== initialAttributeRef.current;
+  const attributeChanged = selected !== initialAttribute;
   const canConfirm = canAfford && attributeChanged;
   const previewBp = applyAttributeChange(
     card,
@@ -61,7 +67,7 @@ export function AttributeSelectModal({
     userLevel,
     paletteShopUnlocks,
   ).bp;
-  const bpUnchanged = selected === initialAttributeRef.current || previewBp === card.bp;
+  const bpUnchanged = selected === initialAttribute || previewBp === card.bp;
 
   const handleConfirm = () => {
     if (!canConfirm) return;

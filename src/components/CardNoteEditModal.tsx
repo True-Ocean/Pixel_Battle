@@ -20,9 +20,11 @@ export function CardNoteEditModal({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [noteInput, setNoteInput] = useState(initialValue);
 
-  useEffect(() => {
+  const [prevInitialValue, setPrevInitialValue] = useState(initialValue);
+  if (initialValue !== prevInitialValue) {
+    setPrevInitialValue(initialValue);
     setNoteInput(initialValue);
-  }, [initialValue]);
+  }
 
   useEffect(() => {
     const scrollY = window.scrollY;

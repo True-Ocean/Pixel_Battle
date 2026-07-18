@@ -95,13 +95,22 @@ export function DeckCardDetailOverlay({
       ? `復活 ${reviveCost.toLocaleString()} 必要・不足`
       : undefined;
 
-  useEffect(() => {
+  const attributeMenuResetKey = `${card.id}\u0000${card.attribute}`;
+  const [prevAttributeMenuResetKey, setPrevAttributeMenuResetKey] = useState(
+    attributeMenuResetKey,
+  );
+  if (attributeMenuResetKey !== prevAttributeMenuResetKey) {
+    setPrevAttributeMenuResetKey(attributeMenuResetKey);
     setAttributeMenuOpen(false);
-  }, [card.id, card.attribute]);
+  }
 
-  useEffect(() => {
+  const limitBreakResetKey = `${card.id}\u0000${card.rarity}\u0000${card.stars}`;
+  const [prevLimitBreakResetKey, setPrevLimitBreakResetKey] =
+    useState(limitBreakResetKey);
+  if (limitBreakResetKey !== prevLimitBreakResetKey) {
+    setPrevLimitBreakResetKey(limitBreakResetKey);
     setLimitBreakModalOpen(false);
-  }, [card.id, card.rarity, card.stars]);
+  }
 
   useEffect(() => {
     const scrollY = window.scrollY;

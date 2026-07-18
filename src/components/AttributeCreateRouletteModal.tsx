@@ -30,12 +30,23 @@ export function AttributeCreateRouletteModal({
   const completeTimerRef = useRef<number | null>(null);
   const onCompleteRef = useRef(onComplete);
 
-  onCompleteRef.current = onComplete;
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  // 開閉が切り替わったら、抽選の初期表示をレンダー中に同期する。
+  // 実際のスピン（interval）の開始・停止だけを effect に任せる。
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    setPhase('spinning');
+    setDisplayAttribute(
+      open ? (getUnlockedAttributes(userLevel)[0] ?? targetAttribute) : 'attack',
+    );
+  }
 
   useEffect(() => {
     if (!open) {
-      setPhase('spinning');
-      setDisplayAttribute('attack');
       if (spinTimerRef.current != null) {
         window.clearInterval(spinTimerRef.current);
         spinTimerRef.current = null;
@@ -74,8 +85,6 @@ export function AttributeCreateRouletteModal({
     if (!open) return;
 
     const unlocked = getUnlockedAttributes(userLevel);
-    setPhase('spinning');
-    setDisplayAttribute(unlocked[0] ?? targetAttribute);
 
     let tick = 0;
     spinTimerRef.current = window.setInterval(() => {

@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+// inlinePxShortageError は同ファイルの InlinePxShortageMessage を包む薄いヘルパーのため同居させる
 import type { ReactNode } from 'react';
 import { JewelIcon } from './JewelIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';

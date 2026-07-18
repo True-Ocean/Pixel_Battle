@@ -63,9 +63,15 @@ export function OfflinePvpDeckListScreen({
   const [helpOpen, setHelpOpen] = useState(false);
   const modeHelp = getOfflinePvpModeHelp();
 
+  const fetchKey = `${viewerLevel}\u0000${excludeOwnerId ?? ''}`;
+  const [prevFetchKey, setPrevFetchKey] = useState(fetchKey);
+  if (fetchKey !== prevFetchKey) {
+    setPrevFetchKey(fetchKey);
+    setLoading(true);
+  }
+
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     void listPublicGhostDecks(viewerLevel, { excludeOwnerId }).then((result) => {
       if (cancelled) return;
       if (result.ok) {

@@ -549,7 +549,7 @@ async function advanceTurnStartInternal(
     );
   }
   const turnStart = startNextTurn(promotedState);
-  let afterDot = autoCompleteForcedPromotions(turnStart.stateAfterDot);
+  const afterDot = autoCompleteForcedPromotions(turnStart.stateAfterDot);
   // 毒 DoT で撃破→前衛空きが発生しうる。assert で落とさず promotion へ。
   const nextPhase = onlinePromotionNeeded(afterDot) ? 'promotion' : 'select';
   if (nextPhase === 'select') {

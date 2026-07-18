@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+// ヘルプ本文データと小さな表示用コンポーネント HelpDefinedItem を同居させており、分割は大がかりになるため無効化
 import type { ReactNode } from 'react';
 import {
   HelpInlineJewelCost,

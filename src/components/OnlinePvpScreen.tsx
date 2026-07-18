@@ -99,7 +99,9 @@ export function OnlinePvpScreen({
   const modeHelp = getOnlinePvpModeHelp();
   const advancingRef = useRef(false);
   const roleRef = useRef<OnlineBattleRole | null>(resumeRole ?? null);
-  roleRef.current = role;
+  useEffect(() => {
+    roleRef.current = role;
+  }, [role]);
 
   useLayoutEffect(() => {
     if (!resumeRoom || !resumeRole) return;
@@ -182,6 +184,36 @@ export function OnlinePvpScreen({
     };
   }, [deckConfirmed, room?.id, tryNavigateToSetup]);
 
+  // room / userId から自分のロール・フェーズ・デッキ確定状態を、レンダー中に同期する。
+  // onRoomUpdated（画面遷移）は副作用なので下の effect に残す。
+  const [prevRoleSync, setPrevRoleSync] = useState<{
+    room: OnlineBattleRoom | null;
+    userId: string | null;
+  }>({ room, userId });
+  if (prevRoleSync.room !== room || prevRoleSync.userId !== userId) {
+    setPrevRoleSync({ room, userId });
+    if (room && userId) {
+      const myRole: OnlineBattleRole | null =
+        room.hostUserId === userId
+          ? 'host'
+          : room.guestUserId === userId
+            ? 'guest'
+            : null;
+      if (myRole) {
+        setRole(myRole);
+        if (isPostOnlineDeckSelectStatus(room.status)) {
+          // 画面遷移は下の effect で行う
+        } else if (room.status === 'waiting' && myRole === 'host') {
+          setPhase('lobby');
+        } else if (room.status === 'deck_select') {
+          setPhase('deckSelect');
+          const ownDeck = myRole === 'host' ? room.hostDeck : room.guestDeck;
+          setDeckConfirmed(ownDeck != null);
+        }
+      }
+    }
+  }
+
   useEffect(() => {
     if (!room || !userId) return;
     const myRole: OnlineBattleRole | null =
@@ -191,22 +223,9 @@ export function OnlinePvpScreen({
           ? 'guest'
           : null;
     if (!myRole) return;
-    setRole(myRole);
 
     if (isPostOnlineDeckSelectStatus(room.status)) {
       onRoomUpdated(room, myRole);
-      return;
-    }
-
-    if (room.status === 'waiting' && myRole === 'host') {
-      setPhase('lobby');
-      return;
-    }
-
-    if (room.status === 'deck_select') {
-      setPhase('deckSelect');
-      const ownDeck = myRole === 'host' ? room.hostDeck : room.guestDeck;
-      setDeckConfirmed(ownDeck != null);
     }
   }, [room, userId, onRoomUpdated]);
 

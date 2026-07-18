@@ -992,6 +992,7 @@ function FormationArrowLayer({
         ? prev
         : next,
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- linesKey で意味的な変化のみ検出し、lines 配列の identity churn での再実行を避ける
   }, [boardRef, slotRefs, linesKey]);
 
   useEffect(() => {
@@ -1047,6 +1048,7 @@ function FormationArrowLayer({
       );
     });
     return () => window.cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- linesKey で意味的な変化のみ検出し、lines 配列の identity churn での再実行を避ける
   }, [boardRef, slotRefs, linesKey]);
 
   if (segments.length === 0) return null;
@@ -1196,6 +1198,7 @@ function FormationDamageLayer({
         ? prev
         : next,
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- markersKey で意味的な変化のみ検出し、markers 配列の identity churn での再実行を避ける
   }, [boardRef, slotRefs, markersKey]);
 
   useEffect(() => {
@@ -1229,6 +1232,7 @@ function FormationDamageLayer({
       );
     });
     return () => window.cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- markersKey で意味的な変化のみ検出し、markers 配列の identity churn での再実行を避ける
   }, [boardRef, slotRefs, markersKey]);
 
   if (labels.length === 0) return null;
@@ -1384,6 +1388,7 @@ function BattleBoard({
         : []),
     ];
     return lines;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- healLines 等は battle.playback からの派生値で、その battle.playback を既に依存に含む
   }, [activeAttack, battle.playback]);
   const damageMarkers = useMemo((): DamageMarker[] => {
     const markers: DamageMarker[] = [];
@@ -1477,6 +1482,7 @@ function BattleBoard({
       }
     }
     return markers;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- healLines 等は battle.playback からの派生値で、その battle.playback を既に依存に含む
   }, [
     activeAttack,
     battle.effectivePhase,
@@ -1523,6 +1529,7 @@ function BattleBoard({
 
     document.addEventListener('pointerdown', onPointerDown, true);
     return () => document.removeEventListener('pointerdown', onPointerDown, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- battle オブジェクトの identity churn を避け、参照する member のみ依存する
   }, [
     battle.effectivePhase,
     battle.pendingActor,
@@ -1727,6 +1734,8 @@ function BattleSession({
   const [showEndModal, setShowEndModal] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [endModalDismissedForLog, setEndModalDismissedForLog] = useState(false);
+  const [prevOpponentLeftDuringBattle, setPrevOpponentLeftDuringBattle] =
+    useState(false);
 
   const myRematchReady =
     onlinePvpContext != null &&
@@ -1736,41 +1745,44 @@ function BattleSession({
 
   useEffect(() => {
     if (ended) battle.handleEnd();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- battle オブジェクトの identity churn を避け、handleEnd のみ依存する
   }, [ended, battle.handleEnd]);
 
   useEffect(() => {
     onEndedChange?.(ended);
   }, [ended, onEndedChange]);
 
+  // 終了モーダルは一定時間の余韻を挟んで開くため、開く側だけを非同期の effect に残す。
   useEffect(() => {
-    if (!ended || !onlinePvpContext) {
-      setShowEndModal(false);
-      return;
-    }
+    if (!ended || !onlinePvpContext) return;
     const timer = window.setTimeout(() => {
       setShowEndModal(true);
     }, BATTLE_OUTCOME_HOLD_MS);
     return () => window.clearTimeout(timer);
   }, [ended, onlinePvpContext]);
 
-  useEffect(() => {
-    if (!ended) {
-      setEndModalDismissedForLog(false);
-    }
-  }, [ended]);
+  // 相手退出時は再戦希望中でも終了モーダルを再表示（transition を検知して一度だけ実行）
+  const opponentLeftDuringBattle =
+    !!onlinePvpContext &&
+    ended &&
+    onlinePvpContext.room.status === 'closed' &&
+    onlinePvpContext.room.closedByRole != null &&
+    onlinePvpContext.room.closedByRole !== onlinePvpContext.role;
 
-  // 相手退出時は再戦希望中でも終了モーダルを再表示
-  useEffect(() => {
-    if (!onlinePvpContext || !ended) return;
-    const opponentLeft =
-      onlinePvpContext.room.status === 'closed' &&
-      onlinePvpContext.room.closedByRole != null &&
-      onlinePvpContext.room.closedByRole !== onlinePvpContext.role;
-    if (opponentLeft) {
+  // 終了モーダル関連の「閉じる/リセット」同期は effect ではなく描画時に調整する。
+  if (showEndModal && (!ended || !onlinePvpContext)) {
+    setShowEndModal(false);
+  }
+  if (!ended && endModalDismissedForLog) {
+    setEndModalDismissedForLog(false);
+  }
+  if (opponentLeftDuringBattle !== prevOpponentLeftDuringBattle) {
+    setPrevOpponentLeftDuringBattle(opponentLeftDuringBattle);
+    if (opponentLeftDuringBattle) {
       setShowEndModal(true);
       setLeaveConfirmOpen(false);
     }
-  }, [ended, onlinePvpContext]);
+  }
 
   const resolvedEndActions =
     onlinePvpContext != null
@@ -1830,41 +1842,25 @@ function BattleSession({
       ? onlineRematchButtonLabel(onlinePvpContext.room, onlinePvpContext.role)
       : '再戦希望';
 
-  const onlineBannerPowerRef = useRef<{
+  // ルームのデッキ情報から算出できるため state 同期ではなく描画時に導出する。
+  const onlineBattlePower = useMemo<{
     applied: boolean;
     playerPower: number;
     opponentPower: number;
-  } | null>(null);
-  const onlineBannerPowerRoomRef = useRef<string | null>(null);
-
-  const onlineBattlePower = useMemo(() => {
-    if (!onlinePvpContext) {
-      onlineBannerPowerRef.current = null;
-      onlineBannerPowerRoomRef.current = null;
-      return null;
-    }
-    if (onlineBannerPowerRoomRef.current !== onlinePvpContext.room.id) {
-      onlineBannerPowerRoomRef.current = onlinePvpContext.room.id;
-      onlineBannerPowerRef.current = null;
-    }
-    const { hostDeck, guestDeck, role } = {
-      hostDeck: onlinePvpContext.room.hostDeck,
-      guestDeck: onlinePvpContext.room.guestDeck,
-      role: onlinePvpContext.role,
-    };
+  } | null>(() => {
+    if (!onlinePvpContext) return null;
+    const { hostDeck, guestDeck } = onlinePvpContext.room;
+    const { role } = onlinePvpContext;
     if (hostDeck?.length && guestDeck?.length) {
       const myDeck = role === 'host' ? hostDeck : guestDeck;
       const oppDeck = role === 'host' ? guestDeck : hostDeck;
-      const applied = onlinePvpContext.room.powerBalanceApplied;
-      const snapshot = {
-        applied,
+      return {
+        applied: onlinePvpContext.room.powerBalanceApplied,
         playerPower: computeDeckPower(myDeck),
         opponentPower: computeDeckPower(oppDeck),
       };
-      onlineBannerPowerRef.current = snapshot;
-      return snapshot;
     }
-    return onlineBannerPowerRef.current;
+    return null;
   }, [onlinePvpContext]);
 
   const displayPlayerIdentity = useMemo((): BattleZoneIdentity | undefined => {
@@ -2019,10 +2015,14 @@ export function BattleSetupScreen({
   onlinePvp,
 }: BattleSetupScreenProps) {
   const isOnlinePvp = onlinePvp != null;
-  const opponentProfile: BattleZoneProfile = opponentIdentity ?? {
-    name: 'CPU',
-    level: playerIdentity?.level ?? CPU_OPPONENT_LEVEL,
-  };
+  const opponentProfile: BattleZoneProfile = useMemo(
+    () =>
+      opponentIdentity ?? {
+        name: 'CPU',
+        level: playerIdentity?.level ?? CPU_OPPONENT_LEVEL,
+      },
+    [opponentIdentity, playerIdentity?.level],
+  );
   const canBattle = playerDeck.length >= DECK_MAX;
   const opponentCpuDeck = cpuDeck;
   const seededOpponentFormation = useMemo(
@@ -2084,6 +2084,7 @@ export function BattleSetupScreen({
   const [selectedSlot, setSelectedSlot] = useState<SelectedSetupSlot>(null);
   const [battleEnded, setBattleEnded] = useState(false);
   const [battleSubView, setBattleSubView] = useState<'play' | 'log'>('play');
+  const [prevPhaseForSubView, setPrevPhaseForSubView] = useState(phase);
   const [setupSubmitted, setSetupSubmitted] = useState(() => {
     if (!isOnlinePvp || !onlinePvp) return false;
     return onlinePvp.role === 'host'
@@ -2097,6 +2098,7 @@ export function BattleSetupScreen({
   useEffect(() => {
     if (!isOnlinePvp || !onlinePvp) return;
     if (onlinePvp.room.status === 'battle') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- サーバーのリアルタイムなルーム状態に追従する同期処理。描画時導出に置き換えると状態機械が壊れるため effect を維持する
       setPhase('battle');
       // バトル開始時のみサーバー配置でカード一覧を揃える（以降の realtime では触らない）
       if (syncedBattleFormationRef.current !== onlinePvp.room.id) {
@@ -2167,7 +2169,9 @@ export function BattleSetupScreen({
   const formationScreenRef = useRef<HTMLElement>(null);
   const cpuHandRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const cpuFlightRef = useRef(cpuFlight);
-  cpuFlightRef.current = cpuFlight;
+  useEffect(() => {
+    cpuFlightRef.current = cpuFlight;
+  }, [cpuFlight]);
   const cpuSlotRefs = useRef<Record<BoardPosition, HTMLButtonElement | null>>({
     frontLeft: null,
     frontRight: null,
@@ -2237,6 +2241,7 @@ export function BattleSetupScreen({
 
     const position = BOARD_POSITIONS[cpuDeployIndex]!;
     if (cpuSlots[position]) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- DOM 実測に基づく CPU 配置アニメーションの進行。useLayoutEffect 内でのみ計測できるため描画時導出に置き換えられない
       setCpuDeployIndex((index) => index + 1);
       return;
     }
@@ -2274,11 +2279,13 @@ export function BattleSetupScreen({
     cpuMeasureTick,
   ]);
 
-  useEffect(() => {
+  // phase が battle に切り替わったタイミングでのみ表示を play に戻す（描画時に transition 検知）。
+  if (phase !== prevPhaseForSubView) {
+    setPrevPhaseForSubView(phase);
     if (phase === 'battle') {
       setBattleSubView('play');
     }
-  }, [phase]);
+  }
 
   useEffect(() => {
     if (phase !== 'setup') return;
@@ -2302,6 +2309,7 @@ export function BattleSetupScreen({
     if (timeLeft <= 0) {
       if (isOnlinePvp && onlinePvp) {
         if (!setupSubmitted) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- 制限時間切れによる自動提出処理。カウントダウン state 機械の一部で、描画時導出に置き換えると二重提出などの不具合を招く
           setSetupSubmitted(true);
           onlinePvp.onSubmitSetup(cardsToFormation(playerSlots));
         }

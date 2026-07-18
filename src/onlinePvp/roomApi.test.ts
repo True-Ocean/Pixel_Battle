@@ -103,8 +103,8 @@ function createMockSupabase(initialRow: OnlineBattleRoomRow) {
   };
 
   const supabase = {
-    from: (_table: string) => ({
-      select: (_cols: string) => ({
+    from: () => ({
+      select: () => ({
         eq: (column: string, value: unknown) => ({
           maybeSingle: async () => {
             if (column === 'id' && row.id !== value) {
@@ -130,7 +130,7 @@ function createMockSupabase(initialRow: OnlineBattleRoomRow) {
             filters.push({ kind: 'is', column, value });
             return builder;
           },
-          select: (_cols: string) => ({
+          select: () => ({
             single: async () => {
               if (!matchesFilters(row, filters)) {
                 return { data: null, error: { message: 'no rows' } };

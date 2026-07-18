@@ -1,6 +1,5 @@
 import {
   useCallback,
-  useEffect,
   useMemo,
   useState,
   type CSSProperties,
@@ -115,9 +114,19 @@ export function BattleDeckSelectScreen({
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null);
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null);
 
-  useEffect(() => {
-    setSelectedIndex(resolveBattleHubDeckSelection(readyIndices, lastBattleDeckIndex));
-  }, [readyIndices, lastBattleDeckIndex]);
+  const [prevSelectionInputs, setPrevSelectionInputs] = useState({
+    readyIndices,
+    lastBattleDeckIndex,
+  });
+  if (
+    prevSelectionInputs.readyIndices !== readyIndices ||
+    prevSelectionInputs.lastBattleDeckIndex !== lastBattleDeckIndex
+  ) {
+    setPrevSelectionInputs({ readyIndices, lastBattleDeckIndex });
+    setSelectedIndex(
+      resolveBattleHubDeckSelection(readyIndices, lastBattleDeckIndex),
+    );
+  }
 
   const canStart =
     selectedIndex != null && readyIndices.length > 0 && selectedSlot == null;

@@ -20,8 +20,7 @@ export function markCardLost(card: Card): Card {
 
 export function markCardActive(card: Card): Card {
   if (isCardActive(card)) return card;
-  const { status: _status, ...rest } = card;
-  return { ...rest, status: 'active' as const };
+  return { ...card, status: 'active' as const };
 }
 
 export function canReviveLostCard(card: Card): boolean {

@@ -62,7 +62,8 @@ export function pickSyncDirection(
 
 /** クラウド送信用。バトル履歴は端末専用のためキーごと含めない */
 export function saveForCloudUpload(save: SaveData): SaveData {
-  const { battleHistory: _omit, ...rest } = save;
+  const rest = { ...save };
+  delete rest.battleHistory;
   return rest;
 }
 

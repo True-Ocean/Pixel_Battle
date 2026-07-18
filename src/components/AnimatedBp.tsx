@@ -20,15 +20,22 @@ export function AnimatedBp({
 }: AnimatedBpProps) {
   const [display, setDisplay] = useState(active ? from : to);
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  // アニメーション入力が変わったら、表示値をレンダー中に初期位置へ合わせる
+  // （非アクティブなら to、アクティブなら from から開始）。
+  const animKey = `${active}\u0000${from}\u0000${to}`;
+  const [prevAnimKey, setPrevAnimKey] = useState(animKey);
+  if (animKey !== prevAnimKey) {
+    setPrevAnimKey(animKey);
+    setDisplay(active ? from : to);
+  }
 
   useEffect(() => {
-    if (!active) {
-      setDisplay((prev) => (prev === to ? prev : to));
-      return;
-    }
+    if (!active) return;
 
-    setDisplay((prev) => (prev === from ? prev : from));
     const duration = 480;
     const start = performance.now();
     let frame = 0;

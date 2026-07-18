@@ -106,7 +106,6 @@ export function BattleCard({
   arenaSize = false,
   animatedBp,
   faceDown = false,
-  flipEnabled: _flipEnabled = false,
   justPlaced = false,
   fixedSize = false,
   handSize = false,

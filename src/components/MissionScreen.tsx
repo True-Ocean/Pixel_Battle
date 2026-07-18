@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type {
   CompletionBonusCategory,
   MissionCategory,
@@ -75,11 +75,9 @@ export function MissionScreen({
     [missionState, userLevel],
   );
 
-  useEffect(() => {
-    if (categoryTab === 'beginner' && !showBeginner) {
-      setCategoryTab('daily');
-    }
-  }, [categoryTab, showBeginner]);
+  if (categoryTab === 'beginner' && !showBeginner) {
+    setCategoryTab('daily');
+  }
 
   const handleBulkClaim = (category: MissionCategory) => {
     const summary = onClaimCategoryMissions(category);

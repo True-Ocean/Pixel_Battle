@@ -34,6 +34,17 @@ import { isSupabaseConfigured } from '../supabase/client';
 import { getLevelProgress, validateUsername } from '../user';
 import type { SubscriptionPlan, UserProfile } from '../types';
 
+// prop / 派生値が変化したときだけ描画時に state を同期するヘルパー。
+// effect 内の同期 setState（cascading render の原因）を避けつつ
+// 「入力が変わったらリセットする」挙動を安全に表現する。
+function useSyncOnChange<T>(source: T, apply: (value: T) => void): void {
+  const [prev, setPrev] = useState(source);
+  if (!Object.is(source, prev)) {
+    setPrev(source);
+    apply(source);
+  }
+}
+
 interface DevCardOption {
   id: string;
   label: string;
@@ -322,9 +333,7 @@ function AccountSection({
     formatCloudSyncTime(getLastCloudSyncAt()),
   );
 
-  useEffect(() => {
-    setUsernameInput(username);
-  }, [username]);
+  useSyncOnChange(username, (value) => setUsernameInput(value));
 
   const [deviceLinkedEmail, setDeviceLinkedEmail] = useState<string | null>(() =>
     getDeviceLinkedEmail(),
@@ -344,19 +353,20 @@ function AccountSection({
   const email = resolveAccountEmail(authUser);
   const boundEmail = email ?? deviceLinkedEmail;
 
-  useEffect(() => {
-    if (mailExpanded && linked) {
+  useSyncOnChange(mailExpanded && linked, (open) => {
+    if (open) {
       setLastSyncLabel(formatCloudSyncTime(getLastCloudSyncAt()));
     }
-  }, [mailExpanded, linked]);
+  });
+
+  // 入力条件が変わったら描画時にロード中(null)へ戻し、取得結果は async コールバックで反映する。
+  useSyncOnChange(`${mailExpanded}|${linked}|${configured}`, () =>
+    setCloudHasProgress(null),
+  );
 
   useEffect(() => {
-    if (!mailExpanded || !linked || !configured) {
-      setCloudHasProgress(null);
-      return;
-    }
+    if (!mailExpanded || !linked || !configured) return;
     let cancelled = false;
-    setCloudHasProgress(null);
     void fetchPlayerSave().then((result) => {
       if (cancelled) return;
       if (!result.ok || result.data == null) {
@@ -449,11 +459,9 @@ function AccountSection({
     })();
   };
 
-  useEffect(() => {
-    if (linked) {
-      setPasswordInput('');
-    }
-  }, [linked]);
+  useSyncOnChange(linked, (isLinked) => {
+    if (isLinked) setPasswordInput('');
+  });
 
   const mailStatusLabel = !configured
     ? '利用不可'
@@ -514,11 +522,9 @@ function AccountSection({
     }
   };
 
-  useEffect(() => {
-    if (deviceLinkedEmail) {
-      setEmailInput(deviceLinkedEmail);
-    }
-  }, [deviceLinkedEmail]);
+  useSyncOnChange(deviceLinkedEmail, (value) => {
+    if (value) setEmailInput(value);
+  });
 
   const handleUsernameSave = () => {
     setUsernameNotice(null);
@@ -917,7 +923,8 @@ export function SettingsScreen({
   const [devFillDeckIndex, setDevFillDeckIndex] = useState(0);
   const isDev = import.meta.env.DEV;
 
-  useEffect(() => {
+  // 選択肢（memo 済み prop）が変わったときだけ、無効になった選択を有効値へ補正する。
+  useSyncOnChange(devDeckFillOptions, () => {
     setDevFillDeckIndex((current) => {
       const currentOption = devDeckFillOptions.find(
         (option) => option.index === current,
@@ -937,9 +944,9 @@ export function SettingsScreen({
         0
       );
     });
-  }, [devDeckFillOptions]);
+  });
 
-  useEffect(() => {
+  useSyncOnChange(devCardOptions, () => {
     setDevLostCardId((current) => {
       if (devCardOptions.length === 0) return '';
       const currentOption = devCardOptions.find((option) => option.id === current);
@@ -949,41 +956,27 @@ export function SettingsScreen({
         devCardOptions[0].id
       );
     });
-  }, [devCardOptions]);
+  });
 
-  useEffect(() => {
-    setDevLevelInput(String(user?.level ?? 1));
-  }, [user?.level]);
-
-  useEffect(() => {
-    setDevFreePixelsInput(String(freePixels));
-  }, [freePixels]);
-
-  useEffect(() => {
-    setDevJewelsInput(String(jewels));
-  }, [jewels]);
-
-  useEffect(() => {
-    setDevAttributeShardsInput(String(attributeShardsCount));
-  }, [attributeShardsCount]);
-
-  useEffect(() => {
-    setDevUniversalShardsInput(String(universalShardCount));
-  }, [universalShardCount]);
-
-  useEffect(() => {
-    setDevTalismanInput(String(talismanCount));
-  }, [talismanCount]);
-
-  useEffect(() => {
-    setDevDeckUnlockInput(String(unlockedDeckCount));
-  }, [unlockedDeckCount]);
-
-  useEffect(() => {
+  // 元データが変わったときだけ dev 入力欄を同期し直す（手入力中の値は保持）。
+  useSyncOnChange(user?.level, (level) => setDevLevelInput(String(level ?? 1)));
+  useSyncOnChange(freePixels, (value) => setDevFreePixelsInput(String(value)));
+  useSyncOnChange(jewels, (value) => setDevJewelsInput(String(value)));
+  useSyncOnChange(attributeShardsCount, (value) =>
+    setDevAttributeShardsInput(String(value)),
+  );
+  useSyncOnChange(universalShardCount, (value) =>
+    setDevUniversalShardsInput(String(value)),
+  );
+  useSyncOnChange(talismanCount, (value) => setDevTalismanInput(String(value)));
+  useSyncOnChange(unlockedDeckCount, (value) =>
+    setDevDeckUnlockInput(String(value)),
+  );
+  useSyncOnChange(memoryAlbumUnlockedRows, (value) =>
     setDevAlbumExpansionInput(
-      String(Math.max(0, memoryAlbumUnlockedRows - MEMORY_ALBUM_INITIAL_ROWS)),
-    );
-  }, [memoryAlbumUnlockedRows]);
+      String(Math.max(0, value - MEMORY_ALBUM_INITIAL_ROWS)),
+    ),
+  );
 
   if (!user) {
     return (

@@ -26,10 +26,13 @@ export function DeckRenameDialog({
   const [nameInput, setNameInput] = useState(currentCustomName);
   const [nameError, setNameError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const resetKey = `${deckIndex}\u0000${currentCustomName}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (resetKey !== prevResetKey) {
+    setPrevResetKey(resetKey);
     setNameInput(currentCustomName);
     setNameError(null);
-  }, [currentCustomName, deckIndex]);
+  }
 
   useEffect(() => {
     const scrollY = window.scrollY;

@@ -191,11 +191,13 @@ export const TALISMAN_STARTER_GRANT_COUNT = 1;
 /** レベルアップ1回あたりの px（固定） */
 export const LEVEL_UP_PIXEL_REWARD = 100;
 
-export function calcLevelUpPixels(_level?: number): number {
+export function calcLevelUpPixels(level?: number): number {
+  void level;
   return LEVEL_UP_PIXEL_REWARD;
 }
 
-export function calcLevelUpJewels(_level?: number): number {
+export function calcLevelUpJewels(level?: number): number {
+  void level;
   return JEWELS_PER_LEVEL;
 }
 

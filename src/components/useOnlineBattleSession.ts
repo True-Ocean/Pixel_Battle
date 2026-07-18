@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { getPendingPromotionFronts } from '../game/battleState';
 import type { BattleActionChoice, BattleState, BoardPosition } from '../types/battle';
 import { toLocalBattleState } from '../onlinePvp/battleSync';
@@ -160,26 +160,26 @@ export function useOnlineBattleSession({
     ],
   );
 
-  useEffect(() => {
-    if (!view.localState) return;
-    if (getPendingPromotionFronts(view.localState.player).length === 0) {
-      // 既に from=null なら同一参照を返し、無限 setState ループを防ぐ
-      setPromotionDraft((prev) => (prev.from == null ? prev : { from: null }));
-    }
-  }, [room?.battleRevision, view.localState]);
+  // 昇格対象が無くなったら選択中の昇格ドラフトを破棄する。
+  // updater は冪等（既に from=null なら同一参照を返す）なので描画時に実行しても安全。
+  if (
+    view.localState &&
+    getPendingPromotionFronts(view.localState.player).length === 0
+  ) {
+    setPromotionDraft((prev) => (prev.from == null ? prev : { from: null }));
+  }
 
-  useEffect(() => {
-    if (view.uiPhase === 'pickMain' || view.uiPhase == null) {
-      return;
-    }
-    if (
-      view.uiPhase !== 'pickTarget' &&
-      view.uiPhase !== 'pickShield' &&
-      view.uiPhase !== 'pickHeal'
-    ) {
-      setActionPickSubPhase((prev) => (prev === 'main' ? prev : 'main'));
-    }
-  }, [view.uiPhase]);
+  // 対象選択系(pick*)以外のフェーズでは行動選択のサブフェーズを main に戻す。
+  // updater は冪等なので描画時に実行してよい。
+  if (
+    view.uiPhase != null &&
+    view.uiPhase !== 'pickMain' &&
+    view.uiPhase !== 'pickTarget' &&
+    view.uiPhase !== 'pickShield' &&
+    view.uiPhase !== 'pickHeal'
+  ) {
+    setActionPickSubPhase((prev) => (prev === 'main' ? prev : 'main'));
+  }
 
   const selectPromotionBack = useCallback((from: BoardPosition) => {
     setPromotionDraft({ from });

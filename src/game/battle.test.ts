@@ -300,7 +300,7 @@ describe('battle', () => {
   });
 
   it('先に撃破されると未実行の攻撃をログに残す', () => {
-    let state = createBattleState(
+    const state = createBattleState(
       [stubCard('カードA', 'attack', 200), ...cards('P').slice(1)],
       [
         stubCard('カードX', 'attack', 250),
@@ -1170,7 +1170,7 @@ describe('battle', () => {
       stubCard('Healer', 'heal', 50),
       stubCard('PBackR', 'attack', 40),
     ];
-    let state = createBattleState(playerDeck, cards('C'));
+    const state = createBattleState(playerDeck, cards('C'));
     const wounded = state.player.find((u) => u.position === 'frontRight')!;
     wounded.currentBp = 30;
     wounded.poisonStacks = [{ sourceCardId: 'poison-1', damagePerTurn: 12 }];
@@ -1203,7 +1203,7 @@ describe('battle', () => {
       stubCard('Healer', 'heal', 50),
       stubCard('PBackR', 'attack', 40),
     ];
-    let state = createBattleState(playerDeck, cards('C'));
+    const state = createBattleState(playerDeck, cards('C'));
     const poisoned = state.player.find((u) => u.position === 'frontRight')!;
     poisoned.poisonStacks = [{ sourceCardId: 'poison-1', damagePerTurn: 12 }];
     poisoned.poisonDotDamageReceived = true;
@@ -1236,7 +1236,7 @@ describe('battle', () => {
       stubCard('Healer', 'heal', 50),
       stubCard('PBackR', 'attack', 40),
     ];
-    let state = createBattleState(playerDeck, cards('C'));
+    const state = createBattleState(playerDeck, cards('C'));
     const frozen = state.player.find((u) => u.position === 'frontRight')!;
     frozen.currentBp = 30;
     frozen.frozenUntilTurn = getSelectionTurn(state) + 1;
@@ -1342,7 +1342,7 @@ describe('battle', () => {
       stubCard('Healer', 'heal', 50),
       stubCard('PBackR', 'attack', 40),
     ];
-    let state = createBattleState(playerDeck, cards('C'));
+    const state = createBattleState(playerDeck, cards('C'));
     const wounded = state.player.find((u) => u.position === 'frontRight')!;
     wounded.currentBp = 30;
 
