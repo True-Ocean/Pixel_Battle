@@ -64,6 +64,7 @@ function makeRow() {
     offline_pvp_battle_losses: 4,
     online_pvp_battle_wins: 5,
     online_pvp_battle_losses: 6,
+    subscription_plan: 'light',
     created_at: '2026-07-18T00:00:00.000Z',
     updated_at: '2026-07-18T01:00:00.000Z',
   };
@@ -97,6 +98,7 @@ describe('publicProfileUpsertRow', () => {
       offline_pvp_battle_losses: 3,
       online_pvp_battle_wins: 3,
       online_pvp_battle_losses: 4,
+      subscription_plan: 'none',
       updated_at: '2026-07-18T02:00:00.000Z',
     });
     expect(row).not.toHaveProperty('exp');
@@ -117,6 +119,7 @@ describe('rowToPublicProfile', () => {
       offlinePvpBattleLosses: 4,
       onlinePvpBattleWins: 5,
       onlinePvpBattleLosses: 6,
+      subscriptionPlan: 'light',
       createdAt: '2026-07-18T00:00:00.000Z',
       updatedAt: '2026-07-18T01:00:00.000Z',
     });
@@ -132,13 +135,19 @@ describe('rowToPublicProfile', () => {
 
 describe('saveCurrentPublicProfile', () => {
   it('upserts the current owner row', async () => {
-    await expect(saveCurrentPublicProfile(makeUser())).resolves.toEqual({
+    await expect(
+      saveCurrentPublicProfile(makeUser(), 'premium'),
+    ).resolves.toEqual({
       ok: true,
       ownerId: 'owner-a',
     });
     expect(mocks.from).toHaveBeenCalledWith('public_profiles');
     expect(mocks.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ owner_id: 'owner-a', username: 'テスト' }),
+      expect.objectContaining({
+        owner_id: 'owner-a',
+        username: 'テスト',
+        subscription_plan: 'premium',
+      }),
       { onConflict: 'owner_id' },
     );
   });

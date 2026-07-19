@@ -50,7 +50,7 @@ import {
   syncPermanentOwnershipAchievements,
 } from './mission/permanentAchievementProgress';
 import { loadSave, saveSave, SAVE_SCHEMA_VERSION, clearLocalSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, setMemoryAlbumUnlockedRows, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, canRenameCardForFree, canRenameDeck, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, setMemoryAlbumUnlockedRows, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, canRenameCardForFree, canRenameDeck, getActiveSubscriptionPlan, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
   canPublishDeck,
@@ -771,7 +771,10 @@ function App() {
   useEffect(() => {
     if (!isSupabaseConfigured() || !isProfileComplete(user)) return;
     const timeoutId = window.setTimeout(() => {
-      void saveCurrentPublicProfile(user).then((result) => {
+      void saveCurrentPublicProfile(
+        user,
+        getActiveSubscriptionPlan(subscription),
+      ).then((result) => {
         if (!result.ok && result.reason === 'save_failed') {
           console.warn(
             '[publicProfile] failed to sync current profile',
@@ -781,7 +784,7 @@ function App() {
       });
     }, 800);
     return () => window.clearTimeout(timeoutId);
-  }, [user]);
+  }, [subscription, user]);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;

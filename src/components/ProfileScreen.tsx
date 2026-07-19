@@ -1,23 +1,24 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { getSubscriptionPlanById } from '../config/shop';
 import { getRarityMeta } from '../config/rarity';
 import {
   OFFLINE_PVP_MIN_USER_LEVEL,
   type PublicGhostDeck,
 } from '../offlinePvp';
-import type { Card, UserProfile, UserSubscription } from '../types';
+import type {
+  Card,
+  SubscriptionPlan,
+  UserProfile,
+  UserSubscription,
+} from '../types';
 import {
   DEFAULT_PROFILE_COMMENT,
   finalizeProfileComment,
   getActiveSubscriptionPlan,
-  PROFILE_COMMENT_MAX_LENGTH,
-  PROFILE_COMMENT_MAX_LINES,
-  profileCommentLength,
-  sanitizeProfileCommentInput,
 } from '../user';
 import { OfflinePvpDeckDetailOverlay } from './OfflinePvpDeckDetailOverlay';
 import { CardPreview } from './CardPreview';
 import { PixelIconPreview } from './PixelIconPreview';
+import { ProfileCommentEditModal } from './ProfileCommentEditModal';
 
 export interface ProfileDisplayUser {
   username: string;
@@ -30,6 +31,7 @@ export interface ProfileDisplayUser {
   offlinePvpBattleLosses: number | null;
   onlinePvpBattleWins: number | null;
   onlinePvpBattleLosses: number | null;
+  subscriptionPlan?: SubscriptionPlan;
 }
 
 export interface ProfilePublishedDeck {
@@ -43,7 +45,7 @@ export interface ProfilePublishedDeck {
 
 export interface ProfileScreenProps {
   user: ProfileDisplayUser;
-  /** 他ユーザー閲覧時は省略し、プランを表示しない。 */
+  /** 自分のプロフィールでのみ指定する。 */
   subscription?: UserSubscription;
   publishedDecks: readonly ProfilePublishedDeck[];
   /** 公開プロフィール取得中。暫定情報を出さずにローディングを表示する。 */
@@ -140,7 +142,6 @@ export function ProfileScreen({
     null,
   );
   const [commentEditing, setCommentEditing] = useState(false);
-  const [commentDraft, setCommentDraft] = useState('');
   const battleBlockedMessage = useMemo(() => {
     if (!offlinePvpUnlocked) {
       return `公開デッキ戦は Lv${OFFLINE_PVP_MIN_USER_LEVEL} で解放されます。`;
@@ -149,9 +150,7 @@ export function ProfileScreen({
   }, [offlinePvpUnlocked]);
   const activePlan = subscription
     ? getActiveSubscriptionPlan(subscription)
-    : 'none';
-  const planLabel =
-    activePlan === 'none' ? null : getSubscriptionPlanById(activePlan).label;
+    : (user.subscriptionPlan ?? 'none');
   const trimmedName = user.username.trim();
   const initialChar = trimmedName.charAt(0) || '?';
   const displayComment =
@@ -159,21 +158,15 @@ export function ProfileScreen({
     DEFAULT_PROFILE_COMMENT;
 
   const startCommentEdit = () => {
-    setCommentDraft(user.profileComment ?? '');
     setCommentEditing(true);
   };
 
-  const saveComment = () => {
-    onCommentChange?.(finalizeProfileComment(commentDraft));
-    setCommentEditing(false);
+  const saveComment = (comment: string | undefined) => {
+    onCommentChange?.(comment);
   };
 
   return (
     <section className="screen profile-screen">
-      <header className="profile-header">
-        <h1 className="profile-title">プロフィール</h1>
-      </header>
-
       {loading ? (
         <div className="profile-body profile-body--loading">
           <div className="profile-loading" role="status">
@@ -196,80 +189,77 @@ export function ProfileScreen({
           </div>
         )}
 
-        <button
-          type="button"
-          className="profile-avatar-frame"
-          aria-label="アバターを拡大表示"
-          onClick={onOpenAvatar}
-        >
-          {user.avatar ? (
-            <PixelIconPreview
-              className="profile-avatar-preview"
-              pixels={user.avatar.pixels}
-              size={AVATAR_PREVIEW_SIZE}
-            />
-          ) : (
-            <span className="profile-avatar-initial" aria-hidden>
-              {initialChar}
-            </span>
-          )}
-        </button>
+        <div className="profile-overview">
+          <div className="profile-user">
+            <button
+              type="button"
+              className={`profile-avatar-frame profile-avatar-frame--${activePlan}`}
+              aria-label="アバターを拡大表示"
+              onClick={onOpenAvatar}
+            >
+              {user.avatar ? (
+                <PixelIconPreview
+                  className="profile-avatar-preview"
+                  pixels={user.avatar.pixels}
+                  size={AVATAR_PREVIEW_SIZE}
+                />
+              ) : (
+                <span className="profile-avatar-initial" aria-hidden>
+                  {initialChar}
+                </span>
+              )}
+            </button>
+          </div>
 
-        <div className="profile-identity">
-          <p className="profile-name">{user.username}</p>
-          <p className="profile-level">Lv.{user.level}</p>
-          {planLabel != null && (
-            <p className={`profile-plan profile-plan--${activePlan}`}>
-              {planLabel}
-            </p>
-          )}
-        </div>
+          <div className="profile-details">
+            <div className="profile-identity">
+              <p className="profile-name">{user.username}</p>
+              {activePlan !== 'none' && (
+                <span
+                  className={`profile-subscription-crown profile-subscription-crown--${activePlan}`}
+                  role="img"
+                  aria-label={
+                    activePlan === 'premium'
+                      ? 'プレミアムプラン'
+                      : 'ライトプラン'
+                  }
+                  title={
+                    activePlan === 'premium'
+                      ? 'プレミアムプラン'
+                      : 'ライトプラン'
+                  }
+                >
+                  <svg viewBox="0 0 18 18" aria-hidden="true">
+                    <path
+                      className="profile-subscription-crown-body"
+                      d="M1.5 4.5 5.4 8.2 8.8 1.8 12.2 8.2 16.1 4.5 14.7 14.2H2.9L1.5 4.5Z"
+                    />
+                    <path
+                      className="profile-subscription-crown-highlight"
+                      d="M4.1 11.8h9.4"
+                    />
+                  </svg>
+                </span>
+              )}
+              <p className="profile-level">Lv.{user.level}</p>
+            </div>
 
-        <section className="profile-comment" aria-labelledby="profile-comment-title">
-          <div className="profile-comment-heading">
-            <h2 id="profile-comment-title">ひとこと</h2>
-            {onCommentChange && !commentEditing && (
-              <button type="button" onClick={startCommentEdit}>
-                編集
+            {onCommentChange ? (
+              <button
+                type="button"
+                className="profile-comment profile-comment--editable"
+                aria-label="ひとことを編集"
+                onClick={startCommentEdit}
+              >
+                <p className="profile-comment-text">{displayComment}</p>
               </button>
+            ) : (
+              <section className="profile-comment" aria-label="ひとこと">
+                <p className="profile-comment-text">{displayComment}</p>
+              </section>
             )}
           </div>
-          {commentEditing ? (
-            <div className="profile-comment-editor">
-              <textarea
-                rows={PROFILE_COMMENT_MAX_LINES}
-                value={commentDraft}
-                aria-label="ひとこと"
-                placeholder={DEFAULT_PROFILE_COMMENT}
-                onChange={(event) =>
-                  setCommentDraft(
-                    sanitizeProfileCommentInput(event.target.value),
-                  )
-                }
-              />
-              <div className="profile-comment-editor-meta">
-                <span>個人情報や連絡先は入力しないでください</span>
-                <span>
-                  {profileCommentLength(commentDraft)}/
-                  {PROFILE_COMMENT_MAX_LENGTH}
-                </span>
-              </div>
-              <div className="profile-comment-editor-actions">
-                <button
-                  type="button"
-                  onClick={() => setCommentEditing(false)}
-                >
-                  キャンセル
-                </button>
-                <button type="button" onClick={saveComment}>
-                  保存
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p className="profile-comment-text">{displayComment}</p>
-          )}
-        </section>
+        </div>
 
         <div className="profile-records" aria-label="戦績">
           <ProfileRecordRow
@@ -283,10 +273,11 @@ export function ProfileScreen({
             losses={user.offlinePvpBattleLosses}
           />
           <ProfileRecordRow
-            label="フレンド対戦（オンライン）"
+            label="フレンド対戦"
             wins={user.onlinePvpBattleWins}
             losses={user.onlinePvpBattleLosses}
           />
+          <ProfileRecordRow label="真剣勝負！" wins={0} losses={0} />
         </div>
 
         <section className="profile-decks" aria-labelledby="profile-decks-title">
@@ -353,6 +344,14 @@ export function ProfileScreen({
           戻る
         </button>
       </div>
+
+      {commentEditing && onCommentChange && (
+        <ProfileCommentEditModal
+          initialValue={user.profileComment ?? ''}
+          onSave={saveComment}
+          onClose={() => setCommentEditing(false)}
+        />
+      )}
 
       {selectedGhost && (
         <OfflinePvpDeckDetailOverlay

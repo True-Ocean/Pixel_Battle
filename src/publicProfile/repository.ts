@@ -1,6 +1,6 @@
 import { ensureAnonymousUserId } from '../auth';
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase/client';
-import type { PixelGrid, UserProfile } from '../types';
+import type { PixelGrid, SubscriptionPlan, UserProfile } from '../types';
 import { finalizeProfileComment } from '../user/profileComment';
 import type {
   GetPublicProfileResult,
@@ -21,6 +21,7 @@ const PUBLIC_PROFILE_COLUMNS = [
   'offline_pvp_battle_losses',
   'online_pvp_battle_wins',
   'online_pvp_battle_losses',
+  'subscription_plan',
   'created_at',
   'updated_at',
 ].join(', ');
@@ -65,6 +66,7 @@ export function publicProfileUpsertRow(
   ownerId: string,
   user: UserProfile,
   now = new Date(),
+  subscriptionPlan: SubscriptionPlan = 'none',
 ): PublicProfileUpsertRow {
   return {
     owner_id: ownerId,
@@ -90,6 +92,7 @@ export function publicProfileUpsertRow(
       0,
       Math.floor(user.onlinePvpBattleLosses),
     ),
+    subscription_plan: subscriptionPlan,
     updated_at: now.toISOString(),
   };
 }
@@ -139,6 +142,10 @@ export function rowToPublicProfile(raw: unknown): PublicProfile | null {
     typeof row.profile_comment === 'string'
       ? finalizeProfileComment(row.profile_comment)
       : undefined;
+  const subscriptionPlan: SubscriptionPlan =
+    row.subscription_plan === 'light' || row.subscription_plan === 'premium'
+      ? row.subscription_plan
+      : 'none';
   return {
     ownerId: row.owner_id,
     username: row.username.trim(),
@@ -151,6 +158,7 @@ export function rowToPublicProfile(raw: unknown): PublicProfile | null {
     offlinePvpBattleLosses,
     onlinePvpBattleWins,
     onlinePvpBattleLosses,
+    subscriptionPlan,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -158,6 +166,7 @@ export function rowToPublicProfile(raw: unknown): PublicProfile | null {
 
 export async function saveCurrentPublicProfile(
   user: UserProfile,
+  subscriptionPlan: SubscriptionPlan = 'none',
 ): Promise<SavePublicProfileResult> {
   if (!isSupabaseConfigured()) {
     return { ok: false, reason: 'not_configured' };
@@ -169,7 +178,7 @@ export async function saveCurrentPublicProfile(
 
   const { error } = await client
     .from('public_profiles')
-    .upsert(publicProfileUpsertRow(ownerId, user), {
+    .upsert(publicProfileUpsertRow(ownerId, user, new Date(), subscriptionPlan), {
       onConflict: 'owner_id',
     });
   if (error) {

@@ -1,4 +1,4 @@
-import type { UserProfile } from '../types';
+import type { SubscriptionPlan, UserProfile } from '../types';
 
 export interface PublicProfile {
   ownerId: string;
@@ -12,6 +12,7 @@ export interface PublicProfile {
   offlinePvpBattleLosses: number;
   onlinePvpBattleWins: number;
   onlinePvpBattleLosses: number;
+  subscriptionPlan: SubscriptionPlan;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,6 +29,7 @@ export interface PublicProfileRow {
   offline_pvp_battle_losses: number;
   online_pvp_battle_wins: number;
   online_pvp_battle_losses: number;
+  subscription_plan: SubscriptionPlan;
   created_at: string;
   updated_at: string;
 }
