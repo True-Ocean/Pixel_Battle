@@ -484,7 +484,13 @@ export function BattleDeckSelectScreen({
       </div>
 
       {battleMode && (
-        <div className="battle-mode-bottom-nav">
+        <div
+          className={`battle-mode-bottom-nav${
+            startButtonInBottomNav && !waitingStatusMessage
+              ? ' battle-mode-bottom-nav--split'
+              : ''
+          }`}
+        >
           {startButtonInBottomNav && !waitingStatusMessage && (
             <button
               type="button"

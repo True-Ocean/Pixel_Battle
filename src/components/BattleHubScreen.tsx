@@ -73,7 +73,7 @@ export function BattleHubScreen({
         lastBattleDeckIndex={lastBattleDeckIndex}
         title="CPU戦"
         battleMode="cpu"
-        backLabel="バトルモード選択画面に戻る"
+        backLabel="バトルモード選択に戻る"
         startButtonLabel="マッチング開始"
         showDeckSelectSubheader
         startButtonInBottomNav

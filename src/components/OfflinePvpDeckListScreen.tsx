@@ -164,7 +164,7 @@ export function OfflinePvpDeckListScreen({
 
       <div className="battle-mode-bottom-nav">
         <button type="button" onClick={onBack}>
-          バトルモード選択画面に戻る
+          バトルモード選択に戻る
         </button>
       </div>
 
