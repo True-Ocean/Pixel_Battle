@@ -220,6 +220,8 @@ function createRemoteProfileSourceFromGhost(
         slotIndex: ghost.slotIndex,
         name: ghost.deckName,
         cards: ghost.deck,
+        ghostId: ghost.id,
+        ...(ghost.ownerId ? { ownerId: ghost.ownerId } : {}),
       },
     ],
   };
@@ -247,6 +249,9 @@ function createRemoteProfileSourceFromHistory(
         slotIndex: 0,
         name: '対戦時のデッキ',
         cards: entry.opponentDeck,
+        ...(entry.opponentOwnerId
+          ? { ownerId: entry.opponentOwnerId }
+          : {}),
       },
     ],
   };
@@ -3683,7 +3688,8 @@ function App() {
   const activeTab: TabId =
     isHistoryRematchDeckSelect ||
     isOfflinePvpDeckSelect ||
-    screen === 'offlinePvpList'
+    screen === 'offlinePvpList' ||
+    screen === 'records'
       ? 'battleHub'
       : screen === 'battleSetup' && battleEndDock
         ? 'battleHub'
@@ -3940,6 +3946,8 @@ function App() {
             slotIndex: deck.slotIndex,
             name: deck.deckName,
             cards: deck.deck,
+            ghostId: deck.id,
+            ownerId: deck.ownerId,
           }))
         : snapshot.publishedDecks;
       setRemoteProfileView({
@@ -4268,6 +4276,11 @@ function App() {
             }
             onBack={closeProfile}
             onOpenAvatar={() => setScreen('avatarDetail')}
+            viewerDeckPower={viewerReferenceDeckPower}
+            canBattle={hasOfflinePvpBattleDeck}
+            offlinePvpUnlocked={offlinePvpUnlocked}
+            ownerId={remoteProfileView.ownerId}
+            onChallengeDeck={startOfflinePvpDeckSelect}
           />
         )}
         {screen === 'profile' && !remoteProfileView && user && (
@@ -4278,6 +4291,9 @@ function App() {
             onBack={closeProfile}
             onOpenAvatar={() => setScreen('avatarDetail')}
             onCommentChange={handleProfileCommentChange}
+            viewerDeckPower={viewerReferenceDeckPower}
+            canBattle={false}
+            offlinePvpUnlocked={offlinePvpUnlocked}
           />
         )}
         {screen === 'avatarDetail' && remoteProfileView && (

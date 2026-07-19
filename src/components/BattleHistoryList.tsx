@@ -1,8 +1,8 @@
+import type { CSSProperties } from 'react';
 import { formatBattleHistoryWhen } from '../battleHistory';
 import type { BattleHistoryEntry, Card } from '../types';
 import { CardPreview } from './CardPreview';
 import { getRarityMeta } from '../config/rarity';
-import type { CSSProperties } from 'react';
 
 interface BattleHistoryListProps {
   entries: BattleHistoryEntry[];

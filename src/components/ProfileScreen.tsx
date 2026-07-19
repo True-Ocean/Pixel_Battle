@@ -1,6 +1,10 @@
-import { useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { getSubscriptionPlanById } from '../config/shop';
 import { getRarityMeta } from '../config/rarity';
+import {
+  OFFLINE_PVP_MIN_USER_LEVEL,
+  type PublicGhostDeck,
+} from '../offlinePvp';
 import type { Card, UserProfile, UserSubscription } from '../types';
 import {
   DEFAULT_PROFILE_COMMENT,
@@ -11,7 +15,7 @@ import {
   profileCommentLength,
   sanitizeProfileCommentInput,
 } from '../user';
-import { CardDetailViewOverlay } from './CardDetailViewOverlay';
+import { OfflinePvpDeckDetailOverlay } from './OfflinePvpDeckDetailOverlay';
 import { CardPreview } from './CardPreview';
 import { PixelIconPreview } from './PixelIconPreview';
 
@@ -32,6 +36,9 @@ export interface ProfilePublishedDeck {
   slotIndex: number;
   name: string;
   cards: Card[];
+  /** 公開デッキ戦のリモートID。対戦開始時に必要 */
+  ghostId?: string;
+  ownerId?: string;
 }
 
 export interface ProfileScreenProps {
@@ -47,9 +54,37 @@ export interface ProfileScreenProps {
   onOpenAvatar: () => void;
   /** 自分のプロフィールでのみ指定する。 */
   onCommentChange?: (comment: string | undefined) => void;
+  /** 他ユーザーの公開デッキと対戦するとき */
+  viewerDeckPower?: number | null;
+  canBattle?: boolean;
+  offlinePvpUnlocked?: boolean;
+  ownerId?: string | null;
+  onChallengeDeck?: (ghost: PublicGhostDeck) => void;
 }
 
 const AVATAR_PREVIEW_SIZE = 96;
+
+function toPublicGhostDeck(
+  deck: ProfilePublishedDeck,
+  user: ProfileDisplayUser,
+  ownerId?: string | null,
+): PublicGhostDeck {
+  return {
+    id:
+      deck.ghostId ??
+      `profile-${ownerId ?? deck.ownerId ?? 'local'}-${deck.slotIndex}`,
+    slotIndex: deck.slotIndex,
+    deckName: deck.name,
+    authorName: user.username,
+    authorLevel: user.level,
+    offlinePvpWins: user.offlinePvpBattleWins ?? 0,
+    offlinePvpLosses: user.offlinePvpBattleLosses ?? 0,
+    deck: deck.cards,
+    ...(ownerId || deck.ownerId
+      ? { ownerId: ownerId ?? deck.ownerId }
+      : {}),
+  };
+}
 
 function formatWinRate(wins: number | null, losses: number | null): string {
   if (wins == null || losses == null) return '—';
@@ -95,10 +130,23 @@ export function ProfileScreen({
   onBack,
   onOpenAvatar,
   onCommentChange,
+  viewerDeckPower = null,
+  canBattle = false,
+  offlinePvpUnlocked = false,
+  ownerId = null,
+  onChallengeDeck,
 }: ProfileScreenProps) {
-  const [detailCard, setDetailCard] = useState<Card | null>(null);
+  const [selectedGhost, setSelectedGhost] = useState<PublicGhostDeck | null>(
+    null,
+  );
   const [commentEditing, setCommentEditing] = useState(false);
   const [commentDraft, setCommentDraft] = useState('');
+  const battleBlockedMessage = useMemo(() => {
+    if (!offlinePvpUnlocked) {
+      return `公開デッキ戦は Lv${OFFLINE_PVP_MIN_USER_LEVEL} で解放されます。`;
+    }
+    return '5枚揃ったデッキがありません。マイデッキで編成してください。';
+  }, [offlinePvpUnlocked]);
   const activePlan = subscription
     ? getActiveSubscriptionPlan(subscription)
     : 'none';
@@ -123,9 +171,6 @@ export function ProfileScreen({
   return (
     <section className="screen profile-screen">
       <header className="profile-header">
-        <button type="button" className="profile-back-btn" onClick={onBack}>
-          戻る
-        </button>
         <h1 className="profile-title">プロフィール</h1>
       </header>
 
@@ -255,46 +300,75 @@ export function ProfileScreen({
             </p>
           ) : (
             <ul className="profile-deck-list">
-              {publishedDecks.map((deck) => (
-                <li key={deck.slotIndex} className="profile-deck-row">
-                  <span className="profile-deck-name">{deck.name}</span>
-                  <div
-                    className="profile-deck-thumbnails"
-                    aria-label={`${deck.name}のカード`}
-                  >
-                    {deck.cards.slice(0, 5).map((card) => {
-                      const rarityMeta = getRarityMeta(card.rarity);
-                      return (
-                        <button
-                          key={card.id}
-                          type="button"
-                          className="profile-deck-thumbnail"
-                          style={
-                            {
-                              '--rarity-border': rarityMeta.rowBorder,
-                              '--rarity-bg': rarityMeta.rowBg,
-                            } as CSSProperties
-                          }
-                          aria-label={`${card.name}の詳細を開く`}
-                          onClick={() => setDetailCard(card)}
-                        >
-                          <CardPreview pixels={card.pixels} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </li>
-              ))}
+              {publishedDecks.map((deck) => {
+                const rarityThumbs = deck.cards.slice(0, 5).map((card) => {
+                  const rarityMeta = getRarityMeta(card.rarity);
+                  return (
+                    <div
+                      key={card.id}
+                      className="profile-deck-thumbnail"
+                      style={
+                        {
+                          '--rarity-border': rarityMeta.rowBorder,
+                          '--rarity-bg': rarityMeta.rowBg,
+                        } as CSSProperties
+                      }
+                      aria-hidden
+                    >
+                      <CardPreview pixels={card.pixels} />
+                    </div>
+                  );
+                });
+                return (
+                  <li key={deck.slotIndex}>
+                    <button
+                      type="button"
+                      className="profile-deck-row"
+                      aria-label={`${deck.name}の詳細を開く`}
+                      onClick={() =>
+                        setSelectedGhost(
+                          toPublicGhostDeck(deck, user, ownerId),
+                        )
+                      }
+                    >
+                      <span className="profile-deck-name">{deck.name}</span>
+                      <div
+                        className="profile-deck-thumbnails"
+                        aria-hidden
+                      >
+                        {rarityThumbs}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
       </div>
       )}
 
-      {detailCard && (
-        <CardDetailViewOverlay
-          card={detailCard}
-          onClose={() => setDetailCard(null)}
+      <div className="battle-mode-bottom-nav">
+        <button type="button" onClick={onBack}>
+          戻る
+        </button>
+      </div>
+
+      {selectedGhost && (
+        <OfflinePvpDeckDetailOverlay
+          ghost={selectedGhost}
+          viewerDeckPower={viewerDeckPower}
+          canBattle={canBattle && offlinePvpUnlocked}
+          battleBlockedMessage={battleBlockedMessage}
+          onClose={() => setSelectedGhost(null)}
+          onChallenge={
+            onChallengeDeck
+              ? (ghost) => {
+                  setSelectedGhost(null);
+                  onChallengeDeck(ghost);
+                }
+              : undefined
+          }
         />
       )}
     </section>

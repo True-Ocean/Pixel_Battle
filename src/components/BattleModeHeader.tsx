@@ -4,7 +4,8 @@ export type BattleModeHeaderMode =
   | 'cpu'
   | 'offlinePvp'
   | 'friend'
-  | 'serious';
+  | 'serious'
+  | 'records';
 
 const MODE_COPY: Record<
   BattleModeHeaderMode,
@@ -30,6 +31,11 @@ const MODE_COPY: Record<
     description: '他ユーザーとリアルタイムバトル',
     online: true,
     developing: true,
+  },
+  records: {
+    title: 'バトル履歴とランキング',
+    description: '戦績やランキングを確認',
+    online: false,
   },
 };
 
@@ -72,6 +78,13 @@ export function BattleModeIcon({ mode }: { mode: BattleModeHeaderMode }) {
         <circle cx="11" cy="11" r="4" />
         <circle cx="22" cy="12" r="3.5" />
         <path d="M4.5 25c.5-5 3-7.5 6.5-7.5s6 2.5 6.5 7.5M17 25c.3-3.8 2.2-6 5-6s4.7 2.2 5 6M14 13.5l5-1" />
+      </svg>
+    );
+  }
+  if (mode === 'records') {
+    return (
+      <svg viewBox="0 0 32 32" aria-hidden>
+        <path d="M6 26V16h5v10M14 26V10h5v16M22 26V5h5v21M4 26h25" />
       </svg>
     );
   }

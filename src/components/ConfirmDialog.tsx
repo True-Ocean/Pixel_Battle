@@ -3,10 +3,10 @@ import { createPortal } from 'react-dom';
 
 interface ConfirmDialogProps {
   open: boolean;
-  title: string;
+  title?: ReactNode;
   message: ReactNode;
   confirmLabel?: string;
-  cancelLabel?: string;
+  cancelLabel?: string | null;
   confirmVariant?: 'danger' | 'primary';
   confirmDisabled?: boolean;
   className?: string;
@@ -36,20 +36,26 @@ export function ConfirmDialog({
         className={dialogClassName}
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
+        {...(title
+          ? { 'aria-labelledby': 'confirm-dialog-title' }
+          : {})}
         aria-describedby="confirm-dialog-message"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="confirm-dialog-title" className="confirm-dialog-title">
-          {title}
-        </h2>
+        {title != null && title !== '' && (
+          <h2 id="confirm-dialog-title" className="confirm-dialog-title">
+            {title}
+          </h2>
+        )}
         <div id="confirm-dialog-message" className="confirm-dialog-message">
           {message}
         </div>
         <div className="confirm-dialog-actions">
-          <button type="button" className="confirm-dialog-cancel" onClick={onCancel}>
-            {cancelLabel}
-          </button>
+          {cancelLabel && (
+            <button type="button" className="confirm-dialog-cancel" onClick={onCancel}>
+              {cancelLabel}
+            </button>
+          )}
           <button
             type="button"
             className={

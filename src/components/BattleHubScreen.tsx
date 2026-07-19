@@ -12,6 +12,7 @@ import {
   BattleModeIcon,
   OnlineNetworkIcon,
 } from './BattleModeHeader';
+
 import { BattleDeckSelectScreen } from './BattleDeckSelectScreen';
 import { HelpInfoButton } from './HelpInfoButton';
 import { HelpPanelModal } from './HelpPanelModal';
@@ -109,22 +110,12 @@ export function BattleHubScreen({
           onClick={() => setHelpOpen(true)}
         />
       </div>
-      <button
-        type="button"
-        className="battle-hub-records-btn"
-        aria-label="戦績を見る"
-        onClick={onOpenRecords}
-      >
-        <span className="battle-hub-records-btn-icon" aria-hidden>
-          📊
-        </span>
-      </button>
       <div className="battle-hub-center">
         <div className="battle-hub-mode-panel">
           <div
             className="battle-hub-mode-list"
             role="group"
-            aria-label="バトルモード"
+            aria-label="バトルメニュー"
           >
             <button
               type="button"
@@ -231,6 +222,23 @@ export function BattleHubScreen({
                 aria-label="オンライン通信"
               >
                 <OnlineNetworkIcon />
+              </span>
+            </button>
+            <button
+              type="button"
+              className="battle-hub-mode-btn battle-hub-mode-btn--records"
+              onClick={onOpenRecords}
+            >
+              <span className="battle-hub-mode-btn-icon">
+                <BattleModeIcon mode="records" />
+              </span>
+              <span className="battle-hub-mode-btn-copy">
+                <span className="battle-hub-mode-btn-label">
+                  バトル履歴とランキング
+                </span>
+                <span className="battle-hub-mode-btn-description">
+                  戦績やランキングを確認
+                </span>
               </span>
             </button>
           </div>

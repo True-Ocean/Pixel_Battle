@@ -20,7 +20,10 @@ import {
 import { BattleDeckSelectScreen } from './BattleDeckSelectScreen';
 import { BattleModeHeader } from './BattleModeHeader';
 import { ConfirmDialog } from './ConfirmDialog';
-import { HelpInlinePxIcon } from './HelpInlineEconomy';
+import {
+  HelpInlinePxCost,
+  HelpInlinePxIcon,
+} from './HelpInlineEconomy';
 import { HelpPanelModal } from './HelpPanelModal';
 
 type OnlinePvpPhase = 'entry' | 'lobby' | 'deckSelect';
@@ -100,6 +103,10 @@ export function OnlinePvpScreen({
   const [error, setError] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const [insufficientPxAction, setInsufficientPxAction] = useState<
+    'create' | 'join' | null
+  >(null);
+  const [invalidCodeOpen, setInvalidCodeOpen] = useState(false);
   const modeHelp = getOnlinePvpModeHelp();
   const advancingRef = useRef(false);
   const roleRef = useRef<OnlineBattleRole | null>(resumeRole ?? null);
@@ -258,7 +265,8 @@ export function OnlinePvpScreen({
       return;
     }
     if (!canAffordEntry) {
-      setError(`参加には ${ONLINE_PVP_MIN_WALLET_PX}px 以上必要です`);
+      setError(null);
+      setInsufficientPxAction('create');
       return;
     }
     setBusy(true);
@@ -287,17 +295,19 @@ export function OnlinePvpScreen({
   ]);
 
   const handleJoin = useCallback(async () => {
-    const code = padRoomCode(joinCode);
-    if (!isValidRoomCode(code)) {
-      setError('6桁のコードを入力してください');
-      return;
-    }
     if (!supabaseConfigured) {
       setError('Supabase が未設定です');
       return;
     }
     if (!canAffordEntry) {
-      setError(`参加には ${ONLINE_PVP_MIN_WALLET_PX}px 以上必要です`);
+      setError(null);
+      setInsufficientPxAction('join');
+      return;
+    }
+    const code = padRoomCode(joinCode);
+    if (!isValidRoomCode(code) || normalizeRoomCodeInput(joinCode).length !== 6) {
+      setError(null);
+      setInvalidCodeOpen(true);
       return;
     }
     setBusy(true);
@@ -309,6 +319,10 @@ export function OnlinePvpScreen({
     });
     setBusy(false);
     if (!result.ok) {
+      if (result.code === 'room_not_found') {
+        setInvalidCodeOpen(true);
+        return;
+      }
       setError(errorMessage(result));
       return;
     }
@@ -432,6 +446,12 @@ export function OnlinePvpScreen({
             onHelp={() => setHelpOpen(true)}
             helpAriaLabel={`${modeHelp.title}のヘルプ`}
           />
+          <div className="battle-deck-select-subheader">
+            <h2>対戦相手を待機中</h2>
+            <div className="battle-deck-select-subheader-guide" role="note">
+              <p>ルームコードを友達に共有してください</p>
+            </div>
+          </div>
         </header>
         <div className="online-pvp-entry-body online-pvp-lobby-body">
           <div className="online-pvp-lobby-content">
@@ -441,9 +461,6 @@ export function OnlinePvpScreen({
                 {padRoomCode(room.code)}
               </p>
             </div>
-            <p className="online-pvp-lobby-wait-hint">
-              相手が入室するまで、この画面でお待ちください。
-            </p>
           </div>
         </div>
         <div className="battle-mode-bottom-nav">
@@ -493,25 +510,30 @@ export function OnlinePvpScreen({
             </p>
           )}
 
-          <p className="muted online-pvp-wallet-hint">
-            最低
-            <HelpInlinePxIcon />
-            {ONLINE_PVP_MIN_WALLET_PX}が必要です
-          </p>
-
-          <button
-            type="button"
-            className="battle-hub-mode-btn online-pvp-action-btn"
-            disabled={busy || !supabaseConfigured || !canAffordEntry}
-            onClick={() => void handleCreate()}
-          >
-            ルームを作る
-          </button>
+          <div className="online-pvp-entry-section">
+            <div className="battle-deck-select-subheader">
+              <h2>ルームを作る</h2>
+              <div className="battle-deck-select-subheader-guide" role="note">
+                <p>6桁のコードをフレンドに共有して招待</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="battle-hub-mode-btn online-pvp-action-btn"
+              disabled={busy || !supabaseConfigured}
+              onClick={() => void handleCreate()}
+            >
+              ルームを作る
+            </button>
+          </div>
 
           <div className="online-pvp-join-section">
-            <p className="online-pvp-join-hint">
-              コード入力：他のユーザーのルームに入室
-            </p>
+            <div className="battle-deck-select-subheader">
+              <h2>ルームに入る</h2>
+              <div className="battle-deck-select-subheader-guide" role="note">
+                <p>フレンドから共有された6桁のコードを入力</p>
+              </div>
+            </div>
             <input
               type="text"
               inputMode="numeric"
@@ -528,10 +550,10 @@ export function OnlinePvpScreen({
             <button
               type="button"
               className="battle-hub-mode-btn online-pvp-action-btn"
-              disabled={busy || !supabaseConfigured || !canAffordEntry}
+              disabled={busy || !supabaseConfigured}
               onClick={() => void handleJoin()}
             >
-              入室
+              ルームに入る
             </button>
           </div>
 
@@ -550,6 +572,37 @@ export function OnlinePvpScreen({
       {helpOpen && (
         <HelpPanelModal topic={modeHelp} onClose={() => setHelpOpen(false)} />
       )}
+      <ConfirmDialog
+        open={insufficientPxAction != null}
+        message={
+          <>
+            フレンド対戦時には、
+            <HelpInlinePxCost amount={ONLINE_PVP_MIN_WALLET_PX} />
+            以上保有している必要があります。現在、保有
+            <HelpInlinePxIcon />
+            が不足しているため、
+            {insufficientPxAction === 'create'
+              ? 'ルームを作れません。'
+              : 'ルームに入れません。'}
+          </>
+        }
+        confirmLabel="OK"
+        cancelLabel={null}
+        confirmVariant="primary"
+        className="online-pvp-insufficient-dialog"
+        onConfirm={() => setInsufficientPxAction(null)}
+        onCancel={() => setInsufficientPxAction(null)}
+      />
+      <ConfirmDialog
+        open={invalidCodeOpen}
+        message="正しい6桁のコードを入力してください。"
+        confirmLabel="OK"
+        cancelLabel={null}
+        confirmVariant="primary"
+        className="online-pvp-insufficient-dialog"
+        onConfirm={() => setInvalidCodeOpen(false)}
+        onCancel={() => setInvalidCodeOpen(false)}
+      />
     </section>
   );
 }

@@ -10,15 +10,20 @@ interface OfflinePvpDeckDetailOverlayProps {
   ghost: PublicGhostDeck;
   viewerDeckPower: number | null;
   canBattle: boolean;
+  /** 未指定時は「5枚揃ったデッキがありません…」 */
+  battleBlockedMessage?: string;
   onClose: () => void;
-  onOpenProfile: (ghost: PublicGhostDeck) => void;
-  onChallenge: (ghost: PublicGhostDeck) => void;
+  /** 未指定時は作者名をテキスト表示のみ */
+  onOpenProfile?: (ghost: PublicGhostDeck) => void;
+  /** 未指定時は対戦ボタンを非表示 */
+  onChallenge?: (ghost: PublicGhostDeck) => void;
 }
 
 export function OfflinePvpDeckDetailOverlay({
   ghost,
   viewerDeckPower,
   canBattle,
+  battleBlockedMessage = '5枚揃ったデッキがありません。マイデッキで編成してください。',
   onClose,
   onOpenProfile,
   onChallenge,
@@ -33,11 +38,12 @@ export function OfflinePvpDeckDetailOverlay({
     viewerDeckPower != null && deckPower !== viewerDeckPower;
 
   const handleChallenge = () => {
+    if (!onChallenge) return;
     if (canBattle) {
       onChallenge(ghost);
       return;
     }
-    setNotice('5枚揃ったデッキがありません。マイデッキで編成してください。');
+    setNotice(battleBlockedMessage);
   };
 
   useEffect(() => {
@@ -80,14 +86,18 @@ export function OfflinePvpDeckDetailOverlay({
                 id="offline-pvp-detail-title"
                 className="offline-pvp-detail-username"
               >
-                <button
-                  type="button"
-                  className="offline-pvp-detail-profile-link"
-                  aria-label={`${ghost.authorName}のプロフィールを開く`}
-                  onClick={() => onOpenProfile(ghost)}
-                >
+                {onOpenProfile ? (
+                  <button
+                    type="button"
+                    className="offline-pvp-detail-profile-link"
+                    aria-label={`${ghost.authorName}のプロフィールを開く`}
+                    onClick={() => onOpenProfile(ghost)}
+                  >
+                    <span className="profile-link-name">{ghost.authorName}</span>
+                  </button>
+                ) : (
                   <span className="profile-link-name">{ghost.authorName}</span>
-                </button>
+                )}
               </h2>
               <p className="offline-pvp-detail-meta-row">
                 <span className="offline-pvp-detail-meta-level">
@@ -123,13 +133,15 @@ export function OfflinePvpDeckDetailOverlay({
             </div>
 
             <div className="records-history-detail-actions compact-deck-detail-actions">
-              <button
-                type="button"
-                className="records-history-detail-rematch"
-                onClick={handleChallenge}
-              >
-                このデッキと対戦
-              </button>
+              {onChallenge && (
+                <button
+                  type="button"
+                  className="records-history-detail-rematch"
+                  onClick={handleChallenge}
+                >
+                  このデッキと対戦
+                </button>
+              )}
               {notice && (
                 <p className="records-history-detail-notice" role="status">
                   {notice}

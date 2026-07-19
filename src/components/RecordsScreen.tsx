@@ -3,7 +3,7 @@ import { getBattleHistoryHelp } from '../config/helpContent';
 import type { BattleHistoryEntry } from '../types';
 import { BattleHistoryDetailOverlay } from './BattleHistoryDetailOverlay';
 import { BattleHistoryList } from './BattleHistoryList';
-import { HelpInfoButton } from './HelpInfoButton';
+import { BattleModeHeader } from './BattleModeHeader';
 import { HelpPanelModal } from './HelpPanelModal';
 
 type RecordsSubTab = 'history' | 'ranking';
@@ -28,22 +28,18 @@ export function RecordsScreen({
   const [subTab, setSubTab] = useState<RecordsSubTab>('history');
   const [selectedEntry, setSelectedEntry] = useState<BattleHistoryEntry | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const historyHelp = getBattleHistoryHelp();
 
   return (
     <section className="screen screen-records">
       <header className="records-header">
-        <button type="button" className="records-back-btn" onClick={onBack}>
-          戻る
-        </button>
-        <div className="records-help-slot" aria-hidden={subTab !== 'history'}>
-          {subTab === 'history' && (
-            <HelpInfoButton
-              className="records-help-btn"
-              ariaLabel="バトル履歴のヘルプ"
-              onClick={() => setHelpOpen(true)}
-            />
-          )}
-        </div>
+        <BattleModeHeader
+          mode="records"
+          onHelp={
+            subTab === 'history' ? () => setHelpOpen(true) : undefined
+          }
+          helpAriaLabel={`${historyHelp.title}のヘルプ`}
+        />
       </header>
       <div className="records-subtabs" role="tablist" aria-label="戦績">
         <button
@@ -81,6 +77,12 @@ export function RecordsScreen({
         </div>
       )}
 
+      <div className="battle-mode-bottom-nav">
+        <button type="button" onClick={onBack}>
+          バトルモード選択に戻る
+        </button>
+      </div>
+
       {selectedEntry && (
         <BattleHistoryDetailOverlay
           entry={selectedEntry}
@@ -99,7 +101,7 @@ export function RecordsScreen({
       )}
       {helpOpen && (
         <HelpPanelModal
-          topic={getBattleHistoryHelp()}
+          topic={historyHelp}
           onClose={() => setHelpOpen(false)}
         />
       )}
