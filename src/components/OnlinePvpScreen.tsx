@@ -566,7 +566,7 @@ export function OnlinePvpScreen({
       </div>
       <div className="battle-mode-bottom-nav">
         <button type="button" onClick={onBack}>
-          バトルモード選択に戻る
+          バトルモード選択画面に戻る
         </button>
       </div>
       {helpOpen && (
