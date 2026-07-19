@@ -1010,7 +1010,11 @@ export function DeckScreen({
           <label
             className={[
               'deck-publish-toggle',
-              !publishAvailable || publishBusy ? 'is-disabled' : '',
+              !publishAvailable ||
+              publishBusy ||
+              (!canPublishDeck && !deckPublished)
+                ? 'is-disabled'
+                : '',
             ]
               .filter(Boolean)
               .join(' ')}
@@ -1035,11 +1039,6 @@ export function DeckScreen({
           {!publishAvailable && (
             <p className="deck-publish-hint muted">
               公開には Supabase の設定（.env）が必要です
-            </p>
-          )}
-          {publishAvailable && !canPublishDeck && !deckPublished && (
-            <p className="deck-publish-hint muted">
-              ロストなしで5枚揃ったデッキだけ公開できます
             </p>
           )}
           {publishError && (
