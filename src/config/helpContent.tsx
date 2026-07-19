@@ -45,6 +45,7 @@ export {
   getCpuBattleModeHelp,
   getOfflinePvpModeHelp,
   getOnlinePvpModeHelp,
+  getSeriousBattleModeHelp,
 } from './battleModeHelp';
 
 function HelpDefinedItem({

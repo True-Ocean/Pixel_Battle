@@ -5,7 +5,12 @@ import {
   type CSSProperties,
 } from 'react';
 import { DECK_MAX } from '../config/balance';
-import type { HelpTopic } from '../config/helpContent';
+import {
+  getCpuBattleModeHelp,
+  getOfflinePvpModeHelp,
+  getOnlinePvpModeHelp,
+  type HelpTopic,
+} from '../config/helpContent';
 import {
   countDeckCards,
   getBattleReadyDeckIndices,
@@ -24,6 +29,10 @@ import type { Card, DeckLayout } from '../types';
 import { getRarityMeta } from '../config/rarity';
 import { BattleCard } from './BattleCard';
 import { BattleHubCardDetailOverlay } from './BattleHubCardDetailOverlay';
+import {
+  BattleModeHeader,
+  type BattleModeHeaderMode,
+} from './BattleModeHeader';
 import { HelpInfoButton } from './HelpInfoButton';
 import { HelpPanelModal } from './HelpPanelModal';
 
@@ -48,9 +57,12 @@ export interface BattleDeckSelectScreenProps {
   deckReadinessMode?: DeckReadinessMode;
   backLabel?: string;
   title?: string;
+  battleMode?: BattleModeHeaderMode;
   startButtonLabel?: string;
   startBattleDisabled?: boolean;
   waitingStatusMessage?: string;
+  showDeckSelectSubheader?: boolean;
+  startButtonInBottomNav?: boolean;
   /** 指定時、タイトル右上にモード説明ヘルプを表示 */
   modeHelp?: HelpTopic;
   onStartBattle: (deckIndex: number) => void;
@@ -92,9 +104,12 @@ export function BattleDeckSelectScreen({
   deckReadinessMode = 'battle',
   backLabel = '戻る',
   title = 'デッキ選択',
+  battleMode,
   startButtonLabel = 'バトル開始',
   startBattleDisabled = false,
   waitingStatusMessage,
+  showDeckSelectSubheader = false,
+  startButtonInBottomNav = false,
   modeHelp,
   onStartBattle,
   onBack,
@@ -103,6 +118,15 @@ export function BattleDeckSelectScreen({
   onMoveCardBetweenDecks,
 }: BattleDeckSelectScreenProps) {
   const [helpOpen, setHelpOpen] = useState(false);
+  const resolvedModeHelp =
+    modeHelp ??
+    (battleMode === 'cpu'
+      ? getCpuBattleModeHelp()
+      : battleMode === 'offlinePvp'
+        ? getOfflinePvpModeHelp()
+        : battleMode === 'friend'
+          ? getOnlinePvpModeHelp()
+          : undefined);
   const readyIndices = useMemo(
     () => getReadyDeckIndicesForMode(decks, unlockedDeckCount, deckReadinessMode),
     [decks, unlockedDeckCount, deckReadinessMode],
@@ -113,6 +137,11 @@ export function BattleDeckSelectScreen({
   );
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null);
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null);
+
+  const handleBack = () => {
+    setSelectedSlot(null);
+    onBack();
+  };
 
   const [prevSelectionInputs, setPrevSelectionInputs] = useState({
     readyIndices,
@@ -225,28 +254,50 @@ export function BattleDeckSelectScreen({
       }`}
     >
       <div className="battle-hub-deck-select-head">
-        <div className="battle-mode-screen-toolbar">
-          <button
-            type="button"
-            className="battle-hub-back-btn"
-            onClick={() => {
-              setSelectedSlot(null);
-              onBack();
-            }}
-          >
-            {backLabel}
-          </button>
-          {modeHelp && (
-            <HelpInfoButton
-              className="battle-mode-help-btn"
-              ariaLabel={`${modeHelp.title}のヘルプ`}
-              onClick={() => setHelpOpen(true)}
-            />
-          )}
-        </div>
-        <div className="battle-mode-screen-title-row">
-          <h2 className="battle-hub-deck-select-title">{title}</h2>
-        </div>
+        {battleMode ? (
+          <BattleModeHeader
+            mode={battleMode}
+            onHelp={
+              resolvedModeHelp ? () => setHelpOpen(true) : undefined
+            }
+            helpAriaLabel={
+              resolvedModeHelp
+                ? `${resolvedModeHelp.title}のヘルプ`
+                : undefined
+            }
+          />
+        ) : (
+          <>
+            <div className="battle-mode-screen-toolbar">
+              <button
+                type="button"
+                className="battle-hub-back-btn"
+                onClick={handleBack}
+              >
+                {backLabel}
+              </button>
+              {resolvedModeHelp && (
+                <HelpInfoButton
+                  className="battle-mode-help-btn"
+                  ariaLabel={`${resolvedModeHelp.title}のヘルプ`}
+                  onClick={() => setHelpOpen(true)}
+                />
+              )}
+            </div>
+            <div className="battle-mode-screen-title-row">
+              <h2 className="battle-hub-deck-select-title">{title}</h2>
+            </div>
+          </>
+        )}
+        {showDeckSelectSubheader && (
+          <div className="battle-deck-select-subheader">
+            <h2>デッキ選択</h2>
+            <div className="battle-deck-select-subheader-guide" role="note">
+              <p>カードをタップして別のカードをタップすると入替</p>
+              <p>同じカードをもう一度タップで詳細画面</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="battle-hub-body">
@@ -396,10 +447,12 @@ export function BattleDeckSelectScreen({
         </ul>
 
         <div className="battle-hub-actions battle-hub-actions--deck-select">
-          <div className="battle-hub-deck-select-hint" role="note">
-            <p>カードをタップして別のカードをタップすると入替</p>
-            <p>同じカードをもう一度タップで詳細画面</p>
-          </div>
+          {!showDeckSelectSubheader && (
+            <div className="battle-hub-deck-select-hint" role="note">
+              <p>カードをタップして別のカードをタップすると入替</p>
+              <p>同じカードをもう一度タップで詳細画面</p>
+            </div>
+          )}
           {deckReadinessMode !== 'battle' && readyIndices.length === 0 && (
             <p className="battle-hub-deck-select-notice" role="status">
               5枚揃ったデッキがありません。マイデッキで編成してください。
@@ -417,7 +470,7 @@ export function BattleDeckSelectScreen({
             <p className="online-pvp-waiting-status" role="status">
               {waitingStatusMessage}
             </p>
-          ) : (
+          ) : !startButtonInBottomNav ? (
             <button
               type="button"
               className="battle-hub-mode-btn battle-hub-start-btn"
@@ -426,9 +479,27 @@ export function BattleDeckSelectScreen({
             >
               {startButtonLabel}
             </button>
-          )}
+          ) : null}
         </div>
       </div>
+
+      {battleMode && (
+        <div className="battle-mode-bottom-nav">
+          {startButtonInBottomNav && !waitingStatusMessage && (
+            <button
+              type="button"
+              className="battle-mode-bottom-nav-primary"
+              disabled={!canStart || startBattleDisabled}
+              onClick={handleStartBattle}
+            >
+              {startButtonLabel}
+            </button>
+          )}
+          <button type="button" onClick={handleBack}>
+            {backLabel}
+          </button>
+        </div>
+      )}
 
       {detailTarget && (
         <BattleHubCardDetailOverlay
@@ -440,9 +511,9 @@ export function BattleDeckSelectScreen({
           }}
         />
       )}
-      {helpOpen && modeHelp && (
+      {helpOpen && resolvedModeHelp && (
         <HelpPanelModal
-          topic={modeHelp}
+          topic={resolvedModeHelp}
           onClose={() => setHelpOpen(false)}
         />
       )}

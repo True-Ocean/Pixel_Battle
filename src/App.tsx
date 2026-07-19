@@ -387,6 +387,7 @@ function App() {
   }));
   const [battleSetupKey, setBattleSetupKey] = useState(0);
   const [battleHubResetKey, setBattleHubResetKey] = useState(0);
+  const [battleHubModeScreenOpen, setBattleHubModeScreenOpen] = useState(false);
   const [battleEndDock, setBattleEndDock] = useState(false);
   const [isHistoryRematch, setIsHistoryRematch] = useState(false);
   const [isOfflinePvp, setIsOfflinePvp] = useState(false);
@@ -1611,6 +1612,7 @@ function App() {
     clearHistoryRematch();
     setBattleSetupKey((key) => key + 1);
     setBattleHubResetKey((key) => key + 1);
+    setBattleHubModeScreenOpen(false);
     setScreen('battleHub');
   }, [clearBattleOutcomeHoldTimer, clearHistoryRematch, persistSave]);
 
@@ -3674,12 +3676,10 @@ function App() {
       isHistoryRematchDeckSelect ||
       isOfflinePvpDeckSelect);
   const showDock =
-    isDockVisible(screen) ||
+    (isDockVisible(screen) &&
+      !(screen === 'battleHub' && battleHubModeScreenOpen)) ||
     (screen === 'battleSetup' && battleEndDock) ||
-    screen === 'offlinePvpList' ||
-    screen === 'onlinePvp' ||
-    isHistoryRematchDeckSelect ||
-    isOfflinePvpDeckSelect;
+    isHistoryRematchDeckSelect;
   const activeTab: TabId =
     isHistoryRematchDeckSelect ||
     isOfflinePvpDeckSelect ||
@@ -3700,6 +3700,7 @@ function App() {
       clearOfflinePvp();
       resetOfflinePvpFlow();
       clearOnlinePvp();
+      setBattleHubModeScreenOpen(false);
       if (tab !== 'deck') {
         setDeckReorderMode(false);
       }
@@ -4157,6 +4158,7 @@ function App() {
             onReorderDeckAt={reorderDeckAt}
             onMoveCardBetweenDecks={moveCardBetweenDecksInHub}
             onOpenRecords={openRecords}
+            onModeScreenChange={setBattleHubModeScreenOpen}
           />
         )}
         {screen === 'offlinePvpList' && !isOfflinePvpDeckSelect && (
@@ -4185,6 +4187,7 @@ function App() {
             resumeRole={onlinePvpRole}
             onBack={() => void leaveOnlinePvpRoom()}
             onRoomUpdated={handleOnlineRoomUpdated}
+            onOpponentLeft={() => setOnlinePvpOpponentLeftOpen(true)}
             onGoToMyDeck={goToMyDeckWithCard}
             onReorderDeckAt={reorderDeckAt}
             onMoveCardBetweenDecks={moveCardBetweenDecksInHub}
@@ -4197,6 +4200,9 @@ function App() {
             unlockedDeckCount={unlockedDeckCount}
             lastBattleDeckIndex={lastBattleDeckIndex}
             backLabel="公開デッキ一覧に戻る"
+            battleMode="offlinePvp"
+            showDeckSelectSubheader
+            startButtonInBottomNav
             onStartBattle={startOfflinePvpBattle}
             onBack={resetOfflinePvpFlow}
             onGoToMyDeck={goToMyDeckWithCard}

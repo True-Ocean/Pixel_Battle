@@ -18,7 +18,8 @@ import {
   type OnlineRoomResult,
 } from '../onlinePvp';
 import { BattleDeckSelectScreen } from './BattleDeckSelectScreen';
-import { HelpInfoButton } from './HelpInfoButton';
+import { BattleModeHeader } from './BattleModeHeader';
+import { ConfirmDialog } from './ConfirmDialog';
 import { HelpInlinePxIcon } from './HelpInlineEconomy';
 import { HelpPanelModal } from './HelpPanelModal';
 
@@ -36,6 +37,7 @@ interface OnlinePvpScreenProps {
   lastBattleDeckIndex: number;
   onBack: () => void;
   onRoomUpdated: (room: OnlineBattleRoom, role: OnlineBattleRole) => void;
+  onOpponentLeft: () => void;
   onGoToMyDeck: (deckIndex: number, cardId: string) => void;
   onReorderDeckAt: (deckIndex: number, layout: DeckLayout) => void;
   onMoveCardBetweenDecks: (
@@ -65,6 +67,7 @@ export function OnlinePvpScreen({
   lastBattleDeckIndex,
   onBack,
   onRoomUpdated,
+  onOpponentLeft,
   onGoToMyDeck,
   onReorderDeckAt,
   onMoveCardBetweenDecks,
@@ -96,6 +99,7 @@ export function OnlinePvpScreen({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const modeHelp = getOnlinePvpModeHelp();
   const advancingRef = useRef(false);
   const roleRef = useRef<OnlineBattleRole | null>(resumeRole ?? null);
@@ -153,13 +157,31 @@ export function OnlinePvpScreen({
     [navigateIfReady],
   );
 
+  const handleIncomingRoom = useCallback(
+    (next: OnlineBattleRoom) => {
+      setRoom(next);
+      const currentRole = roleRef.current;
+      if (
+        next.status === 'closed' &&
+        next.closedByRole &&
+        currentRole &&
+        next.closedByRole !== currentRole
+      ) {
+        setLeaveConfirmOpen(false);
+        onOpponentLeft();
+        return;
+      }
+      void tryNavigateToSetup(next);
+    },
+    [onOpponentLeft, tryNavigateToSetup],
+  );
+
   useEffect(() => {
     if (!room?.id) return;
     return subscribeOnlineBattleRoom(room.id, (next) => {
-      setRoom(next);
-      void tryNavigateToSetup(next);
+      handleIncomingRoom(next);
     });
-  }, [room?.id, tryNavigateToSetup]);
+  }, [handleIncomingRoom, room?.id]);
 
   useEffect(() => {
     if (!deckConfirmed || !room?.id) return;
@@ -169,11 +191,10 @@ export function OnlinePvpScreen({
       if (cancelled) return;
       const fresh = await fetchOnlineBattleRoom(room.id);
       if (cancelled || !fresh.ok) return;
-      setRoom(fresh.data);
       if (fresh.data.status !== 'deck_select') {
         cancelled = true;
       }
-      void tryNavigateToSetup(fresh.data);
+      handleIncomingRoom(fresh.data);
     };
 
     void poll();
@@ -182,7 +203,7 @@ export function OnlinePvpScreen({
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [deckConfirmed, room?.id, tryNavigateToSetup]);
+  }, [deckConfirmed, handleIncomingRoom, room?.id]);
 
   // room / userId から自分のロール・フェーズ・デッキ確定状態を、レンダー中に同期する。
   // onRoomUpdated（画面遷移）は副作用なので下の effect に残す。
@@ -254,8 +275,16 @@ export function OnlinePvpScreen({
     }
     setRoom(result.data);
     setRole('host');
+    onRoomUpdated(result.data, 'host');
     setPhase('lobby');
-  }, [canAffordEntry, supabaseConfigured, userLevel, userName, walletPx]);
+  }, [
+    canAffordEntry,
+    onRoomUpdated,
+    supabaseConfigured,
+    userLevel,
+    userName,
+    walletPx,
+  ]);
 
   const handleJoin = useCallback(async () => {
     const code = padRoomCode(joinCode);
@@ -360,13 +389,14 @@ export function OnlinePvpScreen({
           deckNames={deckNames}
           unlockedDeckCount={unlockedDeckCount}
           lastBattleDeckIndex={lastBattleDeckIndex}
-          backLabel="ルームに戻る"
+          backLabel="ルームから退出"
           title="フレンド対戦（オンライン）"
+          battleMode="friend"
           startButtonLabel="デッキ確定"
           waitingStatusMessage={waitingStatusMessage}
           startBattleDisabled={deckConfirmed || busy}
           onStartBattle={handleDeckStart}
-          onBack={onBack}
+          onBack={() => setLeaveConfirmOpen(true)}
           onGoToMyDeck={onGoToMyDeck}
           onReorderDeckAt={onReorderDeckAt}
           onMoveCardBetweenDecks={onMoveCardBetweenDecks}
@@ -376,6 +406,19 @@ export function OnlinePvpScreen({
             {error}
           </p>
         )}
+        <ConfirmDialog
+          open={leaveConfirmOpen}
+          title="ルームから退出"
+          message="ルームから退出しますか？"
+          confirmLabel="退出する"
+          cancelLabel="対戦を続ける"
+          confirmVariant="danger"
+          onConfirm={() => {
+            setLeaveConfirmOpen(false);
+            onBack();
+          }}
+          onCancel={() => setLeaveConfirmOpen(false)}
+        />
       </>
     );
   }
@@ -384,23 +427,11 @@ export function OnlinePvpScreen({
     return (
       <section className="screen screen-online-pvp-lobby">
         <header className="offline-pvp-list-header">
-          <div className="battle-mode-screen-toolbar">
-            <button
-              type="button"
-              className="battle-hub-back-btn"
-              onClick={onBack}
-            >
-              戻る
-            </button>
-            <HelpInfoButton
-              className="battle-mode-help-btn"
-              ariaLabel={`${modeHelp.title}のヘルプ`}
-              onClick={() => setHelpOpen(true)}
-            />
-          </div>
-          <div className="battle-mode-screen-title-row">
-            <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
-          </div>
+          <BattleModeHeader
+            mode="friend"
+            onHelp={() => setHelpOpen(true)}
+            helpAriaLabel={`${modeHelp.title}のヘルプ`}
+          />
         </header>
         <div className="online-pvp-entry-body online-pvp-lobby-body">
           <div className="online-pvp-lobby-content">
@@ -415,9 +446,31 @@ export function OnlinePvpScreen({
             </p>
           </div>
         </div>
+        <div className="battle-mode-bottom-nav">
+          <button
+            type="button"
+            className="battle-mode-bottom-nav-danger"
+            onClick={() => setLeaveConfirmOpen(true)}
+          >
+            ルームから退出
+          </button>
+        </div>
         {helpOpen && (
           <HelpPanelModal topic={modeHelp} onClose={() => setHelpOpen(false)} />
         )}
+        <ConfirmDialog
+          open={leaveConfirmOpen}
+          title="ルームから退出"
+          message="ルームから退出しますか？"
+          confirmLabel="退出する"
+          cancelLabel="対戦を続ける"
+          confirmVariant="danger"
+          onConfirm={() => {
+            setLeaveConfirmOpen(false);
+            onBack();
+          }}
+          onCancel={() => setLeaveConfirmOpen(false)}
+        />
       </section>
     );
   }
@@ -425,23 +478,11 @@ export function OnlinePvpScreen({
   return (
     <section className="screen screen-online-pvp-entry">
       <header className="offline-pvp-list-header">
-        <div className="battle-mode-screen-toolbar">
-          <button
-            type="button"
-            className="battle-hub-back-btn"
-            onClick={onBack}
-          >
-            戻る
-          </button>
-          <HelpInfoButton
-            className="battle-mode-help-btn"
-            ariaLabel={`${modeHelp.title}のヘルプ`}
-            onClick={() => setHelpOpen(true)}
-          />
-        </div>
-        <div className="battle-mode-screen-title-row">
-          <h1 className="offline-pvp-list-title">フレンド対戦（オンライン）</h1>
-        </div>
+        <BattleModeHeader
+          mode="friend"
+          onHelp={() => setHelpOpen(true)}
+          helpAriaLabel={`${modeHelp.title}のヘルプ`}
+        />
       </header>
 
       <div className="online-pvp-entry-body">
@@ -500,6 +541,11 @@ export function OnlinePvpScreen({
             </p>
           )}
         </div>
+      </div>
+      <div className="battle-mode-bottom-nav">
+        <button type="button" onClick={onBack}>
+          バトルモード選択に戻る
+        </button>
       </div>
       {helpOpen && (
         <HelpPanelModal topic={modeHelp} onClose={() => setHelpOpen(false)} />

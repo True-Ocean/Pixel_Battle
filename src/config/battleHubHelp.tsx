@@ -55,7 +55,7 @@ export function getBattleHubHelp(userLevel: number): HelpTopic {
       items: [
         'どちらか一方の 5 枚すべての BP が 0 になったらバトル終了。',
         <>
-          勝利時は、倒した相手カード（相手墓地）の中から 1 枚選び、
+          勝利時は、相手カードの中から 1 枚選び、
           <HelpInlinePxIcon />
           と属性のかけらを獲得します。
         </>,

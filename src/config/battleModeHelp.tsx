@@ -15,7 +15,7 @@ export function getCpuBattleModeHelp(): HelpTopic {
         items: [
           'CPU とマッチングして対戦します。',
           <>
-            勝利時は、倒した相手カード（相手墓地）の中から 1 枚選び、
+            勝利時は、相手カードの中から 1 枚選び、
             <HelpInlinePxIcon />
             と属性のかけらを獲得します。
           </>,
@@ -66,6 +66,20 @@ export function getOnlinePvpModeHelp(): HelpTopic {
             <HelpInlinePxIcon />
             {ONLINE_PVP_MIN_WALLET_PX}を下回ると、ルームから退出することになります。
           </>,
+        ],
+      },
+    ],
+  };
+}
+
+export function getSeriousBattleModeHelp(): HelpTopic {
+  return {
+    title: '真剣勝負！について',
+    sections: [
+      {
+        items: [
+          '他のユーザーとリアルタイムでマッチングして対戦する予定のモードです。',
+          '現在開発中のため、バトルは開始できません。',
         ],
       },
     ],

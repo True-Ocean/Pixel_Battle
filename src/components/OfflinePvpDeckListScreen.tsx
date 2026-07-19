@@ -9,8 +9,8 @@ import {
 } from '../offlinePvp';
 import type { Card } from '../types';
 import { CardPreview } from './CardPreview';
-import { HelpInfoButton } from './HelpInfoButton';
 import { HelpPanelModal } from './HelpPanelModal';
+import { BattleModeHeader } from './BattleModeHeader';
 import { OfflinePvpDeckDetailOverlay } from './OfflinePvpDeckDetailOverlay';
 
 interface OfflinePvpDeckListScreenProps {
@@ -97,26 +97,17 @@ export function OfflinePvpDeckListScreen({
   return (
     <section className="screen screen-offline-pvp-list">
       <header className="offline-pvp-list-header">
-        <div className="battle-mode-screen-toolbar">
-          <button
-            type="button"
-            className="battle-hub-back-btn"
-            onClick={onBack}
-          >
-            戻る
-          </button>
-          <HelpInfoButton
-            className="battle-mode-help-btn"
-            ariaLabel={`${modeHelp.title}のヘルプ`}
-            onClick={() => setHelpOpen(true)}
-          />
+        <BattleModeHeader
+          mode="offlinePvp"
+          onHelp={() => setHelpOpen(true)}
+          helpAriaLabel={`${modeHelp.title}のヘルプ`}
+        />
+        <div className="battle-deck-select-subheader">
+          <h2>対戦デッキ選択</h2>
+          <div className="battle-deck-select-subheader-guide" role="note">
+            <p>対戦したいデッキをタップ</p>
+          </div>
         </div>
-        <div className="battle-mode-screen-title-row">
-          <h1 className="offline-pvp-list-title">公開デッキ戦</h1>
-        </div>
-        <p className="offline-pvp-list-hint muted">
-          対戦したいデッキをタップ
-        </p>
       </header>
 
       {loading ? (
@@ -170,6 +161,12 @@ export function OfflinePvpDeckListScreen({
           })}
         </ul>
       )}
+
+      <div className="battle-mode-bottom-nav">
+        <button type="button" onClick={onBack}>
+          バトルモード選択に戻る
+        </button>
+      </div>
 
       {selected && (
         <OfflinePvpDeckDetailOverlay
