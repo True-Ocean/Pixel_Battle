@@ -49,8 +49,8 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
   {
     id: 'daily_offline_pvp_battle_win_1',
     category: 'daily',
-    title: '対人戦1勝',
-    description: '対人戦（オフライン）に1回勝利する',
+    title: '公開デッキ戦1勝',
+    description: '公開デッキ戦に1回勝利する',
     eventType: 'offline_pvp_battle_win',
     goal: 1,
     reward: { px: 5 },
@@ -59,8 +59,8 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
   {
     id: 'daily_offline_pvp_battle_win_3',
     category: 'daily',
-    title: '対人戦3勝',
-    description: '対人戦（オフライン）に3回勝利する',
+    title: '公開デッキ戦3勝',
+    description: '公開デッキ戦に3回勝利する',
     eventType: 'offline_pvp_battle_win',
     goal: 3,
     reward: { jewels: 2 },
@@ -115,8 +115,8 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
   {
     id: 'weekly_offline_pvp_battle_win_10',
     category: 'weekly',
-    title: '対人戦5勝',
-    description: '対人戦（オフライン）に5回勝利する',
+    title: '公開デッキ戦5勝',
+    description: '公開デッキ戦に5回勝利する',
     eventType: 'offline_pvp_battle_win',
     goal: 5,
     reward: { px: 10 },
@@ -125,8 +125,8 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
   {
     id: 'weekly_offline_pvp_battle_win_20',
     category: 'weekly',
-    title: '対人戦10勝',
-    description: '対人戦（オフライン）に10回勝利する',
+    title: '公開デッキ戦10勝',
+    description: '公開デッキ戦に10回勝利する',
     eventType: 'offline_pvp_battle_win',
     goal: 10,
     reward: { jewels: 3 },

@@ -180,10 +180,10 @@ export function BattleHubScreen({
                 <BattleModeIcon mode="offlinePvp" />
               </span>
               <span className="battle-hub-mode-btn-copy">
-                <span className="battle-hub-mode-btn-label">対人戦</span>
+                <span className="battle-hub-mode-btn-label">公開デッキ戦</span>
                 {offlinePvpUnlocked ? (
                   <span className="battle-hub-mode-btn-description">
-                    公開デッキに挑戦
+                    他ユーザーのデッキで腕試し
                   </span>
                 ) : (
                   <span className="battle-hub-mode-btn-soon">
@@ -219,7 +219,7 @@ export function BattleHubScreen({
                   </span>
                 ) : (
                   <span className="battle-hub-mode-btn-description">
-                    友達とリアルタイム対戦
+                    友達とリアルタイムバトル
                   </span>
                 )}
               </span>
@@ -238,7 +238,9 @@ export function BattleHubScreen({
               </span>
               <span className="battle-hub-mode-btn-copy">
                 <span className="battle-hub-mode-btn-label">真剣勝負！</span>
-                <span className="battle-hub-mode-btn-soon">開発中</span>
+                <span className="battle-hub-mode-btn-soon">
+                  他ユーザーとリアルタイムバトル（開発中）
+                </span>
               </span>
               <span className="battle-hub-mode-network battle-hub-mode-network--online">
                 ONLINE

@@ -115,9 +115,9 @@ export interface UserProfile {
   cpuBattleWins: number;
   /** CPU 戦の敗北数 */
   cpuBattleLosses: number;
-  /** 対人戦（オフライン）の勝利数 */
+  /** 公開デッキ戦の勝利数 */
   offlinePvpBattleWins: number;
-  /** 対人戦（オフライン）の敗北数 */
+  /** 公開デッキ戦の敗北数 */
   offlinePvpBattleLosses: number;
   /** 対人戦（オンライン）の勝利数 */
   onlinePvpBattleWins: number;

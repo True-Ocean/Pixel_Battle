@@ -11,9 +11,9 @@ export interface PublicGhostDeck {
   authorName: string;
   /** 作者のユーザーレベル（公開時点） */
   authorLevel: number;
-  /** 作者の対人戦（オフライン）勝利数（公開時点） */
+  /** 作者の公開デッキ戦勝利数（公開時点） */
   offlinePvpWins: number;
-  /** 作者の対人戦（オフライン）敗北数（公開時点） */
+  /** 作者の公開デッキ戦敗北数（公開時点） */
   offlinePvpLosses: number;
   /** ちょうど5枚 */
   deck: Card[];

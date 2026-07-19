@@ -38,8 +38,8 @@ export const PERMANENT_COUNTER_SPECS: readonly PermanentCounterSpec[] = [
   {
     eventType: 'offline_pvp_battle_win',
     idPrefix: 'permanent_offline_pvp_battle_win',
-    title: (goal) => `対人戦${goal}勝`,
-    description: (goal) => `対人戦（オフライン）に累計${goal}回勝利する`,
+    title: (goal) => `公開デッキ戦${goal}勝`,
+    description: (goal) => `公開デッキ戦に累計${goal}回勝利する`,
   },
   {
     eventType: 'card_created',

@@ -112,7 +112,7 @@ export function OfflinePvpDeckListScreen({
           />
         </div>
         <div className="battle-mode-screen-title-row">
-          <h1 className="offline-pvp-list-title">対人戦（オフライン）</h1>
+          <h1 className="offline-pvp-list-title">公開デッキ戦</h1>
         </div>
         <p className="offline-pvp-list-hint muted">
           対戦したいデッキをタップ

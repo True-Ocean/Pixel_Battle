@@ -790,7 +790,7 @@ function AccountSection({
             次のデータが<strong>完全に削除</strong>され、元に戻せません。
             <ul className="settings-account-delete-list">
               <li>クラウド上のセーブデータ</li>
-              <li>公開中の対人戦デッキ</li>
+              <li>登録中の公開デッキ</li>
               <li>メールアドレスとパスワード（アカウント）</li>
               <li>この端末のゲームデータ</li>
             </ul>

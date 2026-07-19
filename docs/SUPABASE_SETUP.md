@@ -37,7 +37,7 @@ https://supabase.com/dashboard/project/YOUR_PROJECT_REF/auth/providers
 1. 左メニュー **SQL Editor** → **New query**
 2. リポジトリの `supabase/migrations/001_public_ghost_decks.sql` の内容をすべて貼り付け
 3. **Run** で実行
-4. **すでに 001 を実行済み**のプロジェクトでは、続けて `002_public_ghost_decks_record.sql` も実行する（対人戦の勝敗表示用）
+4. **すでに 001 を実行済み**のプロジェクトでは、続けて `002_public_ghost_decks_record.sql` も実行する（公開デッキ戦の勝敗表示用）
 5. アカウント連携（クラウドセーブ）を使う場合は `003_player_saves.sql` も実行する（**実行済みならスキップ**）
 6. **以前 003 を実行済み**で「permission denied for table player_saves」が出る場合は、`004_player_saves_grant.sql` を実行する
 
@@ -178,8 +178,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...（anon public）
 ## 5. 動作確認
 
 1. マイデッキでバトル可能なデッキ（ロストなし5枚）を用意
-2. **対人戦に公開する** にチェック
-3. 別のブラウザ／別端末（またはシークレットウィンドウ）で同じアプリを開き、別ユーザーとして対人戦一覧を見る
+2. **公開デッキに登録する** にチェック
+3. 別のブラウザ／別端末（またはシークレットウィンドウ）で同じアプリを開き、別ユーザーとして公開デッキ戦の一覧を見る
 4. 公開したデッキが一覧に出る（自分の端末では自分の公開デッキは一覧に出ません）
 
 未設定時は「公開デッキを表示できません」、通信失敗時は「公開デッキを取得できませんでした」と表示されます。取得成功で0件のときだけ「公開デッキがありません」です。

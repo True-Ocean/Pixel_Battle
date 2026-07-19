@@ -141,7 +141,7 @@ Specs: [`PROTOTYPE §4.8`](docs/PROTOTYPE_DEVELOPMENT_SPEC.md#48-ミッション
 - [x] ミッション（デイリー / ウィークリー / 常設 tier cap・属性/レア度 / ビギナー12） / Missions  
 - [x] 経済リバランス（2026-06） / Economy rebalance (2026-06)  
 - [ ] 効果音（SE） / Sound effects  
-- [x] オフライン対人（公開デッキ一覧・**戦力補正**） / Offline PvP (public decks + power-based BP rescale)  
+- [x] 公開デッキ戦（旧「対人戦（オフライン）」・公開デッキ一覧・**戦力補正**） / Public deck battle (public decks + power-based BP rescale)  
 - [x] フレンド対戦（オンライン・px 移動・Lost なし） / Online friend PvP (px transfer, no Lost)  
 - [x] 公開デッキ共有（Supabase・匿名認証） / Public deck sharing (Supabase)  
 - [x] アカウント連携（メール＋パスワード・空クラウド保護・PWA） / Account link (email + password, empty-cloud safe, PWA)  

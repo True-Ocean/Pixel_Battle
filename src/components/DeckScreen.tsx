@@ -102,7 +102,7 @@ export interface DeckScreenProps {
   /** ライト / プレ: 編集入室 CM スキップ（🎬 非表示） */
   skipsCreativeAd?: boolean;
   onBattleGuideOpen?: () => void;
-  /** 対人戦用: このスロットを公開中か */
+  /** 公開デッキ戦用: このスロットを公開中か */
   deckPublished?: boolean;
   /** 公開トグル操作中 */
   publishBusy?: boolean;
@@ -110,7 +110,7 @@ export interface DeckScreenProps {
   canPublishDeck?: boolean;
   /** Supabase 未設定時はトグル無効 */
   publishAvailable?: boolean;
-  /** 対人戦（オフライン）解放済みか（未解放時は公開 UI を非表示） */
+  /** 公開デッキ戦解放済みか（未解放時は公開 UI を非表示） */
   offlinePvpUnlocked?: boolean;
   publishError?: string | null;
   onToggleDeckPublish?: (published: boolean) => void;
@@ -1028,8 +1028,8 @@ export function DeckScreen({
               {publishBusy
                 ? '公開を更新中…'
                 : deckPublished
-                  ? '対人戦に公開中'
-                  : '対人戦に公開する'}
+                  ? '公開デッキに登録中'
+                  : '公開デッキに登録する'}
             </span>
           </label>
           {!publishAvailable && (

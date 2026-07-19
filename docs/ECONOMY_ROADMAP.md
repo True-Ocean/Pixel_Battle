@@ -1,7 +1,7 @@
 # 経済・課金・広告 — 実装ロードマップ
 
 **作成日**: 2026-06-14  
-**最終更新**: 2026-07-13（フレンド対戦オンライン実装済みを §1.8 / フェーズ11 に反映）  
+**最終更新**: 2026-07-19（UI 用語「対人戦（オフライン）」→「公開デッキ戦」を反映。オフライン対人は内部呼称）  
 **ステータス**: 設計合意（議論ベース）・段階実装の指針  
 **関連**: [ECONOMY_SPEC.md](./ECONOMY_SPEC.md)（旧 §10 ポーション/溶解モデルは本書で置き換え）、[PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) §5.9、[OFFLINE_PVP_SPEC.md](./OFFLINE_PVP_SPEC.md)（オフライン対人の実装正）、[online-pvp-spec.md](./online-pvp-spec.md)（フレンド対戦オンライン）、[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)（公開デッキ・アカウント連携・オンラインルーム）
 
@@ -476,7 +476,7 @@
 
 | 項目 | 備考 |
 |------|------|
-| **オフライン対人（公開ゴーストデッキ）** | **✅ 実装済み**（[OFFLINE_PVP_SPEC](./OFFLINE_PVP_SPEC.md)）。経済は [ECONOMY §13.2](./ECONOMY_SPEC.md#132-オフライン対人戦公開ゴーストデッキ実装済み) |
+| **オフライン対人（公開ゴーストデッキ）**（UI 名: **公開デッキ戦**） | **✅ 実装済み**（[OFFLINE_PVP_SPEC](./OFFLINE_PVP_SPEC.md)）。経済は [ECONOMY §13.2](./ECONOMY_SPEC.md#132-オフライン対人戦公開ゴーストデッキ実装済み) |
 | **フレンド対戦（オンライン）** | **✅ 実装済み**（[online-pvp-spec](./online-pvp-spec.md)）。px 移動のみ・Lost なし・連続再戦 |
 | **アカウント連携（メール・クラウドセーブ・削除）** | **✅ 実装済み**（[SUPABASE_SETUP](./SUPABASE_SETUP.md)）。リリース前: Apple/Google・日本語メール |
 | 対人戦（経済） | オフラインは挑戦者のみ Lost。フレンドルームは px のみ。真剣勝負 Lost は将来（§13.1・§13.3） |

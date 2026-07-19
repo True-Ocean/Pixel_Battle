@@ -149,7 +149,7 @@ export function ProfileScreen({
             losses={user.cpuBattleLosses}
           />
           <ProfileRecordRow
-            label="対人戦（オフライン）"
+            label="公開デッキ戦"
             wins={user.offlinePvpBattleWins}
             losses={user.offlinePvpBattleLosses}
           />

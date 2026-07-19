@@ -179,7 +179,7 @@ export function getLevelUpRewardsAtLevel(level: number): LevelUpRewardEntry[] {
   if (L === OFFLINE_PVP_MIN_USER_LEVEL) {
     rewards.push({
       kind: 'offline_pvp_unlock',
-      label: '対人戦（オフライン）が使えるようになりました！',
+      label: '公開デッキ戦が使えるようになりました！',
     });
   }
   if (L === TALISMAN_STARTER_GRANT_LEVEL) {

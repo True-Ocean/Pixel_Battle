@@ -114,9 +114,9 @@ export function getDeckHelp(): HelpTopic {
         ],
       },
       {
-        title: '3. 対人戦へのデッキ公開',
+        title: '3. 公開デッキへの登録',
         items: [
-          `ユーザーレベル ${OFFLINE_PVP_MIN_USER_LEVEL} 到達後、「対人戦に公開する」にチェックを入れると、対人戦で他のユーザーにデッキが公開されます。`,
+          `ユーザーレベル ${OFFLINE_PVP_MIN_USER_LEVEL} 到達後、「公開デッキに登録する」にチェックを入れると、公開デッキ戦で他のユーザーにデッキが公開されます。`,
         ],
       },
       {

@@ -38,7 +38,7 @@ function rewardAriaLabel(reward: LevelUpRewardEntry): string {
     return reward.deckUnlockLabel;
   }
   if (reward.kind === 'offline_pvp_unlock') {
-    return '対人戦（オフライン）解放';
+    return '公開デッキ戦解放';
   }
   if (reward.kind === 'limit_break' && reward.universalShardAmount != null) {
     return `汎のかけら${reward.universalShardAmount.toLocaleString()}`;
@@ -145,7 +145,7 @@ export function LevelUpRewardIcon({ reward, level }: LevelUpRewardIconProps) {
   if (reward.kind === 'offline_pvp_unlock') {
     return (
       <span className="level-reward-chip level-reward-chip--text" title={aria}>
-        <span className="level-reward-chip-text">対人戦（オフライン）解放</span>
+        <span className="level-reward-chip-text">公開デッキ戦解放</span>
       </span>
     );
   }

@@ -30,13 +30,13 @@ export function getCpuBattleModeHelp(): HelpTopic {
 
 export function getOfflinePvpModeHelp(): HelpTopic {
   return {
-    title: '対人戦（オフライン）について',
+    title: '公開デッキ戦について',
     sections: [
       {
         items: [
           '公開デッキ一覧から相手を選びます。相手の絵・属性はそのまま、BP だけあなたのデッキ戦力に合わせて調整されます。',
           '勝敗の報酬・ロストのルールは、CPU戦と同じです。',
-          '自分のデッキは、マイデッキ画面の「対人戦に公開する」から公開できます。',
+          '自分のデッキは、マイデッキ画面の「公開デッキに登録する」から登録できます。',
         ],
       },
     ],
@@ -49,7 +49,7 @@ export function getOnlinePvpModeHelp(): HelpTopic {
     sections: [
       {
         items: [
-          'ルームコードで友だちとリアルタイム対戦できます。同一ルームで連続再戦もできます。',
+          'ルームコードで友だちとリアルタイムバトルができます。同一ルームで連続再戦もできます。',
           <>
             参加・再戦には、手持ち
             <HelpInlinePxIcon />

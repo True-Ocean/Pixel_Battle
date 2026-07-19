@@ -855,7 +855,7 @@ function App() {
         !isOfflinePvpUnlockedAtUserLevel(profile.level)
       ) {
         setPublishError(
-          `対人戦の公開はユーザーレベル${OFFLINE_PVP_MIN_USER_LEVEL}到達後に利用できます`,
+          `公開デッキへの登録はユーザーレベル${OFFLINE_PVP_MIN_USER_LEVEL}到達後に利用できます`,
         );
         return;
       }
