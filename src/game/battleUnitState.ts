@@ -1,5 +1,5 @@
 import type { Card } from '../types';
-import { BOW_ARROWS_PER_BATTLE, STORM_USES_PER_BATTLE } from '../config/balance';
+import { BOW_ARROWS_PER_BATTLE, HEAL_USES_PER_BATTLE, STORM_USES_PER_BATTLE } from '../config/balance';
 import type { BattleUnit, PoisonStack } from '../types/battle';
 
 /** 新規 BattleUnit の拡張状態（ATTRIBUTE_SPEC §5） */
@@ -28,7 +28,7 @@ export function createExtendedBattleUnitState(
     poisonDotDamageReceived: false,
     frozenUntilTurn: null,
     stealthActive: false, // cardToBattleUnit で忍のみ true に上書き
-    healUsesRemaining: card.attribute === 'heal' ? 2 : 0,
+    healUsesRemaining: card.attribute === 'heal' ? HEAL_USES_PER_BATTLE : 0,
     bowArrowsRemaining:
       card.attribute === 'bow' ? BOW_ARROWS_PER_BATTLE : 0,
     stormUsesRemaining:

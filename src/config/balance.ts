@@ -181,6 +181,9 @@ export const POISON_BP_RATIO = 0.85;
 /** 癒属性の基本BP係数（攻撃比）。回復2回・毒解消分を抑えた値。ATTRIBUTE_SPEC §4.7 */
 export const HEAL_BP_RATIO = 0.6;
 
+/** 癒カード1枚あたりの回復回数（1戦闘）。ATTRIBUTE_SPEC §4.7 */
+export const HEAL_USES_PER_BATTLE = 2;
+
 /** 毒スタック1つあたりの DoT（付与時 currentBp 比）。ATTRIBUTE_SPEC §4.6 */
 export const POISON_DOT_RATIO = 0.3;
 

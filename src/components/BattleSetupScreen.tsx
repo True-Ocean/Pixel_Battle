@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { CPU_OPPONENT_LEVEL, DECK_MAX, MATCH_REVEAL_COUNTDOWN_SEC, SETUP_TIME_LIMIT_SEC, BATTLE_OUTCOME_HOLD_MS } from '../config/balance';
+import { BOW_ARROWS_PER_BATTLE, CPU_OPPONENT_LEVEL, DECK_MAX, HEAL_USES_PER_BATTLE, MATCH_REVEAL_COUNTDOWN_SEC, SETUP_TIME_LIMIT_SEC, STORM_USES_PER_BATTLE, BATTLE_OUTCOME_HOLD_MS } from '../config/balance';
 import { computeDeckPower } from '../card';
 import type { Card, BattleOutcome, BattleOutcomeCore } from '../types';
 import type { BoardPosition } from '../types/battle';
@@ -432,6 +432,15 @@ function SetupSlot({
       faceDown={faceDown}
       flipEnabled={!readOnly}
       hideBp={faceDown}
+      bowArrowsRemaining={
+        card.attribute === 'bow' ? BOW_ARROWS_PER_BATTLE : undefined
+      }
+      healUsesRemaining={
+        card.attribute === 'heal' ? HEAL_USES_PER_BATTLE : undefined
+      }
+      stormUsesRemaining={
+        card.attribute === 'storm' ? STORM_USES_PER_BATTLE : undefined
+      }
     />
   ) : (
     <span className="formation-empty-label">

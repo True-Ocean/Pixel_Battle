@@ -12509,6 +12509,12 @@ button.battle-hub-deck-icon.is-move-target {
   font-size: 0.62rem;
 }
 
+.battle-card.setup-hand-card .battle-card-ability-charges {
+  right: 0.28rem;
+  bottom: 1.35rem;
+  height: 1.05rem;
+}
+
 .battle-card.setup-hand-card .battle-card-slot {
   bottom: 1.2rem;
 }
@@ -12580,6 +12586,12 @@ button.battle-hub-deck-icon.is-move-target {
   height: 0.95rem;
   font-size: 0.5rem;
   border-width: 1.5px;
+}
+
+.battle-card.setup-card-fixed .battle-card-ability-charges {
+  right: 0.16rem;
+  bottom: 0.78rem;
+  height: 0.95rem;
 }
 
 .battle-card.setup-card-fixed .battle-card-name {
@@ -13042,6 +13054,61 @@ button.battle-card {
   z-index: 2;
 }
 
+.battle-card-ability-charges {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 1.5rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.04rem;
+  height: 1.15rem;
+  pointer-events: none;
+}
+
+.battle-card-ability-icon {
+  display: block;
+  flex: 0 0 auto;
+  width: 0.82rem;
+  height: 0.82rem;
+  overflow: visible;
+  filter:
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 1px 1px rgba(15, 23, 42, 0.42));
+}
+
+.battle-card-ability-icon--shield {
+  width: 0.72rem;
+  height: 0.82rem;
+}
+
+.battle-card-ability-icon--bow {
+  color: #3f7f24;
+}
+
+.battle-card-ability-icon--heal {
+  color: #167d9d;
+}
+
+.battle-card-ability-icon--storm {
+  color: #5943a5;
+}
+
+.battle-card.compact .battle-card-ability-icon,
+.battle-card.setup-card-fixed .battle-card-ability-icon,
+.battle-card.setup-hand-card .battle-card-ability-icon {
+  width: 0.68rem;
+  height: 0.68rem;
+}
+
+.battle-card.compact .battle-card-ability-icon--shield,
+.battle-card.setup-card-fixed .battle-card-ability-icon--shield,
+.battle-card.setup-hand-card .battle-card-ability-icon--shield {
+  width: 0.6rem;
+  height: 0.68rem;
+}
+
 .battle-card-art {
   position: relative;
   display: flex;
@@ -13095,24 +13162,83 @@ button.battle-card {
   font-size: 0.64rem;
 }
 
-.battle-card-buff-shield {
-  color: #135c9a;
+.shield-emblem {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.battle-card.battle-side-cpu .battle-card-buff-shield {
-  background: linear-gradient(145deg, #fff8fb, #ffc8e0);
-  box-shadow:
-    0 1px 3px #0003,
-    0 0 0 1px #ff88bb66;
-  color: #9a1f58;
+.shield-emblem--grant .shield-emblem-body {
+  fill: #f8fbff;
+  stroke: #2f7fc4;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
 }
 
-.battle-card.battle-side-player .battle-card-buff-shield {
-  background: linear-gradient(145deg, #faf8ff, #d8c8ff);
-  box-shadow:
-    0 1px 3px #0003,
-    0 0 0 1px #9988dd66;
-  color: #503a94;
+.shield-emblem--grant .shield-emblem-highlight {
+  fill: #d7ecff;
+  opacity: 0.85;
+}
+
+.battle-card.battle-side-cpu .shield-emblem--grant .shield-emblem-body {
+  fill: #fff8fb;
+  stroke: #c23a7a;
+}
+
+.battle-card.battle-side-cpu .shield-emblem--grant .shield-emblem-highlight {
+  fill: #ffd0e4;
+}
+
+.battle-card.battle-side-player .shield-emblem--grant .shield-emblem-body {
+  fill: #faf8ff;
+  stroke: #6b4fc4;
+}
+
+.battle-card.battle-side-player .shield-emblem--grant .shield-emblem-highlight {
+  fill: #ddd0ff;
+}
+
+.battle-card-shield-active {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  animation: shield-pop 0.4s ease-out forwards;
+}
+
+.battle-card-shield-active .shield-emblem {
+  width: 48%;
+  height: auto;
+  max-width: 2.25rem;
+  max-height: 2.55rem;
+  filter: drop-shadow(0 1px 2px rgba(15, 40, 80, 0.45));
+}
+
+.battle-card.board .battle-card-shield-active .shield-emblem {
+  max-width: 2.4rem;
+  max-height: 2.7rem;
+}
+
+.battle-card.compact .battle-card-shield-active .shield-emblem,
+.battle-card.setup-card-fixed .battle-card-shield-active .shield-emblem,
+.battle-card.setup-hand-card .battle-card-shield-active .shield-emblem {
+  width: 46%;
+  max-width: 1.9rem;
+  max-height: 2.15rem;
+}
+
+.shield-emblem--active .shield-emblem-body {
+  fill: rgba(255, 255, 255, 0.68);
+  stroke: #2788cf;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.shield-emblem--active .shield-emblem-highlight {
+  fill: rgba(220, 239, 255, 0.38);
+  opacity: 1;
 }
 
 .battle-card-buff-poison {
@@ -13125,50 +13251,6 @@ button.battle-card {
     0 0 0 1px #8844aa88;
   color: #4a1868;
   z-index: 7;
-}
-
-.battle-card-buff-arrow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.06rem;
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  background: linear-gradient(145deg, #f8fff4, #c8e8a0);
-  box-shadow:
-    0 1px 3px #0003,
-    0 0 0 1px #5a9a3a88;
-  color: #2a5c18;
-}
-
-.battle-card-arrow-glyph {
-  display: block;
-  width: 0.68rem;
-  height: 0.68rem;
-  flex-shrink: 0;
-}
-
-.battle-card-buff-heal {
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  background: linear-gradient(145deg, #f0fbff, #8ed8f0);
-  box-shadow:
-    0 1px 3px #0003,
-    0 0 0 1px #3a9ab888;
-  color: #126080;
-}
-
-.battle-card-buff-storm {
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  background: linear-gradient(145deg, #f4f0ff, #b8b0e8);
-  box-shadow:
-    0 1px 3px #0003,
-    0 0 0 1px #6a5aaa88;
-  color: #3a2a78;
 }
 
 .battle-card-buff-freeze {
@@ -13733,18 +13815,6 @@ button.battle-card {
   background: rgba(0, 0, 0, 0.28);
 }
 
-.battle-card-badge {
-  position: absolute;
-  left: 0.3rem;
-  top: 1.4rem;
-  font-size: 0.55rem;
-  color: #fff;
-  background: rgba(80, 90, 180, 0.9);
-  border-radius: 999px;
-  padding: 0.08rem 0.28rem;
-  z-index: 5;
-}
-
 .battle-card-slot {
   position: absolute;
   right: 0.35rem;
@@ -14263,6 +14333,12 @@ button.battle-card {
   border-width: 1.5px;
 }
 
+.formation-tiny-card .battle-card-ability-charges {
+  right: 0.16rem;
+  bottom: 0.78rem;
+  height: 0.95rem;
+}
+
 .formation-tiny-card .battle-card-bp {
   font-size: 0.62rem;
   top: 0.15rem;
@@ -14656,6 +14732,12 @@ button.battle-card {
   border-width: 1.5px;
 }
 
+.formation-slot .battle-card-ability-charges {
+  right: 0.2rem;
+  bottom: 1.15rem;
+  height: 0.9rem;
+}
+
 .formation-slot .battle-card-bp {
   font-size: 0.72rem;
   top: 0.18rem;
@@ -14878,6 +14960,26 @@ button.battle-card {
   width: calc(var(--formation-card-w) * 0.171);
   height: calc(var(--formation-card-w) * 0.171);
   font-size: calc(var(--formation-card-w) * 0.099);
+}
+
+.formation-screen .formation-slot.is-frameless .battle-card-ability-charges {
+  right: calc(var(--formation-card-w) * 0.038);
+  bottom: calc(var(--formation-card-w) * 0.17);
+  height: calc(var(--formation-card-w) * 0.171);
+}
+
+.formation-screen
+  .formation-slot.is-frameless
+  .battle-card-ability-icon {
+  width: calc(var(--formation-card-w) * 0.125);
+  height: calc(var(--formation-card-w) * 0.125);
+}
+
+.formation-screen
+  .formation-slot.is-frameless
+  .battle-card-ability-icon--shield {
+  width: calc(var(--formation-card-w) * 0.105);
+  height: calc(var(--formation-card-w) * 0.125);
 }
 
 .formation-screen .formation-slot.is-frameless .battle-card-bp {
