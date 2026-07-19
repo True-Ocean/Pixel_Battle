@@ -18,7 +18,7 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
   attack: {
     label: '剣',
     ariaName: '剣属性',
-    description: 'R以上で追加の貫通ダメージを与える',
+    description: '近接攻撃で通常ダメージを与える\nR以上：更に貫通ダメージを与える',
     battleGuide: [
       '・前衛にいるときのみ近接攻撃できる（後衛は行動不可）',
       '・敵前衛のいずれか1体を選んで攻撃',
