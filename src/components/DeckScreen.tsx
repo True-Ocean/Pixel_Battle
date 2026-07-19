@@ -993,23 +993,16 @@ export function DeckScreen({
             </p>
           ) : (
             <p className="deck-screen-power" aria-label={`戦力 ${deckPower}`}>
-              戦力{' '}
+              <span className="deck-screen-power-label">戦力</span>
               <span className="deck-screen-power-value">{deckPower}</span>
             </p>
           )}
         </div>
-        <HelpInfoButton
-          className="deck-help-btn"
-          ariaLabel="マイデッキのヘルプ"
-          onClick={() => setHelpOpen(true)}
-        />
-      </div>
-
-      {onToggleDeckPublish && offlinePvpUnlocked && (
-        <div className="deck-publish-row">
+        {onToggleDeckPublish && offlinePvpUnlocked && (
           <label
             className={[
               'deck-publish-toggle',
+              'deck-publish-toggle--compact',
               !publishAvailable ||
               publishBusy ||
               (!canPublishDeck && !deckPublished)
@@ -1028,26 +1021,32 @@ export function DeckScreen({
               }
               onChange={(event) => onToggleDeckPublish(event.target.checked)}
             />
-            <span className="deck-publish-toggle-label">
-              {publishBusy
-                ? '公開を更新中…'
-                : deckPublished
-                  ? '公開デッキに登録中'
-                  : '公開デッキに登録する'}
-            </span>
+            <span className="deck-publish-toggle-label">公開</span>
           </label>
-          {!publishAvailable && (
-            <p className="deck-publish-hint muted">
-              公開には Supabase の設定（.env）が必要です
-            </p>
-          )}
-          {publishError && (
-            <p className="deck-publish-error" role="alert">
-              {publishError}
-            </p>
-          )}
-        </div>
-      )}
+        )}
+        <HelpInfoButton
+          className="deck-help-btn"
+          ariaLabel="マイデッキのヘルプ"
+          onClick={() => setHelpOpen(true)}
+        />
+      </div>
+
+      {onToggleDeckPublish &&
+        offlinePvpUnlocked &&
+        (!publishAvailable || publishError) && (
+          <div className="deck-publish-row">
+            {!publishAvailable && (
+              <p className="deck-publish-hint muted">
+                公開には Supabase の設定（.env）が必要です
+              </p>
+            )}
+            {publishError && (
+              <p className="deck-publish-error" role="alert">
+                {publishError}
+              </p>
+            )}
+          </div>
+        )}
 
       {crossDeckTargetIndex != null ? (
         <TargetDeckDropPanel
