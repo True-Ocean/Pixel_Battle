@@ -90,16 +90,12 @@ export function filterMissionsForDisplay(
     });
 }
 
-/** デイリー・ウィークリー・常設は未完了を上、受取済みを下へ。ビギナーは STEP 順を維持 */
+/** デイリー・ウィークリー・ビギナー・常設は未完了を上、受取済みを下へ（同一ランク内は元の順） */
 export function sortMissionsForDisplay(
   missions: readonly MissionDefinition[],
   state: MissionState,
   category: MissionCategory,
 ): MissionDefinition[] {
-  if (category === 'beginner') {
-    return [...missions];
-  }
-
   const visible = filterMissionsForDisplay(missions, state, category);
 
   return visible

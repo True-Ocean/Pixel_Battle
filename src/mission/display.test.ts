@@ -6,7 +6,7 @@ import { filterMissionsForDisplay, sortMissionsForDisplay } from './display';
 const monday = new Date('2026-06-14T15:00:00.000Z');
 
 describe('sortMissionsForDisplay', () => {
-  it('keeps beginner missions in config order', () => {
+  it('puts claimed beginner missions last, preserving STEP order within groups', () => {
     const missions = getBeginnerMissions();
     let state = createInitialMissionState(monday);
     state = {
@@ -18,12 +18,25 @@ describe('sortMissionsForDisplay', () => {
           completedAt: monday.toISOString(),
           claimedAt: monday.toISOString(),
         },
+        beginner_edit_card: {
+          progress: 1,
+          completedAt: monday.toISOString(),
+          claimedAt: monday.toISOString(),
+        },
       },
     };
 
-    expect(sortMissionsForDisplay(missions, state, 'beginner').map((m) => m.id)).toEqual(
-      missions.map((m) => m.id),
+    const sorted = sortMissionsForDisplay(missions, state, 'beginner').map(
+      (m) => m.id,
     );
+    const unclaimed = missions
+      .filter((m) => m.id !== 'beginner_create_card' && m.id !== 'beginner_edit_card')
+      .map((m) => m.id);
+    expect(sorted).toEqual([
+      ...unclaimed,
+      'beginner_create_card',
+      'beginner_edit_card',
+    ]);
   });
 
   it('puts claimable missions first, claimed last, preserving config order within groups', () => {
