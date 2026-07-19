@@ -17,6 +17,8 @@ import { PixelCoinIcon } from './PixelCoinIcon';
 import { JewelAmount } from './JewelIcon';
 import { DeckCardDetailCard } from './DeckCardDetailCard';
 import { LimitBreakModal } from './LimitBreakModal';
+import { CardNoteEditModal } from './CardNoteEditModal';
+import { CardNotePremiumUpsellModal } from './CardNotePremiumUpsellModal';
 
 interface DeckCardDetailOverlayProps {
   card: Card;
@@ -46,6 +48,10 @@ interface DeckCardDetailOverlayProps {
   /** ライト / プレ: 編集入室 CM スキップ（🎬 非表示） */
   skipsCreativeAd?: boolean;
   onBattleGuideOpen?: () => void;
+  /** プレミアム: カードノート編集可 */
+  canEditCardUserNote?: boolean;
+  onSaveUserNote?: (cardId: string, note: string) => void;
+  onOpenShopSubscription?: () => void;
 }
 
 export function DeckCardDetailOverlay({
@@ -73,6 +79,9 @@ export function DeckCardDetailOverlay({
   onTalismanPress,
   skipsCreativeAd = false,
   onBattleGuideOpen,
+  canEditCardUserNote = false,
+  onSaveUserNote,
+  onOpenShopSubscription,
 }: DeckCardDetailOverlayProps) {
   const canAffordDelete = jewels >= JEWEL_COST_DELETE;
   const canRevive = canReviveLostCard(card);
@@ -89,6 +98,8 @@ export function DeckCardDetailOverlay({
   const [retouchModalOpen, setRetouchModalOpen] = useState(false);
   const [selectModalOpen, setSelectModalOpen] = useState(false);
   const [limitBreakModalOpen, setLimitBreakModalOpen] = useState(false);
+  const [noteEditOpen, setNoteEditOpen] = useState(false);
+  const [noteUpsellOpen, setNoteUpsellOpen] = useState(false);
   const reviveAriaLabel = !canRevive
     ? '復活上限に達しています'
     : !canAffordRevive
@@ -102,6 +113,14 @@ export function DeckCardDetailOverlay({
   if (attributeMenuResetKey !== prevAttributeMenuResetKey) {
     setPrevAttributeMenuResetKey(attributeMenuResetKey);
     setAttributeMenuOpen(false);
+  }
+
+  const noteResetKey = card.id;
+  const [prevNoteResetKey, setPrevNoteResetKey] = useState(noteResetKey);
+  if (noteResetKey !== prevNoteResetKey) {
+    setPrevNoteResetKey(noteResetKey);
+    setNoteEditOpen(false);
+    setNoteUpsellOpen(false);
   }
 
   const limitBreakResetKey = `${card.id}\u0000${card.rarity}\u0000${card.stars}`;
@@ -168,6 +187,18 @@ export function DeckCardDetailOverlay({
               setSelectModalOpen(true);
             }}
             onBattleGuideOpen={onBattleGuideOpen}
+            canEditNote={canEditCardUserNote}
+            onNoteIconPress={
+              onSaveUserNote
+                ? () => {
+                    if (canEditCardUserNote) {
+                      setNoteEditOpen(true);
+                    } else {
+                      setNoteUpsellOpen(true);
+                    }
+                  }
+                : undefined
+            }
           />
         </div>
 
@@ -325,6 +356,20 @@ export function DeckCardDetailOverlay({
         onClose={() => setLimitBreakModalOpen(false)}
         onConfirm={onLimitBreak}
       />
+      {noteEditOpen && onSaveUserNote && (
+        <CardNoteEditModal
+          initialValue={card.userNote ?? ''}
+          persistMode="immediate"
+          onSave={(value) => onSaveUserNote(card.id, value)}
+          onClose={() => setNoteEditOpen(false)}
+        />
+      )}
+      {noteUpsellOpen && (
+        <CardNotePremiumUpsellModal
+          onClose={() => setNoteUpsellOpen(false)}
+          onOpenShop={() => onOpenShopSubscription?.()}
+        />
+      )}
     </div>,
     document.body,
   );

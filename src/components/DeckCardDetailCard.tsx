@@ -16,7 +16,6 @@ import { InlinePxCost } from './HelpInlineEconomy';
 import { RarityBadge } from './RarityBadge';
 import { TalismanCardBadge } from './TalismanCardBadge';
 import { CardNoteIconButton } from './CardNoteIconButton';
-import { CardNoteViewModal } from './CardNoteViewModal';
 
 interface DeckCardDetailCardProps {
   card: Card;
@@ -32,6 +31,13 @@ interface DeckCardDetailCardProps {
   onBattleGuideOpen?: () => void;
   /** CPU デッキなど戦績を出さないとき */
   hideBattleRecord?: boolean;
+  /**
+   * ノート欄右のアイコンを表示する（自分のカード詳細など）。
+   * 未指定時はノート本文がある場合のみ欄を表示し、アイコンは出さない。
+   */
+  onNoteIconPress?: () => void;
+  /** プレミアムでノート編集可か（aria 文言用。実際の可否は onNoteIconPress 側） */
+  canEditNote?: boolean;
 }
 
 export function DeckCardDetailCard({
@@ -47,14 +53,17 @@ export function DeckCardDetailCard({
   onAttributeSelect,
   onBattleGuideOpen,
   hideBattleRecord = false,
+  onNoteIconPress,
+  canEditNote = false,
 }: DeckCardDetailCardProps) {
   const [attrDetailOpen, setAttrDetailOpen] = useState(false);
   const [openTermId, setOpenTermId] = useState<BattleGuideTermId | null>(null);
-  const [noteViewOpen, setNoteViewOpen] = useState(false);
   const rarityMeta = getRarityMeta(card.rarity);
   const attrMeta = getAttributeMeta(card.attribute);
   const battleGuide = attrMeta.battleGuide.trim();
   const showUserNote = hasCardUserNote(card);
+  const showNoteSection = showUserNote || onNoteIconPress != null;
+  const noteText = card.userNote?.trim() ?? '';
 
   const resetKey = `${card.id}\u0000${card.attribute}`;
   const [prevResetKey, setPrevResetKey] = useState(resetKey);
@@ -62,7 +71,6 @@ export function DeckCardDetailCard({
     setPrevResetKey(resetKey);
     setAttrDetailOpen(false);
     setOpenTermId(null);
-    setNoteViewOpen(false);
   }
 
   const cardStyle = {
@@ -102,14 +110,6 @@ export function DeckCardDetailCard({
 
       <div className="deck-detail-card-art">
         <CardPreview pixels={card.pixels} />
-        {showUserNote && (
-          <CardNoteIconButton
-            className="deck-detail-card-note-btn"
-            filled
-            ariaLabel="カードノートを見る"
-            onClick={() => setNoteViewOpen(true)}
-          />
-        )}
         {isLost && (
           <span className="card-lost-badge card-lost-badge--detail" aria-hidden>
             ロスト中
@@ -226,12 +226,35 @@ export function DeckCardDetailCard({
         <BattleTermGuideModal termId={openTermId} onClose={() => setOpenTermId(null)} />
       )}
 
-      {noteViewOpen && card.userNote && (
-        <CardNoteViewModal
-          cardName={card.name}
-          userNote={card.userNote}
-          onClose={() => setNoteViewOpen(false)}
-        />
+      {showNoteSection && (
+        <div
+          className={[
+            'deck-detail-card-user-note',
+            showUserNote ? '' : 'deck-detail-card-user-note--empty',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {showUserNote ? (
+            <p className="deck-detail-card-user-note-text">{noteText}</p>
+          ) : (
+            <p className="deck-detail-card-user-note-placeholder">ノートを書く…</p>
+          )}
+          {onNoteIconPress && (
+            <CardNoteIconButton
+              className="deck-detail-card-user-note-edit"
+              filled={showUserNote}
+              ariaLabel={
+                canEditNote
+                  ? showUserNote
+                    ? 'カードノートを編集'
+                    : 'カードノートを追加'
+                  : 'カードノート（プレミアム限定）'
+              }
+              onClick={onNoteIconPress}
+            />
+          )}
+        </div>
       )}
 
       {!hideBattleRecord && (

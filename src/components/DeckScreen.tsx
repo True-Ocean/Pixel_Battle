@@ -95,6 +95,9 @@ export interface DeckScreenProps {
   /** ライト / プレ: デッキ名変更可 */
   canRenameDeck?: boolean;
   onOpenShopSubscription?: () => void;
+  /** プレミアム: カードノート編集可 */
+  canEditCardUserNote?: boolean;
+  onSaveUserNote?: (cardId: string, note: string) => void;
   onEquipTalisman: (cardId: string) => void;
   onUnequipTalisman: (cardId: string) => void;
   showLostCardDeckNotice?: boolean;
@@ -332,6 +335,8 @@ export function DeckScreen({
   onRenameDeck,
   canRenameDeck = false,
   onOpenShopSubscription,
+  canEditCardUserNote = false,
+  onSaveUserNote,
   onEquipTalisman,
   onUnequipTalisman,
   showLostCardDeckNotice = false,
@@ -1267,6 +1272,9 @@ export function DeckScreen({
           onTalismanPress={showTalismanUi ? handleTalismanPress : undefined}
           skipsCreativeAd={skipsCreativeAd}
           onBattleGuideOpen={onBattleGuideOpen}
+          canEditCardUserNote={canEditCardUserNote}
+          onSaveUserNote={onSaveUserNote}
+          onOpenShopSubscription={onOpenShopSubscription}
         />
       )}
 

@@ -9,12 +9,15 @@ interface CardNoteEditModalProps {
   initialValue: string;
   onSave: (value: string) => void;
   onClose: () => void;
+  /** immediate: 詳細などから即保存。editor-draft: 編集画面の保存で確定 */
+  persistMode?: 'immediate' | 'editor-draft';
 }
 
 export function CardNoteEditModal({
   initialValue,
   onSave,
   onClose,
+  persistMode = 'editor-draft',
 }: CardNoteEditModalProps) {
   const textareaId = useId();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -89,7 +92,9 @@ export function CardNoteEditModal({
           }
         />
         <p className="card-note-hint muted">
-          元のカード編集画面の保存ボタンで確定します。
+          {persistMode === 'immediate'
+            ? 'OK を押すとすぐに保存されます。'
+            : '元のカード編集画面の保存ボタンで確定します。'}
         </p>
         <div className="card-note-actions">
           <button type="button" className="card-note-cancel" onClick={onClose}>

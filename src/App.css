@@ -8305,6 +8305,51 @@ button.battle-hub-deck-icon.is-move-target {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
 }
 
+.deck-detail-card-user-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+  padding: 0.45rem 0.5rem 0.45rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  background:
+    linear-gradient(180deg, rgba(238, 242, 255, 0.92), rgba(248, 250, 252, 0.88));
+  box-sizing: border-box;
+}
+
+.deck-detail-card-user-note--empty {
+  border-style: dashed;
+  border-color: rgba(148, 163, 184, 0.55);
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.deck-detail-card-user-note-text,
+.deck-detail-card-user-note-placeholder {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.deck-detail-card-user-note-text {
+  color: #334155;
+}
+
+.deck-detail-card-user-note-placeholder {
+  color: #94a3b8;
+}
+
+.deck-detail-card-user-note-edit {
+  flex: 0 0 auto;
+  align-self: center;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+}
+
 .deck-screen-footer-hint {
   margin: 0;
   font-size: 0.78rem;
@@ -8648,6 +8693,7 @@ button.battle-hub-deck-icon.is-move-target {
 .deck-detail-card--lost .deck-detail-card-art .card-preview,
 .deck-detail-card--lost .deck-detail-card-name,
 .deck-detail-card--lost .deck-detail-card-attr,
+.deck-detail-card--lost .deck-detail-card-user-note,
 .deck-detail-card--lost .deck-detail-card-guide,
 .deck-detail-card--lost .deck-detail-card-record,
 .deck-detail-card--lost .deck-detail-card-lost-note {

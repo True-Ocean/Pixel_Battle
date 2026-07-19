@@ -21,7 +21,7 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX, USER_INITIAL_LEVEL, BATTLE_O
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardRevive, computeDeckPower, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, hasCardUserNote, type LimitBreakShardSpendPlan } from './card';
+import { applyCardSurvivalRecords, applyCardRevive, computeDeckPower, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, hasCardUserNote, applyUserNoteToCard, type LimitBreakShardSpendPlan } from './card';
 import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH_CANCEL_COST } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { getBattleResult } from './game';
@@ -1876,6 +1876,33 @@ function App() {
         missionEvents.push({ type: 'card_note_saved' });
       }
       reportAndPersistMissionEvents(missionEvents);
+    },
+    [persistSave, reportAndPersistMissionEvents],
+  );
+
+  const saveCardUserNote = useCallback(
+    (cardId: string, rawNote: string) => {
+      if (!canEditCardUserNote(subscriptionRef.current)) return;
+
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const original = prevLayout.find((card) => card?.id === cardId);
+      if (!original) return;
+
+      const wasEmpty = !hasCardUserNote(original);
+      const finalCard = applyUserNoteToCard(original, rawNote);
+      const nextLayout = prevLayout.map((card) =>
+        card?.id === finalCard.id ? finalCard : card,
+      );
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
+      setDecks(nextDecks);
+      decksRef.current = nextDecks;
+      persistSave({ decks: nextDecks });
+
+      if (wasEmpty && hasCardUserNote(finalCard)) {
+        reportAndPersistMissionEvents([{ type: 'card_note_saved' }]);
+      }
     },
     [persistSave, reportAndPersistMissionEvents],
   );
@@ -4135,6 +4162,8 @@ function App() {
             onRenameDeck={handleRenameDeck}
             canRenameDeck={deckCanRename}
             onOpenShopSubscription={openShopSubscriptionTab}
+            canEditCardUserNote={editorCanEditCardUserNote}
+            onSaveUserNote={saveCardUserNote}
             onEquipTalisman={equipTalismanOnCard}
             onUnequipTalisman={unequipTalismanOnCard}
             showLostCardDeckNotice={shouldShowLostCardDeckNoticeModal(adState)}
