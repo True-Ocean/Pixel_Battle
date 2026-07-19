@@ -20,8 +20,9 @@ import {
 import { EDITOR_SHOP_UNLOCK_IDS } from '../config/editorShop';
 import type { EditorToolId } from '../config/editorTools';
 import { PALETTE_16 } from '../config/palette';
-import type { PixelGrid, UserProfile } from '../types';
+import type { Card, PixelGrid, UserProfile } from '../types';
 import { createFullPaletteShopUnlocks } from '../user/paletteShop';
+import { AvatarCardImportModal } from './AvatarCardImportModal';
 import { CanvasSizePicker } from './CanvasSizePicker';
 import { CardPreview } from './CardPreview';
 import { ColorPalette } from './ColorPalette';
@@ -32,6 +33,7 @@ import { ToolStrip } from './ToolStrip';
 
 export interface AvatarEditorScreenProps {
   avatar?: UserProfile['avatar'];
+  importCards: readonly Card[];
   onBack: () => void;
   onSave: (avatar: NonNullable<UserProfile['avatar']>) => void;
 }
@@ -57,6 +59,7 @@ function hasPaintedCell(pixels: PixelGrid): boolean {
 
 export function AvatarEditorScreen({
   avatar,
+  importCards,
   onBack,
   onSave,
 }: AvatarEditorScreenProps) {
@@ -74,6 +77,7 @@ export function AvatarEditorScreen({
   const [tool, setTool] = useState<EditorToolId>('pen');
   const [error, setError] = useState<string | null>(null);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const [cardImportOpen, setCardImportOpen] = useState(false);
 
   const blockDrawingRef = useRef(false);
   const pixelCanvasRef = useRef<PixelCanvasHandle>(null);
@@ -173,6 +177,25 @@ export function AvatarEditorScreen({
     });
   };
 
+  const handleImportCard = (card: Card) => {
+    const targetSize = AVATAR_SELECTABLE_SIZES.includes(card.canvasSize)
+      ? card.canvasSize
+      : AVATAR_SELECTABLE_SIZES.reduce((nearest, size) =>
+          Math.abs(size - card.canvasSize) < Math.abs(nearest - card.canvasSize)
+            ? size
+            : nearest,
+        );
+    applyEditorChange({
+      pixels:
+        targetSize === card.canvasSize
+          ? cloneGrid(card.pixels)
+          : resizeGridCentered(card.pixels, targetSize),
+      canvasSize: targetSize,
+    });
+    setError(null);
+    setCardImportOpen(false);
+  };
+
   const handleSave = () => {
     if (!hasPaintedCell(pixels)) {
       setError('1マス以上塗ってください');
@@ -211,6 +234,13 @@ export function AvatarEditorScreen({
               selectableSizes={AVATAR_SELECTABLE_SIZES}
               onSelectSize={handleCanvasSizeChange}
             />
+            <button
+              type="button"
+              className="avatar-editor-import-btn"
+              onClick={() => setCardImportOpen(true)}
+            >
+              カードから読込
+            </button>
             <div
               className="editor-screen-mini-preview"
               style={{
@@ -303,6 +333,13 @@ export function AvatarEditorScreen({
         }}
         onCancel={() => setDiscardConfirmOpen(false)}
       />
+      {cardImportOpen && (
+        <AvatarCardImportModal
+          cards={importCards}
+          onSelect={handleImportCard}
+          onClose={() => setCardImportOpen(false)}
+        />
+      )}
     </section>
   );
 }

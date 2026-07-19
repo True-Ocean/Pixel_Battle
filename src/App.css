@@ -15296,16 +15296,25 @@ button.battle-card {
 
 .profile-avatar-frame--light {
   border-color: #94a3b8;
+  outline: 1px solid rgba(226, 232, 240, 0.95);
+  outline-offset: 2px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 5px 14px rgba(71, 85, 105, 0.18);
+    inset 0 0 0 2px rgba(248, 250, 252, 0.95),
+    inset 0 0 10px rgba(148, 163, 184, 0.2),
+    0 0 0 1px rgba(71, 85, 105, 0.2),
+    0 6px 16px rgba(71, 85, 105, 0.24);
 }
 
 .profile-avatar-frame--premium {
   border-color: #eab308;
+  outline: 1px solid rgba(254, 240, 138, 0.95);
+  outline-offset: 2px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 5px 14px rgba(202, 138, 4, 0.24);
+    inset 0 0 0 2px rgba(254, 249, 195, 0.95),
+    inset 0 0 12px rgba(250, 204, 21, 0.25),
+    0 0 0 1px rgba(161, 98, 7, 0.3),
+    0 0 10px rgba(250, 204, 21, 0.28),
+    0 7px 18px rgba(161, 98, 7, 0.3);
 }
 
 .pixel-icon-preview {
@@ -15794,6 +15803,29 @@ button.battle-card {
     0 8px 24px rgba(30, 64, 175, 0.16);
 }
 
+.avatar-detail-frame--light {
+  border-color: #94a3b8;
+  outline: 2px solid rgba(226, 232, 240, 0.95);
+  outline-offset: 3px;
+  box-shadow:
+    inset 0 0 0 3px rgba(248, 250, 252, 0.95),
+    inset 0 0 18px rgba(148, 163, 184, 0.22),
+    0 0 0 1px rgba(71, 85, 105, 0.22),
+    0 10px 28px rgba(71, 85, 105, 0.26);
+}
+
+.avatar-detail-frame--premium {
+  border-color: #eab308;
+  outline: 2px solid rgba(254, 240, 138, 0.95);
+  outline-offset: 3px;
+  box-shadow:
+    inset 0 0 0 3px rgba(254, 249, 195, 0.95),
+    inset 0 0 20px rgba(250, 204, 21, 0.28),
+    0 0 0 1px rgba(161, 98, 7, 0.32),
+    0 0 18px rgba(250, 204, 21, 0.32),
+    0 12px 30px rgba(161, 98, 7, 0.34);
+}
+
 .avatar-detail-preview {
   width: 100% !important;
   height: 100% !important;
@@ -15807,8 +15839,24 @@ button.battle-card {
   text-shadow: 0 2px 0 #fff;
 }
 
-.avatar-detail-name {
+.avatar-detail-frame--light .avatar-detail-initial {
+  color: #64748b;
+}
+
+.avatar-detail-frame--premium .avatar-detail-initial {
+  color: #ca8a04;
+}
+
+.avatar-detail-identity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   max-width: min(20rem, 85vw);
+}
+
+.avatar-detail-name {
+  min-width: 0;
   margin: 0;
   overflow: hidden;
   color: #172554;
@@ -15816,6 +15864,50 @@ button.battle-card {
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.avatar-detail-subscription-crown {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: 1.15rem;
+  height: 1.15rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-detail-subscription-crown svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.avatar-detail-subscription-crown--light {
+  color: #e2e8f0;
+  --avatar-detail-crown-stroke: #64748b;
+  filter: drop-shadow(0 1px 1px rgba(51, 65, 85, 0.4));
+}
+
+.avatar-detail-subscription-crown--premium {
+  color: #facc15;
+  --avatar-detail-crown-stroke: #a16207;
+  filter:
+    drop-shadow(0 1px 1px rgba(120, 53, 15, 0.45))
+    drop-shadow(0 0 2px rgba(250, 204, 21, 0.45));
+}
+
+.avatar-detail-subscription-crown-body {
+  fill: currentColor;
+  stroke: var(--avatar-detail-crown-stroke);
+  stroke-width: 1.15;
+  stroke-linejoin: round;
+}
+
+.avatar-detail-subscription-crown-highlight {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.8);
+  stroke-width: 1;
+  stroke-linecap: round;
 }
 
 .avatar-detail-actions {
@@ -15853,7 +15945,144 @@ button.battle-card {
   padding-bottom: 0.35rem;
 }
 
+.avatar-editor-import-btn {
+  flex: 0 0 auto;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.avatar-editor-import-btn:active {
+  background: #dbeafe;
+}
+
 .avatar-editor-screen .editor-error {
   margin: 0.5rem 0 0;
   text-align: center;
+}
+
+.avatar-card-import-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.avatar-card-import-panel {
+  box-sizing: border-box;
+  width: min(100%, 24rem);
+  max-height: min(80dvh, 38rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem;
+  overflow: hidden;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.25);
+}
+
+.avatar-card-import-title {
+  margin: 0;
+  color: #1e3a8a;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.avatar-card-import-description {
+  margin: 0;
+  color: #475569;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.avatar-card-import-list {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.1rem;
+}
+
+.avatar-card-import-item {
+  appearance: none;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  border: 2px solid;
+  border-radius: 9px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.avatar-card-import-item:active {
+  transform: scale(0.97);
+}
+
+.avatar-card-import-preview {
+  box-sizing: border-box;
+  width: 4rem;
+  height: 4rem;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.avatar-card-import-preview .card-preview {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 5px;
+}
+
+.avatar-card-import-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: #334155;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.avatar-card-import-empty {
+  margin: 0;
+  padding: 2rem 0.75rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 9px;
+  color: #64748b;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.avatar-card-import-close {
+  flex: 0 0 auto;
+  min-height: 2.4rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
 }

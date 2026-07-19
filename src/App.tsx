@@ -189,6 +189,22 @@ function initialScreen(user: UserProfile | null): ScreenId {
   return isProfileComplete(user) ? 'deck' : 'setup';
 }
 
+function collectAvatarImportCards(
+  decks: readonly DeckLayout[],
+  memoryAlbum: MemoryAlbumState,
+): Card[] {
+  const cardsById = new Map<string, Card>();
+  for (const deck of decks) {
+    for (const card of deck) {
+      if (card) cardsById.set(card.id, card);
+    }
+  }
+  for (const card of memoryAlbum.cards) {
+    if (!cardsById.has(card.id)) cardsById.set(card.id, card);
+  }
+  return [...cardsById.values()];
+}
+
 interface RemoteProfileSource {
   ownerId?: string;
   user: ProfileDisplayUser;
@@ -322,6 +338,10 @@ function App() {
   >(() => normalizeEditorShopUnlocks(initialSave.editorShopUnlocks));
   const [memoryAlbum, setMemoryAlbum] = useState<MemoryAlbumState>(
     () => initialSave.memoryAlbum ?? createInitialMemoryAlbum(),
+  );
+  const avatarImportCards = useMemo(
+    () => collectAvatarImportCards(decks, memoryAlbum),
+    [decks, memoryAlbum],
   );
   const [shopPurchase, setShopPurchase] = useState<ShopPurchaseState>(() =>
     normalizeShopPurchaseState(initialSave.shopPurchase),
@@ -4308,6 +4328,7 @@ function App() {
         {screen === 'avatarDetail' && !remoteProfileView && user && (
           <AvatarDetailScreen
             user={user}
+            subscription={subscription}
             onBack={() => setScreen('profile')}
             onEdit={() => setScreen('avatarEditor')}
             onDelete={deleteAvatar}
@@ -4316,6 +4337,7 @@ function App() {
         {screen === 'avatarEditor' && user && (
           <AvatarEditorScreen
             avatar={user.avatar}
+            importCards={avatarImportCards}
             onBack={() => setScreen('avatarDetail')}
             onSave={saveAvatar}
           />
