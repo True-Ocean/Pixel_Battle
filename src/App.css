@@ -15111,6 +15111,110 @@ button.battle-card {
   color: #713f12;
 }
 
+.profile-comment {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(30, 64, 175, 0.08);
+}
+
+.profile-comment-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.profile-comment-heading h2 {
+  margin: 0;
+  color: #1e3a8a;
+  font-size: 0.78rem;
+}
+
+.profile-comment-heading button {
+  padding: 0.2rem 0.55rem;
+  border: 1px solid #93c5fd;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profile-comment-text {
+  min-height: 1.4em;
+  margin: 0;
+  color: #334155;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.profile-comment-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.profile-comment-editor textarea {
+  box-sizing: border-box;
+  width: 100%;
+  resize: none;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  background: #fff;
+  color: #172554;
+  font: inherit;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.profile-comment-editor textarea:focus {
+  border-color: #2563eb;
+  outline: 2px solid rgba(37, 99, 235, 0.15);
+}
+
+.profile-comment-editor-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.65rem;
+  line-height: 1.35;
+}
+
+.profile-comment-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.profile-comment-editor-actions button {
+  padding: 0.32rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profile-comment-editor-actions button:last-child {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+
 .profile-records {
   box-sizing: border-box;
   flex: 0 0 auto;
@@ -15405,10 +15509,6 @@ button.battle-card {
   border: 1px solid #fecaca;
   background: #fff;
   color: #b91c1c;
-}
-
-.avatar-editor-screen .editor-canvas-meta-row {
-  justify-content: flex-start;
 }
 
 .avatar-editor-screen .editor-image-area {

@@ -2,13 +2,22 @@ import { useState, type CSSProperties } from 'react';
 import { getSubscriptionPlanById } from '../config/shop';
 import { getRarityMeta } from '../config/rarity';
 import type { Card, UserProfile, UserSubscription } from '../types';
-import { getActiveSubscriptionPlan } from '../user';
+import {
+  DEFAULT_PROFILE_COMMENT,
+  finalizeProfileComment,
+  getActiveSubscriptionPlan,
+  PROFILE_COMMENT_MAX_LENGTH,
+  PROFILE_COMMENT_MAX_LINES,
+  profileCommentLength,
+  sanitizeProfileCommentInput,
+} from '../user';
 import { CardDetailViewOverlay } from './CardDetailViewOverlay';
 import { CardPreview } from './CardPreview';
 import { PixelIconPreview } from './PixelIconPreview';
 
 export interface ProfileDisplayUser {
   username: string;
+  profileComment?: string;
   avatar?: UserProfile['avatar'];
   level: number;
   cpuBattleWins: number | null;
@@ -34,6 +43,8 @@ export interface ProfileScreenProps {
   onRetry?: () => void;
   onBack: () => void;
   onOpenAvatar: () => void;
+  /** 自分のプロフィールでのみ指定する。 */
+  onCommentChange?: (comment: string | undefined) => void;
 }
 
 const AVATAR_PREVIEW_SIZE = 96;
@@ -80,8 +91,11 @@ export function ProfileScreen({
   onRetry,
   onBack,
   onOpenAvatar,
+  onCommentChange,
 }: ProfileScreenProps) {
   const [detailCard, setDetailCard] = useState<Card | null>(null);
+  const [commentEditing, setCommentEditing] = useState(false);
+  const [commentDraft, setCommentDraft] = useState('');
   const activePlan = subscription
     ? getActiveSubscriptionPlan(subscription)
     : 'none';
@@ -89,6 +103,19 @@ export function ProfileScreen({
     activePlan === 'none' ? null : getSubscriptionPlanById(activePlan).label;
   const trimmedName = user.username.trim();
   const initialChar = trimmedName.charAt(0) || '?';
+  const displayComment =
+    finalizeProfileComment(user.profileComment ?? '') ??
+    DEFAULT_PROFILE_COMMENT;
+
+  const startCommentEdit = () => {
+    setCommentDraft(user.profileComment ?? '');
+    setCommentEditing(true);
+  };
+
+  const saveComment = () => {
+    onCommentChange?.(finalizeProfileComment(commentDraft));
+    setCommentEditing(false);
+  };
 
   return (
     <section className="screen profile-screen">
@@ -141,6 +168,52 @@ export function ProfileScreen({
             </p>
           )}
         </div>
+
+        <section className="profile-comment" aria-labelledby="profile-comment-title">
+          <div className="profile-comment-heading">
+            <h2 id="profile-comment-title">ひとこと</h2>
+            {onCommentChange && !commentEditing && (
+              <button type="button" onClick={startCommentEdit}>
+                編集
+              </button>
+            )}
+          </div>
+          {commentEditing ? (
+            <div className="profile-comment-editor">
+              <textarea
+                rows={PROFILE_COMMENT_MAX_LINES}
+                value={commentDraft}
+                aria-label="ひとこと"
+                placeholder={DEFAULT_PROFILE_COMMENT}
+                onChange={(event) =>
+                  setCommentDraft(
+                    sanitizeProfileCommentInput(event.target.value),
+                  )
+                }
+              />
+              <div className="profile-comment-editor-meta">
+                <span>個人情報や連絡先は入力しないでください</span>
+                <span>
+                  {profileCommentLength(commentDraft)}/
+                  {PROFILE_COMMENT_MAX_LENGTH}
+                </span>
+              </div>
+              <div className="profile-comment-editor-actions">
+                <button
+                  type="button"
+                  onClick={() => setCommentEditing(false)}
+                >
+                  キャンセル
+                </button>
+                <button type="button" onClick={saveComment}>
+                  保存
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="profile-comment-text">{displayComment}</p>
+          )}
+        </section>
 
         <div className="profile-records" aria-label="戦績">
           <ProfileRecordRow

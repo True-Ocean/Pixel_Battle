@@ -109,6 +109,15 @@ https://true-ocean.github.io/Pixel_Battle/
 
 Realtime で `online_battle_rooms` を購読する場合は、ダッシュボードの **Database → Replication**（または Publication）で当該テーブルが有効か確認する。
 
+## 3.3 公開プロフィール
+
+他ユーザーから閲覧できるプロフィール（ユーザー名・アバター・ひとこと・戦績）は `public_profiles` に保存します。
+
+1. `supabase/migrations/016_public_profiles.sql` を実行
+2. 016 を適用済みの環境では、`019_public_profiles_comment.sql` を実行して「ひとこと」列を追加
+
+「ひとこと」は最大50文字・3行までです。未設定時はアプリ側で「よろしくお願いします」と表示し、既定文自体はDBへ保存しません。
+
 ### アカウント削除（Edge Function）
 
 設定の **アカウントを削除** は次を消します。
@@ -116,7 +125,7 @@ Realtime で `online_battle_rooms` を購読する場合は、ダッシュボー
 | 対象 | 動作 |
 |------|------|
 | `auth.users` | Edge Function から admin API で削除 |
-| `player_saves` / `public_ghost_decks` | `auth.users` 削除で **CASCADE** |
+| `player_saves` / `public_ghost_decks` / `public_profiles` | `auth.users` 削除で **CASCADE** |
 | 端末 `localStorage` | 削除成功後にアプリ側でクリア → ユーザー名入力画面へ |
 
 **初回セットアップ（1 回）**

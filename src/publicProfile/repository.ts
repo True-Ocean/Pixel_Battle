@@ -1,6 +1,7 @@
 import { ensureAnonymousUserId } from '../auth';
 import { getSupabaseClient, isSupabaseConfigured } from '../supabase/client';
 import type { PixelGrid, UserProfile } from '../types';
+import { finalizeProfileComment } from '../user/profileComment';
 import type {
   GetPublicProfileResult,
   PublicProfile,
@@ -11,6 +12,7 @@ import type {
 const PUBLIC_PROFILE_COLUMNS = [
   'owner_id',
   'username',
+  'profile_comment',
   'avatar',
   'level',
   'cpu_battle_wins',
@@ -67,6 +69,7 @@ export function publicProfileUpsertRow(
   return {
     owner_id: ownerId,
     username: user.username.trim(),
+    profile_comment: finalizeProfileComment(user.profileComment ?? '') ?? null,
     avatar: user.avatar ? structuredClone(user.avatar) : null,
     level: Math.max(1, Math.floor(user.level)),
     cpu_battle_wins: Math.max(0, Math.floor(user.cpuBattleWins)),
@@ -132,9 +135,14 @@ export function rowToPublicProfile(raw: unknown): PublicProfile | null {
   }
 
   const avatar = normalizeAvatar(row.avatar);
+  const profileComment =
+    typeof row.profile_comment === 'string'
+      ? finalizeProfileComment(row.profile_comment)
+      : undefined;
   return {
     ownerId: row.owner_id,
     username: row.username.trim(),
+    ...(profileComment ? { profileComment } : {}),
     ...(avatar ? { avatar } : {}),
     level: Math.floor(row.level),
     cpuBattleWins,

@@ -23,7 +23,9 @@ import { PALETTE_16 } from '../config/palette';
 import type { PixelGrid, UserProfile } from '../types';
 import { createFullPaletteShopUnlocks } from '../user/paletteShop';
 import { CanvasSizePicker } from './CanvasSizePicker';
+import { CardPreview } from './CardPreview';
 import { ColorPalette } from './ColorPalette';
+import { ConfirmDialog } from './ConfirmDialog';
 import { EditorCanvasViewport } from './EditorCanvasViewport';
 import { PixelCanvas, type PixelCanvasHandle } from './PixelCanvas';
 import { ToolStrip } from './ToolStrip';
@@ -42,6 +44,7 @@ const AVATAR_SELECTABLE_SIZES = getSelectableCanvasSizes(
   AVATAR_UNLOCK_LEVEL,
   CANVAS_SIZE_MIN,
 );
+const MINI_PREVIEW_SIZE = 48;
 
 function hasPaintedCell(pixels: PixelGrid): boolean {
   for (const row of pixels) {
@@ -70,9 +73,14 @@ export function AvatarEditorScreen({
   const [brushSize, setBrushSize] = useState<BrushSizeId>('small');
   const [tool, setTool] = useState<EditorToolId>('pen');
   const [error, setError] = useState<string | null>(null);
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
 
   const blockDrawingRef = useRef(false);
   const pixelCanvasRef = useRef<PixelCanvasHandle>(null);
+  const initialSnapshotRef = useRef<EditorSnapshot>({
+    pixels: avatar ? cloneGrid(avatar.pixels) : createEmptyGrid(initialSize),
+    canvasSize: initialSize,
+  });
   const editorSnapshotRef = useRef<EditorSnapshot>({ pixels, canvasSize });
   const editorHistoryRef = useRef<EditorSnapshot[]>(editorHistory);
   const editorFutureRef = useRef<EditorSnapshot[]>(editorFuture);
@@ -177,6 +185,16 @@ export function AvatarEditorScreen({
     });
   };
 
+  const handleBackRequest = () => {
+    if (
+      !snapshotsEqual(editorSnapshotRef.current, initialSnapshotRef.current)
+    ) {
+      setDiscardConfirmOpen(true);
+      return;
+    }
+    onBack();
+  };
+
   return (
     <section className="screen editor-screen avatar-editor-screen">
       <header className="editor-header avatar-editor-header">
@@ -193,6 +211,16 @@ export function AvatarEditorScreen({
               selectableSizes={AVATAR_SELECTABLE_SIZES}
               onSelectSize={handleCanvasSizeChange}
             />
+            <div
+              className="editor-screen-mini-preview"
+              style={{
+                width: MINI_PREVIEW_SIZE,
+                height: MINI_PREVIEW_SIZE,
+              }}
+              aria-hidden
+            >
+              <CardPreview pixels={pixels} />
+            </div>
           </div>
 
           <div className="editor-workspace avatar-editor-workspace">
@@ -256,11 +284,25 @@ export function AvatarEditorScreen({
         <button
           type="button"
           className="editor-back-deck avatar-editor-back"
-          onClick={onBack}
+          onClick={handleBackRequest}
         >
           戻る
         </button>
       </div>
+
+      <ConfirmDialog
+        open={discardConfirmOpen}
+        title="編集をやめる"
+        message="保存していない変更は失われます。よろしいですか？"
+        confirmLabel="編集をやめる"
+        cancelLabel="編集を継続"
+        confirmVariant="danger"
+        onConfirm={() => {
+          setDiscardConfirmOpen(false);
+          onBack();
+        }}
+        onCancel={() => setDiscardConfirmOpen(false)}
+      />
     </section>
   );
 }

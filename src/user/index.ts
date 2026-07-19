@@ -21,6 +21,14 @@ export type {
   DevUserLoadOptions,
 } from './profile';
 export {
+  DEFAULT_PROFILE_COMMENT,
+  finalizeProfileComment,
+  PROFILE_COMMENT_MAX_LENGTH,
+  PROFILE_COMMENT_MAX_LINES,
+  profileCommentLength,
+  sanitizeProfileCommentInput,
+} from './profileComment';
+export {
   addFreePixels,
   addJewels,
   createInitialEconomy,

@@ -100,6 +100,8 @@ export interface AdState {
 /** ユーザープロフィール（localStorage 永続化） */
 export interface UserProfile {
   username: string;
+  /** 公開プロフィールに表示する「ひとこと」（未設定時は既定文を表示） */
+  profileComment?: string;
   /** ユーザーアバター（未作成時は undefined） */
   avatar?: {
     pixels: PixelGrid;

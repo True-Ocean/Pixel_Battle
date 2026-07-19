@@ -700,6 +700,23 @@ function App() {
     [persistSave],
   );
 
+  const handleProfileCommentChange = useCallback(
+    (profileComment: string | undefined) => {
+      setUser((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev };
+        if (profileComment) {
+          next.profileComment = profileComment;
+        } else {
+          delete next.profileComment;
+        }
+        persistSave({ user: next });
+        return next;
+      });
+    },
+    [persistSave],
+  );
+
   const handleAccountDeleted = useCallback(() => {
     cancelScheduledCloudSaveUpload();
     clearLocalSave();
@@ -4253,6 +4270,7 @@ function App() {
             publishedDecks={profilePublishedDecks}
             onBack={closeProfile}
             onOpenAvatar={() => setScreen('avatarDetail')}
+            onCommentChange={handleProfileCommentChange}
           />
         )}
         {screen === 'avatarDetail' && remoteProfileView && (

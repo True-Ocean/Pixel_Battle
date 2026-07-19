@@ -20,6 +20,7 @@ import {
   levelFromTotalExp,
   totalExpForLevel,
 } from './level';
+import { finalizeProfileComment } from './profileComment';
 
 /** 開発用: レベル・EXP を上限に揃える */
 export function applyDevMaxUserLevel(user: UserProfile): UserProfile {
@@ -227,9 +228,14 @@ export function normalizeUserProfile(raw: unknown): UserProfile | null {
   const battleLosses =
     cpuBattleLosses + offlinePvpBattleLosses + onlinePvpBattleLosses;
   const avatar = normalizeAvatar(candidate.avatar);
+  const profileComment =
+    typeof candidate.profileComment === 'string'
+      ? finalizeProfileComment(candidate.profileComment)
+      : undefined;
 
   return {
     username,
+    ...(profileComment ? { profileComment } : {}),
     ...(avatar ? { avatar } : {}),
     level,
     exp,

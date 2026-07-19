@@ -136,6 +136,23 @@ describe('normalizeUserProfile', () => {
       onlinePvpBattleLosses: 0,
     });
   });
+
+  it('normalizes the optional profile comment', () => {
+    expect(
+      normalizeUserProfile({
+        username: 'a',
+        exp: 0,
+        profileComment: '  こんにちは！  ',
+      })?.profileComment,
+    ).toBe('こんにちは！');
+    expect(
+      normalizeUserProfile({
+        username: 'a',
+        exp: 0,
+        profileComment: '   ',
+      })?.profileComment,
+    ).toBeUndefined();
+  });
 });
 
 describe('isProfileComplete', () => {

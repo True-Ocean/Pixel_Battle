@@ -3,6 +3,7 @@ import type { UserProfile } from '../types';
 export interface PublicProfile {
   ownerId: string;
   username: string;
+  profileComment?: string;
   avatar?: UserProfile['avatar'];
   level: number;
   cpuBattleWins: number;
@@ -18,6 +19,7 @@ export interface PublicProfile {
 export interface PublicProfileRow {
   owner_id: string;
   username: string;
+  profile_comment: string | null;
   avatar: UserProfile['avatar'] | null;
   level: number;
   cpu_battle_wins: number;

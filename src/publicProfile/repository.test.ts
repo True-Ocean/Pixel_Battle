@@ -37,6 +37,7 @@ vi.mock('../supabase/client', () => ({
 function makeUser(): UserProfile {
   return {
     username: ' テスト ',
+    profileComment: ' よろしく！ ',
     level: 12,
     exp: 999,
     battleWins: 6,
@@ -54,6 +55,7 @@ function makeRow() {
   return {
     owner_id: 'owner-a',
     username: 'テスト',
+    profile_comment: 'よろしく！',
     avatar: null,
     level: 12,
     cpu_battle_wins: 1,
@@ -86,6 +88,7 @@ describe('publicProfileUpsertRow', () => {
     expect(row).toEqual({
       owner_id: 'owner-a',
       username: 'テスト',
+      profile_comment: 'よろしく！',
       avatar: null,
       level: 12,
       cpu_battle_wins: 1,
@@ -106,6 +109,7 @@ describe('rowToPublicProfile', () => {
     expect(rowToPublicProfile(makeRow())).toEqual({
       ownerId: 'owner-a',
       username: 'テスト',
+      profileComment: 'よろしく！',
       level: 12,
       cpuBattleWins: 1,
       cpuBattleLosses: 2,
@@ -146,6 +150,7 @@ describe('getPublicProfileByOwnerId', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.profile?.username).toBe('テスト');
+      expect(result.profile?.profileComment).toBe('よろしく！');
       expect(result.profile?.onlinePvpBattleWins).toBe(5);
     }
     expect(mocks.eq).toHaveBeenCalledWith('owner_id', 'owner-a');
