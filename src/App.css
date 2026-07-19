@@ -14980,6 +14980,41 @@ button.battle-card {
   padding: 0.25rem 0.1rem 0.5rem;
 }
 
+.profile-body--loading {
+  justify-content: center;
+}
+
+.profile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.profile-loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: profile-loading-spin 0.8s linear infinite;
+}
+
+@keyframes profile-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-loading-spinner {
+    animation-duration: 2.4s;
+  }
+}
+
 .profile-load-status {
   box-sizing: border-box;
   width: min(100%, 24rem);

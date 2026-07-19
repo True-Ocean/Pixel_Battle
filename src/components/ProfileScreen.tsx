@@ -39,6 +39,8 @@ export interface ProfileScreenProps {
   /** 他ユーザー閲覧時は省略し、プランを表示しない。 */
   subscription?: UserSubscription;
   publishedDecks: readonly ProfilePublishedDeck[];
+  /** 公開プロフィール取得中。暫定情報を出さずにローディングを表示する。 */
+  loading?: boolean;
   loadError?: boolean;
   onRetry?: () => void;
   onBack: () => void;
@@ -87,6 +89,7 @@ export function ProfileScreen({
   user,
   subscription,
   publishedDecks,
+  loading = false,
   loadError = false,
   onRetry,
   onBack,
@@ -126,6 +129,14 @@ export function ProfileScreen({
         <h1 className="profile-title">プロフィール</h1>
       </header>
 
+      {loading ? (
+        <div className="profile-body profile-body--loading">
+          <div className="profile-loading" role="status">
+            <span className="profile-loading-spinner" aria-hidden />
+            <span>プロフィールを読み込み中…</span>
+          </div>
+        </div>
+      ) : (
       <div className="profile-body">
         {loadError && (
           <div className="profile-load-status" role="status">
@@ -278,6 +289,7 @@ export function ProfileScreen({
           )}
         </section>
       </div>
+      )}
 
       {detailCard && (
         <CardDetailViewOverlay
