@@ -4629,6 +4629,14 @@ button.battle-hub-deck-icon.is-move-target {
   max-width: 100%;
 }
 
+.talisman-icon {
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
 .talisman-card-badge {
   display: inline-flex;
   align-items: center;
@@ -9423,10 +9431,10 @@ button.battle-hub-deck-icon.is-move-target {
   height: var(--deck-leading-badge-size);
 }
 
-/* SVG 内余白があるため、見た目がレア度円と揃うよう少し大きめにする */
+/* レア度エンブレムより一回り小さく表示する */
 .deck-card-talisman-under-rarity.talisman-card-badge--deck .talisman-card-badge-icon {
-  width: calc(var(--deck-leading-badge-size) * 1.14);
-  height: calc(var(--deck-leading-badge-size) * 1.14);
+  width: calc(var(--deck-leading-badge-size) * 0.9);
+  height: calc(var(--deck-leading-badge-size) * 0.9);
 }
 
 .deck-card-stars-corner {
@@ -9837,8 +9845,8 @@ button.battle-hub-deck-icon.is-move-target {
 .screen-deck
   .deck-card-talisman-under-rarity.talisman-card-badge--deck
   .talisman-card-badge-icon {
-  width: calc(var(--deck-leading-badge-size) * 1.22);
-  height: calc(var(--deck-leading-badge-size) * 1.22);
+  width: calc(var(--deck-leading-badge-size) * 0.8);
+  height: calc(var(--deck-leading-badge-size) * 0.8);
 }
 
 .screen-deck .deck-card-stars-corner {
