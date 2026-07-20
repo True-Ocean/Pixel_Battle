@@ -3536,6 +3536,11 @@ function App() {
     [subscription],
   );
 
+  const editorImportCards = useMemo(() => {
+    if (editingCard == null) return avatarImportCards;
+    return avatarImportCards.filter((card) => card.id !== editingCard.id);
+  }, [avatarImportCards, editingCard]);
+
   const editorCanRenameCardForFree = useMemo(
     () => canRenameCardForFree(subscription),
     [subscription],
@@ -4419,6 +4424,8 @@ function App() {
             freePixels={economy.freePixels}
             jewels={economy.jewels}
             canEditCardUserNote={editorCanEditCardUserNote}
+            canImportFromOtherCards={editorCanEditCardUserNote}
+            importCards={editorImportCards}
             canRenameCardForFree={editorCanRenameCardForFree}
             paletteShopUnlocks={paletteShopUnlocks}
             editorShopUnlocks={editorShopUnlocks}

@@ -16724,7 +16724,8 @@ button.battle-card {
   padding-bottom: 0.35rem;
 }
 
-.avatar-editor-import-btn {
+.avatar-editor-import-btn,
+.editor-card-import-btn {
   flex: 0 0 auto;
   min-height: 2.25rem;
   padding: 0.3rem 0.65rem;
@@ -16738,7 +16739,8 @@ button.battle-card {
   cursor: pointer;
 }
 
-.avatar-editor-import-btn:active {
+.avatar-editor-import-btn:active,
+.editor-card-import-btn:active {
   background: #dbeafe;
 }
 
@@ -16747,7 +16749,7 @@ button.battle-card {
   text-align: center;
 }
 
-.avatar-card-import-backdrop {
+.card-import-backdrop {
   position: fixed;
   inset: 0;
   z-index: 1200;
@@ -16757,7 +16759,7 @@ button.battle-card {
   background: rgba(15, 23, 42, 0.48);
 }
 
-.avatar-card-import-panel {
+.card-import-panel {
   box-sizing: border-box;
   width: min(100%, 24rem);
   max-height: min(80dvh, 38rem);
@@ -16772,21 +16774,21 @@ button.battle-card {
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.25);
 }
 
-.avatar-card-import-title {
+.card-import-title {
   margin: 0;
   color: #1e3a8a;
   font-size: 1.05rem;
   line-height: 1.2;
 }
 
-.avatar-card-import-description {
+.card-import-description {
   margin: 0;
   color: #475569;
   font-size: 0.76rem;
   line-height: 1.45;
 }
 
-.avatar-card-import-list {
+.card-import-list {
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -16796,7 +16798,7 @@ button.battle-card {
   padding: 0.1rem;
 }
 
-.avatar-card-import-item {
+.card-import-item {
   appearance: none;
   min-width: 0;
   display: flex;
@@ -16812,11 +16814,11 @@ button.battle-card {
   -webkit-tap-highlight-color: transparent;
 }
 
-.avatar-card-import-item:active {
+.card-import-item:active {
   transform: scale(0.97);
 }
 
-.avatar-card-import-preview {
+.card-import-preview {
   box-sizing: border-box;
   width: 4rem;
   height: 4rem;
@@ -16826,14 +16828,14 @@ button.battle-card {
   background: #fff;
 }
 
-.avatar-card-import-preview .card-preview {
+.card-import-preview .card-preview {
   width: 100%;
   height: 100%;
   border: 0;
   border-radius: 5px;
 }
 
-.avatar-card-import-name {
+.card-import-name {
   max-width: 100%;
   overflow: hidden;
   color: #334155;
@@ -16843,7 +16845,7 @@ button.battle-card {
   white-space: nowrap;
 }
 
-.avatar-card-import-empty {
+.card-import-empty {
   margin: 0;
   padding: 2rem 0.75rem;
   border: 1px dashed #cbd5e1;
@@ -16853,7 +16855,7 @@ button.battle-card {
   text-align: center;
 }
 
-.avatar-card-import-close {
+.card-import-close {
   flex: 0 0 auto;
   min-height: 2.4rem;
   border: 1px solid #cbd5e1;

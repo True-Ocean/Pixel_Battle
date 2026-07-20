@@ -2,12 +2,33 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CardNoteIcon } from './CardNoteIcon';
 
+export type EditorPremiumUpsellFeature = 'cardNote' | 'cardImport';
+
 interface CardNotePremiumUpsellModalProps {
+  feature?: EditorPremiumUpsellFeature;
   onClose: () => void;
   onOpenShop: () => void;
 }
 
+const UPSELL_COPY: Record<
+  EditorPremiumUpsellFeature,
+  { title: string; message: string; hint?: string }
+> = {
+  cardNote: {
+    title: 'カードノート',
+    message:
+      'カードノートの編集はプレミアムプラン限定です。プレミアムプランに加入すると、カードにノートを記録できます。',
+    hint: '一度記録したノートは、プレミアムプラン期限切れ後も引き続き閲覧できます。',
+  },
+  cardImport: {
+    title: 'カードから読込',
+    message:
+      '他のカードからイメージを読み込む機能はプレミアムプラン限定です。プレミアムプランに加入すると、既存カードの絵を編集の土台として使えます。',
+  },
+};
+
 export function CardNotePremiumUpsellModal({
+  feature = 'cardNote',
   onClose,
   onOpenShop,
 }: CardNotePremiumUpsellModalProps) {
@@ -35,28 +56,33 @@ export function CardNotePremiumUpsellModal({
     };
   }, []);
 
+  const copy = UPSELL_COPY[feature];
+  const titleId =
+    feature === 'cardImport'
+      ? 'card-import-upsell-title'
+      : 'card-note-upsell-title';
+
   return createPortal(
     <div className="card-note-backdrop" onClick={onClose}>
       <div
         className="card-note-panel card-note-panel--upsell"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="card-note-upsell-title"
+        aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="card-note-upsell-header">
-          <CardNoteIcon className="card-note-upsell-icon" filled />
-          <h2 id="card-note-upsell-title" className="card-note-title">
-            カードノート
+          {feature === 'cardNote' ? (
+            <CardNoteIcon className="card-note-upsell-icon" filled />
+          ) : null}
+          <h2 id={titleId} className="card-note-title">
+            {copy.title}
           </h2>
         </div>
-        <p className="card-note-message">
-          カードノートの<strong>編集</strong>はプレミアムプラン会員限定です。
-          プレミアムに加入すると、カードにメモを残せます。
-        </p>
-        <p className="card-note-hint muted">
-          以前保存したノートは、プレミアム期限切れ後も引き続き閲覧できます。
-        </p>
+        <p className="card-note-message">{copy.message}</p>
+        {copy.hint ? (
+          <p className="card-note-hint muted">{copy.hint}</p>
+        ) : null}
         <div className="card-note-actions">
           <button type="button" className="card-note-cancel" onClick={onClose}>
             キャンセル

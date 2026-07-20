@@ -75,6 +75,7 @@ import { PixelCoinIcon } from './PixelCoinIcon';
 import { CardNoteEditModal } from './CardNoteEditModal';
 import { CardNoteIconButton } from './CardNoteIconButton';
 import { CardNotePremiumUpsellModal } from './CardNotePremiumUpsellModal';
+import { CardImportModal } from './CardImportModal';
 
 interface EditorScreenProps {
   deckCount: number;
@@ -83,6 +84,8 @@ interface EditorScreenProps {
   freePixels?: number;
   jewels?: number;
   canEditCardUserNote?: boolean;
+  canImportFromOtherCards?: boolean;
+  importCards?: readonly Card[];
   canRenameCardForFree?: boolean;
   paletteShopUnlocks?: readonly number[];
   editorShopUnlocks?: readonly EditorShopUnlockId[];
@@ -167,6 +170,8 @@ export function EditorScreen({
   freePixels = 0,
   jewels = 0,
   canEditCardUserNote = false,
+  canImportFromOtherCards = false,
+  importCards = [],
   canRenameCardForFree = false,
   paletteShopUnlocks = [],
   editorShopUnlocks = [],
@@ -232,6 +237,8 @@ export function EditorScreen({
   const [helpOpen, setHelpOpen] = useState(false);
   const [noteEditOpen, setNoteEditOpen] = useState(false);
   const [noteUpsellOpen, setNoteUpsellOpen] = useState(false);
+  const [cardImportOpen, setCardImportOpen] = useState(false);
+  const [importUpsellOpen, setImportUpsellOpen] = useState(false);
   const [pendingCanvasUpgradeSize, setPendingCanvasUpgradeSize] =
     useState<number | null>(null);
   const isComposingNameRef = useRef(false);
@@ -614,6 +621,40 @@ export function EditorScreen({
     setNoteUpsellOpen(true);
   };
 
+  const resolveImportTargetSize = (sourceCanvasSize: number): number => {
+    const allowedSizes = isEditing
+      ? selectableCanvasSizes.filter((size) => size >= editCanvasSize)
+      : selectableCanvasSizes;
+    if (allowedSizes.length === 0) return canvasSize;
+    if (allowedSizes.includes(sourceCanvasSize)) return sourceCanvasSize;
+    return allowedSizes.reduce((nearest, size) =>
+      Math.abs(size - sourceCanvasSize) < Math.abs(nearest - sourceCanvasSize)
+        ? size
+        : nearest,
+    );
+  };
+
+  const handleImportCard = (card: Card) => {
+    const targetSize = resolveImportTargetSize(card.canvasSize);
+    applyEditorChange({
+      pixels:
+        targetSize === card.canvasSize
+          ? cloneGrid(card.pixels)
+          : resizeGridCentered(card.pixels, targetSize),
+      canvasSize: targetSize,
+    });
+    setError(null);
+    setCardImportOpen(false);
+  };
+
+  const handleImportButtonPress = () => {
+    if (canImportFromOtherCards) {
+      setCardImportOpen(true);
+      return;
+    }
+    setImportUpsellOpen(true);
+  };
+
   return (
     <section className="screen editor-screen">
       <header className="editor-header">
@@ -636,6 +677,18 @@ export function EditorScreen({
               onSelectSize={handleCanvasSizeChange}
               disabled={isEditing && selectableCanvasSizes.length <= 1}
             />
+            <button
+              type="button"
+              className="editor-card-import-btn"
+              aria-label={
+                canImportFromOtherCards
+                  ? '他のカードから読み込む'
+                  : '他のカードから読み込む（プレミアム限定）'
+              }
+              onClick={handleImportButtonPress}
+            >
+              カードから読込
+            </button>
             <div
               className="editor-screen-mini-preview"
               style={{
@@ -943,8 +996,25 @@ export function EditorScreen({
       )}
       {noteUpsellOpen && (
         <CardNotePremiumUpsellModal
+          feature="cardNote"
           onClose={() => setNoteUpsellOpen(false)}
           onOpenShop={() => onOpenShopSubscription?.()}
+        />
+      )}
+      {importUpsellOpen && (
+        <CardNotePremiumUpsellModal
+          feature="cardImport"
+          onClose={() => setImportUpsellOpen(false)}
+          onOpenShop={() => onOpenShopSubscription?.()}
+        />
+      )}
+      {cardImportOpen && (
+        <CardImportModal
+          cards={importCards}
+          onSelect={handleImportCard}
+          onClose={() => setCardImportOpen(false)}
+          titleId="editor-card-import-title"
+          description="イメージの元にするカードを選んでください。読み込み後も自由に編集できます。"
         />
       )}
     </section>
