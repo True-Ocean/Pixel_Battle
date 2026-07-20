@@ -15294,7 +15294,7 @@ button.battle-card {
 .formation-screen.is-play-phase
   .formation-guide-battle--in-progress.formation-guide-battle--grid
   .formation-guide-line {
-  grid-column: 2;
+  grid-column: 1 / -1;
 }
 
 .formation-screen.is-play-phase
