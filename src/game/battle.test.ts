@@ -745,7 +745,7 @@ describe('battle', () => {
     expect(cpuBow.bowArrowsRemaining).toBe(1);
   });
 
-  it('両攻撃は主対象へ近接＋副前衛へ55%無反撃', () => {
+  it('両攻撃は主対象へ近接＋副前衛へ50%無反撃', () => {
     const playerDeck = [
       stubCard('両', 'dual', 80),
       stubCard('P2', 'attack', 50),
@@ -771,7 +771,7 @@ describe('battle', () => {
     }).state;
 
     expect(state.cpu[1].currentBp).toBe(0);
-    expect(state.cpu[0].currentBp).toBe(56);
+    expect(state.cpu[0].currentBp).toBe(60);
     expect(state.player[0].currentBp).toBe(55);
   });
 

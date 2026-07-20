@@ -60,8 +60,12 @@ describe('piercing damage battle guide term', () => {
 
 describe('bow attack battle guide term', () => {
   it('弓攻撃の説明をコンパクトモーダルで定義する', () => {
-    expect(BOW_ATTACK_GUIDE.items[0]).toBe('攻撃相手からの反撃を受けない');
-    expect(BOW_ATTACK_GUIDE.items[1]).toBe('バトル中2回まで');
+    expect(BOW_ATTACK_GUIDE.items).toEqual([
+      '自分の現BP相当のダメージを与える',
+      '攻撃相手からの反撃を受けない',
+      'バトル中2回まで',
+      '弓同士の相打ちは、お互いの矢が相殺されてノーダメージ',
+    ]);
     expect(BOW_ATTACK_GUIDE.compact).toBe(true);
   });
 });
@@ -122,7 +126,7 @@ describe('storm battle guide term', () => {
     expect(STORM_GUIDE.items).toEqual([
       '自分の現BPの50%相当のダメージをランダムな敵2体に与える',
       'バトル中、2回まで起こせる',
-      'ステルス中の忍属性カードに当たると、ステルスを解除できる',
+      '潜伏状態中の忍属性カードに当たると、潜伏状態を解除できる',
       '嵐による攻撃は反撃を受けない',
     ]);
     expect(STORM_GUIDE.compact).toBe(true);

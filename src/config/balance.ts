@@ -167,7 +167,7 @@ export const CARD_BP_SPREAD = 0.15;
 export const DEFENSE_BP_RATIO = 0.85;
 
 /** 力属性の基本BP係数（攻撃比）。ATTRIBUTE_SPEC §4.3 */
-export const POWER_BP_RATIO = 1.28;
+export const POWER_BP_RATIO = 1.5;
 
 /** 弓属性の基本BP係数（攻撃比）。ATTRIBUTE_SPEC §4.4 */
 export const BOW_BP_RATIO = 0.52;

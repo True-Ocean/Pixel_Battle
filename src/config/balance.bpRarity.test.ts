@@ -17,8 +17,8 @@ describe('user level base BP', () => {
     expect(getUserBaseBp(10, 'defense')).toBe(85);
   });
 
-  it('力は攻撃の128%', () => {
-    expect(getUserBaseBp(10, 'power')).toBe(128);
+  it('力は攻撃の150%', () => {
+    expect(getUserBaseBp(10, 'power')).toBe(150);
   });
 
   it('弓は攻撃の52%', () => {
@@ -51,8 +51,8 @@ describe('user level base BP', () => {
 
   it('力属性のBPレンジは±15%', () => {
     const range = getCardBaseBpRange(10, 'power');
-    expect(range.min).toBe(109);
-    expect(range.max).toBe(147);
+    expect(range.min).toBe(128);
+    expect(range.max).toBe(173);
   });
 });
 
