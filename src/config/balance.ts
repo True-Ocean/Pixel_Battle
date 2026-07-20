@@ -378,23 +378,36 @@ export function applyRarityToBpAtLevel(
   return applyRarityToBpInternal(baseBp, attribute, rarity, userLevel, false);
 }
 
-/** カード戦力: BP × bpWeight + flatBonus（属性ごと） */
-export const ATTRIBUTE_POWER = {
-  attack: { bpWeight: 1, flatBonus: 0 },
-  defense: { bpWeight: 1, flatBonus: 20 },
-  power: { bpWeight: 1, flatBonus: 0 },
-  bow: { bpWeight: 1, flatBonus: 0 },
-  dual: { bpWeight: 1, flatBonus: 0 },
-  poison: { bpWeight: 1, flatBonus: 0 },
-  heal: { bpWeight: 1, flatBonus: 0 },
-  ice: { bpWeight: 1, flatBonus: 0 },
-  storm: { bpWeight: 1, flatBonus: 0 },
-  ninja: { bpWeight: 1, flatBonus: 0 },
-  illuminate: { bpWeight: 1, flatBonus: 0 },
-} as const satisfies Record<
-  Attribute,
-  { bpWeight: number; flatBonus: number }
->;
+/**
+ * カード戦力の属性係数（正規化済み）。
+ * 戦力 = round(BP × weight)。ターン平均ネット ÷ 0.5（N剣基準）。
+ * 剣は {@link ATTACK_POWER_WEIGHT_BY_RARITY} を使う（ここは N 相当の 1）。
+ */
+export const ATTRIBUTE_POWER_WEIGHT = {
+  attack: 1,
+  defense: 5 / 3,
+  power: 1,
+  bow: 5 / 3,
+  dual: 5 / 4,
+  poison: 7 / 5,
+  heal: 5 / 3,
+  ice: 1,
+  storm: 5 / 3,
+  ninja: 5 / 3,
+  illuminate: 5 / 3,
+} as const satisfies Record<Attribute, number>;
+
+/** 剣の戦力係数（レア別。貫通込みの正規化） */
+export const ATTACK_POWER_WEIGHT_BY_RARITY = {
+  N: 1,
+  R: 7 / 5,
+  SR: 9 / 5,
+  UR: 9 / 5,
+  L: 9 / 5,
+} as const satisfies Record<CardRarity, number>;
+
+/** @deprecated {@link ATTRIBUTE_POWER_WEIGHT} を使用 */
+export const ATTRIBUTE_POWER = ATTRIBUTE_POWER_WEIGHT;
 
 export const USER_INITIAL_EXP = 0;
 export const USERNAME_MAX_LENGTH = 10;

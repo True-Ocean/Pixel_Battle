@@ -922,12 +922,14 @@ interface SaveData {
 - 上限 **`MAX_USER_LEVEL = 50`**。降格なし
 - UI: プログレスバーのみ（`expInLevel / expToNextLevel`）。レベルアップ時バー長は不変でレンジ切替
 
-**デッキ戦力（`src/card/power.ts`・参考表示のみ）**
+**デッキ戦力（`src/card/power.ts`）**
 
-- カード戦力 = `round(BP × bpWeight[属性] + flatBonus[属性])`
-- デッキ戦力 = 5枚のカード戦力合計（編成補正なし）
-- Lv0: 攻撃 `{ bpWeight: 1, flatBonus: 0 }` / 防御 `{ bpWeight: 1, flatBonus: 20 }`（盾能力の反映）
-- マイデッキ画面サブ情報に **戦力 N** を表示。バトル結果・ダメージ計算には使わない
+- カード戦力 = `round(BP × bpWeight)`（`flatBonus` なし）
+- デッキ戦力 = 各カード戦力の合計（編成補正なし）
+- 係数はターン平均ネット（与ダメ−被反撃）を N 剣基準で正規化した値（[ATTRIBUTE_SPEC §2.6](./ATTRIBUTE_SPEC.md#26-デッキ戦力係数)）
+- 剣のみレア分岐: N `1` / R `7/5` / SR・UR・L `9/5`
+- 例: 盾・弓・癒・嵐・忍・照 `5/3`、両 `5/4`、毒 `7/5`、力・氷 `1`
+- マイデッキ画面サブ情報に **戦力 N** を表示。フレンド対戦の BP 補正・EXP 換算にも使用。バトルのダメージ計算そのものには使わない
 
 **将来（本番・サーバー側・プロトタイプでは未保存）**
 
@@ -1477,7 +1479,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | `USERNAME_MAX_LENGTH` | 10 | ユーザー名上限 |
 | `MAX_USER_LEVEL` | 50 | ユーザーレベル上限 |
 | `EXP_LEVEL_BASE` | 10 | L→L+1 必要 EXP = BASE + L |
-| `ATTRIBUTE_POWER` | 攻0/防+20 | カード戦力の属性係数（flatBonus） |
+| `ATTRIBUTE_POWER_WEIGHT` / `ATTACK_POWER_WEIGHT_BY_RARITY` | 属性・剣レア別 | カード戦力係数（`round(BP×weight)`。ATTRIBUTE_SPEC §2.6） |
 | `EXP_UPSET_RATIO_TIER1/2/3` | 1.1/1.2/1.3 | 上振れ勝利 EXP の戦力比しきい値 |
 | `EXP_UPSET_BONUS_MAX` | 3 | 上振れ EXP 上限 |
 | `CLASH_MS.enter` | 530 | スロット→中央 (ms) |

@@ -82,7 +82,12 @@ export function computeFieldPowerFromUnits(
 ): number {
   return units.reduce(
     (sum, unit) =>
-      sum + computeCardPower({ attribute: unit.attribute, bp: unit.currentBp }),
+      sum +
+      computeCardPower({
+        attribute: unit.attribute,
+        bp: unit.currentBp,
+        rarity: unit.rarity,
+      }),
     0,
   );
 }
