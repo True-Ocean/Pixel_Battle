@@ -802,7 +802,7 @@ describe('battle', () => {
 
     expect(state.player[0].currentBp).toBe(0);
     expect(state.cpu[0].currentBp).toBe(20);
-    expect(state.cpu[1].currentBp).toBe(6);
+    expect(state.cpu[1].currentBp).toBe(10);
   });
 
   it('両の副攻撃は盾で防げる', () => {

@@ -21,8 +21,8 @@ describe('user level base BP', () => {
     expect(getUserBaseBp(10, 'power')).toBe(150);
   });
 
-  it('弓は攻撃の52%', () => {
-    expect(getUserBaseBp(10, 'bow')).toBe(52);
+  it('弓は攻撃の55%', () => {
+    expect(getUserBaseBp(10, 'bow')).toBe(55);
   });
 
   it('毒は攻撃の85%', () => {
@@ -38,9 +38,13 @@ describe('user level base BP', () => {
     expect(getUserBaseBp(10, 'ice')).toBe(88);
   });
 
-  it('嵐は攻撃の68%', () => {
-    expect(getUserBaseBp(10, 'storm')).toBe(68);
-    expect(getUserBaseBp(40, 'storm')).toBe(272);
+  it('嵐は攻撃の55%', () => {
+    expect(getUserBaseBp(10, 'storm')).toBe(55);
+    expect(getUserBaseBp(40, 'storm')).toBe(220);
+  });
+
+  it('照は攻撃の90%', () => {
+    expect(getUserBaseBp(10, 'illuminate')).toBe(90);
   });
 
   it('カードBPレンジは±15%', () => {

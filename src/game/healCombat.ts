@@ -1,5 +1,6 @@
 import type { BattleUnit, BoardPosition } from '../types/battle';
 import { getUnitAt, isAlive } from './battleState';
+import { isDazzled } from './dazzleCombat';
 import { isFrozen } from './iceCombat';
 
 /** 毒 DoT 後の毒スタック（癒で解消可能なデバフ） */
@@ -7,12 +8,16 @@ export function hasHealablePoison(unit: BattleUnit): boolean {
   return unit.poisonStacks.length > 0 && unit.poisonDotDamageReceived;
 }
 
-/** 癒で解消可能なデバフ（毒・凍結）を持つか */
+/** 癒で解消可能なデバフ（毒・凍結・目眩）を持つか */
 export function hasHealableDebuff(
   unit: BattleUnit,
   selectionTurn: number,
 ): boolean {
-  return hasHealablePoison(unit) || isFrozen(unit, selectionTurn);
+  return (
+    hasHealablePoison(unit) ||
+    isFrozen(unit, selectionTurn) ||
+    isDazzled(unit)
+  );
 }
 
 export function canReceiveHeal(

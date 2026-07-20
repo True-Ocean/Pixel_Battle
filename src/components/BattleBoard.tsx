@@ -178,7 +178,13 @@ export function BattleBoard({
         stormUsesRemaining={
           unit.attribute === 'storm' ? unit.stormUsesRemaining : undefined
         }
+        illuminateUsesRemaining={
+          unit.attribute === 'illuminate'
+            ? unit.illuminateUsesRemaining
+            : undefined
+        }
         isStealthed={unit.stealthActive}
+        isDazzled={unit.dazzledUntilTurn != null}
         poisonStackCount={unit.poisonStacks.length}
         poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}
@@ -223,7 +229,13 @@ export function BattleBoard({
         stormUsesRemaining={
           unit.attribute === 'storm' ? unit.stormUsesRemaining : undefined
         }
+        illuminateUsesRemaining={
+          unit.attribute === 'illuminate'
+            ? unit.illuminateUsesRemaining
+            : undefined
+        }
         isStealthed={unit.stealthActive}
+        isDazzled={unit.dazzledUntilTurn != null}
         poisonStackCount={unit.poisonStacks.length}
         poisonDamagePerTurn={sumPoisonDotDamage(unit.poisonStacks)}
         defenseShieldUsed={unit.defenseShieldUsed}

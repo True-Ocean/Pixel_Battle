@@ -169,8 +169,8 @@ export const DEFENSE_BP_RATIO = 0.85;
 /** 力属性の基本BP係数（攻撃比）。ATTRIBUTE_SPEC §4.3 */
 export const POWER_BP_RATIO = 1.5;
 
-/** 弓属性の基本BP係数（攻撃比）。ATTRIBUTE_SPEC §4.4 */
-export const BOW_BP_RATIO = 0.52;
+/** 弓属性の基本BP係数（攻撃比）。嵐と同帯。ATTRIBUTE_SPEC §4.4 */
+export const BOW_BP_RATIO = 0.55;
 
 /** 弓カード1枚あたりの弓矢数（1戦闘）。ATTRIBUTE_SPEC §4.4 */
 export const BOW_ARROWS_PER_BATTLE = 2;
@@ -199,8 +199,8 @@ export const ATTACK_PIERCING_DAMAGE_RATIO: Record<CardRarity, number> = {
 /** 氷属性の基本BP係数（攻撃比）。凍結の付加価値分を抑えた値。ATTRIBUTE_SPEC §4.8 */
 export const ICE_BP_RATIO = 0.88;
 
-/** 嵐属性の基本BP係数（後半属性・範囲攻撃型）。ATTRIBUTE_SPEC §4.9 */
-export const STORM_BP_RATIO = 0.68;
+/** 嵐属性の基本BP係数（弓と同帯・範囲攻撃型）。ATTRIBUTE_SPEC §4.9 */
+export const STORM_BP_RATIO = 0.55;
 
 /** 嵐カード1枚あたりの嵐回数（1戦闘）。ATTRIBUTE_SPEC §4.9 */
 export const STORM_USES_PER_BATTLE = 2;
@@ -208,8 +208,14 @@ export const STORM_USES_PER_BATTLE = 2;
 /** 嵐の与ダメ（currentBp × 比率・各ヒット） */
 export const STORM_DAMAGE_RATIO = 0.5;
 
-/** 照属性の基本BP係数（弓・癒と同型）。ATTRIBUTE_SPEC §4.11 */
-export const ILLUMINATE_BP_RATIO = 0.6;
+/** 照属性の基本BP係数（懐中電灯・目眩付き）。ATTRIBUTE_SPEC §4.11 */
+export const ILLUMINATE_BP_RATIO = 0.9;
+
+/** 照カード1枚あたりの照射回数（1戦闘）。ATTRIBUTE_SPEC §4.11 */
+export const ILLUMINATE_USES_PER_BATTLE = 2;
+
+/** 目眩中の BP 倍率（付与時 ×、解除時 ÷）。ATTRIBUTE_SPEC §5.5 */
+export const DAZZLE_BP_RATIO = 0.8;
 
 /** 初回セットアップ・ユーザープロフィール */
 export const USER_INITIAL_LEVEL = 1;

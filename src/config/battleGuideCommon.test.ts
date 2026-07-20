@@ -94,7 +94,7 @@ describe('poison effect battle guide term', () => {
 describe('heal battle guide terms', () => {
   it('治癒の説明をコンパクトモーダルで定義する', () => {
     expect(HEAL_CURE_GUIDE.items).toEqual([
-      '対象のデバフ（毒、凍結）を解除する',
+      '対象のデバフ（毒、凍結、目眩）を解除する',
       '毒の効果を処理した後、盾付与・攻撃より先に処理される',
     ]);
     expect(HEAL_CURE_GUIDE.compact).toBe(true);
@@ -145,9 +145,12 @@ describe('stealth battle guide term', () => {
 });
 
 describe('illuminate battle guide term', () => {
-  it('照射の説明を2項目に分ける', () => {
+  it('照射の説明を定義する', () => {
     expect(ILLUMINATE_GUIDE.items).toEqual([
-      '潜伏状態の敵1体を照射し、潜伏状態を解除する',
+      '懐中電灯で敵1体を照射する（バトル中2回まで）',
+      '潜伏状態の忍には潜伏解除のみ',
+      'それ以外には目眩（BP20%低下）を与える',
+      '前衛では再タップで照射、敵前衛タップで近接',
       '治癒・回復の処理後、盾付与・攻撃より先に処理される',
     ]);
     expect(ILLUMINATE_GUIDE.compact).toBe(true);

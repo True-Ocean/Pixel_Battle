@@ -20,6 +20,8 @@ function unit(partial: Partial<BattleUnit> & Pick<BattleUnit, 'position'>): Batt
     bowArrowsRemaining: 0,
     stormUsesRemaining: 0,
     ninjaFirstStrikeUsed: false,
+    illuminateUsesRemaining: 0,
+    dazzledUntilTurn: null,
     illuminatedNinjaCardIds: [],
     rarity: 'N',
     stars: 0,

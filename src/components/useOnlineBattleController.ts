@@ -9,6 +9,7 @@ import {
   getDefeated,
   getHealSelectionHint,
   getHealTargets,
+  getIlluminateFlashlightHint,
   getIlluminateSelectionHint,
   getIlluminateTargets,
   getMeleeTargets,
@@ -486,14 +487,22 @@ export function useOnlineBattleController({
     );
   }, [effectivePhase, pendingActor, pendingAction, availableActionsFor]);
 
+  const isIlluminateModePending = useCallback(() => {
+    return (
+      effectivePhase === 'pickTarget' &&
+      pendingActor != null &&
+      pendingAction === 'illuminate'
+    );
+  }, [effectivePhase, pendingActor, pendingAction]);
+
   const cancelStormPick = useCallback(() => {
-    if (!isStormPickPending()) return false;
+    if (!isStormPickPending() && !isIlluminateModePending()) return false;
     setPendingActor(null);
     setPendingAction(null);
     session.setActionPickSubPhase('main');
     return true;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- session の identity churn を避け、安定した setter のみ依存する
-  }, [isStormPickPending, session.setActionPickSubPhase]);
+  }, [isStormPickPending, isIlluminateModePending, session.setActionPickSubPhase]);
 
   const commitTurn = useCallback(
     (playerChoice: BattleActionChoice) => {
@@ -645,6 +654,15 @@ export function useOnlineBattleController({
           });
           return;
         }
+        if (
+          effectivePhase === 'pickTarget' &&
+          pendingAction == null &&
+          availableActionsFor(position).includes('illuminate') &&
+          availableActionsFor(position).includes('meleeAttack')
+        ) {
+          setPendingAction('illuminate');
+          return;
+        }
         setPendingActor(null);
         setPendingAction(null);
         session.setActionPickSubPhase('main');
@@ -710,10 +728,15 @@ export function useOnlineBattleController({
       if (!actor) return;
 
       const illuminateTargets = getIlluminateTargets(actor, state.cpu);
+      const actorActions = availableActionsFor(pendingActor);
+      const illuminateOnly =
+        actorActions.includes('illuminate') &&
+        !actorActions.includes('meleeAttack');
       if (
         actor.attribute === 'illuminate' &&
         illuminateTargets.includes(position) &&
-        (pendingAction === 'illuminate' || pendingAction == null)
+        (pendingAction === 'illuminate' ||
+          (pendingAction == null && illuminateOnly))
       ) {
         commitTurn({
           type: 'illuminate',
@@ -774,7 +797,6 @@ export function useOnlineBattleController({
         return;
       }
 
-      const actorActions = availableActionsFor(pendingActor);
       if (
         pendingAction !== 'bowAttack' &&
         actorActions.includes('meleeAttack') &&
@@ -825,9 +847,14 @@ export function useOnlineBattleController({
           const actor = getUnitAt(state.player, pendingActor);
           if (!actor) return false;
           const illuminateTargets = getIlluminateTargets(actor, state.cpu);
+          const actorActionsForIllum = availableActionsFor(pendingActor);
+          const illuminateOnly =
+            actorActionsForIllum.includes('illuminate') &&
+            !actorActionsForIllum.includes('meleeAttack');
           if (
             illuminateTargets.includes(position) &&
-            (pendingAction === 'illuminate' || pendingAction == null)
+            (pendingAction === 'illuminate' ||
+              (pendingAction == null && illuminateOnly))
           ) {
             return true;
           }
@@ -975,7 +1002,7 @@ export function useOnlineBattleController({
     if (effectivePhase === 'ended') return null;
     if (effectivePhase === 'clash' && playback) {
       if (playback.phase === 'heal') return '回復';
-      if (playback.phase === 'illuminate') return 'ステルス解除';
+      if (playback.phase === 'illuminate') return '照射';
       if (playback.phase === 'shield') return '盾付与';
       if (playback.phase === 'attack') return '攻撃判定中';
     }
@@ -995,6 +1022,9 @@ export function useOnlineBattleController({
           getUnitAt(state.player, pendingActor)?.attribute === 'dual'))
     ) {
       return '両攻撃の主対象を選択';
+    }
+    if (effectivePhase === 'pickTarget' && pendingAction === 'illuminate') {
+      return getIlluminateFlashlightHint();
     }
     if (effectivePhase === 'pickTarget' && pendingAction == null) {
       const actor = pendingActor
@@ -1023,6 +1053,9 @@ export function useOnlineBattleController({
           actor?.attribute === 'illuminate' &&
           actorActions.includes('illuminate')
         ) {
+          if (pendingAction === 'illuminate') {
+            return getIlluminateFlashlightHint();
+          }
           return getIlluminateSelectionHint(
             actor,
             state.cpu,

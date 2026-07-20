@@ -41,12 +41,16 @@ export interface BattleCardProps {
   isFrozen?: boolean;
   /** 嵐の残り使用回数（戦闘中のみ渡す。0 で非表示） */
   stormUsesRemaining?: number;
+  /** 照の残り照射回数（戦闘中のみ渡す。0 で非表示） */
+  illuminateUsesRemaining?: number;
   /** 嵐攻撃の渦巻き演出（対象カード） */
   stormSwirl?: boolean;
   /** このターンに凍結が付与された演出 */
   freezeJustApplied?: boolean;
   /** 忍ステルス中 */
   isStealthed?: boolean;
+  /** 目眩中 */
+  isDazzled?: boolean;
   defenseShieldUsed?: boolean;
   dead?: boolean;
   interactive?: boolean;
@@ -96,7 +100,9 @@ export function BattleCard({
   isFrozen = false,
   freezeJustApplied = false,
   isStealthed = false,
+  isDazzled = false,
   stormUsesRemaining,
+  illuminateUsesRemaining,
   stormSwirl = false,
   defenseShieldUsed = false,
   dead = false,
@@ -172,6 +178,10 @@ export function BattleCard({
     attribute === 'storm' &&
     stormUsesRemaining !== undefined &&
     stormUsesRemaining > 0;
+  const showIlluminateUses =
+    attribute === 'illuminate' &&
+    illuminateUsesRemaining !== undefined &&
+    illuminateUsesRemaining > 0;
   /** 盾属性かつ盾付与未使用 → 残り能力として盾1個 */
   const showGrantShield =
     attribute === 'defense' && !defenseShieldUsed && !dead;
@@ -185,7 +195,9 @@ export function BattleCard({
         ? 'heal'
         : showStormUses
           ? 'storm'
-          : null;
+          : showIlluminateUses
+            ? 'illuminate'
+            : null;
   const abilityUsesRemaining = showGrantShield
     ? 1
     : showBowArrows
@@ -194,9 +206,11 @@ export function BattleCard({
         ? (healUsesRemaining ?? 0)
         : showStormUses
           ? (stormUsesRemaining ?? 0)
-          : 0;
+          : showIlluminateUses
+            ? (illuminateUsesRemaining ?? 0)
+            : 0;
   const showStatusIcons =
-    poisonStackCount > 0 || isFrozen || isStealthed;
+    poisonStackCount > 0 || isFrozen || isStealthed || isDazzled;
   const shieldLabel = hasShield ? '（盾あり）' : '';
   const grantShieldLabel = showGrantShield ? '（盾付与可）' : '';
   const poisonLabel =
@@ -207,6 +221,10 @@ export function BattleCard({
   const healLabel = showHealUses ? `（回復${healUsesRemaining}）` : '';
   const freezeLabel = isFrozen ? '（凍結）' : '';
   const stealthLabel = isStealthed ? '（ステルス）' : '';
+  const dazzleLabel = isDazzled ? '（目眩）' : '';
+  const illuminateLabel = showIlluminateUses
+    ? `（懐中電灯${illuminateUsesRemaining}）`
+    : '';
 
   const front = (
     <>
@@ -245,6 +263,14 @@ export function BattleCard({
               title="ステルス"
             >
               忍
+            </span>
+          )}
+          {isDazzled && (
+            <span
+              className="battle-card-buff-icon battle-card-buff-dazzle"
+              title="目眩（BP低下）"
+            >
+              😵‍💫
             </span>
           )}
           {poisonStackCount > 0 && (
@@ -316,7 +342,7 @@ export function BattleCard({
 
   const ariaLabel = faceDown
     ? '裏向きのカード'
-    : `${name} ${attrMeta.ariaName} BP${currentBp}${shieldLabel}${grantShieldLabel}${bowLabel}${healLabel}${freezeLabel}${stealthLabel}${poisonLabel}`;
+    : `${name} ${attrMeta.ariaName} BP${currentBp}${shieldLabel}${grantShieldLabel}${bowLabel}${healLabel}${illuminateLabel}${freezeLabel}${stealthLabel}${dazzleLabel}${poisonLabel}`;
 
   // 裏向きは CardBack を直接描画（iOS Safari で rotateY フリップが反転表示になるため）
   const content = faceDown ? (

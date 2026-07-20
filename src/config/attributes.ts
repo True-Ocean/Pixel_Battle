@@ -138,10 +138,13 @@ export const ATTRIBUTE_META: Record<Attribute, AttributeMeta> = {
     label: '照',
     ariaName: '照属性',
     description:
-      '潜伏状態の敵を照射して暴き出す',
+      '懐中電灯で敵を照射し、目眩を与える。潜伏中の忍は暴き出す',
     battleGuide: [
-      '・後衛：潜伏状態の敵忍1体を選んで照射できる',
+      '・懐中電灯はバトル中2回まで',
+      '・後衛：敵1体を照射できる',
       '・前衛：近接攻撃か照射かを選べる',
+      '・潜伏中の忍：潜伏解除のみ',
+      '・それ以外：1ターンの間BPが20%低下（目眩）。癒で治癒できる',
     ].join('\n'),
     bg: '#ffdd66',
     border: '#ccaa33',

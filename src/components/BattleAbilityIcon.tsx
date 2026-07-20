@@ -1,6 +1,11 @@
 import { ShieldEmblem } from './ShieldEmblem';
 
-export type BattleAbilityIconKind = 'shield' | 'bow' | 'heal' | 'storm';
+export type BattleAbilityIconKind =
+  | 'shield'
+  | 'bow'
+  | 'heal'
+  | 'storm'
+  | 'illuminate';
 
 interface BattleAbilityIconProps {
   kind: BattleAbilityIconKind;
@@ -81,6 +86,34 @@ export function BattleAbilityIcon({ kind }: BattleAbilityIconProps) {
             fill="none"
             stroke="currentColor"
             strokeWidth="1.7"
+            strokeLinecap="round"
+          />
+        </>
+      )}
+      {kind === 'illuminate' && (
+        <>
+          <rect
+            x="7.2"
+            y="2.5"
+            width="5.6"
+            height="8.2"
+            rx="1.2"
+            fill="#fff3a8"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+          <path
+            d="M8.2 10.8h3.6v4.2c0 .9-.7 1.6-1.6 1.6h-.4c-.9 0-1.6-.7-1.6-1.6v-4.2Z"
+            fill="#f0d24a"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M6.2 5.2 3.4 3.6M13.8 5.2l2.8-1.6M6.2 7.8H3.6M13.8 7.8h2.6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.3"
             strokeLinecap="round"
           />
         </>

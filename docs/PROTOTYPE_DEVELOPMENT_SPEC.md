@@ -1165,7 +1165,7 @@ UI 演出もこの順に従う。
 | 剣 | `attack` | 前衛近接のみ |
 | 盾 | `defense` | 初期盾 + 付与1回。前衛は近接 or 盾付与 |
 | 力 | `power` | 前衛近接。BP ×1.5 |
-| 弓 | `bow` | 前衛・後衛から弓攻撃（2本/戦闘）。BP ×0.52 |
+| 弓 | `bow` | 前衛・後衛から弓攻撃（2本/戦闘）。BP ×0.55 |
 | 両 | `dual` | 主近接 + 副前衛50%（無反撃） |
 | 毒 | `poison` | 前衛近接 + 毒付与。DoT はターン開始時。BP ×0.85 |
 | 癒 | `heal` | 治癒・回復2回/戦闘。BP ×0.6 |
@@ -1442,7 +1442,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 
 | 定数名（案） | 初期値 | 説明 |
 |--------------|--------|------|
-| `BOW_BP_RATIO` | 0.52 | 弓属性 BP 中心（ATTRIBUTE_SPEC §4.4） |
+| `BOW_BP_RATIO` | 0.55 | 弓属性 BP 中心（ATTRIBUTE_SPEC §4.4） |
 | `CANVAS_SIZE_DEFAULT` | 16 | 初期キャンバス・既存セーブ移行値 |
 | `LEVEL_UP_PIXEL_REWARD` | **100** | 毎レベルアップ |
 | `JEWELS_PER_LEVEL` | **10** | 毎レベルアップ |
@@ -1469,7 +1469,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | `BATTLE_OUTCOME_HOLD_MS` | 1500 | WIN/LOSE 表示から報酬・ロストモーダルまでの待機 (ms) |
 | `BATTLE_MATCH_CANCEL_COST` | 25 | 通常 CPU 戦のマッチング/reveal 中キャンセル（px） |
 | `BGM_VOLUME` | 0.5 | BGM 音量（`src/config/bgm.ts`） |
-| `ILLUMINATE_BP_RATIO` | 0.6 | 照属性 BP 中心（ATTRIBUTE_SPEC §4.11） |
+| `ILLUMINATE_BP_RATIO` | 0.9 | 照属性 BP 中心（ATTRIBUTE_SPEC §4.11） |
 | `CARD_USER_NOTE_MAX_LENGTH` | 100 | カードノート上限（全角文字数。ECONOMY §8.5） |
 | `CPU_RANDOM_ACTION` | true | CPU初期実装はランダム行動 |
 | `USER_INITIAL_LEVEL` | 1 | 初回セットアップ時のユーザーレベル |

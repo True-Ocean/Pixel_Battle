@@ -290,7 +290,7 @@ describe('formatBattleLog', () => {
 
     const groups = formatBattleLog(events);
     expect(groups[0].lines[0]).toBe(
-      'テラスくん（照・BP420）があかのいし（忍・BP547）の隠れ身を照らした',
+      'テラスくん（照・BP420）があかのいし（忍・BP547）の潜伏を照らして暴いた',
     );
   });
 

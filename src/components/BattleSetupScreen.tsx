@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { BOW_ARROWS_PER_BATTLE, CPU_OPPONENT_LEVEL, DECK_MAX, HEAL_USES_PER_BATTLE, MATCH_REVEAL_COUNTDOWN_SEC, SETUP_TIME_LIMIT_SEC, STORM_USES_PER_BATTLE, BATTLE_OUTCOME_HOLD_MS } from '../config/balance';
+import { BOW_ARROWS_PER_BATTLE, CPU_OPPONENT_LEVEL, DECK_MAX, HEAL_USES_PER_BATTLE, ILLUMINATE_USES_PER_BATTLE, MATCH_REVEAL_COUNTDOWN_SEC, SETUP_TIME_LIMIT_SEC, STORM_USES_PER_BATTLE, BATTLE_OUTCOME_HOLD_MS } from '../config/balance';
 import { computeDeckPower } from '../card';
 import type { Card, BattleOutcome, BattleOutcomeCore } from '../types';
 import type { BoardPosition } from '../types/battle';
@@ -440,6 +440,9 @@ function SetupSlot({
       }
       stormUsesRemaining={
         card.attribute === 'storm' ? STORM_USES_PER_BATTLE : undefined
+      }
+      illuminateUsesRemaining={
+        card.attribute === 'illuminate' ? ILLUMINATE_USES_PER_BATTLE : undefined
       }
     />
   ) : (
@@ -892,7 +895,13 @@ function BattleUnitSlot({
           stormUsesRemaining={
             unit.attribute === 'storm' ? unit.stormUsesRemaining : undefined
           }
+          illuminateUsesRemaining={
+            unit.attribute === 'illuminate'
+              ? unit.illuminateUsesRemaining
+              : undefined
+          }
           isStealthed={unit.stealthActive}
+          isDazzled={unit.dazzledUntilTurn != null}
           stormSwirl={stormHitDisplay}
           poisonStackCount={poisonDisplay.count}
           poisonDamagePerTurn={poisonDisplay.damagePerTurn}

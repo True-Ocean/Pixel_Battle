@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import type { BattleUnit } from '../types/battle';
-import { resolveTurn } from './resolveTurn';
-import {
-  getIlluminateTargets,
-} from './illuminateCombat';
-import { isMeleeTargetable } from './ninjaCombat';
-import { createBattleState } from './battleState';
 import type { Card } from '../types';
+import type { BattleUnit, BoardPosition } from '../types/battle';
+import { ILLUMINATE_USES_PER_BATTLE } from '../config/balance';
+import { createBattleState } from './battleState';
+import {
+  canUseIlluminateAction,
+  getIlluminateTargets,
+  isStealthNinjaIlluminateTarget,
+} from './illuminateCombat';
+import { resolveTurn } from './resolveTurn';
 
 function testCard(
   id: string,
   attribute: Card['attribute'],
-  bp = 100,
+  bp: number,
 ): Card {
   return {
     id,
@@ -25,135 +27,168 @@ function testCard(
     reviveCount: 0,
     rarity: 'N',
     stars: 0,
-    createdAt: '2026-01-01',
+    createdAt: '',
   };
 }
 
-function unit(partial: Partial<BattleUnit> & Pick<BattleUnit, 'position'>): BattleUnit {
-  return {
-    cardId: partial.cardId ?? 'u1',
-    name: partial.name ?? 'unit',
-    attribute: partial.attribute ?? 'attack',
-    maxBp: partial.maxBp ?? 100,
-    currentBp: partial.currentBp ?? 100,
-    position: partial.position,
-    defenseShieldUsed: false,
-    hasShield: false,
-    poisonStacks: [],
-    poisonDotDamageReceived: false,
-    frozenUntilTurn: null,
-    stealthActive: partial.stealthActive ?? false,
-    healUsesRemaining: 0,
-    bowArrowsRemaining: 0,
-    stormUsesRemaining: 0,
-    ninjaFirstStrikeUsed: partial.ninjaFirstStrikeUsed ?? false,
-    illuminatedNinjaCardIds: partial.illuminatedNinjaCardIds ?? [],
-    rarity: 'N',
-    stars: 0,
-  };
+function padDeck(cards: Card[]): Card[] {
+  const next = [...cards];
+  while (next.length < 5) {
+    next.push(testCard(`pad${next.length}`, 'attack', 50));
+  }
+  return next;
 }
 
 describe('illuminateCombat', () => {
-  it('ステルス中の敵忍のみ照らし対象', () => {
-    const actor = unit({ position: 'backCenter', attribute: 'illuminate' });
-    const ninja = unit({
-      position: 'frontLeft',
-      attribute: 'ninja',
-      cardId: 'ninja1',
-      stealthActive: true,
-    });
-    const revealed = unit({
-      position: 'frontRight',
-      attribute: 'ninja',
-      cardId: 'ninja2',
-      stealthActive: false,
-    });
-    expect(getIlluminateTargets(actor, [ninja, revealed])).toEqual(['frontLeft']);
-  });
-
-  it('既に照らした敵忍は対象外', () => {
-    const actor = unit({
-      position: 'backCenter',
+  it('生存敵なら誰でも照射対象になる', () => {
+    const actor = {
+      cardId: 'ill',
+      name: 'Ill',
       attribute: 'illuminate',
-      illuminatedNinjaCardIds: ['ninja1'],
-    });
-    const ninja = unit({
-      position: 'frontLeft',
-      attribute: 'ninja',
-      cardId: 'ninja1',
-      stealthActive: true,
-    });
-    expect(getIlluminateTargets(actor, [ninja])).toEqual([]);
+      maxBp: 90,
+      currentBp: 90,
+      position: 'backCenter',
+      illuminateUsesRemaining: 2,
+      defenseShieldUsed: false,
+      hasShield: false,
+      poisonStacks: [],
+      poisonDotDamageReceived: false,
+      frozenUntilTurn: null,
+      stealthActive: false,
+      healUsesRemaining: 0,
+      bowArrowsRemaining: 0,
+      stormUsesRemaining: 0,
+      dazzledUntilTurn: null,
+      ninjaFirstStrikeUsed: false,
+      illuminatedNinjaCardIds: [],
+      rarity: 'N',
+      stars: 0,
+    } as BattleUnit;
+    const enemy = [
+      {
+        cardId: 'a',
+        name: 'A',
+        attribute: 'attack',
+        maxBp: 50,
+        currentBp: 50,
+        position: 'frontLeft',
+        stealthActive: false,
+        defenseShieldUsed: false,
+        hasShield: false,
+        poisonStacks: [],
+        poisonDotDamageReceived: false,
+        frozenUntilTurn: null,
+        healUsesRemaining: 0,
+        bowArrowsRemaining: 0,
+        stormUsesRemaining: 0,
+        illuminateUsesRemaining: 0,
+        dazzledUntilTurn: null,
+        ninjaFirstStrikeUsed: false,
+        illuminatedNinjaCardIds: [],
+        rarity: 'N',
+        stars: 0,
+      },
+      {
+        cardId: 'n',
+        name: 'N',
+        attribute: 'ninja',
+        maxBp: 50,
+        currentBp: 50,
+        position: 'frontRight',
+        stealthActive: true,
+        defenseShieldUsed: false,
+        hasShield: false,
+        poisonStacks: [],
+        poisonDotDamageReceived: false,
+        frozenUntilTurn: null,
+        healUsesRemaining: 0,
+        bowArrowsRemaining: 0,
+        stormUsesRemaining: 0,
+        illuminateUsesRemaining: 0,
+        dazzledUntilTurn: null,
+        ninjaFirstStrikeUsed: false,
+        illuminatedNinjaCardIds: [],
+        rarity: 'N',
+        stars: 0,
+      },
+    ] as BattleUnit[];
+    const targets = getIlluminateTargets(actor, enemy);
+    expect(targets).toContain('frontLeft');
+    expect(targets).toContain('frontRight');
   });
-});
 
-describe('照属性の戦闘', () => {
-  it('照らす行動で敵忍のステルスを完全解除する', () => {
-    const playerCards = [testCard('ill', 'illuminate', 200)];
-    const cpuCards = [testCard('ninja', 'ninja', 120)];
-    const state = createBattleState(playerCards, cpuCards);
-    const ninja = state.cpu[0]!;
+  it('照射回数が0なら使えない', () => {
+    const actor = {
+      attribute: 'illuminate',
+      illuminateUsesRemaining: 0,
+    } as BattleUnit;
+    const enemy = [
+      {
+        cardId: 'a',
+        attribute: 'attack',
+        currentBp: 50,
+        position: 'frontLeft',
+        stealthActive: false,
+      },
+    ] as BattleUnit[];
+    expect(canUseIlluminateAction(actor, enemy)).toBe(false);
+  });
+
+  it('潜伏忍への照射は解除のみで目眩しない', () => {
+    const state0 = createBattleState(
+      padDeck([testCard('ill', 'illuminate', 90)]),
+      padDeck([testCard('ninja', 'ninja', 100)]),
+    );
+    const ill = state0.player.find((u) => u.attribute === 'illuminate')!;
+    const ninja = state0.cpu.find((u) => u.attribute === 'ninja')!;
     expect(ninja.stealthActive).toBe(true);
+    expect(isStealthNinjaIlluminateTarget(ninja)).toBe(true);
 
-    const { state: next } = resolveTurn(state, {
+    const state = resolveTurn(state0, {
       player: {
         type: 'illuminate',
-        actorPosition: 'frontLeft',
-        targetPosition: 'frontLeft',
+        actorPosition: ill.position as BoardPosition,
+        targetPosition: ninja.position as BoardPosition,
       },
       cpu: {
-        type: 'meleeAttack',
+        type: 'pass',
         actorPosition: 'frontLeft',
         targetPosition: 'frontLeft',
       },
-    });
+    }).state;
 
-    const ninjaAfter = next.cpu[0]!;
+    const ninjaAfter = state.cpu.find((u) => u.cardId === ninja.cardId)!;
     expect(ninjaAfter.stealthActive).toBe(false);
-    expect(ninjaAfter.ninjaFirstStrikeUsed).toBe(true);
-    expect(isMeleeTargetable(ninjaAfter)).toBe(true);
-    const actor = next.player[0]!;
-    expect(actor.illuminatedNinjaCardIds).toEqual(['ninja']);
+    expect(ninjaAfter.dazzledUntilTurn).toBeNull();
+    expect(ninjaAfter.currentBp).toBe(100);
+    const illAfter = state.player.find((u) => u.cardId === ill.cardId)!;
+    expect(illAfter.illuminateUsesRemaining).toBe(ILLUMINATE_USES_PER_BATTLE - 1);
   });
 
-  it('同じ敵忍は2回照らせないが別の忍は照らせる', () => {
-    const playerCards = [testCard('ill', 'illuminate', 200)];
-    const cpuCards = [
-      testCard('ninja1', 'ninja', 120),
-      testCard('ninja2', 'ninja', 110),
-    ];
-    let state = createBattleState(playerCards, cpuCards);
-    state.cpu[0]!.position = 'frontLeft';
-    state.cpu[1]!.position = 'frontRight';
+  it('通常の敵への照射は目眩を与える', () => {
+    const state0 = createBattleState(
+      padDeck([testCard('ill', 'illuminate', 90)]),
+      padDeck([testCard('c0', 'attack', 100)]),
+    );
+    const ill = state0.player.find((u) => u.attribute === 'illuminate')!;
+    const target = state0.cpu[0]!;
 
-    const passCpu = {
-      type: 'meleeAttack' as const,
-      actorPosition: 'frontLeft' as const,
-      targetPosition: 'frontLeft' as const,
-    };
-
-    state = resolveTurn(state, {
+    const state = resolveTurn(state0, {
       player: {
         type: 'illuminate',
+        actorPosition: ill.position as BoardPosition,
+        targetPosition: target.position as BoardPosition,
+      },
+      cpu: {
+        type: 'pass',
         actorPosition: 'frontLeft',
         targetPosition: 'frontLeft',
       },
-      cpu: passCpu,
     }).state;
 
-    expect(state.cpu[0]!.stealthActive).toBe(false);
-    expect(state.cpu[1]!.stealthActive).toBe(true);
-
-    state = resolveTurn(state, {
-      player: {
-        type: 'illuminate',
-        actorPosition: 'frontLeft',
-        targetPosition: 'frontRight',
-      },
-      cpu: passCpu,
-    }).state;
-
-    expect(state.cpu[1]!.stealthActive).toBe(false);
-    expect(state.player[0]!.illuminatedNinjaCardIds).toEqual(['ninja1', 'ninja2']);
+    const targetAfter = state.cpu.find((u) => u.cardId === target.cardId)!;
+    expect(targetAfter.currentBp).toBe(80);
+    expect(targetAfter.maxBp).toBe(80);
+    expect(targetAfter.dazzledUntilTurn).not.toBeNull();
   });
 });

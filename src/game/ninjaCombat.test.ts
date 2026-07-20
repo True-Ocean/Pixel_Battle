@@ -28,6 +28,8 @@ function unit(overrides: Partial<BattleUnit> = {}): BattleUnit {
     bowArrowsRemaining: 0,
     stormUsesRemaining: 0,
     ninjaFirstStrikeUsed: false,
+    illuminateUsesRemaining: 0,
+    dazzledUntilTurn: null,
     illuminatedNinjaCardIds: [],
     rarity: 'N',
     stars: 0,

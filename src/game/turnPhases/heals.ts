@@ -6,6 +6,7 @@ import type {
 } from '../../types/battle';
 import { compareActionOrder } from '../../config/attributePriority';
 import { calcHealAmount, hasHealableDebuff } from '../healCombat';
+import { clearDazzle, isDazzled } from '../dazzleCombat';
 import { getSelectionTurn, isFrozen } from '../iceCombat';
 import { onExternalEffectToUnit } from '../ninjaCombat';
 import { appendLog, getUnitAt, isAlive } from '../battleState';
@@ -44,6 +45,7 @@ function applyHeal(
       ? target.poisonStacks.length
       : 0;
   const freezeCleared = hasDebuff && isFrozen(target, selectionTurn);
+  const dazzleCleared = hasDebuff && isDazzled(target);
 
   let amount = 0;
   if (!hasDebuff) {
@@ -60,6 +62,9 @@ function applyHeal(
     if (freezeCleared) {
       target.frozenUntilTurn = null;
     }
+    if (dazzleCleared) {
+      clearDazzle(target);
+    }
   } else {
     target.currentBp = Math.min(target.maxBp, target.currentBp + amount);
   }
@@ -75,6 +80,7 @@ function applyHeal(
     bpTo: target.currentBp,
     poisonStacksCleared,
     freezeCleared,
+    dazzleCleared,
   });
 
   const logParts = [
@@ -83,6 +89,7 @@ function applyHeal(
       : null,
     poisonStacksCleared > 0 ? '毒解消' : null,
     freezeCleared ? '凍結解消' : null,
+    dazzleCleared ? '目眩解消' : null,
   ].filter((part): part is string => part != null);
   let next = appendLog(
     state,
@@ -98,6 +105,7 @@ function applyHeal(
     healAmount: amount,
     poisonStacksCleared,
     freezeCleared,
+    dazzleCleared,
     damage: amount,
     actorId: actor.cardId,
     targetId: target.cardId,

@@ -53,10 +53,20 @@ export interface BattleUnit {
   bowArrowsRemaining: number;
   /** 嵐カードの残り使用回数（1戦闘あたり上限あり） */
   stormUsesRemaining: number;
+  /** 照カードの残り照射回数（1戦闘あたり上限あり） */
+  illuminateUsesRemaining: number;
   /** 忍初回無反撃を消費したか（Phase 8） */
   ninjaFirstStrikeUsed: boolean;
-  /** 照：この照カードが既に照らした敵忍の cardId（各忍1回まで） */
+  /**
+   * 照：この照カードが既に照らした敵の cardId（記録用。対象制限には使わない）
+   * @deprecated 懐中電灯回数制へ移行後も互換のため残置
+   */
   illuminatedNinjaCardIds: string[];
+  /**
+   * 目眩の有効期限（表示ターン）。この値以下の表示ターン開始ではまだ目眩中。
+   * null なら目眩なし。
+   */
+  dazzledUntilTurn: number | null;
   /** tie-break 用 */
   rarity: CardRarity;
   stars: CardStars;
@@ -118,6 +128,9 @@ export interface BattleEvent {
   healAmount?: number;
   poisonStacksCleared?: number;
   freezeCleared?: boolean;
+  dazzleCleared?: boolean;
+  dazzleApplied?: boolean;
+  stealthBroken?: boolean;
   blockContext?: 'melee' | 'bow' | 'storm' | 'dual_secondary';
   stormDamage?: number;
   stormHits?: StormEngulfHit[];

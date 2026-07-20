@@ -33,10 +33,18 @@ export type {
 } from './turnResult';
 export {
   canUseIlluminateAction,
+  getIlluminateFlashlightHint,
   getIlluminateSelectionHint,
   getIlluminateTargets,
+  isStealthNinjaIlluminateTarget,
   isValidIlluminateTarget,
 } from './illuminateCombat';
+export {
+  applyDazzle,
+  clearDazzle,
+  expireDazzle,
+  isDazzled,
+} from './dazzleCombat';
 export {
   canReceiveHeal,
   canUseHealAction,

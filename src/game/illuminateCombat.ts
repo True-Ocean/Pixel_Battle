@@ -1,20 +1,15 @@
 import type { BattleUnit, BoardPosition } from '../types/battle';
 import { getUnitAt, isAlive } from './battleState';
 
-/** 照1体が照らせる敵忍（ステルス中・未照らし） */
+/** 照が照射できる敵（生存・潜伏中忍は解除対象、他は目眩対象） */
 export function getIlluminateTargets(
   actor: BattleUnit,
   enemyField: BattleUnit[],
 ): BoardPosition[] {
   if (!isAlive(actor) || actor.attribute !== 'illuminate') return [];
+  if (actor.illuminateUsesRemaining <= 0) return [];
   return enemyField
-    .filter(
-      (u) =>
-        isAlive(u) &&
-        u.attribute === 'ninja' &&
-        u.stealthActive &&
-        !actor.illuminatedNinjaCardIds.includes(u.cardId),
-    )
+    .filter((u) => isAlive(u))
     .map((u) => u.position)
     .filter((p): p is BoardPosition => p !== 'defeated');
 }
@@ -32,9 +27,13 @@ export function getIlluminateSelectionHint(
   includeMeleeOption: boolean,
 ): string {
   if (includeMeleeOption) {
-    return '敵忍をタップで照らす、敵前衛をタップで近接攻撃\nそれ以外をタップで解除';
+    return '再タップで懐中電灯、敵前衛タップで近接攻撃\nそれ以外をタップで解除';
   }
-  return '敵忍をタップして照らす';
+  return '照らす敵をタップ';
+}
+
+export function getIlluminateFlashlightHint(): string {
+  return '照らす敵をタップ';
 }
 
 /** 照らし対象が有効か（行動確定時の検証） */
@@ -46,4 +45,13 @@ export function isValidIlluminateTarget(
   const target = getUnitAt(enemyField, targetPosition);
   if (!target) return false;
   return getIlluminateTargets(actor, enemyField).includes(targetPosition);
+}
+
+/** 潜伏中の忍への照射か（目眩なし・解除のみ） */
+export function isStealthNinjaIlluminateTarget(target: BattleUnit): boolean {
+  return (
+    isAlive(target) &&
+    target.attribute === 'ninja' &&
+    target.stealthActive
+  );
 }

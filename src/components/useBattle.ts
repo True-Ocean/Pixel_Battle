@@ -13,6 +13,7 @@ import {
   getPromotableBackPositions,
   getHealSelectionHint,
   getHealTargets,
+  getIlluminateFlashlightHint,
   getIlluminateSelectionHint,
   getIlluminateTargets,
   getSelectionTurn,
@@ -270,13 +271,21 @@ export function useBattle(
     );
   }, [effectivePhase, pendingActor, pendingAction, availableActionsFor]);
 
+  const isIlluminateModePending = useCallback(() => {
+    return (
+      effectivePhase === 'pickTarget' &&
+      pendingActor != null &&
+      pendingAction === 'illuminate'
+    );
+  }, [effectivePhase, pendingActor, pendingAction]);
+
   const cancelStormPick = useCallback(() => {
-    if (!isStormPickPending()) return false;
+    if (!isStormPickPending() && !isIlluminateModePending()) return false;
     setPendingActor(null);
     setPendingAction(null);
     setUiPhase('pickMain');
     return true;
-  }, [isStormPickPending]);
+  }, [isStormPickPending, isIlluminateModePending]);
 
   const commitTurn = useCallback(
     (playerChoice: BattleActionChoice) => {
@@ -448,6 +457,15 @@ export function useBattle(
           });
           return;
         }
+        if (
+          effectivePhase === 'pickTarget' &&
+          pendingAction == null &&
+          availableActionsFor(position).includes('illuminate') &&
+          availableActionsFor(position).includes('meleeAttack')
+        ) {
+          setPendingAction('illuminate');
+          return;
+        }
         setPendingActor(null);
         setPendingAction(null);
         setUiPhase('pickMain');
@@ -512,10 +530,15 @@ export function useBattle(
       if (!actor) return;
 
       const illuminateTargets = getIlluminateTargets(actor, state.cpu);
+      const actorActions = availableActionsFor(pendingActor);
+      const illuminateOnly =
+        actorActions.includes('illuminate') &&
+        !actorActions.includes('meleeAttack');
       if (
         actor.attribute === 'illuminate' &&
         illuminateTargets.includes(position) &&
-        (pendingAction === 'illuminate' || pendingAction == null)
+        (pendingAction === 'illuminate' ||
+          (pendingAction == null && illuminateOnly))
       ) {
         commitTurn({
           type: 'illuminate',
@@ -576,7 +599,6 @@ export function useBattle(
         return;
       }
 
-      const actorActions = availableActionsFor(pendingActor);
       if (
         pendingAction !== 'bowAttack' &&
         actorActions.includes('meleeAttack') &&
@@ -626,9 +648,14 @@ export function useBattle(
           const actor = getUnitAt(state.player, pendingActor);
           if (!actor) return false;
           const illuminateTargets = getIlluminateTargets(actor, state.cpu);
+          const actorActionsForIllum = availableActionsFor(pendingActor);
+          const illuminateOnly =
+            actorActionsForIllum.includes('illuminate') &&
+            !actorActionsForIllum.includes('meleeAttack');
           if (
             illuminateTargets.includes(position) &&
-            (pendingAction === 'illuminate' || pendingAction == null)
+            (pendingAction === 'illuminate' ||
+              (pendingAction == null && illuminateOnly))
           ) {
             return true;
           }
@@ -769,7 +796,7 @@ export function useBattle(
     }
     if (effectivePhase === 'clash' && playback) {
       if (playback.phase === 'heal') return '回復';
-      if (playback.phase === 'illuminate') return 'ステルス解除';
+      if (playback.phase === 'illuminate') return '照射';
       if (playback.phase === 'shield') return '盾付与';
       if (playback.phase === 'attack') return '攻撃判定中';
       return '攻撃判定中';
@@ -788,6 +815,9 @@ export function useBattle(
           getUnitAt(state.player, pendingActor)?.attribute === 'dual'))
     ) {
       return '両攻撃の主対象を選択';
+    }
+    if (effectivePhase === 'pickTarget' && pendingAction === 'illuminate') {
+      return getIlluminateFlashlightHint();
     }
     if (effectivePhase === 'pickTarget' && pendingAction == null) {
       const actor = pendingActor
@@ -816,6 +846,9 @@ export function useBattle(
           actor?.attribute === 'illuminate' &&
           actorActions.includes('illuminate')
         ) {
+          if (pendingAction === 'illuminate') {
+            return getIlluminateFlashlightHint();
+          }
           return getIlluminateSelectionHint(
             actor,
             state.cpu,

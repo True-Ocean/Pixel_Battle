@@ -106,7 +106,7 @@ export const HEAL_CURE_GUIDE: BattleGuideTerm = {
   label: '治癒',
   title: '治癒',
   items: [
-    '対象のデバフ（毒、凍結）を解除する',
+    '対象のデバフ（毒、凍結、目眩）を解除する',
     '毒の効果を処理した後、盾付与・攻撃より先に処理される',
   ],
   compact: true,
@@ -166,7 +166,10 @@ export const ILLUMINATE_GUIDE: BattleGuideTerm = {
   label: '照射',
   title: '照射',
   items: [
-    '潜伏状態の敵1体を照射し、潜伏状態を解除する',
+    '懐中電灯で敵1体を照射する（バトル中2回まで）',
+    '潜伏状態の忍には潜伏解除のみ',
+    'それ以外には目眩（BP20%低下）を与える',
+    '前衛では再タップで照射、敵前衛タップで近接',
     '治癒・回復の処理後、盾付与・攻撃より先に処理される',
   ],
   compact: true,

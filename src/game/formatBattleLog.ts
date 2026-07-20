@@ -196,7 +196,10 @@ function formatEventLine(
       return `${cardRef(event.actor, ctx)}と${cardRef(event.target, ctx)}は互いにステルスを解除した`;
     case 'illuminated':
       if (!event.actor || !event.target) return null;
-      return `${cardRef(event.actor, ctx)}が${cardRef(event.target, ctx)}の隠れ身を照らした`;
+      if (event.dazzleApplied) {
+        return `${cardRef(event.actor, ctx)}が${cardRef(event.target, ctx)}を懐中電灯で照射し目眩を与えた`;
+      }
+      return `${cardRef(event.actor, ctx)}が${cardRef(event.target, ctx)}の潜伏を照らして暴いた`;
     default:
       return null;
   }

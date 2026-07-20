@@ -1,5 +1,5 @@
+import { BOW_ARROWS_PER_BATTLE, HEAL_USES_PER_BATTLE, ILLUMINATE_USES_PER_BATTLE, STORM_USES_PER_BATTLE } from '../config/balance';
 import type { Card } from '../types';
-import { BOW_ARROWS_PER_BATTLE, HEAL_USES_PER_BATTLE, STORM_USES_PER_BATTLE } from '../config/balance';
 import type { BattleUnit, PoisonStack } from '../types/battle';
 
 /** 新規 BattleUnit の拡張状態（ATTRIBUTE_SPEC §5） */
@@ -16,8 +16,10 @@ export function createExtendedBattleUnitState(
   | 'healUsesRemaining'
   | 'bowArrowsRemaining'
   | 'stormUsesRemaining'
+  | 'illuminateUsesRemaining'
   | 'ninjaFirstStrikeUsed'
   | 'illuminatedNinjaCardIds'
+  | 'dazzledUntilTurn'
   | 'rarity'
   | 'stars'
 > {
@@ -33,8 +35,11 @@ export function createExtendedBattleUnitState(
       card.attribute === 'bow' ? BOW_ARROWS_PER_BATTLE : 0,
     stormUsesRemaining:
       card.attribute === 'storm' ? STORM_USES_PER_BATTLE : 0,
+    illuminateUsesRemaining:
+      card.attribute === 'illuminate' ? ILLUMINATE_USES_PER_BATTLE : 0,
     ninjaFirstStrikeUsed: false,
     illuminatedNinjaCardIds: [],
+    dazzledUntilTurn: null,
     rarity: card.rarity,
     stars: card.stars,
   };

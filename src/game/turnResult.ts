@@ -65,12 +65,17 @@ export interface HealPlayback {
   bpTo: number;
   poisonStacksCleared: number;
   freezeCleared: boolean;
+  dazzleCleared: boolean;
 }
 
 export interface IlluminatePlayback {
   side: BattleSide;
   fromPosition: BoardPosition;
   toPosition: BoardPosition;
+  dazzleApplied: boolean;
+  stealthBroken: boolean;
+  bpFrom: number;
+  bpTo: number;
 }
 
 export interface ResolveTurnResult {

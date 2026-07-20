@@ -41,6 +41,8 @@ function makeUnit(card: Card, rarity: Card['rarity'] = card.rarity): BattleUnit 
     bowArrowsRemaining: 0,
     stormUsesRemaining: 0,
     ninjaFirstStrikeUsed: false,
+    illuminateUsesRemaining: 0,
+    dazzledUntilTurn: null,
     illuminatedNinjaCardIds: [],
     rarity,
     stars: card.stars,
