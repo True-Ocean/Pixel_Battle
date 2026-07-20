@@ -1,52 +1,29 @@
-import { useId } from 'react';
-
 interface JewelIconProps {
   className?: string;
+  'aria-hidden'?: boolean | 'true' | 'false';
 }
 
-export function JewelIcon({ className }: JewelIconProps) {
-  const uid = useId().replace(/:/g, '');
-  const faceId = `jewel-face-${uid}`;
-  const shineId = `jewel-shine-${uid}`;
+function resolvePublicAssetUrl(path: string): string {
+  const base = import.meta.env.BASE_URL;
+  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
 
+const JEWEL_ICON_URL = resolvePublicAssetUrl('jewel.png');
+
+export function JewelIcon({
+  className,
+  'aria-hidden': ariaHidden = true,
+}: JewelIconProps) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 28 28"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <defs>
-        <linearGradient id={faceId} x1="20%" y1="0%" x2="80%" y2="100%">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="28%" stopColor="#f0abfc" />
-          <stop offset="35%" stopColor="#e879f9" />
-          <stop offset="70%" stopColor="#c026d3" />
-          <stop offset="100%" stopColor="#86198f" />
-        </linearGradient>
-        <linearGradient id={shineId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="45%" stopColor="rgba(255,255,255,0.35)" />
-          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M14 3.5 23.5 10.5 14 24.5 4.5 10.5Z"
-        fill={`url(#${faceId})`}
-        stroke="#9d174d"
-        strokeWidth="1.1"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14 3.5 18.5 10.5 14 24.5 9.5 10.5Z"
-        fill="rgba(134, 25, 143, 0.22)"
-      />
-      <path
-        d="M4.5 10.5 14 3.5 23.5 10.5 14 13.5Z"
-        fill={`url(#${shineId})`}
-        opacity="0.82"
-      />
-    </svg>
+    <img
+      className={['jewel-icon', className].filter(Boolean).join(' ')}
+      src={JEWEL_ICON_URL}
+      alt=""
+      width={28}
+      height={28}
+      draggable={false}
+      aria-hidden={ariaHidden}
+    />
   );
 }
 
@@ -58,11 +35,13 @@ interface JewelAmountProps {
 
 export function JewelAmount({
   amount,
-  className = 'jewel-amount-inline',
+  className,
   iconClassName = 'jewel-amount-icon',
 }: JewelAmountProps) {
   return (
-    <span className={className}>
+    <span
+      className={['jewel-amount-inline', className].filter(Boolean).join(' ')}
+    >
       <JewelIcon className={iconClassName} />
       <span className="jewel-amount-value">{amount.toLocaleString()}</span>
     </span>

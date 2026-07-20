@@ -10,6 +10,7 @@ import {
   calcSubscriptionRemainingRatio,
   formatJewelPackLabel,
   formatShardPackLabel,
+  getJewelPackImageFile,
   subscriptionMonthlyGrantDelta,
   totalJewelsInPack,
   totalShardsInPack,
@@ -21,6 +22,16 @@ describe('shop catalog', () => {
     expect(totalJewelsInPack(JEWEL_PACKS[0]!)).toBe(100);
     expect(totalJewelsInPack(JEWEL_PACKS[1]!)).toBe(280);
     expect(totalJewelsInPack(JEWEL_PACKS[4]!)).toBe(2500);
+  });
+
+  it('maps jewel packs to shop product images by base jewels', () => {
+    expect(JEWEL_PACKS.map(getJewelPackImageFile)).toEqual([
+      'jewels100.png',
+      'jewels250.png',
+      'jewels500.png',
+      'jewels1000.png',
+      'jewels2000.png',
+    ]);
   });
 
   it('defines three universal shard packs', () => {

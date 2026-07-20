@@ -174,6 +174,11 @@ export function totalJewelsInPack(pack: JewelPackDefinition): number {
   return pack.baseJewels + pack.bonusJewels;
 }
 
+/** ショップ表示用パック画像（`public/jewels{baseJewels}.png`） */
+export function getJewelPackImageFile(pack: JewelPackDefinition): string {
+  return `jewels${pack.baseJewels}.png`;
+}
+
 export function totalShardsInPack(pack: UniversalShardPackDefinition): number {
   return pack.baseShards + pack.bonusShards;
 }

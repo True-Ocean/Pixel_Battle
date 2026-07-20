@@ -5,6 +5,7 @@ import {
   UNIVERSAL_SHARD_PACKS,
   formatJewelPackLabel,
   formatShardPackLabel,
+  getJewelPackImageFile,
   type JewelPackId,
   type ShopTabId,
   type UniversalShardPackId,
@@ -32,6 +33,10 @@ import { PixelCoinIcon } from './PixelCoinIcon';
 import { TalismanIcon } from './TalismanIcon';
 import { UniversalShardIcon } from './UniversalShardIcon';
 
+function resolvePublicAssetUrl(path: string): string {
+  const base = import.meta.env.BASE_URL;
+  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
 interface ShopScreenProps {
   economy: UserEconomy;
   inventory: UserInventory;
@@ -146,31 +151,47 @@ export function ShopScreen({
       )}
 
       {activeTab === 'jewels' && (
-        <div className="shop-panel" role="tabpanel">
+        <div className="shop-panel shop-panel--jewels" role="tabpanel">
           <h2 className="shop-panel-title">ジュエルチャージ</h2>
           <p className="shop-panel-note muted">
             現金購入（モック）。200円パックは初回のみ2倍。
           </p>
-          <ul className="shop-product-list">
+          <ul className="shop-product-list shop-product-list--jewels">
             {JEWEL_PACKS.map((pack) => {
               const grant = resolveJewelPackGrantAmount(pack.id, shopPurchase);
               const showFirstBonus =
                 pack.firstPurchaseDouble === true &&
                 shopPurchase.jewelPack200FirstBonusUsed !== true;
               return (
-                <li key={pack.id} className="shop-product-card">
-                  <div className="shop-product-main">
-                    <JewelAmount
-                      amount={grant.jewels}
-                      className="shop-product-jewel-amount"
-                      iconClassName="shop-product-jewel-icon"
-                    />
-                    <p className="shop-product-detail muted">
-                      {formatJewelPackLabel(pack)}
-                      {showFirstBonus && (
-                        <span className="shop-product-badge">初回2倍</span>
-                      )}
-                    </p>
+                <li
+                  key={pack.id}
+                  className="shop-product-card shop-product-card--jewel-pack"
+                >
+                  <div className="shop-product-main shop-product-main--jewel-pack">
+                    <span className="shop-product-pack-image-wrap">
+                      <img
+                        className="shop-product-pack-image"
+                        src={resolvePublicAssetUrl(getJewelPackImageFile(pack))}
+                        alt=""
+                        width={64}
+                        height={64}
+                        draggable={false}
+                        aria-hidden="true"
+                      />
+                    </span>
+                    <div className="shop-product-pack-copy">
+                      <JewelAmount
+                        amount={grant.jewels}
+                        className="shop-product-jewel-amount"
+                        iconClassName="shop-product-jewel-icon"
+                      />
+                      <p className="shop-product-detail muted">
+                        {formatJewelPackLabel(pack)}
+                        {showFirstBonus && (
+                          <span className="shop-product-badge">初回2倍</span>
+                        )}
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
