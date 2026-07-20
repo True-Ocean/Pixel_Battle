@@ -27,7 +27,9 @@ import type {
   BattleState,
   BoardPosition,
 } from '../types/battle';
-import { applyOnlineNinjaStalemateBreak } from '../onlinePvp/roomApi';
+import { applyOnlineNinjaStalemateBreak, ackOnlinePhaseTimerReady, submitOnlineTimedOutAction } from '../onlinePvp/roomApi';
+import { deriveOnlinePhaseTimerDisplay, computeOnlinePhaseSecondsRemaining, onlinePhaseTimeLimitSec } from '../onlinePvp/phaseTimer';
+import { getPendingPromotionFronts } from '../game/battleState';
 import type { OnlineUiPhase } from '../onlinePvp/deriveOnlineUiPhase';
 import {
   onlineClashReplayKey,
@@ -62,6 +64,12 @@ function mapOnlineUiPhaseToBattle(uiPhase: OnlineUiPhase | null): BattleUiPhase 
   }
 }
 
+const IDLE_PHASE_TIMER_DISPLAY = {
+  zone: null,
+  seconds: null,
+  urgent: false,
+} as const;
+
 export interface UseOnlineBattleControllerOptions {
   room: OnlineBattleRoom | null;
   role: OnlineBattleRole;
@@ -94,9 +102,15 @@ export function useOnlineBattleController({
   const playedPoisonKeyRef = useRef<string | null>(null);
   const seededRoomIdRef = useRef<string | null>(null);
   const stalemateBreakRef = useRef(false);
+  const phaseTimerAckRevisionRef = useRef<number | null>(null);
+  const timedOutSubmitInFlightRef = useRef(false);
+  const [phaseTimerTick, setPhaseTimerTick] = useState(0);
 
-  const authoritativeState =
-    session.localState ?? createBattleState(playerCards, cpuCards);
+  const fallbackState = useMemo(
+    () => createBattleState(playerCards, cpuCards),
+    [playerCards, cpuCards],
+  );
+  const authoritativeState = session.localState ?? fallbackState;
   const state = displayState ?? authoritativeState;
 
   const mappedPhase: BattleUiPhase = mapOnlineUiPhaseToBattle(session.uiPhase);
@@ -301,19 +315,155 @@ export function useOnlineBattleController({
     return () => window.clearTimeout(t);
   }, [turnStartPlayback, effectivePhase, releaseReplayToRoom]);
 
+  const inReplay =
+    playback != null ||
+    turnStartPlayback != null ||
+    session.replayOverlay != null;
+
+  const needsOwnPromotion =
+    getPendingPromotionFronts(authoritativeState.player).length > 0;
+
+  const waitingOpponentPromotion =
+    session.uiPhase === 'waitOpponentPromotion' ||
+    (session.promotion.mode === 'waitOpponent' && needsOwnPromotion === false);
+
+  const phaseTimerDisplay = useMemo(() => {
+    void phaseTimerTick;
+    if (!room) return IDLE_PHASE_TIMER_DISPLAY;
+    return deriveOnlinePhaseTimerDisplay({
+      phaseTimerStartedAt: room.phaseTimerStartedAt,
+      battlePhase: room.battlePhase,
+      inReplay,
+      waitingForOpponent: session.waitingForOpponent,
+      needsOwnPromotion,
+      waitingOpponentPromotion,
+    });
+  }, [
+    inReplay,
+    needsOwnPromotion,
+    phaseTimerTick,
+    room?.battlePhase,
+    room?.phaseTimerStartedAt,
+    session.waitingForOpponent,
+    waitingOpponentPromotion,
+  ]);
+
+  useEffect(() => {
+    if (!room || room.status !== 'battle') return;
+    if (room.battlePhase !== 'select' && room.battlePhase !== 'promotion') {
+      phaseTimerAckRevisionRef.current = null;
+      return;
+    }
+    if (inReplay) return;
+
+    const alreadyReady =
+      role === 'host' ? room.hostPhaseTimerReady : room.guestPhaseTimerReady;
+    // ready 済みでも timer 未開始なら再 ack（切断で相手 ack 待ちのまま止まったケースの復旧）
+    if (alreadyReady && room.phaseTimerStartedAt) {
+      phaseTimerAckRevisionRef.current = room.battleRevision;
+      return;
+    }
+    if (phaseTimerAckRevisionRef.current === room.battleRevision) return;
+
+    phaseTimerAckRevisionRef.current = room.battleRevision;
+    const ackRevision = room.battleRevision;
+    void ackOnlinePhaseTimerReady(room.id, role, ackRevision).then((result) => {
+      if (!result.ok) {
+        // 失敗時は同一 revision で再試行できるように戻す
+        if (phaseTimerAckRevisionRef.current === ackRevision) {
+          phaseTimerAckRevisionRef.current = null;
+        }
+        return;
+      }
+      onRoomSync?.(result.data);
+    });
+  }, [
+    inReplay,
+    onRoomSync,
+    role,
+    room?.battlePhase,
+    room?.battleRevision,
+    room?.guestPhaseTimerReady,
+    room?.hostPhaseTimerReady,
+    room?.id,
+    room?.phaseTimerStartedAt,
+    room?.status,
+  ]);
+
+  useEffect(() => {
+    if (!room || room.status !== 'battle') return;
+    if (room.battlePhase !== 'select' && room.battlePhase !== 'promotion') {
+      return;
+    }
+    if (!room.phaseTimerStartedAt) return;
+
+    const tick = () => setPhaseTimerTick((n) => n + 1);
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, [
+    room?.battlePhase,
+    room?.battleRevision,
+    room?.id,
+    room?.phaseTimerStartedAt,
+    room?.status,
+  ]);
+
+  const phaseTimerRemaining = useMemo(() => {
+    void phaseTimerTick;
+    if (!room?.phaseTimerStartedAt) return null;
+    const limit = onlinePhaseTimeLimitSec(room.battlePhase);
+    if (limit == null) return null;
+    return computeOnlinePhaseSecondsRemaining(room.phaseTimerStartedAt, limit);
+  }, [phaseTimerTick, room?.battlePhase, room?.phaseTimerStartedAt]);
+
+  useEffect(() => {
+    if (!room || room.status !== 'battle') return;
+    if (room.battlePhase !== 'select' && room.battlePhase !== 'promotion') {
+      return;
+    }
+    if (!room.phaseTimerStartedAt || inReplay) return;
+    if (phaseTimerRemaining !== 0) return;
+    if (timedOutSubmitInFlightRef.current) return;
+
+    timedOutSubmitInFlightRef.current = true;
+    void submitOnlineTimedOutAction(room.id, role)
+      .then((result) => {
+        if (result.ok) onRoomSync?.(result.data);
+      })
+      .finally(() => {
+        timedOutSubmitInFlightRef.current = false;
+      });
+  }, [
+    inReplay,
+    onRoomSync,
+    phaseTimerRemaining,
+    role,
+    room?.battlePhase,
+    room?.battleRevision,
+    room?.id,
+    room?.phaseTimerStartedAt,
+    room?.status,
+  ]);
+
+  const autoPromotionKey =
+    session.promotion.autoSubmit == null
+      ? null
+      : `${session.promotion.autoSubmit.from}:${session.promotion.autoSubmit.to}`;
+
   useEffect(() => {
     const auto = session.promotion.autoSubmit;
     if (!auto || session.inputLocked) return;
     void session.submitPromotion(auto.from, auto.to);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- session の identity churn を避け、必要な値のみ依存する
-  }, [session.promotion.autoSubmit, session.inputLocked, session.submitPromotion]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- autoSubmit は毎描画で新オブジェクトになるため key で安定化
+  }, [autoPromotionKey, session.inputLocked, session.submitPromotion]);
 
   // バトルの revision（＝ターン進行）が変わったら選択中の UI 状態をリセットする。
   // effect ではなく描画時の transition 検知で行う。
   if (room?.battleRevision !== prevBattleRevision) {
     setPrevBattleRevision(room?.battleRevision);
-    setPendingActor(null);
-    setPendingAction(null);
+    if (pendingActor != null) setPendingActor(null);
+    if (pendingAction != null) setPendingAction(null);
   }
 
   const availableActionsFor = useCallback(
@@ -352,7 +502,8 @@ export function useOnlineBattleController({
       session.setActionPickSubPhase('main');
       void session.submitChoice(playerChoice);
     },
-    [session],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- session 全体ではなく安定した関数だけ依存する
+    [session.setActionPickSubPhase, session.submitChoice],
   );
 
   useEffect(() => {
@@ -656,7 +807,8 @@ export function useOnlineBattleController({
     setPendingAction(null);
     session.clearPromotionDraft();
     session.setActionPickSubPhase('main');
-  }, [session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- session 全体ではなく安定した関数だけ依存する
+  }, [session.clearPromotionDraft, session.setActionPickSubPhase]);
 
   const isActionablePosition = useCallback(
     (position: BoardPosition) => {
@@ -948,6 +1100,7 @@ export function useOnlineBattleController({
     handleEnd,
     cancelShieldPick: cancelSelection,
     waitingForOpponent: session.waitingForOpponent,
+    phaseTimerDisplay,
   };
 }
 

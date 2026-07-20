@@ -3656,7 +3656,13 @@ function App() {
       const room = onlinePvpRoomRef.current;
       const role = onlinePvpRoleRef.current;
       if (!room || !role) return;
-      void submitOnlineSetup(room.id, role, formation);
+      void submitOnlineSetup(room.id, role, formation).then((result) => {
+        if (!result.ok) return;
+        if (shouldApplyOnlineRoomUpdate(onlinePvpRoomRef.current, result.data)) {
+          setOnlinePvpRoom(result.data);
+          onlinePvpRoomRef.current = result.data;
+        }
+      });
     },
     [],
   );

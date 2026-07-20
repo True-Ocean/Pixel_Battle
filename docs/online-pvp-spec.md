@@ -175,6 +175,8 @@ waiting → deck_select → setup → battle → rematch_wait | closed
 | `submitOnlineBattleChoice(roomId, role, choice)` | select | 行動保存。両者揃えばサーバーが clash まで完結 |
 | `submitOnlinePromotion(roomId, role, from, to)` | promotion | 昇格。完了後サーバーが turn_start→select |
 | `applyOnlineNinjaStalemateBreak(roomId)` | select | 忍術ステルス膠着解除（�面条件時） |
+| `ackOnlinePhaseTimerReady(roomId, role, battleRevision)` | select / promotion | clash・毒 DoT 再生完了後に送信。**先着 1 人**で `phase_timer_started_at` を開始（切断側待ちによる永久停止を防ぐ） |
+| `submitOnlineTimedOutAction(roomId, callerRole)` | select / promotion | 持ち時間切れの自動行動／昇格。待ち側は相手分も提出可 |
 | `applyOnlineBattleForfeit(roomId, role)` | any | 降参 |
 | `subscribeOnlineBattleRoom(roomId, cb)` | any | Realtime 購読 + 初回 fetch |
 
@@ -276,6 +278,18 @@ function deriveOnlineUiPhase(input: {
 
 - サーバー `applyTurnStart` 内で `startNextTurn` を実行し **結果 state を `battle_state` に反映してから select**
 - クライアントは `battle_revision` 更新で新 state を受け取り、毒アニメは overlay のみ
+
+### 7.4 持ち時間（select / promotion）
+
+| 項目 | 内容 |
+|------|------|
+| select | **60秒**（`ONLINE_PVP_SELECT_TIME_LIMIT_SEC`） |
+| promotion | **20秒**（`ONLINE_PVP_PROMOTION_TIME_LIMIT_SEC`） |
+| 開始 | clash／毒 DoT **再生完了後**、先に `ackOnlinePhaseTimerReady` した側で `phase_timer_started_at` を開始（両者待ちにしない） |
+| タイムアウト | `enumerateBattleActionChoices` から **ランダム** 自動提出 |
+| 相手待ち | 期限切れ後、提出済み側が `submitOnlineTimedOutAction` で相手分を代理提出可 |
+| UI | 残り **30秒以下**で表示開始。**10秒未満**は赤字。自分選択中は味方ゾーン、相手待ちは相手ゾーン |
+| DB | migration **021** — `host_phase_timer_ready` / `guest_phase_timer_ready` / `phase_timer_started_at` |
 
 ---
 

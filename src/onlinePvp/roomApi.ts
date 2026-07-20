@@ -3,13 +3,16 @@ import type { BattleActionChoice, BattleState, BoardPosition } from '../types/ba
 import { ensureAnonymousUserId } from '../auth/anonymous';
 import { resolveTurn, promoteUnit } from '../game/resolveTurn';
 import { getBattleResult, resolveNinjaStealthStalemate } from '../game';
-import { buildOnlineTurnRandomSeed, createSeededRandom } from '../game/seededRandom';
+import { buildOnlinePromotionRandomSeed, buildOnlineTurnRandomSeed, createSeededRandom } from '../game/seededRandom';
 import { pickPassAction } from '../game/actionChoices';
+import { getPendingPromotionFronts } from '../game/battleState';
 import { getSupabaseClient } from '../supabase/client';
 import {
   ONLINE_PVP_DISCONNECT_GRACE_SEC,
   ONLINE_PVP_ROOM_TTL_MINUTES,
 } from './constants';
+import { pickRandomOnlineAction, pickRandomOnlinePromotion } from './onlineAutoAction';
+import { computeOnlinePhaseSecondsRemaining, onlinePhaseTimeLimitSec } from './phaseTimer';
 import {
   calcOnlinePvpBattleTransfer,
   clampOnlinePvpWalletTransfer,
@@ -50,6 +53,54 @@ function disconnectDeadlineIso(): string {
   return new Date(
     Date.now() + ONLINE_PVP_DISCONNECT_GRACE_SEC * 1000,
   ).toISOString();
+}
+
+const PHASE_TIMER_RESET_PATCH = {
+  host_phase_timer_ready: false,
+  guest_phase_timer_ready: false,
+  phase_timer_started_at: null,
+} as const;
+
+function withPhaseTimerReset(
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  return { ...patch, ...PHASE_TIMER_RESET_PATCH };
+}
+
+function isPhaseTimerExpired(room: OnlineBattleRoom): boolean {
+  const limitSec = onlinePhaseTimeLimitSec(room.battlePhase);
+  if (limitSec == null || !room.phaseTimerStartedAt) return false;
+  const remaining = computeOnlinePhaseSecondsRemaining(
+    room.phaseTimerStartedAt,
+    limitSec,
+  );
+  return remaining != null && remaining <= 0;
+}
+
+function callerCanSubmitTimedOutForRole(
+  room: OnlineBattleRoom,
+  callerRole: OnlineBattleRole,
+  targetRole: OnlineBattleRole,
+): boolean {
+  if (targetRole === callerRole) return true;
+  if (!room.battleState) return false;
+  if (room.battlePhase === 'select') {
+    const callerPending =
+      callerRole === 'host'
+        ? room.hostPendingAction
+        : room.guestPendingAction;
+    return callerPending != null;
+  }
+  if (room.battlePhase === 'promotion') {
+    const callerSide = callerRole === 'host' ? 'player' : 'cpu';
+    const targetSide = targetRole === 'host' ? 'player' : 'cpu';
+    const callerDone =
+      getPendingPromotionFronts(room.battleState[callerSide]).length === 0;
+    const targetNeeds =
+      getPendingPromotionFronts(room.battleState[targetSide]).length > 0;
+    return callerDone && targetNeeds;
+  }
+  return false;
 }
 
 export async function fetchOnlineBattleRoom(
@@ -417,6 +468,7 @@ export async function requestOnlineDeckChange(
     battle_state: null,
     host_pending_action: null,
     guest_pending_action: null,
+    ...PHASE_TIMER_RESET_PATCH,
   });
 }
 
@@ -472,7 +524,7 @@ async function tryStartBattle(
   const initialPhase = onlinePromotionNeeded(stateAfterPromo)
     ? 'promotion'
     : 'select';
-  return updateOnlineBattleRoom(room.id, {
+  return updateOnlineBattleRoom(room.id, withPhaseTimerReset({
     status: 'battle',
     battle_state: stateAfterPromo,
     host_pending_action: null,
@@ -483,7 +535,7 @@ async function tryStartBattle(
     host_deck: balanced.hostDeck,
     guest_deck: balanced.guestDeck,
     power_balance_applied: balanced.applied,
-  });
+  }));
 }
 
 async function fetchRoomAfterConditionalMiss(
@@ -530,10 +582,10 @@ async function advanceTurnStartInternal(
   if (onlinePromotionNeeded(promotedState)) {
     return updateOnlineBattleRoom(
       room.id,
-      battleStatePatch(room, {
+      battleStatePatch(room, withPhaseTimerReset({
         battle_state: promotedState,
         battle_phase: 'promotion',
-      }),
+      })),
     );
   }
   const turnStart = startNextTurn(promotedState);
@@ -554,14 +606,14 @@ async function advanceTurnStartInternal(
   const preRevision = room.battleRevision;
   const { data, error } = await supabase
     .from('online_battle_rooms')
-    .update({
+    .update(withPhaseTimerReset({
       battle_state: afterDot,
       battle_phase: nextPhase,
       // last_clash はクライアント再生用に残す（次 clash で上書き）
       last_clash: enrichedLastClash,
       battle_revision: preRevision + 1,
       updated_at: new Date().toISOString(),
-    })
+    }))
     .eq('id', room.id)
     .eq('battle_phase', 'turn_start')
     .select('*')
@@ -654,15 +706,27 @@ async function resolveOnlineClash(
 
   const { data, error } = await supabase
     .from('online_battle_rooms')
-    .update({
-      battle_state: stateAfterClash,
-      battle_phase: nextPhase,
-      last_clash: lastClash,
-      host_pending_action: null,
-      guest_pending_action: null,
-      battle_revision: preClashRevision + 1,
-      updated_at: new Date().toISOString(),
-    })
+    .update(
+      nextPhase === 'promotion'
+        ? withPhaseTimerReset({
+            battle_state: stateAfterClash,
+            battle_phase: nextPhase,
+            last_clash: lastClash,
+            host_pending_action: null,
+            guest_pending_action: null,
+            battle_revision: preClashRevision + 1,
+            updated_at: new Date().toISOString(),
+          })
+        : {
+            battle_state: stateAfterClash,
+            battle_phase: nextPhase,
+            last_clash: lastClash,
+            host_pending_action: null,
+            guest_pending_action: null,
+            battle_revision: preClashRevision + 1,
+            updated_at: new Date().toISOString(),
+          },
+    )
     .eq('id', room.id)
     .not('host_pending_action', 'is', null)
     .not('guest_pending_action', 'is', null)
@@ -761,10 +825,18 @@ export async function submitOnlinePromotion(
   const stillNeedsPromotion = onlinePromotionNeeded(nextState);
   const updated = await updateOnlineBattleRoom(
     roomId,
-    battleStatePatch(room, {
-      battle_state: nextState,
-      battle_phase: stillNeedsPromotion ? 'promotion' : 'turn_start',
-    }),
+    battleStatePatch(
+      room,
+      stillNeedsPromotion
+        ? withPhaseTimerReset({
+            battle_state: nextState,
+            battle_phase: 'promotion',
+          })
+        : {
+            battle_state: nextState,
+            battle_phase: 'turn_start',
+          },
+    ),
   );
   if (!updated.ok) return updated;
   if (!stillNeedsPromotion) {
@@ -942,6 +1014,8 @@ export async function submitOnlineRematchReady(
     guest_deck_change: false,
     last_transfer_px: null,
     power_balance_applied: false,
+    setup_started_at: null,
+    ...PHASE_TIMER_RESET_PATCH,
   });
 }
 
@@ -956,6 +1030,131 @@ export async function closeOnlineBattleRoom(
   const result = await updateOnlineBattleRoom(roomId, patch);
   if (!result.ok) return result;
   return { ok: true, data: null };
+}
+
+export async function ackOnlinePhaseTimerReady(
+  roomId: string,
+  role: OnlineBattleRole,
+  battleRevision: number,
+): Promise<OnlineRoomResult<OnlineBattleRoom>> {
+  const fresh = await fetchRoomById(roomId);
+  if (!fresh.ok) return fresh;
+  const room = fresh.data;
+  if (room.status !== 'battle' || room.battleRevision !== battleRevision) {
+    return { ok: true, data: room };
+  }
+  if (room.battlePhase !== 'select' && room.battlePhase !== 'promotion') {
+    return { ok: true, data: room };
+  }
+
+  const readyPatch =
+    role === 'host'
+      ? { host_phase_timer_ready: true }
+      : { guest_phase_timer_ready: true };
+  // 片方の再生完了でタイマー開始する。
+  // 両者待ちだと切断・再入室側が ack できず試合が永久停止するため。
+  const shouldStartTimer = room.phaseTimerStartedAt == null;
+
+  return updateOnlineBattleRoom(roomId, {
+    ...readyPatch,
+    ...(shouldStartTimer
+      ? { phase_timer_started_at: new Date().toISOString() }
+      : {}),
+  });
+}
+
+async function submitTimedOutSelect(
+  room: OnlineBattleRoom,
+  callerRole: OnlineBattleRole,
+): Promise<OnlineRoomResult<OnlineBattleRoom>> {
+  let next = room;
+  for (const targetRole of ['host', 'guest'] as const) {
+    const pending =
+      targetRole === 'host'
+        ? next.hostPendingAction
+        : next.guestPendingAction;
+    if (pending || !next.battleState) continue;
+    if (!callerCanSubmitTimedOutForRole(next, callerRole, targetRole)) continue;
+
+    const side = targetRole === 'host' ? 'player' : 'cpu';
+    const choice = pickRandomOnlineAction(
+      next.battleState,
+      side,
+      createSeededRandom(
+        buildOnlinePromotionRandomSeed(
+          next.id,
+          next.battleState.turn,
+          next.battleRevision,
+          `timeout-select-${targetRole}`,
+        ),
+      ),
+    );
+    const result = await submitOnlineBattleChoice(next.id, targetRole, choice);
+    if (!result.ok) return result;
+    next = result.data;
+  }
+  return { ok: true, data: next };
+}
+
+async function submitTimedOutPromotion(
+  room: OnlineBattleRoom,
+  callerRole: OnlineBattleRole,
+): Promise<OnlineRoomResult<OnlineBattleRoom>> {
+  let next = room;
+  for (const targetRole of ['host', 'guest'] as const) {
+    if (!next.battleState) break;
+    const side = targetRole === 'host' ? 'player' : 'cpu';
+    if (getPendingPromotionFronts(next.battleState[side]).length === 0) continue;
+    if (!callerCanSubmitTimedOutForRole(next, callerRole, targetRole)) continue;
+
+    const promotion = pickRandomOnlinePromotion(
+      next.battleState,
+      side,
+      createSeededRandom(
+        buildOnlinePromotionRandomSeed(
+          next.id,
+          next.battleState.turn,
+          next.battleRevision,
+          `timeout-promotion-${targetRole}`,
+        ),
+      ),
+    );
+    if (!promotion) continue;
+
+    const result = await submitOnlinePromotion(
+      next.id,
+      targetRole,
+      promotion.from,
+      promotion.to,
+    );
+    if (!result.ok) return result;
+    next = result.data;
+    if (!isPhaseTimerExpired(next)) break;
+  }
+  return { ok: true, data: next };
+}
+
+/** 持ち時間切れの自動行動（自分または待ち側から相手分を提出） */
+export async function submitOnlineTimedOutAction(
+  roomId: string,
+  callerRole: OnlineBattleRole,
+): Promise<OnlineRoomResult<OnlineBattleRoom>> {
+  const fresh = await fetchRoomById(roomId);
+  if (!fresh.ok) return fresh;
+  const room = fresh.data;
+  if (room.status !== 'battle' || !room.battleState) {
+    return { ok: true, data: room };
+  }
+  if (!isPhaseTimerExpired(room)) {
+    return { ok: true, data: room };
+  }
+  if (room.battlePhase === 'select') {
+    return submitTimedOutSelect(room, callerRole);
+  }
+  if (room.battlePhase === 'promotion') {
+    return submitTimedOutPromotion(room, callerRole);
+  }
+  return { ok: true, data: room };
 }
 
 export async function markOnlineDisconnect(
@@ -1038,6 +1237,8 @@ export function subscribeOnlineBattleRoom(
           if (!payload.new) return;
           const current = onlineRoomSubscriptions.get(roomId);
           if (!current) return;
+          // fetch 完了前の部分 payload を正本化すると battle_state 等が欠落する
+          if (!current.lastRow) return;
           // default REPLICA IDENTITY では変更列のみ届く。直近行へマージしてから map する。
           const merged = mergeOnlineBattleRoomRow(
             current.lastRow,

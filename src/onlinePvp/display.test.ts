@@ -44,6 +44,9 @@ function room(partial: Partial<OnlineBattleRoom>): OnlineBattleRoom {
     battlePhase: 'select',
     lastClash: null,
     powerBalanceApplied: false,
+    hostPhaseTimerReady: false,
+    guestPhaseTimerReady: false,
+    phaseTimerStartedAt: null,
     ...partial,
   };
 }

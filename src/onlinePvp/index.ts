@@ -11,9 +11,22 @@ export {
   ONLINE_PVP_MIN_WALLET_PX,
   ONLINE_PVP_DISCONNECT_GRACE_SEC,
   ONLINE_PVP_STALE_RETENTION_HOURS,
+  ONLINE_PVP_SELECT_TIME_LIMIT_SEC,
+  ONLINE_PVP_PROMOTION_TIME_LIMIT_SEC,
+  ONLINE_PVP_TIMER_DISPLAY_THRESHOLD_SEC,
+  ONLINE_PVP_TIMER_URGENT_THRESHOLD_SEC,
 } from './constants';
 export { isOnlinePvpUnlockedAtUserLevel } from './unlock';
 export { computeOnlineSetupSecondsRemaining } from './setupTimer';
+export {
+  computeOnlinePhaseSecondsRemaining,
+  deriveOnlinePhaseTimerDisplay,
+  isOnlinePhaseTimerUrgent,
+  onlinePhaseTimeLimitSec,
+  shouldShowOnlinePhaseTimer,
+  type OnlinePhaseTimerDisplay,
+  type OnlinePhaseTimerZone,
+} from './phaseTimer';
 export {
   calcOnlinePvpBattleTransfer,
   countFieldSurvivors,
@@ -80,6 +93,8 @@ export {
   clearOnlineDisconnect,
   submitOnlineBattleChoice,
   submitOnlinePromotion,
+  ackOnlinePhaseTimerReady,
+  submitOnlineTimedOutAction,
   applyOnlineNinjaStalemateBreak,
   applyOnlineBattleForfeit,
   finalizeOnlineBattleIfEnded,

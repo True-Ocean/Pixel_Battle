@@ -72,6 +72,9 @@ export interface OnlineBattleRoomRow {
   battle_phase: OnlineBattlePhase;
   last_clash: OnlineLastClash | null;
   power_balance_applied: boolean;
+  host_phase_timer_ready: boolean;
+  guest_phase_timer_ready: boolean;
+  phase_timer_started_at: string | null;
 }
 
 export interface OnlineBattleRoom {
@@ -112,6 +115,9 @@ export interface OnlineBattleRoom {
   lastClash: OnlineLastClash | null;
   /** バトル開始時に戦力補正が適用されたか */
   powerBalanceApplied: boolean;
+  hostPhaseTimerReady: boolean;
+  guestPhaseTimerReady: boolean;
+  phaseTimerStartedAt: string | null;
 }
 
 export type OnlineRoomErrorCode =
@@ -166,6 +172,9 @@ export function mapOnlineBattleRoom(row: OnlineBattleRoomRow): OnlineBattleRoom 
     battlePhase: row.battle_phase ?? 'select',
     lastClash: row.last_clash ?? null,
     powerBalanceApplied: row.power_balance_applied ?? false,
+    hostPhaseTimerReady: row.host_phase_timer_ready ?? false,
+    guestPhaseTimerReady: row.guest_phase_timer_ready ?? false,
+    phaseTimerStartedAt: row.phase_timer_started_at ?? null,
   };
 }
 

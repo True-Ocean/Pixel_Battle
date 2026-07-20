@@ -28,3 +28,15 @@ export const ONLINE_PVP_CLOSED_RETENTION_HOURS = ONLINE_PVP_STALE_RETENTION_HOUR
 
 /** 切断後の再接続猶予（秒） */
 export const ONLINE_PVP_DISCONNECT_GRACE_SEC = 60;
+
+/** 行動選択（select）の持ち時間（秒） */
+export const ONLINE_PVP_SELECT_TIME_LIMIT_SEC = 60;
+
+/** 昇格（promotion）の持ち時間（秒） */
+export const ONLINE_PVP_PROMOTION_TIME_LIMIT_SEC = 20;
+
+/** 残りこの秒数以下でカウントダウン表示を開始 */
+export const ONLINE_PVP_TIMER_DISPLAY_THRESHOLD_SEC = 30;
+
+/** 残りこの秒数未満で赤字表示 */
+export const ONLINE_PVP_TIMER_URGENT_THRESHOLD_SEC = 10;

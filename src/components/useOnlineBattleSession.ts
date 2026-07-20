@@ -161,24 +161,24 @@ export function useOnlineBattleSession({
   );
 
   // 昇格対象が無くなったら選択中の昇格ドラフトを破棄する。
-  // updater は冪等（既に from=null なら同一参照を返す）なので描画時に実行しても安全。
   if (
     view.localState &&
-    getPendingPromotionFronts(view.localState.player).length === 0
+    getPendingPromotionFronts(view.localState.player).length === 0 &&
+    promotionDraft.from != null
   ) {
-    setPromotionDraft((prev) => (prev.from == null ? prev : { from: null }));
+    setPromotionDraft({ from: null });
   }
 
   // 対象選択系(pick*)以外のフェーズでは行動選択のサブフェーズを main に戻す。
-  // updater は冪等なので描画時に実行してよい。
   if (
     view.uiPhase != null &&
     view.uiPhase !== 'pickMain' &&
     view.uiPhase !== 'pickTarget' &&
     view.uiPhase !== 'pickShield' &&
-    view.uiPhase !== 'pickHeal'
+    view.uiPhase !== 'pickHeal' &&
+    actionPickSubPhase !== 'main'
   ) {
-    setActionPickSubPhase((prev) => (prev === 'main' ? prev : 'main'));
+    setActionPickSubPhase('main');
   }
 
   const selectPromotionBack = useCallback((from: BoardPosition) => {

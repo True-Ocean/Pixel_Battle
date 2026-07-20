@@ -673,12 +673,14 @@ function FormationBoardSetup({
   selectedSlot,
   playerIdentity,
   onSlotClick,
+  readOnly = false,
 }: {
   timeLeft: number;
   playerSlots: Record<BoardPosition, Card | null>;
   selectedSlot: SelectedSetupSlot;
   playerIdentity?: BattleZoneIdentity;
   onSlotClick: (position: BoardPosition) => void;
+  readOnly?: boolean;
 }) {
   return (
     <div className="formation-setup-body">
@@ -686,7 +688,9 @@ function FormationBoardSetup({
       <div className="formation-setup-focus">
         <div className="formation-guide formation-guide-setup">
           <div className="formation-hint formation-guide-line">
-            バトル準備：タップでカードを自由に入れ替え
+            {readOnly
+              ? '準備完了：相手の準備を待っています'
+              : 'バトル準備：タップでカードを自由に入れ替え'}
           </div>
         </div>
 
@@ -707,9 +711,11 @@ function FormationBoardSetup({
                   position={position}
                   side="player"
                   hideFrame={!!playerSlots[position]}
-                  selected={selectedSlot === position}
-                  valid={selectedSlot != null}
-                  onClick={() => onSlotClick(position)}
+                  selected={!readOnly && selectedSlot === position}
+                  valid={!readOnly && selectedSlot != null}
+                  onClick={() => {
+                    if (!readOnly) onSlotClick(position);
+                  }}
                 />
               ))}
             </div>
@@ -721,9 +727,11 @@ function FormationBoardSetup({
                   position={position}
                   side="player"
                   hideFrame={!!playerSlots[position]}
-                  selected={selectedSlot === position}
-                  valid={selectedSlot != null}
-                  onClick={() => onSlotClick(position)}
+                  selected={!readOnly && selectedSlot === position}
+                  valid={!readOnly && selectedSlot != null}
+                  onClick={() => {
+                    if (!readOnly) onSlotClick(position);
+                  }}
                 />
               ))}
             </div>
@@ -1269,6 +1277,24 @@ function FormationDamageLayer({
   );
 }
 
+function FormationPhaseCountdown({
+  seconds,
+  urgent,
+}: {
+  seconds: number;
+  urgent: boolean;
+}) {
+  return (
+    <div
+      className={`formation-battle-countdown${urgent ? ' formation-battle-countdown--urgent' : ''}`}
+      aria-live="polite"
+      aria-label={`残り${seconds}秒`}
+    >
+      {seconds}
+    </div>
+  );
+}
+
 function BattleBoard({
   battle,
   opponentIdentity,
@@ -1317,6 +1343,12 @@ function BattleBoard({
   const isPromotePhase =
     battle.effectivePhase === 'promoteUnit' ||
     battle.effectivePhase === 'promoteSlot';
+  const phaseTimerDisplay =
+    'phaseTimerDisplay' in battle ? battle.phaseTimerDisplay : null;
+  const showCpuCountdown =
+    phaseTimerDisplay?.zone === 'cpu' && phaseTimerDisplay.seconds != null;
+  const showPlayerCountdown =
+    phaseTimerDisplay?.zone === 'player' && phaseTimerDisplay.seconds != null;
 
   const activeAttack =
     battle.playback?.phase === 'attack' &&
@@ -1565,6 +1597,12 @@ function BattleBoard({
       <div className="formation-zone formation-zone-cpu">
             <FormationZoneBanner identity={opponentIdentity} side="cpu" />
             <div className="formation-field formation-field-cpu">
+              {showCpuCountdown ? (
+                <FormationPhaseCountdown
+                  seconds={phaseTimerDisplay!.seconds!}
+                  urgent={phaseTimerDisplay!.urgent}
+                />
+              ) : null}
               <div className="formation-row formation-row-back">
                 {BACK_POSITIONS.map((position) => (
                   <BattleUnitSlot
@@ -1649,6 +1687,12 @@ function BattleBoard({
 
           <div className="formation-zone formation-zone-player">
             <div className="formation-field formation-field-player">
+              {showPlayerCountdown ? (
+                <FormationPhaseCountdown
+                  seconds={phaseTimerDisplay!.seconds!}
+                  urgent={phaseTimerDisplay!.urgent}
+                />
+              ) : null}
               <div className="formation-row formation-row-front">
                 {FRONT_POSITIONS.map((position) => (
                   <BattleUnitSlot
@@ -2102,6 +2146,7 @@ export function BattleSetupScreen({
   });
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
+  // 再戦で room.id は同じままなので battleRevision で同期済みを区別する
   const syncedBattleFormationRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -2109,8 +2154,9 @@ export function BattleSetupScreen({
     if (onlinePvp.room.status === 'battle') {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- サーバーのリアルタイムなルーム状態に追従する同期処理。描画時導出に置き換えると状態機械が壊れるため effect を維持する
       setPhase('battle');
-      // バトル開始時のみサーバー配置でカード一覧を揃える（以降の realtime では触らない）
-      if (syncedBattleFormationRef.current !== onlinePvp.room.id) {
+      // バトル開始（revision 変化）時のみサーバー配置でカード一覧を揃える
+      const syncKey = `${onlinePvp.room.id}:${onlinePvp.room.battleRevision}`;
+      if (syncedBattleFormationRef.current !== syncKey) {
         const myFormation =
           onlinePvp.role === 'host'
             ? onlinePvp.room.hostFormation
@@ -2133,7 +2179,7 @@ export function BattleSetupScreen({
         if (oppFormation && oppDeck) {
           setCpuSlots(formationToSlots(oppFormation, oppDeck));
         }
-        syncedBattleFormationRef.current = onlinePvp.room.id;
+        syncedBattleFormationRef.current = syncKey;
       }
     } else if (onlinePvp.room.status === 'setup') {
       syncedBattleFormationRef.current = null;
@@ -2143,10 +2189,15 @@ export function BattleSetupScreen({
           ? onlinePvp.room.hostSetupReady
           : onlinePvp.room.guestSetupReady;
       setSetupSubmitted(myReady);
+      if (myReady) {
+        setSelectedSlot(null);
+      }
       if (onlinePvp.room.setupStartedAt) {
         setTimeLeft(
           computeOnlineSetupSecondsRemaining(onlinePvp.room.setupStartedAt),
         );
+      } else {
+        setTimeLeft(SETUP_TIME_LIMIT_SEC);
       }
     } else if (
       onlinePvp.room.status === 'rematch_wait' ||
@@ -2307,6 +2358,7 @@ export function BattleSetupScreen({
         setTimeLeft(remaining);
         if (remaining <= 0 && !setupSubmitted) {
           setSetupSubmitted(true);
+          setSelectedSlot(null);
           onlinePvp.onSubmitSetup(cardsToFormation(playerSlots));
         }
       };
@@ -2320,6 +2372,7 @@ export function BattleSetupScreen({
         if (!setupSubmitted) {
           // eslint-disable-next-line react-hooks/set-state-in-effect -- 制限時間切れによる自動提出処理。カウントダウン state 機械の一部で、描画時導出に置き換えると二重提出などの不具合を招く
           setSetupSubmitted(true);
+          setSelectedSlot(null);
           onlinePvp.onSubmitSetup(cardsToFormation(playerSlots));
         }
         return;
@@ -2340,6 +2393,7 @@ export function BattleSetupScreen({
   ]);
 
   const handleSlotClick = (position: BoardPosition) => {
+    if (setupSubmitted) return;
     if (selectedSlot == null) {
       if (playerSlots[position]) {
         setSelectedSlot(position);
@@ -2381,6 +2435,7 @@ export function BattleSetupScreen({
     if (isOnlinePvp && onlinePvp) {
       if (setupSubmitted) return;
       setSetupSubmitted(true);
+      setSelectedSlot(null);
       onlinePvp.onSubmitSetup(cardsToFormation(playerSlots));
       return;
     }
@@ -2548,6 +2603,7 @@ export function BattleSetupScreen({
               selectedSlot={selectedSlot}
               playerIdentity={resolvedPlayerIdentity}
               onSlotClick={handleSlotClick}
+              readOnly={setupSubmitted}
             />
           )}
         </div>

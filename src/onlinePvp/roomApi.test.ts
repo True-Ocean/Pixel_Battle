@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { createBattleState } from '../game/battleState';
 import { enumerateBattleActionChoices } from '../game/actionChoices';
 import { autoCompleteForcedPromotions, nextPhaseAfterClash } from './onlineBattleAuthority';
@@ -6,8 +6,10 @@ import { resolveTurn } from '../game/resolveTurn';
 import type { Card } from '../types';
 import type { BattleActionChoice, BattleState } from '../types/battle';
 import {
+  ackOnlinePhaseTimerReady,
   submitOnlineBattleChoice,
   submitOnlinePromotion,
+  submitOnlineTimedOutAction,
 } from './roomApi';
 import type { OnlineBattleRoomRow } from './types';
 
@@ -69,6 +71,9 @@ function battleRow(
     battle_phase: 'select',
     last_clash: null,
     power_balance_applied: false,
+    host_phase_timer_ready: false,
+    guest_phase_timer_ready: false,
+    phase_timer_started_at: null,
     ...partial,
   };
 }
@@ -266,5 +271,59 @@ describe('roomApi battle phase chaining', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.message).toBe('昇格フェーズではありません');
+  });
+});
+
+describe('roomApi phase timer', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-05T04:00:00.000Z'));
+    const cards = Array.from({ length: 5 }, (_, i) => stub(`h${i}`, 100, 'attack'));
+    const cpu = Array.from({ length: 5 }, (_, i) => stub(`g${i}`, 100, 'attack'));
+    mockStore = createMockSupabase(
+      battleRow(createBattleState(cards, cpu), {
+        phase_timer_started_at: null,
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('片方の再生完了確認でタイマーが開始する', async () => {
+    const hostAck = await ackOnlinePhaseTimerReady('room-1', 'host', 1);
+    expect(hostAck.ok).toBe(true);
+    if (!hostAck.ok) return;
+    expect(hostAck.data.hostPhaseTimerReady).toBe(true);
+    expect(hostAck.data.phaseTimerStartedAt).toBe('2026-07-05T04:00:00.000Z');
+
+    const guestAck = await ackOnlinePhaseTimerReady('room-1', 'guest', 1);
+    expect(guestAck.ok).toBe(true);
+    if (!guestAck.ok) return;
+    expect(guestAck.data.guestPhaseTimerReady).toBe(true);
+    expect(guestAck.data.phaseTimerStartedAt).toBe('2026-07-05T04:00:00.000Z');
+  });
+
+  it('期限切れ後は待ち側が相手の自動行動を提出できる', async () => {
+    const state = mockStore.getRow().battle_state!;
+    const hostChoice = enumerateBattleActionChoices(state, 'player')[0]!;
+
+    mockStore = createMockSupabase(
+      battleRow(state, {
+        host_pending_action: hostChoice,
+        guest_pending_action: null,
+        host_phase_timer_ready: true,
+        guest_phase_timer_ready: true,
+        phase_timer_started_at: '2026-07-05T03:59:00.000Z',
+      }),
+    );
+
+    const result = await submitOnlineTimedOutAction('room-1', 'host');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.guestPendingAction).toBeNull();
+    expect(result.data.hostPendingAction).toBeNull();
+    expect(result.data.battleRevision).toBeGreaterThan(1);
   });
 });

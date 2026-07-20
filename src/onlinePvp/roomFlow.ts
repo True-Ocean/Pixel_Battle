@@ -22,6 +22,7 @@ export function shouldApplyOnlineRoomUpdate(
   current: OnlineBattleRoom | null,
   incoming: OnlineBattleRoom,
 ): boolean {
+  if (!incoming.id || !incoming.status) return false;
   if (!current || current.id !== incoming.id) return true;
   if (incoming.status !== current.status) return true;
   if (current.status === 'battle' && incoming.status === 'battle') {

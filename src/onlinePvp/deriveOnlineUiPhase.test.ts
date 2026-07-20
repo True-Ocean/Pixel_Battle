@@ -61,6 +61,9 @@ function battleRoom(
     battle_phase: 'select',
     last_clash: null,
     power_balance_applied: false,
+    host_phase_timer_ready: false,
+    guest_phase_timer_ready: false,
+    phase_timer_started_at: null,
     ...partial,
   });
 }
@@ -340,6 +343,9 @@ describe('buildOnlineBattleSessionView', () => {
         battle_phase: 'select',
         last_clash: null,
         power_balance_applied: false,
+        host_phase_timer_ready: false,
+        guest_phase_timer_ready: false,
+        phase_timer_started_at: null,
       }),
       role: 'host',
       promotionDraft: { from: null },

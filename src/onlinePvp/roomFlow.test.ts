@@ -42,6 +42,9 @@ function room(partial: Partial<OnlineBattleRoom>): OnlineBattleRoom {
     battlePhase: 'select',
     lastClash: null,
     powerBalanceApplied: false,
+    hostPhaseTimerReady: false,
+    guestPhaseTimerReady: false,
+    phaseTimerStartedAt: null,
     ...partial,
   };
 }
@@ -142,5 +145,27 @@ describe('shouldApplyOnlineRoomUpdate', () => {
     const current = room({ status: 'battle', battleRevision: 5 });
     const next = room({ status: 'rematch_wait', battleRevision: 5 });
     expect(shouldApplyOnlineRoomUpdate(current, next)).toBe(true);
+  });
+
+  it('status 欠落の不完全な更新は拒否する', () => {
+    const current = room({
+      status: 'battle',
+      battleRevision: 2,
+      updatedAt: '2026-01-02T00:00:00.000Z',
+      battleState: {
+        player: [],
+        cpu: [],
+        turn: 3,
+        log: [],
+        events: [],
+      },
+    });
+    const incomplete = room({
+      status: '' as OnlineBattleRoom['status'],
+      battleRevision: 2,
+      updatedAt: '2026-01-02T00:00:03.000Z',
+      battleState: null,
+    });
+    expect(shouldApplyOnlineRoomUpdate(current, incomplete)).toBe(false);
   });
 });
