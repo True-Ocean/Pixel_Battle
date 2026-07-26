@@ -515,6 +515,10 @@ export function hydrateSaveFromParsed(
     shopPurchase: normalizeShopPurchaseState(parsed.shopPurchase),
     subscription: normalizeUserSubscription(parsed.subscription),
     missionState: applyMissionResets(normalizeMissionState(parsed.missionState)),
+    attributeEventGacha: syncAttributeEventGachaOnLoad(
+      parsed.attributeEventGacha as SaveData['attributeEventGacha'],
+      user?.level ?? 1,
+    ),
     soundEnabled: normalizeSoundEnabled(parsed.soundEnabled),
     deckIntroSeen: parsed.deckIntroSeen === true,
     publishedDeckSlots: normalizePublishedDeckSlots(parsed.publishedDeckSlots),
@@ -613,6 +617,12 @@ function mergeWithStoredSave(data: SaveData): SaveData {
       missionState:
         data.missionState ??
         applyMissionResets(normalizeMissionState(stored.missionState)),
+      attributeEventGacha:
+        data.attributeEventGacha ??
+        syncAttributeEventGachaOnLoad(
+          stored.attributeEventGacha as SaveData['attributeEventGacha'],
+          data.user?.level ?? 1,
+        ),
       soundEnabled:
         data.soundEnabled ?? normalizeSoundEnabled(stored.soundEnabled),
       deckIntroSeen:
@@ -697,6 +707,10 @@ export function serializeSaveForStorage(data: SaveData): Record<string, unknown>
   }
   payload.missionState = applyMissionResets(
     normalizeMissionState(data.missionState),
+  );
+  payload.attributeEventGacha = syncAttributeEventGachaOnLoad(
+    data.attributeEventGacha,
+    data.user?.level ?? 1,
   );
   if (data.soundEnabled === true) {
     payload.soundEnabled = true;

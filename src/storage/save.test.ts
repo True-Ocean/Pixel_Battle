@@ -3,6 +3,7 @@ import { createEmptyDeckSlots } from '../deckSlots';
 import { createInitialEconomy } from '../user/economy';
 import { createInitialInventory } from '../user/inventory';
 import { createInitialAdState } from '../user/adState';
+import { totalExpForLevel } from '../user';
 import { saveSave, loadSave, SAVE_SCHEMA_VERSION, BP_CALC_VERSION } from './index';
 import type { Card } from '../types';
 
@@ -209,5 +210,75 @@ describe('loadSave BP recalc', () => {
     const loaded = loadSave();
     expect(loaded.decks[0]![0]?.bp).toBe(432);
     expect(loaded.bpCalcVersion).toBe(BP_CALC_VERSION);
+  });
+});
+
+describe('loadSave attributeEventGacha', () => {
+  beforeEach(() => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: createLocalStorageMock(),
+    });
+  });
+
+  it('期間限定ガチャの天井カウントを保存・復元する', () => {
+    saveSave({
+      ...baseSave(),
+      user: {
+        ...baseSave().user!,
+        level: 49,
+        exp: totalExpForLevel(49),
+      },
+      attributeEventGacha: {
+        featuredAttribute: 'illuminate',
+        pityMissCount: 6,
+      },
+    });
+
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(stored.attributeEventGacha).toEqual({
+      featuredAttribute: 'illuminate',
+      pityMissCount: 6,
+    });
+
+    const loaded = loadSave();
+    expect(loaded.attributeEventGacha).toEqual({
+      featuredAttribute: 'illuminate',
+      pityMissCount: 6,
+    });
+  });
+
+  it('他フィールドだけの部分セーブでも天井カウントを落とさない', () => {
+    saveSave({
+      ...baseSave(),
+      user: {
+        ...baseSave().user!,
+        level: 49,
+        exp: totalExpForLevel(49),
+      },
+      attributeEventGacha: {
+        featuredAttribute: 'illuminate',
+        pityMissCount: 6,
+      },
+    });
+
+    saveSave({
+      ...baseSave(),
+      user: {
+        ...baseSave().user!,
+        level: 49,
+        exp: totalExpForLevel(49),
+      },
+      economy: { freePixels: 100, jewels: 3 },
+      attributeEventGacha: {
+        featuredAttribute: 'illuminate',
+        pityMissCount: 6,
+      },
+    });
+
+    expect(loadSave().attributeEventGacha).toEqual({
+      featuredAttribute: 'illuminate',
+      pityMissCount: 6,
+    });
   });
 });

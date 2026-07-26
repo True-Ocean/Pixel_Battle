@@ -31,6 +31,14 @@ describe('eventAttributeGacha', () => {
     expect(synced).toEqual({ featuredAttribute: 'heal', pityMissCount: 0 });
   });
 
+  it('keeps pity when binding featured for the first time', () => {
+    const synced = syncAttributeEventGachaState(
+      { featuredAttribute: null, pityMissCount: 4 },
+      21,
+    );
+    expect(synced).toEqual({ featuredAttribute: 'poison', pityMissCount: 4 });
+  });
+
   it('forces featured attribute on pity', () => {
     const result = rollEventAttributeGacha(21, 9, () => 0.99);
     expect(result.attribute).toBe('poison');

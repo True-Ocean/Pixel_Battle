@@ -12186,6 +12186,30 @@ button.battle-hub-deck-icon.is-move-target {
   justify-content: center;
 }
 
+.attribute-gacha-roll-grid--single .attribute-gacha-roll-slot {
+  /* 5連と同じ1マス幅（列5・gap 0.35rem）に揃える */
+  width: calc((100% - 1.4rem) / 5);
+  max-width: 3.2rem;
+  flex: 0 0 auto;
+}
+
+.attribute-gacha-spend-confirm-message {
+  white-space: pre-line;
+  text-align: center;
+}
+
+.attribute-gacha-spend-confirm-cost-line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
+.attribute-gacha-spend-confirm-balance {
+  display: block;
+  text-align: center;
+}
+
 .attribute-gacha-roll-grid--revealed {
   margin-top: 0.65rem;
   margin-bottom: 0;

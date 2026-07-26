@@ -65,16 +65,22 @@ export function isEventAttributeGachaAvailable(userLevel: number): boolean {
   return getEventGachaFeaturedAttribute(userLevel) != null;
 }
 
-/** フィーチャー変更時は天井をリセット */
+/** フィーチャー変更時は天井をリセット（初回の null→紐付けはカウント維持） */
 export function syncAttributeEventGachaState(
   state: AttributeEventGachaState,
   userLevel: number,
 ): AttributeEventGachaState {
   const featured = getEventGachaFeaturedAttribute(userLevel);
-  if (featured !== state.featuredAttribute) {
-    return { featuredAttribute: featured, pityMissCount: 0 };
+  if (featured === state.featuredAttribute) {
+    return state;
   }
-  return state;
+  if (state.featuredAttribute == null && featured != null) {
+    return {
+      featuredAttribute: featured,
+      pityMissCount: state.pityMissCount,
+    };
+  }
+  return { featuredAttribute: featured, pityMissCount: 0 };
 }
 
 /**

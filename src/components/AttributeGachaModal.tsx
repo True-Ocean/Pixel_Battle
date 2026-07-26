@@ -30,10 +30,16 @@ import type {
 import { AttributeBadge } from './AttributeBadge';
 import { HelpInfoButton } from './HelpInfoButton';
 import { HelpPanelModal } from './HelpPanelModal';
-import { JewelAmount } from './JewelIcon';
+import { JewelAmount, JewelIcon } from './JewelIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
 
-type GachaPhase = 'modePick' | 'revealing' | 'pick' | 'confirmPick' | 'done';
+type GachaPhase =
+  | 'modePick'
+  | 'spendConfirm'
+  | 'revealing'
+  | 'pick'
+  | 'confirmPick'
+  | 'done';
 
 const SPIN_INTERVAL_MS = 90;
 const SPIN_TICKS = 18;
@@ -41,6 +47,13 @@ const SPIN_TICKS = 18;
 const REVEAL_PAUSE_MS = 450;
 /** 最後の抽選確定後、結果選択へ進むまでの間（確定演出を見せる） */
 const FINAL_REVEAL_PAUSE_MS = 900;
+
+function pixelPullsForMode(mode: AttributeGachaMode): AttributeGachaPulls | null {
+  if (mode === 'single') return 1;
+  if (mode === 'multi5') return 5;
+  if (mode === 'multi10') return 10;
+  return null;
+}
 
 interface ModeOption {
   mode: AttributeGachaMode;
@@ -362,12 +375,19 @@ export function AttributeGachaModal({
       setPhase('confirmPick');
       return;
     }
-    if (mode === 'event') {
+    setActiveMode(mode);
+    setError(null);
+    setPhase('spendConfirm');
+  };
+
+  const handleSpendConfirm = () => {
+    if (activeMode === 'event') {
       runEventGacha();
       return;
     }
-    const pulls = mode === 'single' ? 1 : mode === 'multi5' ? 5 : 10;
-    runPixelGacha(pulls, mode);
+    const pulls = pixelPullsForMode(activeMode);
+    if (pulls == null) return;
+    runPixelGacha(pulls, activeMode);
   };
 
   const applyResolve = (keepIndex: number | null) => {
@@ -446,16 +466,14 @@ export function AttributeGachaModal({
       setPhase('confirmPick');
       return;
     }
-    if (activeMode === 'event') {
-      runEventGacha();
-      return;
-    }
-    const pulls = activeMode === 'single' ? 1 : activeMode === 'multi5' ? 5 : 10;
-    runPixelGacha(pulls, activeMode);
+    setPhase('spendConfirm');
   };
 
   const canClose =
-    phase === 'modePick' || phase === 'confirmPick' || phase === 'done';
+    phase === 'modePick' ||
+    phase === 'spendConfirm' ||
+    phase === 'confirmPick' ||
+    phase === 'done';
 
   const handleClose = () => {
     if (!canClose) return;
@@ -466,23 +484,46 @@ export function AttributeGachaModal({
   const totalPulls = startResult?.rolls.length ?? 0;
   const currentAttribute =
     startResult?.previousAttribute ?? card.attribute;
+  const spendConfirmIsEvent = activeMode === 'event';
+  const spendConfirmOption =
+    modeOptions.find((option) => option.mode === activeMode) ??
+    BASE_MODE_OPTIONS[0]!;
+  const spendConfirmPulls = spendConfirmIsEvent
+    ? 1
+    : (pixelPullsForMode(activeMode) ?? 1);
+  const spendConfirmCost = spendConfirmIsEvent
+    ? eventJewelCost
+    : getAttributeGachaPixelCost(spendConfirmPulls);
+  const spendConfirmNextBalance = Math.max(
+    0,
+    (spendConfirmIsEvent ? jewels : freePixels) - spendConfirmCost,
+  );
+  const spendConfirmAffordable = spendConfirmIsEvent
+    ? canAffordEvent
+    : canAffordAttributeGachaPixels({ freePixels }, spendConfirmPulls);
+  const spendConfirmBalanceLabel = spendConfirmIsEvent
+    ? `所持ジュエル ${jewels.toLocaleString()} から ${spendConfirmNextBalance.toLocaleString()} に変わります`
+    : `所持ピクセル ${freePixels.toLocaleString()} から ${spendConfirmNextBalance.toLocaleString()} に変わります`;
+  const spendConfirmCurrentBalance = spendConfirmIsEvent ? jewels : freePixels;
 
   const phaseTitle =
     phase === 'modePick'
       ? '属性ガチャ'
-      : phase === 'revealing'
-        ? totalPulls > 1
-          ? `抽選中 ${Math.min(revealedCount + 1, totalPulls)} / ${totalPulls}`
-          : activeMode === 'event'
-            ? '期間限定ガチャ抽選中！'
-            : '属性ガチャ抽選中！'
-        : phase === 'pick'
-          ? '結果を選ぶ'
-          : phase === 'confirmPick'
-            ? '確定'
-            : done?.kind === 'kept'
-              ? '現状維持'
-              : '属性変更！';
+      : phase === 'spendConfirm'
+        ? spendConfirmOption.subtitle
+        : phase === 'revealing'
+          ? totalPulls > 1
+            ? `抽選中 ${Math.min(revealedCount + 1, totalPulls)} / ${totalPulls}`
+            : activeMode === 'event'
+              ? '期間限定ガチャ抽選中！'
+              : '属性ガチャ抽選中！'
+          : phase === 'pick'
+            ? '結果を選ぶ'
+            : phase === 'confirmPick'
+              ? '確定'
+              : done?.kind === 'kept'
+                ? '現状維持'
+                : '属性変更！';
 
   const againAffordable =
     activeMode === 'confirm'
@@ -491,7 +532,7 @@ export function AttributeGachaModal({
         ? canAffordEvent
         : canAffordAttributeGachaPixels(
             { freePixels },
-            activeMode === 'single' ? 1 : activeMode === 'multi5' ? 5 : 10,
+            pixelPullsForMode(activeMode) ?? 1,
           );
 
   const againCostNode =
@@ -512,7 +553,7 @@ export function AttributeGachaModal({
         <PixelCoinIcon className="attribute-edit-confirm-icon" />
         <span>
           {getAttributeGachaPixelCost(
-            activeMode === 'single' ? 1 : activeMode === 'multi5' ? 5 : 10,
+            pixelPullsForMode(activeMode) ?? 1,
           ).toLocaleString()}
         </span>
       </span>
@@ -612,12 +653,19 @@ export function AttributeGachaModal({
             ? 'attribute-edit-panel--retouch-result'
             : '',
           phase === 'confirmPick' ? 'attribute-select-panel' : '',
-          phase === 'modePick' || phase === 'pick' || phase === 'revealing'
+          phase === 'modePick' ||
+          phase === 'spendConfirm' ||
+          phase === 'pick' ||
+          phase === 'revealing'
             ? 'attribute-gacha-panel'
             : '',
           phase === 'modePick' ? 'attribute-gacha-panel--mode-pick' : '',
           phase === 'modePick' ? selectedModeOption.toneClass : '',
+          phase === 'spendConfirm' ? spendConfirmOption.toneClass : '',
           phase === 'modePick' && !selectedModeAffordable
+            ? 'attribute-gacha-panel--pending'
+            : '',
+          phase === 'spendConfirm' && !spendConfirmAffordable
             ? 'attribute-gacha-panel--pending'
             : '',
         ]
@@ -735,6 +783,68 @@ export function AttributeGachaModal({
                   />
                 ))}
               </div>
+            </div>
+          </>
+        )}
+
+        {phase === 'spendConfirm' && (
+          <>
+            <p className="attribute-edit-message attribute-gacha-spend-confirm-message">
+              <span className="attribute-gacha-spend-confirm-cost-line">
+                {spendConfirmIsEvent ? (
+                  <JewelIcon className="attribute-edit-confirm-icon" />
+                ) : (
+                  <PixelCoinIcon className="attribute-edit-confirm-icon" />
+                )}
+                <span>{spendConfirmCost.toLocaleString()}を使用して</span>
+              </span>
+              {`\nガチャを${spendConfirmPulls}回引きます。\nよろしいですか？\n`}
+              <span
+                className="attribute-gacha-spend-confirm-balance"
+                aria-label={spendConfirmBalanceLabel}
+              >
+                <span className="attribute-gacha-spend-confirm-cost-line">
+                  <span>（</span>
+                  {spendConfirmIsEvent ? (
+                    <JewelIcon className="attribute-edit-confirm-icon" />
+                  ) : (
+                    <PixelCoinIcon className="attribute-edit-confirm-icon" />
+                  )}
+                  <span>
+                    {spendConfirmCurrentBalance.toLocaleString()}
+                    {' → '}
+                    {spendConfirmNextBalance.toLocaleString()}
+                  </span>
+                  <span>）</span>
+                </span>
+              </span>
+            </p>
+            {error && (
+              <p className="attribute-edit-error" role="alert">
+                {error}
+              </p>
+            )}
+            <div className="attribute-edit-actions attribute-edit-actions--equal">
+              <button
+                type="button"
+                className="attribute-edit-cancel"
+                onClick={() => {
+                  setPhase('modePick');
+                  setError(null);
+                }}
+              >
+                戻る
+              </button>
+              <button
+                type="button"
+                className={`attribute-edit-confirm${
+                  spendConfirmAffordable ? '' : ' attribute-edit-confirm--pending'
+                }`}
+                disabled={!spendConfirmAffordable}
+                onClick={handleSpendConfirm}
+              >
+                ガチャを引く！
+              </button>
             </div>
           </>
         )}
