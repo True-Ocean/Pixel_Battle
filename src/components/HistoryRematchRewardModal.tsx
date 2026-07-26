@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Card } from '../types';
 import { CardPreview } from './CardPreview';
+import { AdIcon } from './AdIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
 
 interface HistoryRematchRewardModalProps {
@@ -145,7 +146,8 @@ export function HistoryRematchRewardModal({
               className="graveyard-pick-double-ad"
               onClick={onRequestVictoryDoubleAd}
             >
-              報酬2倍 🎬
+              報酬2倍
+              <AdIcon className="graveyard-pick-ad-icon" />
             </button>
           )}
       </div>

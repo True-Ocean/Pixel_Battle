@@ -118,7 +118,7 @@ export interface DeckScreenProps {
   onUnequipTalisman: (cardId: string) => void;
   showLostCardDeckNotice?: boolean;
   onDismissLostCardDeckNoticeForToday?: () => void;
-  /** ライト / プレ: 編集入室 CM スキップ（🎬 非表示） */
+  /** ライト / プレ: 編集入室 CM スキップ（AD アイコン非表示） */
   skipsCreativeAd?: boolean;
   onBattleGuideOpen?: () => void;
   /** 公開デッキ戦用: このスロットを公開中か */

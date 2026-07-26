@@ -18,6 +18,7 @@ import type {
   AttributeGachaResolveOutcome,
   AttributeGachaStartOutcome,
 } from './attributeGachaTypes';
+import { AdIcon } from './AdIcon';
 import { PixelCoinIcon } from './PixelCoinIcon';
 import { JewelAmount } from './JewelIcon';
 import { DeckCardDetailCard } from './DeckCardDetailCard';
@@ -79,7 +80,7 @@ interface DeckCardDetailOverlayProps {
   showTalismanUi?: boolean;
   unusedTalismanCount?: number;
   onTalismanPress?: () => void;
-  /** ライト / プレ: 編集入室 CM スキップ（🎬 非表示） */
+  /** ライト / プレ: 編集入室 CM スキップ（AD アイコン非表示） */
   skipsCreativeAd?: boolean;
   onBattleGuideOpen?: () => void;
   /** プレミアム: カードノート編集可 */
@@ -287,7 +288,14 @@ export function DeckCardDetailOverlay({
           ) : (
             <>
               <button type="button" className="deck-card-detail-edit" onClick={onEdit}>
-                {skipsCreativeAd ? '編集' : '編集　🎬'}
+                {skipsCreativeAd ? (
+                  '編集'
+                ) : (
+                  <>
+                    編集
+                    <AdIcon className="deck-card-detail-ad-icon" />
+                  </>
+                )}
               </button>
               {showLimitBreak && (
                 <button

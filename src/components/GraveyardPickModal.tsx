@@ -7,6 +7,7 @@ import {
 } from '../config/economy';
 import { getRarityMeta } from '../config/rarity';
 import type { Attribute, Card } from '../types';
+import { AdIcon } from './AdIcon';
 import { AttributeBadge } from './AttributeBadge';
 import { CardPreview } from './CardPreview';
 import { ExpIcon } from './ExpIcon';
@@ -256,7 +257,8 @@ export function GraveyardPickModal({
             className="graveyard-pick-double-ad"
             onClick={() => onRequestVictoryDoubleAd(selected)}
           >
-            報酬2倍 🎬
+            報酬2倍
+            <AdIcon className="graveyard-pick-ad-icon" />
           </button>
         )}
       </div>

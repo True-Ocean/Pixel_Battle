@@ -279,7 +279,9 @@ export function BattleCard({
               className="battle-card-buff-icon battle-card-buff-poison"
               title={`毒×${poisonStackCount}（毎ターン${poisonDamagePerTurn}）`}
             >
-              ☠{poisonStackCount > 1 ? poisonStackCount : ''}
+              <span className="battle-card-buff-poison-mark">
+                ☠{poisonStackCount > 1 ? poisonStackCount : ''}
+              </span>
             </span>
           )}
         </div>
