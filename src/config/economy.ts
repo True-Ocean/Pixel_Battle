@@ -86,7 +86,16 @@ export const JEWEL_COST_PALETTE_SHOP_TIER2 = 100;
 /** 追加色パレット tier2（薄色系8色）の px コスト */
 export const PIXEL_COST_PALETTE_SHOP_TIER2 = 2200;
 
-/** 限界突破1回に必要なかけら数（現在レア度別。専用＋汎用の合計） */
+/** 汎用かけら → 属性かけら交換レート（汎用 N 個で属性 1 個） */
+export const UNIVERSAL_TO_ATTRIBUTE_SHARD_RATIO = 2;
+
+/** 属性かけら → 汎用かけら交換レート（属性 1 個で汎用 N 個） */
+export const ATTRIBUTE_TO_UNIVERSAL_SHARD_RATIO = 2;
+
+/** 属性→汎用の溶解手数料（得た汎用 1 個あたりの px） */
+export const ATTRIBUTE_MELT_FEE_PX_PER_UNIVERSAL = 10;
+
+/** 限界突破1回に必要なかけら数（現在レア度別。属性かけらのみ） */
 export const LIMIT_BREAK_SHARDS_REQUIRED_BY_RARITY: Record<
   Extract<CardRarity, 'N' | 'R' | 'SR' | 'UR' | 'L'>,
   number
@@ -159,7 +168,8 @@ export const BATTLE_DAILY_RESET_TIMEZONE = 'Asia/Tokyo';
 export const SHOP_DAILY_RESET_TIMEZONE = BATTLE_DAILY_RESET_TIMEZONE;
 
 /** 護符購入価格（px のみ） */
-export const SHOP_TALISMAN_PX = 1500;
+/** @deprecated 護符は `TALISMAN_PACKS`（shop.ts）を使用。互換のため最小パック価格を残す */
+export const SHOP_TALISMAN_PX = 1000;
 
 /** 開発用モックジュエルパック */
 export const MOCK_JEWEL_PACK_SMALL = 500;

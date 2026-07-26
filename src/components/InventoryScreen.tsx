@@ -6,7 +6,8 @@ import { UniversalShardIcon } from './UniversalShardIcon';
 
 const ALL_ATTRIBUTES = Object.keys(ATTRIBUTE_META) as Attribute[];
 const SHARD_NAME_SUFFIX = 'のかけら';
-const SHARD_SECTION_HINT = 'カードの限界突破のために消費する素材';
+const SHARD_SECTION_HINT =
+  '属性かけらは限界突破用。汎用はショップで属性かけらに交換';
 
 function formatItemCount(count: number): string {
   return `${count.toLocaleString()}個`;

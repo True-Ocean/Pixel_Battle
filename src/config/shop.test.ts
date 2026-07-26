@@ -4,12 +4,14 @@ import {
   SUBSCRIPTION_PLANS,
   SUBSCRIPTION_PERIOD_MS,
   SUBSCRIPTION_UPGRADE_LIGHT_TO_PREMIUM_YEN,
+  TALISMAN_PACKS,
   UNIVERSAL_SHARD_PACKS,
   calcProratedUpgradePriceYen,
   calcSubscriptionRemainingDays,
   calcSubscriptionRemainingRatio,
   formatJewelPackLabel,
   formatShardPackLabel,
+  formatTalismanPackLabel,
   getJewelPackImageFile,
   subscriptionMonthlyGrantDelta,
   totalJewelsInPack,
@@ -34,7 +36,12 @@ describe('shop catalog', () => {
     ]);
   });
 
-  it('defines three universal shard packs', () => {
+  it('defines three talisman packs and three universal shard packs', () => {
+    expect(TALISMAN_PACKS).toHaveLength(3);
+    expect(TALISMAN_PACKS.map((pack) => pack.pixelCost)).toEqual([
+      1000, 1800, 2500,
+    ]);
+    expect(TALISMAN_PACKS.map((pack) => pack.count)).toEqual([1, 2, 3]);
     expect(UNIVERSAL_SHARD_PACKS).toHaveLength(3);
     expect(totalShardsInPack(UNIVERSAL_SHARD_PACKS[0]!)).toBe(10);
     expect(totalShardsInPack(UNIVERSAL_SHARD_PACKS[2]!)).toBe(55);
@@ -48,6 +55,7 @@ describe('shop catalog', () => {
     expect(formatJewelPackLabel(JEWEL_PACKS[1]!)).toBe('250個+おまけ30個');
     expect(formatShardPackLabel(UNIVERSAL_SHARD_PACKS[0]!)).toBe('10個');
     expect(formatShardPackLabel(UNIVERSAL_SHARD_PACKS[1]!)).toBe('20個+おまけ5個');
+    expect(formatTalismanPackLabel(TALISMAN_PACKS[1]!)).toBe('×2');
   });
 
   it('defines subscription plans', () => {

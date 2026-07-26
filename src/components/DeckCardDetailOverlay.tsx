@@ -51,7 +51,6 @@ interface DeckCardDetailOverlayProps {
   freePixels: number;
   reviveCost: number;
   attributeShardCount: number;
-  universalShardCount: number;
   jewels: number;
   onClose: () => void;
   onEdit: () => void;
@@ -85,7 +84,6 @@ export function DeckCardDetailOverlay({
   freePixels,
   reviveCost,
   attributeShardCount,
-  universalShardCount,
   jewels,
   onClose,
   onEdit,
@@ -381,7 +379,6 @@ export function DeckCardDetailOverlay({
         open={limitBreakModalOpen}
         card={card}
         attributeShardCount={attributeShardCount}
-        universalShardCount={universalShardCount}
         jewels={jewels}
         onClose={() => setLimitBreakModalOpen(false)}
         onConfirm={onLimitBreak}

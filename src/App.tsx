@@ -50,7 +50,7 @@ import {
   syncPermanentOwnershipAchievements,
 } from './mission/permanentAchievementProgress';
 import { loadSave, saveSave, SAVE_SCHEMA_VERSION, clearLocalSave } from './storage';
-import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, setMemoryAlbumUnlockedRows, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, canRenameCardForFree, canRenameDeck, getActiveSubscriptionPlan, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
+import { calcBattleExpGainForUser, createInitialProfile, createInitialEconomy, createInitialInventory, createInitialAdState, isProfileComplete, recordUserBattleOutcome, grantBattleExp, applyLevelUpEconomyRewards, applyLevelUpInventoryRewards, totalExpForLevel, addFreePixels, spendFreePixels, setFreePixels, setJewels, addLimitBreakShards, addInventoryCount, spendLimitBreakResources, spendJewels, getUniformAttributeShardsCount, setAllAttributeLimitBreakShards, setTalismanCount, setUniversalLimitBreakShards, exchangeUniversalToAttribute, meltAttributeToUniversal, isNormalBattleAdsEnabledAtUserLevel, shouldRequireBattleStartAd, shouldShowHistoryRematchRulesModal, dismissHistoryRematchRulesForToday, shouldShowLostCardDeckNoticeModal, dismissLostCardDeckNoticeForToday, addCardToMemoryAlbum, createInitialMemoryAlbum, memoryAlbumHasSpace, removeCardFromMemoryAlbumById, setMemoryAlbumUnlockedRows, unlockMemoryAlbumRow, devSetSubscriptionPlan, formatSubscriptionPlanLabel, canEditCardUserNote, canRenameCardForFree, canRenameDeck, getActiveSubscriptionPlan, hasPremiumAlwaysDouble, skipsBattleStartAd, skipsCreativeAd } from './user';
 import { prepareHistoryOpponentDeck } from './historyRematch';
 import {
   canPublishDeck,
@@ -100,12 +100,12 @@ import {
 } from './config/editorShop';
 import { normalizePaletteShopUnlocks } from './config/paletteUnlock';
 import { crossedTalismanStarterLevel, isLossEnabledAtUserLevel, shouldGrantTalismanStarterOnDevSetLevel, tryGrantTalismanStarter } from './user/talismanStarter';
-import type { JewelPackId, ShopTabId, UniversalShardPackId } from './config/shop';
+import type { JewelPackId, ShopTabId, TalismanPackId, UniversalShardPackId } from './config/shop';
 import {
   createInitialShopPurchaseState,
   createInitialSubscription,
   mockPurchaseJewelPack,
-  mockPurchaseTalisman,
+  mockPurchaseTalismanPack,
   mockPurchaseUniversalShardPack,
   mockSubscribe,
   mockCancelSubscription,
@@ -1207,16 +1207,20 @@ function App() {
     [applyShopPurchaseResult],
   );
 
-  const handlePurchaseTalisman = useCallback(() => {
-    const result = mockPurchaseTalisman(
-      economyRef.current,
-      inventoryRef.current,
-      shopPurchaseRef.current,
-      subscriptionRef.current,
-    );
-    if (result) applyShopPurchaseResult(result);
-    else setShopPurchaseMessage(<><HelpInlinePxIcon />が足りません。</>);
-  }, [applyShopPurchaseResult]);
+  const handlePurchaseTalismanPack = useCallback(
+    (packId: TalismanPackId) => {
+      const result = mockPurchaseTalismanPack(
+        economyRef.current,
+        inventoryRef.current,
+        shopPurchaseRef.current,
+        subscriptionRef.current,
+        packId,
+      );
+      if (result) applyShopPurchaseResult(result);
+      else setShopPurchaseMessage(<><HelpInlinePxIcon />が足りません。</>);
+    },
+    [applyShopPurchaseResult],
+  );
 
   const handlePurchaseUniversalShard = useCallback(
     (packId: UniversalShardPackId) => {
@@ -1228,9 +1232,61 @@ function App() {
         packId,
       );
       if (result) applyShopPurchaseResult(result);
-      else setShopPurchaseMessage(<>購入できません（<HelpInlinePxIcon />不足または本日の上限）。</>);
+      else setShopPurchaseMessage(<><HelpInlinePxIcon />が足りません。</>);
     },
     [applyShopPurchaseResult],
+  );
+
+  const handleExchangeUniversalToAttribute = useCallback(
+    (attribute: Attribute, attributeAmount: number) => {
+      const userLevel = userRef.current?.level ?? 1;
+      if (!isAttributeUnlockedAtLevel(attribute, userLevel)) {
+        setShopPurchaseMessage(<>未解放の属性には交換できません。</>);
+        return;
+      }
+      const nextInventory = exchangeUniversalToAttribute(
+        inventoryRef.current,
+        attribute,
+        attributeAmount,
+      );
+      if (!nextInventory) {
+        setShopPurchaseMessage(<>汎用かけらが足りません。</>);
+        return;
+      }
+      persistSave({ inventory: nextInventory });
+      setInventory(nextInventory);
+      inventoryRef.current = nextInventory;
+      setShopPurchaseMessage(
+        <>属性かけら ×{attributeAmount.toLocaleString()} に交換しました。</>,
+      );
+    },
+    [persistSave],
+  );
+
+  const handleMeltAttributeToUniversal = useCallback(
+    (attribute: Attribute, attributeAmount: number) => {
+      const result = meltAttributeToUniversal(
+        inventoryRef.current,
+        economyRef.current,
+        attribute,
+        attributeAmount,
+      );
+      if (!result) {
+        setShopPurchaseMessage(
+          <>交換できません（属性かけらまたは<HelpInlinePxIcon />不足）。</>,
+        );
+        return;
+      }
+      persistSave({ inventory: result.inventory, economy: result.economy });
+      setInventory(result.inventory);
+      setEconomy(result.economy);
+      inventoryRef.current = result.inventory;
+      economyRef.current = result.economy;
+      setShopPurchaseMessage(
+        <>汎用かけらに交換しました。</>,
+      );
+    },
+    [persistSave],
   );
 
   const handleSubscribe = useCallback(
@@ -4288,11 +4344,14 @@ function App() {
             inventory={inventory}
             shopPurchase={shopPurchase}
             subscription={subscription}
+            userLevel={user?.level ?? 1}
             initialTab={shopInitialTab}
             purchaseMessage={shopPurchaseMessage}
             onPurchaseJewelPack={handlePurchaseJewelPack}
-            onPurchaseTalisman={handlePurchaseTalisman}
+            onPurchaseTalismanPack={handlePurchaseTalismanPack}
             onPurchaseUniversalShard={handlePurchaseUniversalShard}
+            onExchangeUniversalToAttribute={handleExchangeUniversalToAttribute}
+            onMeltAttributeToUniversal={handleMeltAttributeToUniversal}
             onSubscribe={handleSubscribe}
             onCancelSubscribe={handleCancelSubscribe}
             onDismissPurchaseMessage={() => setShopPurchaseMessage(null)}

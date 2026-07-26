@@ -9,6 +9,9 @@ export type JewelPackId =
 /** 汎用かけら px パック ID */
 export type UniversalShardPackId = 'shard10' | 'shard25' | 'shard55';
 
+/** 護符 px パック ID */
+export type TalismanPackId = 'talisman1' | 'talisman2' | 'talisman3';
+
 /** サブスクリプションプラン（none = 未加入） */
 export type SubscriptionPlanId = 'none' | 'light' | 'premium';
 
@@ -28,6 +31,12 @@ export interface UniversalShardPackDefinition {
   pixelCost: number;
   baseShards: number;
   bonusShards: number;
+}
+
+export interface TalismanPackDefinition {
+  id: TalismanPackId;
+  pixelCost: number;
+  count: number;
 }
 
 export interface SubscriptionPlanDefinition {
@@ -52,6 +61,12 @@ export const JEWEL_PACKS: readonly JewelPackDefinition[] = [
   { id: 'pack1000', priceYen: 1000, baseJewels: 500, bonusJewels: 80 },
   { id: 'pack2000', priceYen: 2000, baseJewels: 1000, bonusJewels: 200 },
   { id: 'pack4000', priceYen: 4000, baseJewels: 2000, bonusJewels: 500 },
+] as const;
+
+export const TALISMAN_PACKS: readonly TalismanPackDefinition[] = [
+  { id: 'talisman1', pixelCost: 1000, count: 1 },
+  { id: 'talisman2', pixelCost: 1800, count: 2 },
+  { id: 'talisman3', pixelCost: 2500, count: 3 },
 ] as const;
 
 export const UNIVERSAL_SHARD_PACKS: readonly UniversalShardPackDefinition[] = [
@@ -170,6 +185,12 @@ export function getUniversalShardPackById(
   return pack;
 }
 
+export function getTalismanPackById(id: TalismanPackId): TalismanPackDefinition {
+  const pack = TALISMAN_PACKS.find((entry) => entry.id === id);
+  if (!pack) throw new Error(`Unknown talisman pack: ${id}`);
+  return pack;
+}
+
 export function totalJewelsInPack(pack: JewelPackDefinition): number {
   return pack.baseJewels + pack.bonusJewels;
 }
@@ -195,4 +216,8 @@ export function formatShardPackLabel(pack: UniversalShardPackDefinition): string
     return `${pack.baseShards}個+おまけ${pack.bonusShards}個`;
   }
   return `${pack.baseShards}個`;
+}
+
+export function formatTalismanPackLabel(pack: TalismanPackDefinition): string {
+  return `×${pack.count}`;
 }

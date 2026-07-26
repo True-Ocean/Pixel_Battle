@@ -1,6 +1,7 @@
 import {
   getJewelPackById,
   getSubscriptionPlanById,
+  getTalismanPackById,
   getUniversalShardPackById,
   SUBSCRIPTION_PERIOD_MS,
   calcProratedUpgradePriceYen,
@@ -11,9 +12,9 @@ import {
   totalShardsInPack,
   type JewelPackId,
   type SubscriptionPlanId,
+  type TalismanPackId,
   type UniversalShardPackId,
 } from '../config/shop';
-import { SHOP_TALISMAN_PX } from '../config/economy';
 import {
   formatSubscriptionPlanLabel,
   getActiveSubscriptionPlan,
@@ -269,22 +270,40 @@ export function mockPurchaseJewelPack(
   };
 }
 
+export function mockPurchaseTalismanPack(
+  economy: UserEconomy,
+  inventory: UserInventory,
+  shopPurchase: ShopPurchaseState,
+  subscription: UserSubscription,
+  packId: TalismanPackId,
+): ShopPurchaseResult | null {
+  const pack = getTalismanPackById(packId);
+  const spent = spendFreePixels(economy, pack.pixelCost);
+  if (!spent) return null;
+  return {
+    economy: spent,
+    inventory: addInventoryCount(inventory, 'talisman', pack.count),
+    shopPurchase,
+    subscription,
+    message: `護符を${pack.count}枚購入しました`,
+    messagePixelCost: pack.pixelCost,
+  };
+}
+
+/** @deprecated `mockPurchaseTalismanPack('talisman1')` を使用 */
 export function mockPurchaseTalisman(
   economy: UserEconomy,
   inventory: UserInventory,
   shopPurchase: ShopPurchaseState,
   subscription: UserSubscription,
 ): ShopPurchaseResult | null {
-  const spent = spendFreePixels(economy, SHOP_TALISMAN_PX);
-  if (!spent) return null;
-  return {
-    economy: spent,
-    inventory: addInventoryCount(inventory, 'talisman', 1),
+  return mockPurchaseTalismanPack(
+    economy,
+    inventory,
     shopPurchase,
     subscription,
-    message: '護符を1枚購入しました',
-    messagePixelCost: SHOP_TALISMAN_PX,
-  };
+    'talisman1',
+  );
 }
 
 export function mockPurchaseUniversalShardPack(
@@ -293,29 +312,16 @@ export function mockPurchaseUniversalShardPack(
   shopPurchase: ShopPurchaseState,
   subscription: UserSubscription,
   packId: UniversalShardPackId,
-  date: Date = new Date(),
 ): ShopPurchaseResult | null {
-  const normalized = resetShardPurchasesForToday(shopPurchase, date);
-  if (!canPurchaseUniversalShardPackToday(normalized, packId, date)) return null;
-
   const pack = getUniversalShardPackById(packId);
   const spent = spendFreePixels(economy, pack.pixelCost);
   if (!spent) return null;
 
   const shards = totalShardsInPack(pack);
-  const counts = normalized.shopShardPurchasesToday ?? {
-    shard10: 0,
-    shard25: 0,
-    shard55: 0,
-  };
-
   return {
     economy: spent,
     inventory: addInventoryCount(inventory, 'limitBreakUniversal', shards),
-    shopPurchase: {
-      ...normalized,
-      shopShardPurchasesToday: { ...counts, [packId]: 1 },
-    },
+    shopPurchase,
     subscription,
     message: `汎用かけら${shards}個を購入しました`,
     messagePixelCost: pack.pixelCost,

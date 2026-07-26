@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { SHOP_TALISMAN_PX } from '../config/economy';
 import {
   totalJewelsInPack,
   totalShardsInPack,
@@ -11,10 +10,9 @@ import { createInitialEconomy, createInitialInventory } from '../user';
 import { hasPremiumAlwaysDouble } from '../user/subscription';
 import {
   applyDueSubscriptionGrants,
-  canPurchaseUniversalShardPackToday,
   getMockLifetimeSpendYen,
   mockPurchaseJewelPack,
-  mockPurchaseTalisman,
+  mockPurchaseTalismanPack,
   mockPurchaseUniversalShardPack,
   mockSubscribe,
   mockCancelSubscription,
@@ -44,11 +42,10 @@ describe('resolveJewelPackGrantAmount', () => {
 });
 
 describe('mockPurchaseUniversalShardPack', () => {
-  it('limits each tier to one purchase per day', () => {
+  it('allows repeat purchases without daily limit', () => {
     const economy = { freePixels: 10_000, jewels: 0 };
     const inventory = createInitialInventory();
     const subscription = { plan: 'none' as const };
-    const date = new Date('2026-06-20T12:00:00+09:00');
 
     const first = mockPurchaseUniversalShardPack(
       economy,
@@ -56,7 +53,6 @@ describe('mockPurchaseUniversalShardPack', () => {
       {},
       subscription,
       'shard10',
-      date,
     );
     expect(first).not.toBeNull();
     expect(first!.inventory.limitBreakUniversal).toBe(
@@ -69,27 +65,28 @@ describe('mockPurchaseUniversalShardPack', () => {
       first!.shopPurchase,
       subscription,
       'shard10',
-      date,
     );
-    expect(second).toBeNull();
-
-    expect(
-      canPurchaseUniversalShardPackToday(first!.shopPurchase, 'shard10', date),
-    ).toBe(false);
-    expect(
-      canPurchaseUniversalShardPackToday(first!.shopPurchase, 'shard25', date),
-    ).toBe(true);
+    expect(second).not.toBeNull();
+    expect(second!.inventory.limitBreakUniversal).toBe(
+      totalShardsInPack(getUniversalShardPackById('shard10')) * 2,
+    );
   });
 });
 
-describe('mockPurchaseTalisman', () => {
-  it('costs 1500px', () => {
-    const economy = { freePixels: SHOP_TALISMAN_PX, jewels: 0 };
+describe('mockPurchaseTalismanPack', () => {
+  it('purchases talisman packs by count and cost', () => {
+    const economy = { freePixels: 2500, jewels: 0 };
     const inventory = createInitialInventory();
-    const result = mockPurchaseTalisman(economy, inventory, {}, { plan: 'none' });
+    const result = mockPurchaseTalismanPack(
+      economy,
+      inventory,
+      {},
+      { plan: 'none' },
+      'talisman3',
+    );
     expect(result).not.toBeNull();
     expect(result!.economy.freePixels).toBe(0);
-    expect(result!.inventory.talisman).toBe(1);
+    expect(result!.inventory.talisman).toBe(3);
   });
 });
 

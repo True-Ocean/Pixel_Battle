@@ -4,6 +4,7 @@ import type { LimitBreakShardSpendPlan } from '../card/limitBreak';
 import { isValidLimitBreakShardSpend, planLimitBreakShardSpend } from '../card/limitBreak';
 import type { Attribute, UserInventory } from '../types';
 
+
 const ALL_ATTRIBUTES = Object.keys(ATTRIBUTE_META) as Attribute[];
 
 function normalizeShardCount(value: unknown): number {
@@ -170,19 +171,12 @@ export function spendLimitBreakShards(
 
 export function canAffordLimitBreak(
   attributeShardCount: number,
-  universalShardCount: number,
   shardsRequired: number,
 ): boolean {
-  return (
-    planLimitBreakShardSpend(
-      attributeShardCount,
-      universalShardCount,
-      shardsRequired,
-    ) != null
-  );
+  return planLimitBreakShardSpend(attributeShardCount, shardsRequired) != null;
 }
 
-/** 指定した内訳でかけらを消費する（専用・汎用は1:1）。 */
+/** 属性かけらだけで限界突破資源を消費する（汎用は不可）。 */
 export function spendLimitBreakResources(
   inventory: UserInventory,
   attribute: Attribute,
@@ -190,19 +184,9 @@ export function spendLimitBreakResources(
   shardsRequired: number,
 ): UserInventory | null {
   const attrCount = inventory.limitBreakShards[attribute] ?? 0;
-  const universalCount = inventory.limitBreakUniversal;
-  if (!isValidLimitBreakShardSpend(spend, attrCount, universalCount, shardsRequired)) {
+  if (!isValidLimitBreakShardSpend(spend, attrCount, shardsRequired)) {
     return null;
   }
-
-  let next = inventory;
-  if (spend.attrSpend > 0) {
-    const spent = spendLimitBreakShards(next, attribute, spend.attrSpend);
-    if (!spent) return null;
-    next = spent;
-  }
-  if (spend.universalSpend > 0) {
-    return spendInventoryCount(next, 'limitBreakUniversal', spend.universalSpend);
-  }
-  return next;
+  if (spend.attrSpend <= 0) return inventory;
+  return spendLimitBreakShards(inventory, attribute, spend.attrSpend);
 }

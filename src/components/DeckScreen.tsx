@@ -1331,7 +1331,6 @@ export function DeckScreen({
           attributeShardCount={
             inventory.limitBreakShards[selectedCard.attribute] ?? 0
           }
-          universalShardCount={inventory.limitBreakUniversal}
           jewels={jewels}
           onClose={closeDetail}
           onEdit={handleEditFromDetail}

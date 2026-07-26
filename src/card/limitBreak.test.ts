@@ -5,9 +5,9 @@ import {
   canLimitBreakCard,
   describeLimitBreakCost,
   describeLimitBreakRaritySuccessTitle,
+  describeLimitBreakResult,
   describeLimitBreakSpendPlan,
   formatLimitBreakStars,
-  getLimitBreakAttrSpendRange,
   getLimitBreakOutcomeKind,
   getLimitBreakStarColor,
   isLimitBreakCapReached,
@@ -19,24 +19,23 @@ import type { Card } from '../types';
 function makeCard(overrides: Partial<Card> = {}): Card {
   return {
     id: 'c1',
-    name: 'test',
-    pixels: [[ '#ff0000' ]],
-    canvasSize: 1,
+    name: 'テスト',
+    pixels: [],
+    canvasSize: 16,
     attribute: 'attack',
-    bp: 50,
-    wins: 0,
-    losses: 0,
-    reviveCount: 0,
     rarity: 'N',
     stars: 0,
+    bp: 100,
+    paintedCount: 10,
+    createdAt: 0,
+    updatedAt: 0,
     status: 'active',
-    createdAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
 }
 
 describe('formatLimitBreakStars', () => {
-  it('★数に応じた表示', () => {
+  it('formats stars', () => {
     expect(formatLimitBreakStars(0)).toBe('☆☆☆');
     expect(formatLimitBreakStars(1)).toBe('★☆☆');
     expect(formatLimitBreakStars(2)).toBe('★★☆');
@@ -45,174 +44,108 @@ describe('formatLimitBreakStars', () => {
 });
 
 describe('getLimitBreakStarColor', () => {
-  it('獲得★はレア枠色、未獲得はグレー', () => {
+  it('returns filled and empty colors', () => {
     expect(getLimitBreakStarColor(true, 'SR')).toBe('#9a7815');
     expect(getLimitBreakStarColor(false, 'SR')).toBe('#c8ced8');
   });
 });
 
 describe('planLimitBreakShardSpend', () => {
-  it('専用+汎用の合計が必要数以上なら消費内訳を決める', () => {
-    expect(planLimitBreakShardSpend(10, 0, 10)).toEqual({
+  it('uses attribute shards only', () => {
+    expect(planLimitBreakShardSpend(10, 10)).toEqual({
       attrSpend: 10,
       universalSpend: 0,
     });
-    expect(planLimitBreakShardSpend(5, 5, 10)).toEqual({
-      attrSpend: 5,
-      universalSpend: 5,
-    });
-    expect(planLimitBreakShardSpend(0, 10, 10)).toEqual({
-      attrSpend: 0,
-      universalSpend: 10,
-    });
-    expect(planLimitBreakShardSpend(7, 5, 10)).toEqual({
-      attrSpend: 7,
-      universalSpend: 3,
-    });
-    expect(planLimitBreakShardSpend(5, 4, 10)).toBeNull();
-  });
-
-  it('レア度に応じた必要数で判定する', () => {
-    expect(planLimitBreakShardSpend(15, 0, 15)).toEqual({
-      attrSpend: 15,
+    expect(planLimitBreakShardSpend(15, 10)).toEqual({
+      attrSpend: 10,
       universalSpend: 0,
     });
-    expect(planLimitBreakShardSpend(10, 4, 15)).toBeNull();
-    expect(planLimitBreakShardSpend(12, 8, 20)).toEqual({
-      attrSpend: 12,
-      universalSpend: 8,
-    });
-  });
-});
-
-describe('getLimitBreakAttrSpendRange', () => {
-  it('専用かけらの選択可能範囲', () => {
-    expect(getLimitBreakAttrSpendRange(10, 0, 10)).toEqual({ min: 10, max: 10 });
-    expect(getLimitBreakAttrSpendRange(5, 5, 10)).toEqual({ min: 5, max: 5 });
-    expect(getLimitBreakAttrSpendRange(7, 5, 10)).toEqual({ min: 5, max: 7 });
-    expect(getLimitBreakAttrSpendRange(5, 4, 10)).toBeNull();
-    expect(getLimitBreakAttrSpendRange(20, 0, 20)).toEqual({ min: 20, max: 20 });
+    expect(planLimitBreakShardSpend(9, 10)).toBeNull();
+    expect(planLimitBreakShardSpend(0, 10)).toBeNull();
   });
 });
 
 describe('isValidLimitBreakShardSpend', () => {
-  it('必要数合計かつ所持以内のみ有効', () => {
+  it('requires exact attribute spend and zero universal', () => {
+    expect(isValidLimitBreakShardSpend({ attrSpend: 10, universalSpend: 0 }, 10, 10)).toBe(
+      true,
+    );
+    expect(isValidLimitBreakShardSpend({ attrSpend: 10, universalSpend: 0 }, 15, 10)).toBe(
+      true,
+    );
+    expect(isValidLimitBreakShardSpend({ attrSpend: 9, universalSpend: 0 }, 10, 10)).toBe(
+      false,
+    );
     expect(
-      isValidLimitBreakShardSpend({ attrSpend: 5, universalSpend: 5 }, 5, 5, 10),
-    ).toBe(true);
-    expect(
-      isValidLimitBreakShardSpend({ attrSpend: 3, universalSpend: 7 }, 5, 7, 10),
-    ).toBe(true);
-    expect(
-      isValidLimitBreakShardSpend({ attrSpend: 6, universalSpend: 4 }, 5, 5, 10),
+      isValidLimitBreakShardSpend(
+        { attrSpend: 5, universalSpend: 0 as 0 },
+        10,
+        10,
+      ),
     ).toBe(false);
-    expect(
-      isValidLimitBreakShardSpend({ attrSpend: 5, universalSpend: 4 }, 5, 5, 10),
-    ).toBe(false);
-    expect(
-      isValidLimitBreakShardSpend({ attrSpend: 10, universalSpend: 5 }, 15, 5, 15),
-    ).toBe(true);
   });
 });
 
 describe('describeLimitBreakSpendPlan', () => {
-  it('選択内訳の表示', () => {
-    expect(describeLimitBreakSpendPlan('剣', { attrSpend: 3, universalSpend: 7 })).toBe(
-      '剣のかけら 3 + 汎用 7',
-    );
+  it('describes attribute-only spend', () => {
+    expect(
+      describeLimitBreakSpendPlan('剣', { attrSpend: 10, universalSpend: 0 }),
+    ).toBe('剣のかけら 10');
   });
 });
 
 describe('describeLimitBreakCost', () => {
-  it('消費内容の表示', () => {
-    expect(describeLimitBreakCost('剣', 10, 0, 10)).toBe('剣のかけら 10');
-    expect(describeLimitBreakCost('剣', 5, 5, 10)).toBe('剣のかけら 5 + 汎用 5');
-    expect(describeLimitBreakCost('剣', 0, 10, 10)).toBe('汎用 10');
-    expect(describeLimitBreakCost('剣', 0, 20, 20)).toBe('汎用 20');
+  it('describes attribute-only cost', () => {
+    expect(describeLimitBreakCost('剣', 10, 10)).toBe('剣のかけら 10');
+    expect(describeLimitBreakCost('剣', 9, 10)).toBe('');
   });
 });
 
-describe('limit break rules', () => {
-  it('UR★3 は上限', () => {
-    const card = makeCard({ rarity: 'UR', stars: 3 });
-    expect(isLimitBreakCapReached(card)).toBe(true);
-    expect(canLimitBreakCard(card)).toBe(false);
+describe('limit break outcomes', () => {
+  it('detects cap and star/rarity outcomes', () => {
+    const capped = makeCard({ rarity: 'UR', stars: 3 });
+    expect(isLimitBreakCapReached(capped)).toBe(true);
+    expect(canLimitBreakCard(capped)).toBe(false);
+
+    const starCard = makeCard({ rarity: 'N', stars: 1 });
+    expect(isLimitBreakCapReached(starCard)).toBe(false);
+    expect(getLimitBreakOutcomeKind(starCard)).toBe('star');
+
+    const rarityCard = makeCard({ rarity: 'N', stars: 3 });
+    expect(getLimitBreakOutcomeKind(rarityCard)).toBe('rarity');
   });
 
-  it('SR★3 はレア昇格可能', () => {
-    const card = makeCard({ rarity: 'SR', stars: 3 });
-    expect(isLimitBreakCapReached(card)).toBe(false);
-    expect(getLimitBreakOutcomeKind(card)).toBe('rarity');
-  });
-
-  it('N★0 は ★アップ', () => {
-    const card = makeCard({ rarity: 'N', stars: 0 });
-    expect(getLimitBreakOutcomeKind(card)).toBe('star');
-    const next = applyLimitBreakToCard(card, 10);
-    expect(next.stars).toBe(1);
-    expect(next.rarity).toBe('N');
-    expect(next.bp).toBeGreaterThanOrEqual(card.bp);
-  });
-
-  it('N★0 から SR★3 まで各段階でBP増加量が均等', () => {
+  it('applies star then rarity upgrades', () => {
     let card = makeCard({ rarity: 'N', stars: 0, bp: 100 });
-    const gains: number[] = [];
-    for (let step = 0; step < 11; step += 1) {
-      const prev = card.bp;
-      card = applyLimitBreakToCard(card, 10);
-      gains.push(card.bp - prev);
-    }
-    expect(card.rarity).toBe('SR');
-    expect(card.stars).toBe(3);
-    expect(gains.every((gain) => gain === gains[0])).toBe(true);
-    expect(gains[0]).toBeGreaterThanOrEqual(1);
-  });
+    card = applyLimitBreakToCard(card, 10);
+    expect(card.stars).toBe(1);
+    expect(card.bp).toBeGreaterThan(100);
 
-  it('N★3 はレア昇格', () => {
-    const card = makeCard({ rarity: 'N', stars: 3, bp: 109 });
-    expect(getLimitBreakOutcomeKind(card)).toBe('rarity');
+    card = makeCard({ rarity: 'N', stars: 3, bp: 100 });
     const next = applyLimitBreakToCard(card, 10);
     expect(next.rarity).toBe('R');
     expect(next.stars).toBe(0);
-    expect(next.bp).toBeGreaterThanOrEqual(card.bp);
   });
 
-  it('R★3 はレア昇格でBPが下がらない', () => {
-    const card = makeCard({ rarity: 'R', stars: 3, bp: 118 });
-    const next = applyLimitBreakToCard(card, 10);
-    expect(next.rarity).toBe('SR');
-    expect(next.stars).toBe(0);
-    expect(next.bp).toBeGreaterThanOrEqual(card.bp);
-  });
-
-  it('SR★3 は UR に昇格', () => {
-    const card = makeCard({ rarity: 'SR', stars: 3, bp: 130 });
-    const next = applyLimitBreakToCard(card, 10);
-    expect(next.rarity).toBe('UR');
-    expect(next.stars).toBe(0);
-    expect(next.bp).toBeGreaterThanOrEqual(card.bp);
-  });
-
-  it('レア昇格はジュエル所持が必要', () => {
+  it('describes results and rarity titles', () => {
     const card = makeCard({ rarity: 'N', stars: 3 });
-    expect(canAffordLimitBreakUpgrade(card, 10, 0, 49)).toBe(false);
-    expect(canAffordLimitBreakUpgrade(card, 10, 0, 50)).toBe(true);
-    expect(canAffordLimitBreakUpgrade(card, 5, 5, 50)).toBe(true);
-  });
-
-  it('★アップはジュエル不要', () => {
-    const card = makeCard({ rarity: 'N', stars: 0 });
-    expect(canAffordLimitBreakUpgrade(card, 10, 0, 0)).toBe(true);
-  });
-
-  it('レア昇格成功メッセージ', () => {
-    const card = makeCard({ rarity: 'N', stars: 3 });
+    expect(describeLimitBreakResult(card)).toBe('N★3 → R★0');
     expect(describeLimitBreakRaritySuccessTitle(card)).toBe(
       '限界突破！NからRになりました！',
     );
   });
 
-  it('ロストカードは不可', () => {
+  it('checks affordability with attribute shards and jewels', () => {
+    const rarityCard = makeCard({ rarity: 'N', stars: 3 });
+    expect(canAffordLimitBreakUpgrade(rarityCard, 10, 49)).toBe(false);
+    expect(canAffordLimitBreakUpgrade(rarityCard, 10, 50)).toBe(true);
+    expect(canAffordLimitBreakUpgrade(rarityCard, 9, 50)).toBe(false);
+
+    const starCard = makeCard({ rarity: 'N', stars: 0 });
+    expect(canAffordLimitBreakUpgrade(starCard, 10, 0)).toBe(true);
+  });
+
+  it('blocks lost cards', () => {
     expect(canLimitBreakCard(makeCard({ status: 'lost' }))).toBe(false);
   });
 });

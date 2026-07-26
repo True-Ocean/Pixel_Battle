@@ -20,81 +20,33 @@ const LIMIT_BREAK_STAR_FILLED_COLOR: Record<CardRarity, string> = {
 
 export type LimitBreakOutcomeKind = 'star' | 'rarity';
 
+/** 限界突破のかけら消費内訳（汎用は不可。`universalSpend` は常に 0） */
 export type LimitBreakShardSpendPlan = {
   attrSpend: number;
-  universalSpend: number;
+  universalSpend: 0;
 };
 
-/** 限界突破1回分の消費内訳。専用かけらを優先し、不足分を汎用で補う（デフォルト案）。 */
+/** 限界突破1回分の消費内訳（属性かけらのみ）。 */
 export function planLimitBreakShardSpend(
   attributeShardCount: number,
-  universalShardCount: number,
   shardsRequired: number,
 ): LimitBreakShardSpendPlan | null {
-  const total = attributeShardCount + universalShardCount;
-  if (total < shardsRequired) return null;
-
-  const attrSpend = Math.min(attributeShardCount, shardsRequired);
-  const universalSpend = shardsRequired - attrSpend;
-  if (universalSpend > universalShardCount) return null;
-
-  return { attrSpend, universalSpend };
-}
-
-export function getLimitBreakAttrSpendRange(
-  attributeShardCount: number,
-  universalShardCount: number,
-  shardsRequired: number,
-): { min: number; max: number } | null {
-  if (
-    planLimitBreakShardSpend(
-      attributeShardCount,
-      universalShardCount,
-      shardsRequired,
-    ) == null
-  ) {
-    return null;
-  }
-  const min = Math.max(0, shardsRequired - universalShardCount);
-  const max = Math.min(attributeShardCount, shardsRequired);
-  if (min > max) return null;
-  return { min, max };
-}
-
-export function defaultLimitBreakAttrSpend(
-  attributeShardCount: number,
-  universalShardCount: number,
-  shardsRequired: number,
-): number {
-  return (
-    planLimitBreakShardSpend(
-      attributeShardCount,
-      universalShardCount,
-      shardsRequired,
-    )?.attrSpend ??
-    getLimitBreakAttrSpendRange(
-      attributeShardCount,
-      universalShardCount,
-      shardsRequired,
-    )?.min ??
-    0
-  );
+  if (attributeShardCount < shardsRequired) return null;
+  return { attrSpend: shardsRequired, universalSpend: 0 };
 }
 
 export function isValidLimitBreakShardSpend(
   spend: LimitBreakShardSpendPlan,
   attributeShardCount: number,
-  universalShardCount: number,
   shardsRequired: number,
 ): boolean {
   const { attrSpend, universalSpend } = spend;
-  if (!Number.isInteger(attrSpend) || !Number.isInteger(universalSpend)) {
+  if (!Number.isInteger(attrSpend) || universalSpend !== 0) {
     return false;
   }
-  if (attrSpend < 0 || universalSpend < 0) return false;
-  if (attrSpend + universalSpend !== shardsRequired) return false;
+  if (attrSpend < 0) return false;
+  if (attrSpend !== shardsRequired) return false;
   if (attrSpend > attributeShardCount) return false;
-  if (universalSpend > universalShardCount) return false;
   return true;
 }
 
@@ -102,27 +54,15 @@ export function describeLimitBreakSpendPlan(
   attributeLabel: string,
   spend: LimitBreakShardSpendPlan,
 ): string {
-  const parts: string[] = [];
-  if (spend.attrSpend > 0) {
-    parts.push(`${attributeLabel}のかけら ${spend.attrSpend}`);
-  }
-  if (spend.universalSpend > 0) {
-    parts.push(`汎用 ${spend.universalSpend}`);
-  }
-  return parts.join(' + ');
+  return `${attributeLabel}のかけら ${spend.attrSpend}`;
 }
 
 export function describeLimitBreakCost(
   attributeLabel: string,
   attributeShardCount: number,
-  universalShardCount: number,
   shardsRequired: number,
 ): string {
-  const plan = planLimitBreakShardSpend(
-    attributeShardCount,
-    universalShardCount,
-    shardsRequired,
-  );
+  const plan = planLimitBreakShardSpend(attributeShardCount, shardsRequired);
   if (!plan) return '';
   return describeLimitBreakSpendPlan(attributeLabel, plan);
 }
@@ -163,17 +103,10 @@ export function canLimitBreakCard(card: Card): boolean {
 export function canAffordLimitBreakUpgrade(
   card: Card,
   attributeShardCount: number,
-  universalShardCount: number,
   jewels: number,
 ): boolean {
   const shardsRequired = getLimitBreakShardsRequired(card.rarity);
-  if (
-    planLimitBreakShardSpend(
-      attributeShardCount,
-      universalShardCount,
-      shardsRequired,
-    ) == null
-  ) {
+  if (planLimitBreakShardSpend(attributeShardCount, shardsRequired) == null) {
     return false;
   }
   if (getLimitBreakOutcomeKind(card) !== 'rarity') return true;

@@ -56,6 +56,12 @@ export {
   spendLimitBreakResources,
 } from './inventory';
 export {
+  calcAttributeMeltOutcome,
+  calcUniversalCostForAttributeShards,
+  exchangeUniversalToAttribute,
+  meltAttributeToUniversal,
+} from './shardExchange';
+export {
   createInitialAdState,
   dismissHistoryRematchRulesForToday,
   dismissLostCardDeckNoticeForToday,
@@ -85,6 +91,7 @@ export {
   getUniversalShardPurchasesToday,
   mockPurchaseJewelPack,
   mockPurchaseTalisman,
+  mockPurchaseTalismanPack,
   mockPurchaseUniversalShardPack,
   mockSubscribe,
   mockCancelSubscription,
