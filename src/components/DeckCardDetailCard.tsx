@@ -278,7 +278,7 @@ export function DeckCardDetailCard({
                 className="deck-detail-inline-px"
                 iconClassName="deck-detail-inline-px-icon"
               />
-              ）・思い出アルバムに保存・削除
+              ）・思い出アルバムに移動・削除
             </>
           ) : (
             '思い出アルバムへの保存か削除'

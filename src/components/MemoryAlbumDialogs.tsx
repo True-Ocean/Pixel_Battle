@@ -39,7 +39,7 @@ export function CardDeckDispositionDialog({
             className="confirm-dialog-cancel card-deck-disposition-album"
             onClick={onAddToAlbum}
           >
-            思い出アルバムに保存
+            思い出アルバムに移動
           </button>
           <button
             type="button"
@@ -129,8 +129,8 @@ export function MemoryAlbumFullDialog({
   );
 }
 
-export const MEMORY_ALBUM_SAVE_CONFIRM_MESSAGE =
-  'アルバムに保存すると、デッキに戻すことはできなくなり、閲覧のみ可能となります。よろしいですか？';
+export const MEMORY_ALBUM_MOVE_CONFIRM_MESSAGE =
+  'アルバムに移動すると、デッキに戻すことはできなくなります。よろしいですか？';
 
 interface MemoryAlbumExpandOfferDialogProps {
   open: boolean;

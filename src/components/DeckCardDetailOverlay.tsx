@@ -20,6 +20,30 @@ import { LimitBreakModal } from './LimitBreakModal';
 import { CardNoteEditModal } from './CardNoteEditModal';
 import { CardNotePremiumUpsellModal } from './CardNotePremiumUpsellModal';
 
+function resolvePublicAssetUrl(path: string): string {
+  const base = import.meta.env.BASE_URL;
+  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
+
+const MEMORY_ALBUM_ICON_URL = resolvePublicAssetUrl('album.png');
+
+function MemoryAlbumMoveButtonLabel() {
+  return (
+    <>
+      <img
+        className="deck-card-detail-album-icon"
+        src={MEMORY_ALBUM_ICON_URL}
+        alt=""
+        width={22}
+        height={22}
+        draggable={false}
+        aria-hidden
+      />
+      <span>に移動</span>
+    </>
+  );
+}
+
 interface DeckCardDetailOverlayProps {
   card: Card;
   isLost: boolean;
@@ -249,8 +273,9 @@ export function DeckCardDetailOverlay({
                 type="button"
                 className="deck-card-detail-album"
                 onClick={onAddToAlbum}
+                aria-label="思い出アルバムに移動"
               >
-                思い出アルバムに保存
+                <MemoryAlbumMoveButtonLabel />
               </button>
               <button
                 type="button"
@@ -304,8 +329,13 @@ export function DeckCardDetailOverlay({
                   )}
                 </button>
               )}
-              <button type="button" className="deck-card-detail-album" onClick={onAddToAlbum}>
-                思い出アルバムに保存
+              <button
+                type="button"
+                className="deck-card-detail-album"
+                onClick={onAddToAlbum}
+                aria-label="思い出アルバムに移動"
+              >
+                <MemoryAlbumMoveButtonLabel />
               </button>
               <button
                 type="button"

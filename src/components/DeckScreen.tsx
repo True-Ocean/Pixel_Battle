@@ -26,7 +26,7 @@ import { CardPreview } from './CardPreview';
 import { DeckCardRowBody } from './DeckCardRowBody';
 import { RarityBadge } from './RarityBadge';
 import { CardDeleteResultModal } from './CardDeleteResultModal';
-import { CardDeckDispositionDialog, MemoryAlbumFullDialog, MemoryAlbumExpandConfirmDialog, MEMORY_ALBUM_SAVE_CONFIRM_MESSAGE } from './MemoryAlbumDialogs';
+import { CardDeckDispositionDialog, MemoryAlbumFullDialog, MemoryAlbumExpandConfirmDialog, MEMORY_ALBUM_MOVE_CONFIRM_MESSAGE } from './MemoryAlbumDialogs';
 import { ConfirmDialog } from './ConfirmDialog';
 import { InlinePxCost } from './HelpInlineEconomy';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
@@ -1451,9 +1451,9 @@ export function DeckScreen({
 
       <ConfirmDialog
         open={pendingAlbumAdd != null}
-        title="思い出アルバムに保存"
-        message={MEMORY_ALBUM_SAVE_CONFIRM_MESSAGE}
-        confirmLabel="保存する"
+        title="思い出アルバムに移動"
+        message={MEMORY_ALBUM_MOVE_CONFIRM_MESSAGE}
+        confirmLabel="移動する"
         cancelLabel="キャンセル"
         confirmVariant="primary"
         onConfirm={handleAlbumAddConfirm}

@@ -80,7 +80,7 @@ export function getBattleHubHelp(userLevel: number): HelpTopic {
           「復活」：<HelpInlinePxIcon />
           を消費して復活できます（1 枚あたり最大 {REVIVE_CAP} 回まで）。
         </>,
-        '「思い出アルバムに保存」：デッキから無償でアルバムに移動し、閲覧専用にします。',
+        'アルバムアイコン付きの「に移動」：デッキから無償でアルバムに移動し、閲覧専用にします。',
         <>
           「削除」：<HelpInlineJewelCost amount={JEWEL_COST_DELETE} />
           を消費してデッキから削除。
