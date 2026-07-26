@@ -364,9 +364,8 @@ const opponentDeck = prepareHistoryOpponentDeck(ghost.deck, playerDeck);
 | `isHistoryRematch` | `false` |
 | `enableOpponentMatching` | `false` |
 | `opponentIdentity` | 作者名・作者 Lv |
-| `cancelMatchShowsCost` | 通常戦に合わせる（matching スキップ時はキャンセルコストの有無を既存 reveal 仕様に合わせる） |
 
-キャンセル先は §4.1。オフライン対人用の `onCancelMatch` を渡す。
+キャンセルは **px 不要**。キャンセル先は §4.1。オフライン対人用の `onCancelMatch` を渡す。
 
 ### 9.3 相手 AI（G8 v1 確定）
 

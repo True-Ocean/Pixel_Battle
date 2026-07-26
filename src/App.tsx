@@ -22,7 +22,7 @@ import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
 import { applyCardSurvivalRecords, applyCardRevive, computeDeckPower, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, hasCardUserNote, applyUserNoteToCard, type LimitBreakShardSpendPlan } from './card';
-import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, BATTLE_MATCH_CANCEL_COST } from './config/economy';
+import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { getBattleResult } from './game';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
@@ -1626,22 +1626,13 @@ function App() {
 
   const handleCancelBattleMatch = useCallback(() => {
     clearBattleOutcomeHoldTimer();
-    const nextEconomy = spendFreePixels(
-      economyRef.current,
-      BATTLE_MATCH_CANCEL_COST,
-    );
-    if (!nextEconomy) return;
-
-    persistSave({ economy: nextEconomy });
-    setEconomy(nextEconomy);
-    economyRef.current = nextEconomy;
     setBattleEndDock(false);
     clearHistoryRematch();
     setBattleSetupKey((key) => key + 1);
     setBattleHubResetKey((key) => key + 1);
     setBattleHubModeScreenOpen(false);
     setScreen('battleHub');
-  }, [clearBattleOutcomeHoldTimer, clearHistoryRematch, persistSave]);
+  }, [clearBattleOutcomeHoldTimer, clearHistoryRematch]);
 
   const handleCancelHistoryRematch = useCallback(() => {
     clearBattleOutcomeHoldTimer();
@@ -4463,13 +4454,6 @@ function App() {
                     ? handleCancelOfflinePvpMatch
                     : handleCancelBattleMatch
             }
-            cancelMatchDisabled={
-              isHistoryRematch || isOfflinePvp || isOnlinePvp
-                ? false
-                : economy.freePixels < BATTLE_MATCH_CANCEL_COST
-            }
-            cancelMatchShowsCost={!isHistoryRematch && !isOfflinePvp && !isOnlinePvp}
-            cancelMatchCostPx={BATTLE_MATCH_CANCEL_COST}
             onFinish={handleBattleOutcome}
             onNewBattle={
               isHistoryRematch ? rematchSameOpponent : restartBattleFromEnd

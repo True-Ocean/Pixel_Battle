@@ -53,8 +53,6 @@ import {
   OnlinePvpLeaveConfirmDialog,
 } from './OnlinePvpBattleEndModal';
 import { FormationBattleLog } from './FormationBattleLog';
-import { ConfirmDialog } from './ConfirmDialog';
-import { PixelCoinIcon } from './PixelCoinIcon';
 
 type SlotKey = `${'cpu' | 'player'}:${BoardPosition}`;
 
@@ -142,9 +140,6 @@ interface BattleSetupScreenProps {
   isHistoryRematch?: boolean;
   enableOpponentMatching?: boolean;
   onCancelMatch?: () => void;
-  cancelMatchDisabled?: boolean;
-  cancelMatchShowsCost?: boolean;
-  cancelMatchCostPx?: number;
   onFinish: (outcome: BattleOutcome) => void;
   onNewBattle: () => void;
   newBattleDisabled?: boolean;
@@ -2066,9 +2061,6 @@ export function BattleSetupScreen({
   isHistoryRematch = false,
   enableOpponentMatching = false,
   onCancelMatch,
-  cancelMatchDisabled = false,
-  cancelMatchShowsCost = true,
-  cancelMatchCostPx = 25,
   onFinish,
   onNewBattle,
   newBattleDisabled = false,
@@ -2153,7 +2145,6 @@ export function BattleSetupScreen({
       ? onlinePvp.room.hostSetupReady
       : onlinePvp.room.guestSetupReady;
   });
-  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   // 再戦で room.id は同じままなので battleRevision で同期済みを区別する
   const syncedBattleFormationRef = useRef<string | null>(null);
@@ -2500,16 +2491,7 @@ export function BattleSetupScreen({
 
   const handleCancelMatchRequest = () => {
     if (phase !== 'reveal' || !onCancelMatch) return;
-    if (!cancelMatchShowsCost) {
-      onCancelMatch();
-      return;
-    }
-    if (cancelMatchDisabled) return;
-    setCancelConfirmOpen(true);
-  };
-
-  const handleCancelMatchConfirm = () => {
-    onCancelMatch?.();
+    onCancelMatch();
   };
 
   const isPlayPhase =
@@ -2582,23 +2564,10 @@ export function BattleSetupScreen({
                       type="button"
                       className="formation-cancel-match-btn formation-cancel-match-btn--compact formation-cancel-match-btn--grid"
                       onClick={handleCancelMatchRequest}
-                      disabled={cancelMatchShowsCost && cancelMatchDisabled}
-                      aria-label={
-                        cancelMatchShowsCost
-                          ? `キャンセル ${cancelMatchCostPx}ピクセルコイン`
-                          : 'キャンセル'
-                      }
+                      aria-label="キャンセル"
                     >
                       <span className="formation-cancel-match-btn-inner">
                         <span className="formation-cancel-match-btn-label">キャンセル</span>
-                        {cancelMatchShowsCost && (
-                          <>
-                            <PixelCoinIcon className="formation-cancel-match-coin" />
-                            <span className="formation-cancel-match-cost-value">
-                              {cancelMatchCostPx}
-                            </span>
-                          </>
-                        )}
                       </span>
                     </button>
                   ) : undefined
@@ -2657,31 +2626,6 @@ export function BattleSetupScreen({
           onComplete={handleCpuFlightComplete}
         />
       )}
-
-      <ConfirmDialog
-        open={cancelConfirmOpen}
-        className="formation-cancel-confirm-dialog"
-        title="マッチングキャンセル"
-        message={
-          <span className="formation-cancel-confirm-message">
-            <span className="formation-cancel-confirm-message-line">
-              <span className="formation-cancel-confirm-cost">
-                <PixelCoinIcon className="formation-cancel-confirm-coin" />
-                <strong>{cancelMatchCostPx}</strong>
-              </span>
-              を消費してキャンセルします。
-            </span>
-            <span className="formation-cancel-confirm-message-line">
-              よろしいですか？
-            </span>
-          </span>
-        }
-        confirmLabel="キャンセルする"
-        cancelLabel="戻る"
-        confirmVariant="primary"
-        onConfirm={handleCancelMatchConfirm}
-        onCancel={() => setCancelConfirmOpen(false)}
-      />
     </section>
   );
 }

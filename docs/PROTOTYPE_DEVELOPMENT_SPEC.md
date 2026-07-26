@@ -976,7 +976,7 @@ interface UserAuth {
 | フェーズ | 内容 |
 |----------|------|
 | **matching** | 相手探索演出（**2〜4秒** ランダム、`rollMatchingDurationMs`）。敵スロットは空、オーバーレイ「対戦相手を探しています」。ガイド帯は **3列グリッド**・中央に「マッチング中」。**キャンセル不可** |
-| **reveal** | マッチング完了後、敵5枚をスロットに **即表示**。ガイド帯は **3列グリッド**（`formation-guide-battle--reveal-countdown` で左右列を拡幅）— **左「マッチング完了」** / **中央カウントダウン**（`MATCH_REVEAL_COUNTDOWN_SEC`＝**5秒**）/ **右キャンセル**（**25px**、`BATTLE_MATCH_CANCEL_COST`、1行表示）。aria-label は「マッチング完了、バトル準備まで残り N 秒」 |
+| **reveal** | マッチング完了後、敵5枚をスロットに **即表示**。ガイド帯は **3列グリッド**（`formation-guide-battle--reveal-countdown` で左右列を拡幅）— **左「マッチング完了」** / **中央カウントダウン**（`MATCH_REVEAL_COUNTDOWN_SEC`＝**5秒**）/ **右キャンセル**（**px 不要**、1行表示）。aria-label は「マッチング完了、バトル準備まで残り N 秒」 |
 | **setup** | 従来の配置フェーズ（§7.1） |
 | **battle** | バトル本編 |
 
@@ -1469,7 +1469,6 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | `SETUP_TIME_LIMIT_SEC` | 30 | バトル準備時間 |
 | `MATCH_REVEAL_COUNTDOWN_SEC` | 5 | マッチング完了後の reveal カウントダウン |
 | `BATTLE_OUTCOME_HOLD_MS` | 1500 | WIN/LOSE 表示から報酬・ロストモーダルまでの待機 (ms) |
-| `BATTLE_MATCH_CANCEL_COST` | 25 | 通常 CPU 戦のマッチング/reveal 中キャンセル（px） |
 | `BGM_VOLUME` | 0.5 | BGM 音量（`src/config/bgm.ts`） |
 | `ILLUMINATE_BP_RATIO` | 0.9 | 照属性 BP 中心（ATTRIBUTE_SPEC §4.11） |
 | `CARD_USER_NOTE_MAX_LENGTH` | 100 | カードノート上限（全角文字数。ECONOMY §8.5） |

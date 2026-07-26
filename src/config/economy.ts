@@ -80,9 +80,6 @@ export const JEWEL_COST_PALETTE_SHOP_TIER2 = 100;
 /** 追加色パレット tier2（薄色系8色）の px コスト */
 export const PIXEL_COST_PALETTE_SHOP_TIER2 = 2200;
 
-/** バトルマッチングキャンセル時の px コスト */
-export const BATTLE_MATCH_CANCEL_COST = 25;
-
 /** 限界突破1回に必要なかけら数（現在レア度別。専用＋汎用の合計） */
 export const LIMIT_BREAK_SHARDS_REQUIRED_BY_RARITY: Record<
   Extract<CardRarity, 'N' | 'R' | 'SR' | 'UR' | 'L'>,
