@@ -2194,7 +2194,11 @@ button.battle-hub-deck-icon.is-move-target {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0 0.7rem 0.15rem;
+  padding: 0 0.7rem 0;
+}
+
+.mission-beginner-intro + .mission-list-bulk-row {
+  margin-top: -0.2rem;
 }
 
 .mission-beginner-intro-text {
@@ -14272,7 +14276,7 @@ button.battle-card {
 }
 
 .battle-card-buff-poison {
-  font-size: 1.16rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: -0.04em;
   background: linear-gradient(145deg, #f8f0ff, #c8a0e8);
@@ -14281,17 +14285,6 @@ button.battle-card {
     0 0 0 1px #8844aa88;
   color: #4a1868;
   z-index: 7;
-}
-
-.battle-card-buff-poison-mark {
-  display: block;
-  transform: translateY(-0.08em);
-}
-
-.battle-card.compact .battle-card-buff-poison,
-.battle-card.setup-card-fixed .battle-card-buff-poison,
-.battle-card.setup-hand-card .battle-card-buff-poison {
-  font-size: 1.02rem;
 }
 
 .battle-card-buff-freeze {
