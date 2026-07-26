@@ -300,6 +300,9 @@ export function useBattle(
 
   const commitTurn = useCallback(
     (playerChoice: BattleActionChoice) => {
+      // 結果再生の前に選択UI（グレーアウト等）を解除する（オンライン commitTurn と同順）
+      setPendingActor(null);
+      setPendingAction(null);
       const cpuChoice = pickCpuAction(state);
       const result = resolveTurn(state, { player: playerChoice, cpu: cpuChoice });
       const playbackNext = createBattlePlayback(result);

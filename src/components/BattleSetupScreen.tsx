@@ -763,6 +763,13 @@ function BattleUnitSlot({
   const card = unit ? cards.find((c) => c.id === unit.cardId) : null;
   const selected =
     side === 'player' &&
+    !battle.waitingForOpponent &&
+    (battle.effectivePhase === 'pickMain' ||
+      battle.effectivePhase === 'pickTarget' ||
+      battle.effectivePhase === 'pickShield' ||
+      battle.effectivePhase === 'pickHeal' ||
+      battle.effectivePhase === 'promoteUnit' ||
+      battle.effectivePhase === 'promoteSlot') &&
     (battle.pendingActor === position || battle.pendingPromoteFrom === position);
   const valid = battle.isValidTargetPosition(position, side);
   const isHealPick =

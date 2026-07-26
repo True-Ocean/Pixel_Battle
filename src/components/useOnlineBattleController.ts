@@ -556,7 +556,7 @@ export function useOnlineBattleController({
   const handlePlayerCardClick = useCallback(
     (position: BoardPosition | number) => {
       if (typeof position === 'number') return;
-      if (session.inputLocked) return;
+      if (session.inputLocked || session.waitingForOpponent) return;
       if (
         effectivePhase === 'clash' ||
         effectivePhase === 'turnStartPoison' ||
@@ -740,7 +740,7 @@ export function useOnlineBattleController({
 
   const handleCpuCardClick = useCallback(
     (position: BoardPosition) => {
-      if (session.inputLocked) return;
+      if (session.inputLocked || session.waitingForOpponent) return;
       if (effectivePhase !== 'pickTarget' || !pendingActor) {
         return;
       }
@@ -840,6 +840,7 @@ export function useOnlineBattleController({
       pendingAction,
       pendingActor,
       session.inputLocked,
+      session.waitingForOpponent,
       state,
     ],
   );

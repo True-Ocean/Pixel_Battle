@@ -128,15 +128,16 @@ export function deriveOnlineUiPhase(
     return 'waitOpponentPromotion';
   }
 
+  // 自分提出済みの相手待ちは select 中でも pick* より優先（入力ロックのため）
+  if (waitingForOpponent) {
+    return 'waitOpponent';
+  }
+
   if (
     room.battlePhase === 'select' &&
     !onlinePromotionNeeded(localState)
   ) {
     return actionSubPhaseToUiPhase(actionPickSubPhase);
-  }
-
-  if (waitingForOpponent) {
-    return 'waitOpponent';
   }
 
   if (getBattleResult(localState) != null) {

@@ -270,6 +270,26 @@ describe('deriveOnlineUiPhase', () => {
       'pickHeal',
     );
   });
+
+  it('select 中でも waitingForOpponent なら waitOpponent（pick* より優先）', () => {
+    const cards = Array.from({ length: 5 }, (_, i) =>
+      stubCard(`C${i}`, 'attack', 50 + i),
+    );
+    const state = createBattleState(cards, cards);
+    const room = battleRoom(state, { battle_phase: 'select' });
+
+    expect(
+      deriveOnlineUiPhase({
+        room,
+        localState: state,
+        promotionDraft: { from: null },
+        replayOverlay: null,
+        waitingForOpponent: true,
+        actionPickSubPhase: 'target',
+      }),
+    ).toBe('waitOpponent');
+    expect(isOnlineUiInputLocked('waitOpponent')).toBe(true);
+  });
 });
 
 describe('computeOnlineWaitingForOpponent', () => {
@@ -353,6 +373,34 @@ describe('buildOnlineBattleSessionView', () => {
     });
 
     expect(view.uiPhase).toBeNull();
+    expect(view.inputLocked).toBe(true);
+  });
+
+  it('自分だけ提出済みの select 中は waitOpponent で入力ロック', () => {
+    const cards = Array.from({ length: 5 }, (_, i) =>
+      stubCard(`C${i}`, 'attack', 50 + i),
+    );
+    const state = createBattleState(cards, cards);
+    const room = battleRoom(state, {
+      battle_phase: 'select',
+      host_pending_action: {
+        type: 'pass',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      guest_pending_action: null,
+    });
+
+    const view = buildOnlineBattleSessionView({
+      room,
+      role: 'host',
+      promotionDraft: { from: null },
+      replayOverlay: null,
+      actionPickSubPhase: 'target',
+    });
+
+    expect(view.waitingForOpponent).toBe(true);
+    expect(view.uiPhase).toBe('waitOpponent');
     expect(view.inputLocked).toBe(true);
   });
 });
