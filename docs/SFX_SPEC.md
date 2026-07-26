@@ -85,7 +85,7 @@
 | `ko` | `ko.mp3` | ユニット撃破（BP → 0） | `hit` よりやや重い短い音 |
 | `win` | `win.mp3` | バトル勝利 | WIN 表示と同時 |
 | `lose` | `lose.mp3` | バトル敗北 | LOSE 表示と同時 |
-| `roulette_tick` | `roulette_tick.mp3` | ルーレット回転中 | ロスト / 属性作成 / 属性リタッチ共通 |
+| `roulette_tick` | `roulette_tick.mp3` | ルーレット回転中 | ロスト / 属性作成 / 属性ガチャ共通 |
 | `roulette_stop` | `roulette_stop.mp3` | ルーレット確定 | 護符発動・レベルアップ表示も **v1 では流用可** |
 
 **合計: 9 ファイル**
@@ -157,12 +157,12 @@ WIN / LOSE オーバーレイ（`formation-outcome-badge`）と同タイミン�
 | 減速区間（`remaining <= 4`） | **鳴らさない**（tick 省略で十分） |
 | `phase` が `result` に変わった瞬間 | `roulette_stop` | — |
 
-### 4.6 属性ルーレット（作成・リタッチ）
+### 4.6 属性ルーレット（作成・属性ガチャ）
 
 | コンポーネント | tick | stop |
 |----------------|------|------|
 | `AttributeCreateRouletteModal.tsx` | 属性表示が切り替わるたび（`SPIN_INTERVAL_MS = 90`） | `phase === 'confirmed'` へ遷移時 |
-| `AttributeRetouchModal.tsx` | 同上 | `phase === 'confirmed'` へ遷移時 |
+| `AttributeGachaModal.tsx` | 抽選中の属性表示切替ごと（`SPIN_INTERVAL_MS = 90`） | 各出目確定時／最終出目確定時 |
 
 ロストルーレットと **同一 SE ファイル** を使用する。
 
@@ -412,7 +412,7 @@ v1 およびミニマル方針により **SE を付けない** イベント一�
 
 - [ ] `LostRouletteModal` — tick / stop（§4.5）
 - [ ] `AttributeCreateRouletteModal` — tick / stop（§4.6）
-- [ ] `AttributeRetouchModal` — tick / stop（§4.6）
+- [ ] `AttributeGachaModal` — tick / stop（§4.6）
 
 ### Phase 4 — 確認
 

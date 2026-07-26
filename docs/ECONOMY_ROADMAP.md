@@ -16,8 +16,8 @@
 
 | 表示 | 内部名（案） | 入手 | 主な用途 |
 |------|--------------|------|----------|
-| 無償 | `freePixels` | バトル、レベルアップ、**カード削除返還**、勝利2倍広告、**属性リタッチ** | **復活**、**護符購入（px）**、**汎用かけら購入**、**リネーム**、編集時キャンバス拡大 |
-| 💎 ジュエル | `jewels` | 課金、**毎レベル 30**、サブスク | 削除・**属性セレクト**・デッキ3以降・限界突破レア昇格・創作拡張の **その場消費** |
+| 無償 | `freePixels` | バトル、レベルアップ、**カード削除返還**、勝利2倍広告、**属性ガチャ（px）** | **復活**、**護符購入（px）**、**汎用かけら購入**、**リネーム**、編集時キャンバス拡大 |
+| 💎 ジュエル | `jewels` | 課金、**毎レベル 30**、サブスク | 削除・**属性ガチャ確定／期間限定**・デッキ3以降・限界突破レア昇格・創作拡張の **その場消費** |
 | 属性かけら | `limitBreakShards[attribute]` | **勝利時の戦利品選択**・ショップ交換 | 同一属性カードの限界突破（**N=10 / R=15 / SR・UR=20**） |
 | 汎用かけら | `limitBreakUniversal` | **L≡4 (mod 5), L≥5**（9, 14, 19…）・**ショップ（px）**・属性溶解 | ショップで属性かけらへ交換（**汎用2＝属性1**）。限界突破には直接使えない |
 | 護符 | `inventory.talisman` | **Lv5 到達（初回 ×1）**、**Lv20,30,40,50**、**ショップ（px）**、サブスク | ロスト1回免れ（装備消費） |
@@ -66,7 +66,7 @@
 | **Lv20, 30, 40, 50** | **護符 ×1**（汎用かけらの代わり） |
 | その他 mod 5 | 色・属性・ツール・キャンバス（現行 §5.9 どおり） |
 
-- **経済設計意図**: 創作系は **px 統一**（レベルアップ **300** / 属性リタッチ **200** / リネーム **200**）。💎 は削除・セレクト・デッキ解放等の**意思決定コスト**。無課金の必須💎は主に**カード削除**（5💎/回）。属性セレクト（100💎/回）が主な💎シンク。デッキ3以降・追加色・ツール早期解放は課金/ヘビー向け。
+- **経済設計意図**: 創作系は **px 統一**（レベルアップ **100** / 属性ガチャ単発 **200** / リネーム **200**）。💎 は削除・属性ガチャ確定・デッキ解放等の**意思決定コスト**。無課金の必須💎は主に**カード削除**（5💎/回）。属性ガチャ確定（100💎/回）が主な💎シンク。デッキ3以降・追加色・ツール早期解放は課金/ヘビー向け。
 
 ### 1.4b 創作系 px コスト（確定・2026-06-20）
 
@@ -75,7 +75,7 @@
 | レベルアップ | **100 px** / 回 | `LEVEL_UP_PIXEL_REWARD` |
 | レベルアップ💎 | **10** / 回 | `JEWELS_PER_LEVEL` |
 | バトル勝利 px | **×0.5** | `BATTLE_VICTORY_PX_MULTIPLIER` |
-| 属性リタッチ | **200 px** / 回 | 属性ランダム変更（§8.4） |
+| 属性ガチャ単発 | **200 px** / 回 | 属性ランダム変更（§8.4） |
 | リネーム | **200 px** / 回（**プレミアムは無料**） | 名前変更保存時。属性は不変（§8.2） |
 | キャンバス拡大 | **新²−旧²** px | 編集保存時。配置はフィット/左上/中央の3択（§16.14） |
 
@@ -142,8 +142,8 @@
 
 **ショップに並べない（操作地点で 💎 / px 直消費）**
 
-- 通常カード削除、カード名変更（編集保存時）、**属性セレクト**、デッキ3以降解放
-- **属性リタッチ**は px 直消費（ショップ商品ではない）
+- 通常カード削除、カード名変更（編集保存時）、**属性ガチャ確定**、デッキ3以降解放
+- **属性ガチャ（px）**は操作地点で直消費（ショップ商品ではない）
 - **属性かけら**はバトル戦利品のみ
 
 ---
@@ -336,7 +336,7 @@
 
 **目的**: 新規作成時の属性ランダム化と、既存カードの px/💎 による属性変更ループ。
 
-**参照**: [ATTRIBUTE_SPEC §3](./ATTRIBUTE_SPEC.md#3-属性一覧解放)、[ECONOMY_SPEC §8.4](./ECONOMY_SPEC.md#84-属性変更属性リタッチ属性セレクト)
+**参照**: [ATTRIBUTE_SPEC §3](./ATTRIBUTE_SPEC.md#3-属性一覧解放)、[ECONOMY_SPEC §8.4](./ECONOMY_SPEC.md#84-属性変更属性ガチャ)
 
 **作業**
 
@@ -542,7 +542,7 @@ flowchart TD
 | `TALISMAN_MILESTONE_GRANT_COUNT` | **1** | L20,30,40,50 |
 | `JEWEL_COST_DELETE` | **5** | カード削除（active/lost 共通） |
 | `PIXEL_COST_RENAME` | **200** | リネーム（名前変更保存時・毎回） |
-| `JEWEL_COST_ATTRIBUTE_SELECT` | **100** | 属性セレクト1回 |
+| `JEWEL_COST_ATTRIBUTE_SELECT` | **100** | 属性ガチャ確定1回 |
 | `LIMIT_BREAK_RARITY_JEWEL_COST` | N=**50**, R=**100**, SR=**200** | 限界突破4回目（レア昇格） |
 | `JEWEL_COST_DECK_UNLOCK` | **1,000** | デッキ3〜各1回 |
 | `JEWEL_COST_MEMORY_ALBUM_ROW` | **1,000** | 行解放（+5枠） |
@@ -555,9 +555,10 @@ flowchart TD
 | `GRAVEYARD_SHARD_REWARD` | N=1, R=2, SR=3 | 戦利品かけら |
 | `SHOP_TALISMAN_*` | 1/1000, 2/1800, 3/2500 px | 護符パック（日次上限なし） |
 | `SHOP_UNIVERSAL_SHARD_*` | 10/500, 25/1000, 55/2000 px | 汎用かけら（日次上限なし） |
-| `PIXEL_COST_ATTRIBUTE_RETOUCH` | 200 | 属性リタッチ（単発）1回 |
-| `PIXEL_COST_ATTRIBUTE_GACHA_5` | 950 | 属性ガチャ5連（UI 後続） |
-| `PIXEL_COST_ATTRIBUTE_GACHA_10` | 1800 | 属性ガチャ10連（UI 後続） |
+| `PIXEL_COST_ATTRIBUTE_RETOUCH` | 200 | 属性ガチャ単発1回 |
+| `PIXEL_COST_ATTRIBUTE_GACHA_5` | 950 | 属性ガチャ5連 |
+| `PIXEL_COST_ATTRIBUTE_GACHA_10` | 1800 | 属性ガチャ10連 |
+| `JEWEL_COST_ATTRIBUTE_EVENT_GACHA` | 10 | 期間限定属性ガチャ1回（Lv21+） |
 | `JEWEL_PACK_*` | 200〜4000円 | §12.3。200円初回2倍 |
 | `SUB_LIGHT_MONTHLY` | **500円** | 1000px / 250💎 / 護符1 |
 | `SUB_PREMIUM_MONTHLY` | **800円** | 2000px / 500💎 / 護符2 |
@@ -584,7 +585,7 @@ flowchart TD
 | 1 | `src/types/index.ts`, `src/user/economy.ts`, `src/storage/index.ts` |
 | 2 | `src/config/progressionUnlocks.ts`, `src/App.tsx`, `src/components/DeckUnlockModal.tsx` |
 | 3 | `src/deckSlots.ts`, `src/App.tsx`, `src/components/DeckUnlockModal.tsx`, `src/components/DeckScreen.tsx` |
-| 4 | `DeckScreen.tsx`, `DeckCardDetailOverlay.tsx`, `MemoryAlbumScreen.tsx`, `MemoryAlbumDialogs.tsx`, `src/user/memoryAlbum.ts`, `EditorScreen.tsx`, `App.tsx`, `src/card/rollAttribute.ts`, `attributeChange.ts`, `AttributeRetouchModal.tsx`, `AttributeSelectModal.tsx` |
+| 4 | `DeckScreen.tsx`, `DeckCardDetailOverlay.tsx`, `MemoryAlbumScreen.tsx`, `MemoryAlbumDialogs.tsx`, `src/user/memoryAlbum.ts`, `EditorScreen.tsx`, `App.tsx`, `src/card/rollAttribute.ts`, `attributeChange.ts`, `attributeGacha.ts`, `eventAttributeGacha.ts`, `AttributeGachaModal.tsx` |
 | 5 | `src/components/GraveyardPickModal.tsx`, `src/battle/graveyardLoot.ts`, `src/components/InventoryScreen.tsx`, `src/config/economy.ts`, `src/App.tsx` |
 | 6 | `src/card/limitBreak.ts`, `DeckCardDetailOverlay.tsx`, `DeckScreen.tsx`, `SettingsScreen.tsx`, `src/user/profile.ts` |
 | 7 | 新規 `src/ad/*`, エディタ保存経路, バトル開始経路, `MockRewardAdModal`, `historyRematch.ts`, `HistoryRematchRulesModal` |
@@ -661,8 +662,8 @@ flowchart TD
 - [x] 新規作成の **命名** は無料。リネームは **編集画面で常時編集**、**保存時一括課金**（**200px/回**）。**プレミアムは無料**
 - [x] キャンバス拡大時のイメージ配置: **フィット / 左上 / 中央**（デフォルト中央）
 - [x] 履歴再戦報酬: 勝=通常2倍・負=通常同等の px。報酬モーダル。勝利時任意/常時2倍（px のみ）
-- [x] **属性リタッチ 200px / 属性セレクト 💎100**（作成時は `rollAttribute`・直近解放 +10%）。5連950・10連1800は定数予約
-- [x] **属性選択チケット** — **不採用**（セレクトと重複）
+- [x] **属性ガチャ**（1回200px / 5連950 / 10連1800 / 期間限定💎10・Lv21+ / 確定💎100）。余りかけら・`attribute_gacha` ミッション。旧リタッチ／セレクトモーダルは削除済み
+- [x] **属性選択チケット** — **不採用**（確定と重複）
 - [x] レアカード戦利品のかけら: **N=1, R=2, SR=3**
 - [x] **護符価格**: **3段階**（1/1000・2/1800・3/2500px。💎 購入廃止）
 - [x] **汎用かけらショップ**: 500/1000/2000px（10/25/55個）。**日次上限なし**・横並び
@@ -671,7 +672,7 @@ flowchart TD
 - [x] **ShopScreen**: **3タブ**（💎 / アイテム / サブスク）。パレット・ツールは編集画面
 - [x] **勝利2倍**: **EXP・px・かけら** すべて2倍
 - [x] **CPU 戦広告**: **3回に1回**（~~1日10戦 cap~~ 廃止）
-- [x] **px 創作コスト**: レベルアップ **100px** / 属性リタッチ **200px** / リネーム **200px**（名前変更保存のたび）
+- [x] **px 創作コスト**: レベルアップ **100px** / 属性ガチャ単発 **200px** / リネーム **200px**（名前変更保存のたび）
 - [x] レベル報酬: **💎10/Lv**・**100px/Lv**、L≡4 **汎用かけら×20**、L20,30,40,50 **護符×1**
 - [x] 日次リセットのタイムゾーン（**JST 固定**）
 - [x] 限界突破 UI: 属性かけらのみ消費（汎用ステッパー廃止）
