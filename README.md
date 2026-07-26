@@ -100,7 +100,7 @@ docs/               # 仕様書 / specifications
 | Battle victory px | Survivor & graveyard rewards **×0.5** |
 | レベルアップ | **100 px + 💎10** / level |
 | Level-up reward | **100 px + 10 jewels** / level |
-| 属性リタッチ | **300 px** / Attribute retouch **300 px** |
+| 属性リタッチ | **200 px** / Attribute retouch **200 px** |
 | 属性セレクト | **💎100** / Attribute select **100 jewels** |
 | リネーム | **200 px/回**（プレミアムは無料） |
 | Rename | **200 px** per save（free for Premium） |

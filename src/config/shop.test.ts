@@ -38,6 +38,9 @@ describe('shop catalog', () => {
     expect(UNIVERSAL_SHARD_PACKS).toHaveLength(3);
     expect(totalShardsInPack(UNIVERSAL_SHARD_PACKS[0]!)).toBe(10);
     expect(totalShardsInPack(UNIVERSAL_SHARD_PACKS[2]!)).toBe(55);
+    expect(UNIVERSAL_SHARD_PACKS.map((pack) => pack.pixelCost)).toEqual([
+      500, 1000, 2000,
+    ]);
   });
 
   it('formats bonus labels', () => {

@@ -43,6 +43,9 @@ import {
   calcCanvasUpgradeCost,
   getCardRenameCount,
   PIXEL_COST_RENAME,
+  PIXEL_COST_ATTRIBUTE_RETOUCH,
+  PIXEL_COST_ATTRIBUTE_GACHA_5,
+  PIXEL_COST_ATTRIBUTE_GACHA_10,
   JEWEL_COST_DECK_UNLOCK,
   pickWeightedLostCard,
 } from './economy';
@@ -377,8 +380,11 @@ describe('lost economy helpers', () => {
   });
 
   it('checks attribute retouch and select affordability', () => {
-    expect(canAffordAttributeRetouch({ freePixels: 300 })).toBe(true);
-    expect(canAffordAttributeRetouch({ freePixels: 299 })).toBe(false);
+    expect(canAffordAttributeRetouch({ freePixels: 200 })).toBe(true);
+    expect(canAffordAttributeRetouch({ freePixels: 199 })).toBe(false);
+    expect(PIXEL_COST_ATTRIBUTE_RETOUCH).toBe(200);
+    expect(PIXEL_COST_ATTRIBUTE_GACHA_5).toBe(950);
+    expect(PIXEL_COST_ATTRIBUTE_GACHA_10).toBe(1800);
     expect(canAffordAttributeSelect({ jewels: 100 })).toBe(true);
     expect(canAffordAttributeSelect({ jewels: 99 })).toBe(false);
   });

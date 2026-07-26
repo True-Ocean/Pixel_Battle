@@ -31,10 +31,16 @@ export const JEWEL_COST_DELETE = 5;
 /** カード名変更（保存時・名前が変わった場合）の px コスト */
 export const PIXEL_COST_RENAME = 200;
 
-/** 属性リタッチ1回の px コスト */
-export const PIXEL_COST_ATTRIBUTE_RETOUCH = 300;
+/** 属性リタッチ（属性ガチャ単発）1回の px コスト */
+export const PIXEL_COST_ATTRIBUTE_RETOUCH = 200;
 
-/** 属性セレクト1回の 💎 コスト */
+/** 属性ガチャ 5連の px コスト（UI は後続フェーズ） */
+export const PIXEL_COST_ATTRIBUTE_GACHA_5 = 950;
+
+/** 属性ガチャ 10連の px コスト（UI は後続フェーズ） */
+export const PIXEL_COST_ATTRIBUTE_GACHA_10 = 1800;
+
+/** 属性セレクト（属性ガチャ確定）1回の 💎 コスト */
 export const JEWEL_COST_ATTRIBUTE_SELECT = 100;
 
 /** デッキ3〜5解放のジュエルコスト（各1回） */

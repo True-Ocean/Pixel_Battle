@@ -55,9 +55,9 @@ export const JEWEL_PACKS: readonly JewelPackDefinition[] = [
 ] as const;
 
 export const UNIVERSAL_SHARD_PACKS: readonly UniversalShardPackDefinition[] = [
-  { id: 'shard10', pixelCost: 1000, baseShards: 10, bonusShards: 0 },
-  { id: 'shard25', pixelCost: 2000, baseShards: 20, bonusShards: 5 },
-  { id: 'shard55', pixelCost: 4000, baseShards: 40, bonusShards: 15 },
+  { id: 'shard10', pixelCost: 500, baseShards: 10, bonusShards: 0 },
+  { id: 'shard25', pixelCost: 1000, baseShards: 20, bonusShards: 5 },
+  { id: 'shard55', pixelCost: 2000, baseShards: 40, bonusShards: 15 },
 ] as const;
 
 export const SUBSCRIPTION_PLANS: readonly SubscriptionPlanDefinition[] = [
