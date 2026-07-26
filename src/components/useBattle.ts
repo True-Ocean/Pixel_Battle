@@ -287,6 +287,17 @@ export function useBattle(
     return true;
   }, [isStormPickPending, isIlluminateModePending]);
 
+  const cancelSelection = useCallback(() => {
+    setPendingActor(null);
+    setPendingAction(null);
+    setPendingPromoteFrom(null);
+    setUiPhase(
+      getPendingPromotionFronts(state.player).length > 0
+        ? 'promoteUnit'
+        : 'pickMain',
+    );
+  }, [state.player]);
+
   const commitTurn = useCallback(
     (playerChoice: BattleActionChoice) => {
       const cpuChoice = pickCpuAction(state);
@@ -443,6 +454,18 @@ export function useBattle(
         (effectivePhase === 'pickTarget' ||
           effectivePhase === 'pickShield' ||
           effectivePhase === 'pickHeal') &&
+        pendingActor != null &&
+        pendingActor !== position
+      ) {
+        // 有効対象でなかった自陣タップ → 行動カード選択を解除
+        cancelSelection();
+        return;
+      }
+
+      if (
+        (effectivePhase === 'pickTarget' ||
+          effectivePhase === 'pickShield' ||
+          effectivePhase === 'pickHeal') &&
         pendingActor === position
       ) {
         if (
@@ -518,6 +541,7 @@ export function useBattle(
       finishPromotion,
       isStormPickPending,
       cancelStormPick,
+      cancelSelection,
     ],
   );
 
@@ -624,17 +648,6 @@ export function useBattle(
       cancelStormPick,
     ],
   );
-
-  const cancelSelection = useCallback(() => {
-    setPendingActor(null);
-    setPendingAction(null);
-    setPendingPromoteFrom(null);
-    setUiPhase(
-      getPendingPromotionFronts(state.player).length > 0
-        ? 'promoteUnit'
-        : 'pickMain',
-    );
-  }, [state.player]);
 
   const isActionablePosition = useCallback(
     (position: BoardPosition) => availableActionsFor(position).length > 0,

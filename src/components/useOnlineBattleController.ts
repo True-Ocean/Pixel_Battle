@@ -504,6 +504,14 @@ export function useOnlineBattleController({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- session の identity churn を避け、安定した setter のみ依存する
   }, [isStormPickPending, isIlluminateModePending, session.setActionPickSubPhase]);
 
+  const cancelSelection = useCallback(() => {
+    setPendingActor(null);
+    setPendingAction(null);
+    session.clearPromotionDraft();
+    session.setActionPickSubPhase('main');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- session 全体ではなく安定した関数だけ依存する
+  }, [session.clearPromotionDraft, session.setActionPickSubPhase]);
+
   const commitTurn = useCallback(
     (playerChoice: BattleActionChoice) => {
       setPendingActor(null);
@@ -640,6 +648,17 @@ export function useOnlineBattleController({
         (effectivePhase === 'pickTarget' ||
           effectivePhase === 'pickShield' ||
           effectivePhase === 'pickHeal') &&
+        pendingActor != null &&
+        pendingActor !== position
+      ) {
+        cancelSelection();
+        return;
+      }
+
+      if (
+        (effectivePhase === 'pickTarget' ||
+          effectivePhase === 'pickShield' ||
+          effectivePhase === 'pickHeal') &&
         pendingActor === position
       ) {
         if (
@@ -705,6 +724,7 @@ export function useOnlineBattleController({
     },
     [
       availableActionsFor,
+      cancelSelection,
       cancelStormPick,
       commitTurn,
       effectivePhase,
@@ -823,14 +843,6 @@ export function useOnlineBattleController({
       state,
     ],
   );
-
-  const cancelSelection = useCallback(() => {
-    setPendingActor(null);
-    setPendingAction(null);
-    session.clearPromotionDraft();
-    session.setActionPickSubPhase('main');
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- session 全体ではなく安定した関数だけ依存する
-  }, [session.clearPromotionDraft, session.setActionPickSubPhase]);
 
   const isActionablePosition = useCallback(
     (position: BoardPosition) => {

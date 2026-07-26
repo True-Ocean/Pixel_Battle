@@ -1585,6 +1585,29 @@ function BattleBoard({
     battle.availableActionsFor,
   ]);
 
+  const handlePlayerZoneBackgroundClick = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    if (
+      battle.effectivePhase !== 'pickTarget' &&
+      battle.effectivePhase !== 'pickShield' &&
+      battle.effectivePhase !== 'pickHeal'
+    ) {
+      return;
+    }
+    if (battle.pendingActor == null) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('.battle-formation-slot')) return;
+    battle.cancelSelection();
+  };
+
+  const playerZoneCanCancelSelection =
+    battle.pendingActor != null &&
+    (battle.effectivePhase === 'pickTarget' ||
+      battle.effectivePhase === 'pickShield' ||
+      battle.effectivePhase === 'pickHeal');
+
   return (
     <FormationPlayLayout boardRef={boardRef}>
       <FormationArrowLayer
@@ -1689,7 +1712,14 @@ function BattleBoard({
             ) : null}
           </div>
 
-          <div className="formation-zone formation-zone-player">
+          <div
+            className={`formation-zone formation-zone-player${
+              playerZoneCanCancelSelection
+                ? ' formation-zone-player--can-cancel-selection'
+                : ''
+            }`}
+            onClick={handlePlayerZoneBackgroundClick}
+          >
             <div className="formation-field formation-field-player">
               {showPlayerCountdown ? (
                 <FormationPhaseCountdown

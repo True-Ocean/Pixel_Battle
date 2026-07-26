@@ -1400,9 +1400,17 @@ button.battle-hub-deck-icon.is-move-target {
   align-items: center;
   justify-content: center;
   gap: 0.7rem;
-  padding: 0.68rem 0.72rem;
-  border-left: 4px solid var(--battle-mode-accent);
+  padding: 0.68rem 0.72rem 0.68rem calc(0.72rem + 4px);
   text-align: left;
+}
+
+.screen-battle-hub-modes .battle-hub-mode-btn::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--battle-mode-accent);
+  content: '';
+  pointer-events: none;
 }
 
 .screen-battle-hub-modes .battle-hub-mode-btn--friend,
@@ -1713,6 +1721,7 @@ button.battle-hub-deck-icon.is-move-target {
 .battle-mode-header {
   --battle-mode-header-accent: #93c5fd;
   --battle-mode-header-icon: #dbeafe;
+  position: relative;
   box-sizing: border-box;
   width: 100%;
   min-height: 3.8rem;
@@ -1720,13 +1729,21 @@ button.battle-hub-deck-icon.is-move-target {
   grid-template-columns: 2.35rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.52rem 0.65rem;
+  padding: 0.52rem 0.65rem 0.52rem calc(0.65rem + 4px);
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--battle-mode-header-accent) 72%, white);
-  border-left: 4px solid var(--battle-mode-header-accent);
   border-radius: 12px;
   color: #fff;
   box-shadow: 0 4px 12px rgba(55, 65, 145, 0.22);
+}
+
+.battle-mode-header::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--battle-mode-header-accent);
+  content: '';
+  pointer-events: none;
 }
 
 .battle-mode-header--cpu {
@@ -8875,7 +8892,8 @@ button.battle-hub-deck-icon.is-move-target {
 /* `.screen-deck .deck-card-row` の position:relative より詳細度を上げてフロート追従を維持 */
 .screen-deck .deck-drag-ghost.deck-card-row {
   position: fixed;
-  overflow: visible;
+  /* リスト行と同じく overflow で左アクセントを丸角にクリップ（box-shadow は自身の overflow では切れない） */
+  overflow: hidden;
   margin-bottom: 0;
 }
 
@@ -13292,6 +13310,16 @@ button.battle-hub-deck-icon.is-move-target {
   cursor: pointer;
 }
 
+/* 選択カードの上方向シフトが切れないようにする */
+.setup-hand-zone.setup-hand-player.is-battle-active {
+  overflow: visible;
+  padding-top: 0.55rem;
+}
+
+.setup-hand-zone.setup-hand-player.is-battle-active .setup-hand-slot {
+  overflow: visible;
+}
+
 .setup-zone {
   flex-shrink: 0;
 }
@@ -13758,17 +13786,23 @@ button.battle-card {
   );
 }
 
-.battle-card.interactive:hover:not(.dead) {
+.battle-card.interactive:hover:not(.dead):not(.focused):not(.selected) {
   border-color: #888;
   transform: translateY(-2px);
 }
 
 .battle-card.focused,
 .battle-card.selected {
-  border-color: #646cff;
-  box-shadow: 0 0 12px #646cff55;
-  transform: scale(1.03);
-  z-index: 1;
+  border-color: #4f46e5;
+  border-width: 2px;
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.55),
+    0 0 0 6px rgba(99, 102, 241, 0.22),
+    0 8px 18px rgba(79, 70, 229, 0.35);
+  transform: translateY(-0.5rem) scale(1.04);
+  z-index: 3;
+  filter: none;
+  opacity: 1;
 }
 
 .battle-card.cpu-focus {
@@ -13781,8 +13815,48 @@ button.battle-card {
 }
 
 .battle-card.has-shield.focused {
-  border-color: #6cf;
-  box-shadow: 0 0 12px #646cff55;
+  border-color: #818cf8;
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.55),
+    0 0 0 6px rgba(99, 102, 241, 0.22),
+    0 8px 18px rgba(79, 70, 229, 0.35);
+}
+
+/* 選択中があるとき、他の味方カードを抑えて選択を際立たせる（有効ターゲットは除く） */
+.setup-hand-player:has(.battle-card.focused) .battle-card:not(.focused):not(.dead),
+.setup-hand-player:has(.battle-card.selected) .battle-card:not(.selected):not(.focused):not(.dead),
+.battle-zone-player:has(.battle-card.focused) .battle-card:not(.focused):not(.dead),
+.battle-zone-player:has(.battle-card.selected) .battle-card:not(.selected):not(.focused):not(.dead),
+.battle-lane.battle-zone-player:has(.battle-card.focused) .battle-card:not(.focused):not(.dead),
+.battle-lane.battle-zone-player:has(.battle-card.selected)
+  .battle-card:not(.selected):not(.focused):not(.dead),
+.formation-zone-player:has(.battle-card.selected)
+  .formation-slot:not(.is-selected):not(.is-valid)
+  .battle-card:not(.dead),
+.formation-zone-player:has(.battle-card.focused)
+  .formation-slot:not(.is-selected):not(.is-valid)
+  .battle-card:not(.focused):not(.selected):not(.dead),
+.formation-zone-player:has(.formation-slot.is-selected)
+  .formation-slot:not(.is-selected):not(.is-valid)
+  .battle-card:not(.dead) {
+  opacity: 0.58;
+  filter: grayscale(0.35) brightness(0.92);
+}
+
+/* 対象選択中：選べないカードを抑え、有効ターゲットを際立たせる */
+.formation-zone-cpu:has(.formation-slot.is-valid)
+  .formation-slot.has-card:not(.is-valid)
+  .battle-card,
+.formation-zone-player:has(.formation-slot.is-valid)
+  .formation-slot.has-card:not(.is-valid):not(.is-selected)
+  .battle-card {
+  opacity: 0.58;
+  filter: grayscale(0.35) brightness(0.92);
+}
+
+.formation-slot.is-valid .battle-card {
+  opacity: 1;
+  filter: none;
 }
 
 .battle-card.battle-side-cpu {
@@ -13811,8 +13885,11 @@ button.battle-card {
 .battle-card.battle-card--rarity-SR.selected,
 .battle-card.battle-card--rarity-UR.selected,
 .battle-card.battle-card--rarity-L.selected {
-  border-color: #646cff;
-  box-shadow: 0 0 12px #646cff55;
+  border-color: #4f46e5;
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.55),
+    0 0 0 6px rgba(99, 102, 241, 0.22),
+    0 8px 18px rgba(79, 70, 229, 0.35);
 }
 
 .battle-card.battle-card--rarity-R.cpu-focus,
@@ -13834,8 +13911,11 @@ button.battle-card {
 .battle-card.battle-card--rarity-SR.has-shield.focused,
 .battle-card.battle-card--rarity-UR.has-shield.focused,
 .battle-card.battle-card--rarity-L.has-shield.focused {
-  border-color: #6cf;
-  box-shadow: 0 0 12px #646cff55;
+  border-color: #818cf8;
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.55),
+    0 0 0 6px rgba(99, 102, 241, 0.22),
+    0 8px 18px rgba(79, 70, 229, 0.35);
 }
 
 .battle-card.dead {
@@ -15543,38 +15623,82 @@ button.battle-card {
 .formation-slot.is-valid {
   border-color: #64d86b;
   box-shadow: 0 0 10px #64d86b55;
+  z-index: 2;
 }
 
 .formation-slot.is-attack-target {
   border-color: #e24a4a;
   background: #fff0f0;
   box-shadow:
-    0 0 0 2px #e24a4a44,
-    0 0 14px #e24a4a77;
+    0 0 0 3px rgba(226, 74, 74, 0.45),
+    0 0 0 6px rgba(226, 74, 74, 0.18),
+    0 0 16px rgba(226, 74, 74, 0.4);
+  z-index: 2;
+}
+
+.formation-slot.is-frameless.is-attack-target .battle-card {
+  box-shadow:
+    0 0 0 3px rgba(226, 74, 74, 0.5),
+    0 0 0 6px rgba(226, 74, 74, 0.2),
+    0 6px 14px rgba(226, 74, 74, 0.28);
 }
 
 .formation-slot.is-shield-target {
   border-color: #35b96f;
   background: #effff5;
   box-shadow:
-    0 0 0 2px #35b96f44,
-    0 0 14px #35b96f77;
+    0 0 0 3px rgba(53, 185, 111, 0.45),
+    0 0 0 6px rgba(53, 185, 111, 0.18),
+    0 0 16px rgba(53, 185, 111, 0.4);
+  z-index: 2;
+}
+
+.formation-slot.is-frameless.is-shield-target .battle-card {
+  box-shadow:
+    0 0 0 3px rgba(53, 185, 111, 0.5),
+    0 0 0 6px rgba(53, 185, 111, 0.2),
+    0 6px 14px rgba(53, 185, 111, 0.28);
 }
 
 .formation-slot.is-heal-target {
   border-color: #3db8e8;
   background: #eef9ff;
   box-shadow:
-    0 0 0 2px #3db8e844,
-    0 0 14px #3db8e877;
+    0 0 0 3px rgba(61, 184, 232, 0.45),
+    0 0 0 6px rgba(61, 184, 232, 0.18),
+    0 0 16px rgba(61, 184, 232, 0.4);
+  z-index: 2;
+}
+
+.formation-slot.is-frameless.is-heal-target .battle-card {
+  box-shadow:
+    0 0 0 3px rgba(61, 184, 232, 0.5),
+    0 0 0 6px rgba(61, 184, 232, 0.2),
+    0 6px 14px rgba(61, 184, 232, 0.28);
 }
 
 .formation-slot.is-storm-target {
   border-color: #6a5aaa;
   background: #f0eeff;
   box-shadow:
-    0 0 0 2px #6a5aaa44,
-    0 0 14px #8888cc77;
+    0 0 0 3px rgba(106, 90, 170, 0.45),
+    0 0 0 6px rgba(106, 90, 170, 0.18),
+    0 0 16px rgba(136, 136, 204, 0.4);
+  z-index: 2;
+}
+
+.formation-slot.is-frameless.is-storm-target .battle-card {
+  box-shadow:
+    0 0 0 3px rgba(106, 90, 170, 0.5),
+    0 0 0 6px rgba(106, 90, 170, 0.2),
+    0 6px 14px rgba(106, 90, 170, 0.28);
+}
+
+/* 選択中カードの持ち上げはターゲット強調より優先 */
+.formation-slot.is-frameless.is-selected .battle-card.selected,
+.formation-slot.is-frameless.is-selected .battle-card.focused {
+  transform: translateY(-0.5rem) scale(1.04);
+  z-index: 3;
 }
 
 .formation-slot.is-selected,
@@ -15777,6 +15901,10 @@ button.battle-card {
   box-shadow: 0 2px 8px rgba(109, 40, 217, 0.14);
 }
 
+.formation-screen.is-play-phase .formation-zone-player--can-cancel-selection {
+  cursor: pointer;
+}
+
 .formation-screen .formation-zone-cpu .formation-field-cpu,
 .formation-screen .formation-zone-player .formation-field-player {
   background: transparent;
@@ -15852,12 +15980,17 @@ button.battle-card {
 
 .formation-screen .formation-slot.is-frameless .battle-card.focused,
 .formation-screen .formation-slot.is-frameless .battle-card.selected {
-  border-color: #646cff;
-  box-shadow: 0 0 12px #646cff55;
+  border-color: #4f46e5;
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.55),
+    0 0 0 6px rgba(99, 102, 241, 0.22),
+    0 8px 18px rgba(79, 70, 229, 0.35);
+  transform: translateY(-0.5rem) scale(1.04);
+  z-index: 3;
 }
 
 .formation-screen .formation-slot.is-frameless .battle-card.has-shield.focused {
-  border-color: #6cf;
+  border-color: #818cf8;
 }
 
 .formation-screen .formation-slot.is-frameless .battle-card.cpu-focus {
@@ -16012,10 +16145,14 @@ button.battle-card {
   overflow: hidden;
 }
 
+.formation-screen.is-play-phase .formation-zone-cpu:has(.formation-slot.is-valid) {
+  overflow: visible;
+}
+
 .formation-screen.is-play-phase .formation-zone-player {
   padding: 0.28rem 0 0;
   gap: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .formation-screen.is-play-phase .formation-zone .formation-zone-banner {
@@ -16051,6 +16188,23 @@ button.battle-card {
 
 .formation-screen.is-play-phase .formation-zone-player .formation-field-player {
   padding: 0 0.2rem 0.08rem;
+  overflow: visible;
+}
+
+/* 選択カードがゾーン上辺・ガイドの前面にフロートする */
+.formation-screen.is-play-phase .formation-zone-player:has(.battle-card.selected),
+.formation-screen.is-play-phase .formation-zone-player:has(.battle-card.focused),
+.formation-screen.is-play-phase .formation-zone-player:has(.formation-slot.is-selected) {
+  z-index: 4;
+}
+
+.formation-screen.is-play-phase
+  .formation-slot.battle-formation-slot:has(.battle-card.selected),
+.formation-screen.is-play-phase
+  .formation-slot.battle-formation-slot:has(.battle-card.focused),
+.formation-screen.is-play-phase .formation-slot.battle-formation-slot.is-selected {
+  z-index: 5;
+  overflow: visible;
 }
 
 .formation-screen.is-play-phase .formation-zone .formation-field {
