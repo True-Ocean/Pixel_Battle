@@ -13018,6 +13018,17 @@ button.battle-card {
   text-shadow: 0 1px 1px #fff8f8;
 }
 
+.battle-card-bp.bp-dazzled,
+.battle-card.has-dazzle .battle-card-bp {
+  color: #9a6a00;
+  background: rgba(255, 244, 200, 0.96);
+  border-color: rgba(210, 160, 30, 0.7);
+  box-shadow:
+    0 1px 3px rgba(180, 130, 20, 0.22),
+    inset 0 0 0 1px #ffffff99;
+  text-shadow: 0 1px 1px #fff8e8;
+}
+
 .battle-card-bp.bp-damage {
   color: #e83030;
   border-color: #e8303088;
@@ -13328,6 +13339,18 @@ button.battle-card {
     0 1px 2px #0004,
     0 0 0 1px #3336;
   color: #f0f0f0;
+  z-index: 7;
+}
+
+.battle-card-buff-dazzle {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(145deg, #fff6c8, #f0c84a);
+  box-shadow:
+    0 1px 3px #0003,
+    0 0 0 1px rgba(200, 150, 20, 0.55);
+  color: #6a4a00;
   z-index: 7;
 }
 

@@ -31,6 +31,8 @@ export interface DualAttackInput {
   action: BattleActionChoice;
   attacker: BattleUnit;
   target: BattleUnit;
+  /** 行動宣言時の currentBp（副攻撃は撃破後もこの値で算出） */
+  attackerBpAtAction: number;
 }
 
 function isMeleeLikeAction(type: BattleActionType): boolean {
@@ -84,6 +86,7 @@ export function collectDualAttacks(
         action,
         attacker,
         target,
+        attackerBpAtAction: attacker.currentBp,
       };
     })
     .filter((a): a is DualAttackInput => a != null);
@@ -97,7 +100,7 @@ export function applyDualAttack(
   choices: { player: BattleActionChoice; cpu: BattleActionChoice },
   resolvedMainPairs: Set<string>,
 ): { state: BattleState; playback: AttackPlayback } {
-  const attackerBpAtAction = attack.attacker.currentBp;
+  const attackerBpAtAction = attack.attackerBpAtAction;
   const pairKey = battlePairKey(
     attack.side,
     attack.action.actorPosition,

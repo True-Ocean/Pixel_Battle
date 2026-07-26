@@ -152,6 +152,7 @@ export function BattleCard({
     poisonJustApplied ? 'poison-just-applied' : '',
     stormSwirl ? 'storm-swirl-active' : '',
     isStealthed ? 'has-stealth' : '',
+    isDazzled ? 'has-dazzle' : '',
     healSparkle ? 'heal-sparkle' : '',
     interactive ? 'interactive' : '',
     selected ? 'selected' : '',
@@ -235,13 +236,13 @@ export function BattleCard({
           to={animatedBp.to}
           active
           maxBp={maxBp}
-          className="battle-card-bp"
+          className={isDazzled ? 'bp-dazzled' : ''}
         />
       ) : (
         !hideBp && (
           <span
-            className={`battle-card-bp${isWounded ? ' bp-wounded' : ''}`}
-            aria-label={`BP ${currentBp}${maxBp != null ? ` / ${maxBp}` : ''}`}
+            className={`battle-card-bp${isWounded ? ' bp-wounded' : ''}${isDazzled ? ' bp-dazzled' : ''}`}
+            aria-label={`BP ${currentBp}${maxBp != null ? ` / ${maxBp}` : ''}${isDazzled ? '（目眩）' : ''}`}
           >
             {currentBp}
           </span>

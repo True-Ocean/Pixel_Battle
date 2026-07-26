@@ -805,6 +805,80 @@ describe('battle', () => {
     expect(state.cpu[1].currentBp).toBe(10);
   });
 
+  it('両同士の相打ちでは双方の副攻撃が発動する', () => {
+    const playerDeck = [
+      stubCard('両P', 'dual', 100),
+      stubCard('P副', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('両C', 'dual', 60),
+      stubCard('C副', 'attack', 50),
+      stubCard('C3', 'attack', 50),
+      stubCard('C4', 'defense', 50),
+      stubCard('C5', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'dualAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'dualAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+    }).state;
+
+    // 主: 相打ち（100↔60）
+    expect(state.player[0].currentBp).toBe(40);
+    expect(state.cpu[0].currentBp).toBe(0);
+    // 副: 双方とも宣言時BPの50%
+    expect(state.cpu[1].currentBp).toBe(0); // 50 - 50
+    expect(state.player[1].currentBp).toBe(20); // 50 - 30
+  });
+
+  it('両同士の同BP相打ちでも双方の副攻撃が発動する', () => {
+    const playerDeck = [
+      stubCard('両P', 'dual', 80),
+      stubCard('P副', 'attack', 50),
+      stubCard('P3', 'attack', 50),
+      stubCard('P4', 'attack', 50),
+      stubCard('P5', 'attack', 50),
+    ];
+    const cpuDeck = [
+      stubCard('両C', 'dual', 80),
+      stubCard('C副', 'attack', 50),
+      stubCard('C3', 'attack', 50),
+      stubCard('C4', 'defense', 50),
+      stubCard('C5', 'attack', 40),
+    ];
+    let state = createBattleState(playerDeck, cpuDeck);
+
+    state = resolveTurn(state, {
+      player: {
+        type: 'dualAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+      cpu: {
+        type: 'dualAttack',
+        actorPosition: 'frontLeft',
+        targetPosition: 'frontLeft',
+      },
+    }).state;
+
+    expect(state.player[0].currentBp).toBe(0);
+    expect(state.cpu[0].currentBp).toBe(0);
+    expect(state.player[1].currentBp).toBe(10); // 50 - 40
+    expect(state.cpu[1].currentBp).toBe(10); // 50 - 40
+  });
+
   it('両の副攻撃は盾で防げる', () => {
     const playerDeck = [
       stubCard('両', 'dual', 80),

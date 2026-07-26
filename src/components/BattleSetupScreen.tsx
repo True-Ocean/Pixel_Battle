@@ -1492,7 +1492,7 @@ function BattleBoard({
           key: `illuminate-${illuminate.side}-${illuminate.toPosition}`,
           side: illuminate.side === 'player' ? 'cpu' : 'player',
           position: illuminate.toPosition,
-          label: 'ステルス解除',
+          label: illuminate.stealthBroken ? '潜伏解除' : '目眩',
           kind: 'illuminate',
         });
       }

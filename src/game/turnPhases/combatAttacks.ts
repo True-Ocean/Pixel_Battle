@@ -30,6 +30,11 @@ type AttackJob = {
   targetSnap?: BattleLogUnitSnapshot;
   actionKind: BattleLogActionKind;
   run: () => AttackPlayback | null;
+  /**
+   * 両の相打ち用。主近接がこの pairKey で解決済みなら、
+   * 攻撃者／主対象が撃破されていても副攻撃のために実行する。
+   */
+  persistAfterDefeatPairKey?: string;
 };
 
 export interface CombatAttacksResult {
@@ -126,20 +131,29 @@ export function resolveCombatAttacks(
         return result.playback;
       }),
     ),
-    ...dualInputs.map((input) =>
-      createAttackJob(input.attacker, input.target, 'dual_primary', () => {
-        const result = applyDualAttack(
-          next,
-          player,
-          cpu,
-          input,
-          choices,
-          resolvedMainPairs,
-        );
-        next = result.state;
-        return result.playback;
-      }),
-    ),
+    ...dualInputs.map((input) => {
+      const pairKey = battlePairKey(
+        input.side,
+        input.action.actorPosition,
+        input.targetSide,
+        input.action.targetPosition,
+      );
+      return {
+        ...createAttackJob(input.attacker, input.target, 'dual_primary', () => {
+          const result = applyDualAttack(
+            next,
+            player,
+            cpu,
+            input,
+            choices,
+            resolvedMainPairs,
+          );
+          next = result.state;
+          return result.playback;
+        }),
+        persistAfterDefeatPairKey: pairKey,
+      };
+    }),
     ...stormInputs.map((input) =>
       createAttackJob(input.attacker, undefined, 'storm', () => {
         const result = applyStormAttack(next, player, cpu, input, random);
@@ -172,14 +186,21 @@ export function resolveCombatAttacks(
 
   const attacks: AttackPlayback[] = [];
   for (const job of jobs) {
+    const persistAfterDefeat =
+      job.persistAfterDefeatPairKey != null &&
+      resolvedMainPairs.has(job.persistAfterDefeatPairKey);
+
     if (!isAlive(job.attacker)) {
-      if (job.targetSnap && job.target && isAlive(job.target)) {
+      if (persistAfterDefeat) {
+        // 相打ちで主近接は解決済み。副攻撃のみ実行する。
+      } else if (job.targetSnap && job.target && isAlive(job.target)) {
         next = pushAttackPreempted(
           next,
           job.actorSnap,
           job.targetSnap,
           job.actionKind,
         );
+        continue;
       } else if (job.actionKind === 'storm') {
         next = pushAttackPreempted(
           next,
@@ -187,10 +208,11 @@ export function resolveCombatAttacks(
           undefined,
           job.actionKind,
         );
+        continue;
+      } else {
+        continue;
       }
-      continue;
-    }
-    if (job.target && !isAlive(job.target)) {
+    } else if (job.target && !isAlive(job.target) && !persistAfterDefeat) {
       continue;
     }
     const playback = job.run();
