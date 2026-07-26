@@ -17,6 +17,7 @@
 | フレンド対戦オンライン（実装仕様） | Online friend PvP (impl) | [`docs/online-pvp-spec.md`](docs/online-pvp-spec.md) |
 | Supabase セットアップ | Supabase setup | [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) |
 | リリース準備チェックリスト | Release checklist | [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) |
+| アプリリリース進め方 | App release plan (step-by-step) | [`docs/APP_RELEASE_PLAN.md`](docs/APP_RELEASE_PLAN.md) |
 | 効果音（仕様のみ） | SFX spec (planned) | [`docs/SFX_SPEC.md`](docs/SFX_SPEC.md) |
 
 ---

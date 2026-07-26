@@ -1,6 +1,7 @@
 # リリース準備チェックリスト
 
 **運用**: 気づいたら追記する生きたリスト。完了したら `[x]` にし、必要なら日付を残す。  
+**進め方（順序）**: [APP_RELEASE_PLAN.md](./APP_RELEASE_PLAN.md)  
 **関連**: [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) / [PROTOTYPE_DEVELOPMENT_SPEC.md](./PROTOTYPE_DEVELOPMENT_SPEC.md) / [ECONOMY_ROADMAP.md](./ECONOMY_ROADMAP.md) / [online-pvp-spec.md](./online-pvp-spec.md)
 
 ---
