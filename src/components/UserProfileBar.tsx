@@ -78,6 +78,9 @@ export function UserProfileBar({
                     </svg>
                   </span>
                 )}
+                <span className="user-profile-info-icon" aria-hidden>
+                  i
+                </span>
               </button>
               <div
                 className={`user-profile-progress${isMaxLevel ? ' is-max' : ''}`}

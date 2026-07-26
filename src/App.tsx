@@ -4600,6 +4600,11 @@ function App() {
             onBack={closeProfile}
             onOpenAvatar={() => setScreen('avatarDetail')}
             onCommentChange={handleProfileCommentChange}
+            onRenameDeck={handleRenameDeck}
+            canRenameDeck={deckCanRename}
+            deckNames={deckNames}
+            unlockedDeckCount={unlockedDeckCount}
+            onOpenShopSubscription={openShopSubscriptionTab}
             viewerDeckPower={viewerReferenceDeckPower}
             canBattle={false}
             offlinePvpUnlocked={offlinePvpUnlocked}

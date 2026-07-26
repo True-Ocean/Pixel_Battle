@@ -10,8 +10,8 @@ export const DECK_MAX = 5;
 /** ユーザーが持てるデッキスロット数（各スロット最大 DECK_MAX 枚） */
 export const DECK_SLOT_COUNT = 5;
 export const DECK_SLOT_INITIAL_UNLOCKED = 1;
-/** デッキ名の最大文字数（タブ・Hub 表示用） */
-export const DECK_NAME_MAX_LENGTH = 12;
+/** デッキ名の最大文字数（タブ・Hub・プロフィール表示用。Unicode文字数） */
+export const DECK_NAME_MAX_LENGTH = 10;
 /** カード名の最大文字数（新規作成時・全角換算） */
 export const CARD_NAME_MAX_LENGTH = 10;
 /** カード名の最大半角ユニット（半角1・全角2。10全角＝20半角） */

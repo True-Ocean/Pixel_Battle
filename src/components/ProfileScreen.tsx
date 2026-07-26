@@ -1,4 +1,5 @@
 import { useMemo, useState, type CSSProperties } from 'react';
+import { DECK_NAME_MAX_LENGTH } from '../config/balance';
 import { getRarityMeta } from '../config/rarity';
 import {
   OFFLINE_PVP_MIN_USER_LEVEL,
@@ -19,6 +20,8 @@ import { OfflinePvpDeckDetailOverlay } from './OfflinePvpDeckDetailOverlay';
 import { CardPreview } from './CardPreview';
 import { PixelIconPreview } from './PixelIconPreview';
 import { ProfileCommentEditModal } from './ProfileCommentEditModal';
+import { DeckRenameDialog } from './DeckRenameDialog';
+import { DeckRenameUpsellModal } from './DeckRenameUpsellModal';
 
 export interface ProfileDisplayUser {
   username: string;
@@ -56,6 +59,12 @@ export interface ProfileScreenProps {
   onOpenAvatar: () => void;
   /** 自分のプロフィールでのみ指定する。 */
   onCommentChange?: (comment: string | undefined) => void;
+  /** 自分のプロフィールでのみ指定する。デッキ名変更（ライト／プレ） */
+  onRenameDeck?: (deckIndex: number, name: string) => void;
+  canRenameDeck?: boolean;
+  deckNames?: string[];
+  unlockedDeckCount?: number;
+  onOpenShopSubscription?: () => void;
   /** 他ユーザーの公開デッキと対戦するとき */
   viewerDeckPower?: number | null;
   canBattle?: boolean;
@@ -132,6 +141,11 @@ export function ProfileScreen({
   onBack,
   onOpenAvatar,
   onCommentChange,
+  onRenameDeck,
+  canRenameDeck = false,
+  deckNames,
+  unlockedDeckCount = 0,
+  onOpenShopSubscription,
   viewerDeckPower = null,
   canBattle = false,
   offlinePvpUnlocked = false,
@@ -142,6 +156,8 @@ export function ProfileScreen({
     null,
   );
   const [commentEditing, setCommentEditing] = useState(false);
+  const [renameDeckIndex, setRenameDeckIndex] = useState<number | null>(null);
+  const [renameUpsellOpen, setRenameUpsellOpen] = useState(false);
   const battleBlockedMessage = useMemo(() => {
     if (!offlinePvpUnlocked) {
       return `公開デッキ戦は Lv${OFFLINE_PVP_MIN_USER_LEVEL} で解放されます。`;
@@ -156,6 +172,7 @@ export function ProfileScreen({
   const displayComment =
     finalizeProfileComment(user.profileComment ?? '') ??
     DEFAULT_PROFILE_COMMENT;
+  const canEditDeckName = onRenameDeck != null;
 
   const startCommentEdit = () => {
     setCommentEditing(true);
@@ -163,6 +180,15 @@ export function ProfileScreen({
 
   const saveComment = (comment: string | undefined) => {
     onCommentChange?.(comment);
+  };
+
+  const openDeckRename = (slotIndex: number) => {
+    if (!onRenameDeck) return;
+    if (!canRenameDeck) {
+      setRenameUpsellOpen(true);
+      return;
+    }
+    setRenameDeckIndex(slotIndex);
   };
 
   return (
@@ -290,7 +316,14 @@ export function ProfileScreen({
               公開中のデッキはありません
             </p>
           ) : (
-            <ul className="profile-deck-list">
+            <ul
+              className="profile-deck-list"
+              style={
+                {
+                  '--profile-deck-name-max-chars': DECK_NAME_MAX_LENGTH,
+                } as CSSProperties
+              }
+            >
               {publishedDecks.map((deck) => {
                 const rarityThumbs = deck.cards.slice(0, 5).map((card) => {
                   const rarityMeta = getRarityMeta(card.rarity);
@@ -312,24 +345,37 @@ export function ProfileScreen({
                 });
                 return (
                   <li key={deck.slotIndex}>
-                    <button
-                      type="button"
-                      className="profile-deck-row"
-                      aria-label={`${deck.name}の詳細を開く`}
-                      onClick={() =>
-                        setSelectedGhost(
-                          toPublicGhostDeck(deck, user, ownerId),
-                        )
-                      }
-                    >
-                      <span className="profile-deck-name">{deck.name}</span>
-                      <div
-                        className="profile-deck-thumbnails"
-                        aria-hidden
+                    <div className="profile-deck-row">
+                      {canEditDeckName ? (
+                        <button
+                          type="button"
+                          className="profile-deck-name profile-deck-name--editable"
+                          aria-label={`${deck.name}の名前を変更`}
+                          onClick={() => openDeckRename(deck.slotIndex)}
+                        >
+                          {deck.name}
+                        </button>
+                      ) : (
+                        <span className="profile-deck-name">{deck.name}</span>
+                      )}
+                      <button
+                        type="button"
+                        className="profile-deck-open"
+                        aria-label={`${deck.name}の詳細を開く`}
+                        onClick={() =>
+                          setSelectedGhost(
+                            toPublicGhostDeck(deck, user, ownerId),
+                          )
+                        }
                       >
-                        {rarityThumbs}
-                      </div>
-                    </button>
+                        <div
+                          className="profile-deck-thumbnails"
+                          aria-hidden
+                        >
+                          {rarityThumbs}
+                        </div>
+                      </button>
+                    </div>
                   </li>
                 );
               })}
@@ -350,6 +396,23 @@ export function ProfileScreen({
           initialValue={user.profileComment ?? ''}
           onSave={saveComment}
           onClose={() => setCommentEditing(false)}
+        />
+      )}
+
+      {renameUpsellOpen && onOpenShopSubscription && (
+        <DeckRenameUpsellModal
+          onClose={() => setRenameUpsellOpen(false)}
+          onOpenShop={onOpenShopSubscription}
+        />
+      )}
+
+      {renameDeckIndex != null && onRenameDeck && canRenameDeck && (
+        <DeckRenameDialog
+          deckIndex={renameDeckIndex}
+          deckNames={deckNames}
+          unlockedDeckCount={unlockedDeckCount}
+          onSave={onRenameDeck}
+          onClose={() => setRenameDeckIndex(null)}
         />
       )}
 
