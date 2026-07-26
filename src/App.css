@@ -5723,20 +5723,34 @@ button.battle-hub-deck-icon.is-move-target {
   justify-content: space-between;
   gap: 0.75rem;
   padding-top: 0.35rem;
-  min-height: 2.25rem;
+  min-height: 2.85rem;
 }
 
 .deck-memory-album-btn {
   flex-shrink: 0;
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  border: 1px solid #7a5632;
-  background: #9a7348;
-  color: #fffef8;
-  font: inherit;
-  font-size: 0.88rem;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0.2rem;
+  border-radius: 12px;
+  border: 1px solid #c8b090;
+  background: linear-gradient(180deg, #fffef8 0%, #f4ebe0 100%);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.deck-memory-album-btn:active {
+  transform: scale(0.96);
+}
+
+.deck-footer-icon {
+  display: block;
+  width: 2.1rem;
+  height: 2.1rem;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .deck-card-detail-actions--with-album {
@@ -8419,22 +8433,33 @@ button.battle-hub-deck-icon.is-move-target {
 
 .deck-reorder-toggle {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
   margin-top: 0;
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  border: 1px solid #bbb;
-  background: #f0f0f4;
-  color: #646cff;
-  font: inherit;
-  font-size: 0.88rem;
-  font-weight: 600;
+  padding: 0.2rem;
+  border-radius: 12px;
+  border: 1px solid #c8c8d4;
+  background: linear-gradient(180deg, #fff 0%, #f4f4f8 100%);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.deck-reorder-toggle:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.deck-reorder-toggle:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .deck-reorder-toggle.active {
-  border-color: #646cff;
-  background: #646cff;
-  color: #fff;
+  border-color: #7b83f0;
+  background: linear-gradient(180deg, #eef0ff 0%, #dfe3ff 100%);
+  box-shadow: inset 0 0 0 1px rgba(100, 108, 255, 0.35);
 }
 
 .deck-card-row-reordering {
@@ -8458,8 +8483,16 @@ button.battle-hub-deck-icon.is-move-target {
 .deck-card-row-drag-source {
   pointer-events: none;
   background: transparent !important;
+  background-image: none !important;
   border-color: transparent !important;
   box-shadow: none !important;
+}
+
+/* `.screen-deck .deck-card-row:not(.empty)::before` より詳細度を上げて消す */
+.screen-deck
+  .deck-card-row.deck-card-row-drag-source:not(.deck-card-row--empty)::before {
+  content: none;
+  display: none;
 }
 
 .deck-card-slot {
@@ -8498,6 +8531,13 @@ button.battle-hub-deck-icon.is-move-target {
 .deck-drag-ghost.deck-card-row {
   margin-bottom: 0;
   width: auto;
+}
+
+/* `.screen-deck .deck-card-row` の position:relative より詳細度を上げてフロート追従を維持 */
+.screen-deck .deck-drag-ghost.deck-card-row {
+  position: fixed;
+  overflow: visible;
+  margin-bottom: 0;
 }
 
 .deck-drag-ghost .deck-card-main {

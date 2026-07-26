@@ -49,9 +49,16 @@ import {
 import { isLossEnabledAtUserLevel } from '../user/talismanStarter';
 import { getDeckHelp } from '../config/helpContent';
 
+function resolvePublicAssetUrl(path: string): string {
+  const base = import.meta.env.BASE_URL;
+  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
+
 const DECK_DRAG_CHIP_SIZE = 56;
 const DECK_TAB_LONG_PRESS_MS = 500;
 const DECK_TAB_DOUBLE_TAP_MS = 320;
+const MEMORY_ALBUM_ICON_URL = resolvePublicAssetUrl('album.png');
+const DECK_SORT_ICON_URL = resolvePublicAssetUrl('sort.png');
 
 export interface DeckScreenProps {
   deck: DeckLayout;
@@ -1167,8 +1174,18 @@ export function DeckScreen({
           type="button"
           className="deck-memory-album-btn"
           onClick={onOpenMemoryAlbum}
+          aria-label="思い出アルバム"
+          title="思い出アルバム"
         >
-          思い出アルバム
+          <img
+            className="deck-footer-icon"
+            src={MEMORY_ALBUM_ICON_URL}
+            alt=""
+            width={40}
+            height={40}
+            draggable={false}
+            aria-hidden
+          />
         </button>
         {(reorderMode || deckCardCount > 0) && (
           <button
@@ -1176,8 +1193,19 @@ export function DeckScreen({
             className={`deck-reorder-toggle${reorderMode ? ' active' : ''}`}
             onClick={toggleReorderMode}
             disabled={dragState != null || (!reorderMode && deckCardCount === 0)}
+            aria-label={reorderMode ? '並べ替えを完了' : '並べ替え'}
+            aria-pressed={reorderMode}
+            title={reorderMode ? '完了' : '並べ替え'}
           >
-            {reorderMode ? '完了' : '並べ替え'}
+            <img
+              className="deck-footer-icon"
+              src={DECK_SORT_ICON_URL}
+              alt=""
+              width={40}
+              height={40}
+              draggable={false}
+              aria-hidden
+            />
           </button>
         )}
       </div>
