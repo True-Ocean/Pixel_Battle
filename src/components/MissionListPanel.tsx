@@ -91,6 +91,16 @@ export function MissionListPanel({
         </div>
       )}
       <div className="mission-list-bulk-row">
+        {category === 'daily' && (
+          <p className="mission-reset-hint muted" role="note">
+            毎日 0:00（日本時間）にリセットされます
+          </p>
+        )}
+        {category === 'weekly' && (
+          <p className="mission-reset-hint muted" role="note">
+            毎週月曜 0:00（日本時間）にリセットされます
+          </p>
+        )}
         <button
           type="button"
           className="mission-bulk-claim-btn"

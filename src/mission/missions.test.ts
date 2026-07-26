@@ -131,7 +131,7 @@ describe('mission progress and claim', () => {
     );
   });
 
-  it('counts cpu and rematch wins separately for daily missions', () => {
+  it('does not count history rematch wins toward daily cpu missions', () => {
     let state = createInitialMissionState(monday);
 
     state = applyMissionEvents(state, [
@@ -140,7 +140,6 @@ describe('mission progress and claim', () => {
       { type: 'cpu_battle_win' },
     ], monday).state;
     expect(state.entries.daily_cpu_battle_win_1?.progress).toBe(1);
-    expect(state.entries.daily_history_rematch_win).toBeUndefined();
 
     state = applyMissionEvents(state, [
       { type: 'battle_play' },
@@ -149,7 +148,7 @@ describe('mission progress and claim', () => {
       { type: 'history_rematch_win' },
     ], monday).state;
     expect(state.entries.daily_cpu_battle_win_1?.progress).toBe(1);
-    expect(state.entries.daily_history_rematch_win?.progress).toBe(1);
+    expect(state.entries.daily_history_rematch_win).toBeUndefined();
   });
 
   it('grants two jewels only from daily cpu 5-win mission', () => {
@@ -302,9 +301,9 @@ describe('mission progress and claim', () => {
     const inventory = createInitialInventory();
     const bulk = claimAllMissions(state, economy, inventory, monday);
     expect(bulk.missionIds.sort()).toEqual(
-      ['beginner_edit_card', 'daily_card_edit', 'daily_login'].sort(),
+      ['beginner_edit_card', 'daily_login'].sort(),
     );
-    expect(bulk.pxGranted).toBe(110);
+    expect(bulk.pxGranted).toBe(105);
     expect(bulk.jewelsGranted).toBe(0);
     expect(isMissionClaimable(bulk.state, getMissionById('daily_login')!)).toBe(false);
   });
@@ -317,8 +316,8 @@ describe('mission progress and claim', () => {
     const economy = createInitialEconomy();
     const inventory = createInitialInventory();
     const bulk = claimMissionsInCategory(state, economy, inventory, 'daily', monday);
-    expect(bulk.missionIds.sort()).toEqual(['daily_card_edit', 'daily_login'].sort());
-    expect(bulk.pxGranted).toBe(10);
+    expect(bulk.missionIds.sort()).toEqual(['daily_login'].sort());
+    expect(bulk.pxGranted).toBe(5);
     expect(isMissionClaimable(bulk.state, getMissionById('beginner_create_card')!)).toBe(false);
   });
 
@@ -326,11 +325,9 @@ describe('mission progress and claim', () => {
     let state = createInitialMissionState(monday);
     state = reportMissionEvent(state, 'app_open', 1, monday).state;
     state = reportMissionEvent(state, 'cpu_battle_win', 5, monday).state;
-    state = reportMissionEvent(state, 'card_edit_saved', 1, monday).state;
-    state = reportMissionEvent(state, 'history_rematch_win', 1, monday).state;
 
     expect(isCompletionBonusClaimable(state, 'daily')).toBe(true);
-    expect(countUnclaimedMissions(state)).toBe(9);
+    expect(countUnclaimedMissions(state)).toBe(6);
 
     const claimed = claimMissionsInCategory(
       state,
@@ -362,8 +359,6 @@ describe('mission progress and claim', () => {
     let state = createInitialMissionState(monday);
     state = reportMissionEvent(state, 'app_open', 1, monday).state;
     state = reportMissionEvent(state, 'cpu_battle_win', 5, monday).state;
-    state = reportMissionEvent(state, 'card_edit_saved', 1, monday).state;
-    state = reportMissionEvent(state, 'history_rematch_win', 1, monday).state;
 
     const claimed = claimCompletionBonus(
       state,

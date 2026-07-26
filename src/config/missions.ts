@@ -66,24 +66,6 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
     reward: { jewels: 2 },
     minUserLevel: OFFLINE_PVP_MIN_USER_LEVEL,
   },
-  {
-    id: 'daily_card_edit',
-    category: 'daily',
-    title: 'カード編集',
-    description: 'カードを1回編集して保存する',
-    eventType: 'card_edit_saved',
-    goal: 1,
-    reward: { px: 5 },
-  },
-  {
-    id: 'daily_history_rematch_win',
-    category: 'daily',
-    title: '履歴再戦で勝利',
-    description: 'バトル履歴から再戦して1回勝利する',
-    eventType: 'history_rematch_win',
-    goal: 1,
-    reward: { px: 5 },
-  },
   // --- ウィークリー ---
   {
     id: 'weekly_login_5',

@@ -63,8 +63,6 @@ describe('sortMissionsForDisplay', () => {
       'daily_cpu_battle_win_1',
       'daily_cpu_battle_win_3',
       'daily_cpu_battle_win_5',
-      'daily_card_edit',
-      'daily_history_rematch_win',
       'daily_login',
     ]);
   });
@@ -102,8 +100,6 @@ describe('sortMissionsForDisplay', () => {
       'daily_cpu_battle_win_3',
       'daily_offline_pvp_battle_win_1',
       'daily_offline_pvp_battle_win_3',
-      'daily_card_edit',
-      'daily_history_rematch_win',
     ]);
   });
 

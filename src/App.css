@@ -2175,6 +2175,17 @@ button.battle-hub-deck-icon.is-move-target {
   white-space: nowrap;
 }
 
+.mission-reset-hint.muted {
+  grid-column: 1 / 3;
+  align-self: center;
+  margin: 0;
+  padding: 0;
+  font-size: 0.55rem;
+  line-height: 1.2;
+  font-weight: 500;
+  color: #888;
+}
+
 .mission-card-top {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 6.2rem 2.55rem;
