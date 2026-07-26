@@ -6840,6 +6840,12 @@ button.battle-hub-deck-icon.is-move-target {
   min-width: 5.25rem;
 }
 
+.shop-buy-btn--sold-out:disabled {
+  opacity: 0.55;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .shop-buy-btn--plan {
   width: 100%;
   margin-top: 0.55rem;

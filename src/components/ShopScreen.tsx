@@ -234,7 +234,7 @@ export function ShopScreen({
 
           <h3 className="shop-subsection-title">汎用かけら</h3>
           <p className="shop-panel-note muted">
-            各パックは1日1回まで（JST 0:00 リセット）。
+            各パックは1日1回まで。毎日 0:00（日本時間）にリセットされます。
           </p>
           <ul className="shop-product-list">
             {UNIVERSAL_SHARD_PACKS.map((pack) => {
@@ -242,8 +242,8 @@ export function ShopScreen({
                 normalizedPurchase,
                 pack.id,
               );
-              const purchasedToday =
-                normalizedPurchase.shopShardPurchasesToday?.[pack.id] ?? 0;
+              const soldOut = !canBuy;
+              const cannotAfford = economy.freePixels < pack.pixelCost;
               return (
                 <li key={pack.id} className="shop-product-card">
                   <div className="shop-product-main">
@@ -253,18 +253,28 @@ export function ShopScreen({
                         {formatShardPackLabel(pack)}
                       </span>
                     </div>
-                    {purchasedToday >= 1 && (
-                      <p className="shop-product-detail muted">本日購入済み</p>
-                    )}
                   </div>
                   <button
                     type="button"
-                    className="shop-buy-btn shop-buy-btn--px"
-                    disabled={!canBuy || economy.freePixels < pack.pixelCost}
+                    className={`shop-buy-btn shop-buy-btn--px${
+                      soldOut ? ' shop-buy-btn--sold-out' : ''
+                    }`}
+                    disabled={soldOut || cannotAfford}
                     onClick={() => onPurchaseUniversalShard(pack.id)}
+                    aria-label={
+                      soldOut
+                        ? `${formatShardPackLabel(pack)} 売り切れ`
+                        : undefined
+                    }
                   >
-                    <PixelCoinIcon className="shop-buy-coin-icon" aria-hidden />
-                    {pack.pixelCost.toLocaleString()}
+                    {soldOut ? (
+                      '売り切れ'
+                    ) : (
+                      <>
+                        <PixelCoinIcon className="shop-buy-coin-icon" aria-hidden />
+                        {pack.pixelCost.toLocaleString()}
+                      </>
+                    )}
                   </button>
                 </li>
               );
