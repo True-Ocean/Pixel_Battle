@@ -5,7 +5,8 @@ export type BattleModeHeaderMode =
   | 'offlinePvp'
   | 'friend'
   | 'serious'
-  | 'records';
+  | 'records'
+  | 'memoryAlbum';
 
 const MODE_COPY: Record<
   BattleModeHeaderMode,
@@ -37,9 +38,33 @@ const MODE_COPY: Record<
     description: '戦績やランキングを確認',
     online: false,
   },
+  memoryAlbum: {
+    title: '思い出アルバム',
+    description: 'デッキから移したカードを保管',
+    online: false,
+  },
 };
 
+function resolvePublicAssetUrl(path: string): string {
+  const base = import.meta.env.BASE_URL;
+  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
+
+const MEMORY_ALBUM_ICON_URL = resolvePublicAssetUrl('album.png');
+
 export function BattleModeIcon({ mode }: { mode: BattleModeHeaderMode }) {
+  if (mode === 'memoryAlbum') {
+    return (
+      <img
+        className="battle-mode-header-asset-icon"
+        src={MEMORY_ALBUM_ICON_URL}
+        alt=""
+        width={28}
+        height={28}
+        draggable={false}
+      />
+    );
+  }
   if (mode === 'cpu') {
     return (
       <svg viewBox="0 0 32 32" aria-hidden>

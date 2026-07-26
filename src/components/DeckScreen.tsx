@@ -57,8 +57,9 @@ function resolvePublicAssetUrl(path: string): string {
 const DECK_DRAG_CHIP_SIZE = 56;
 const DECK_TAB_LONG_PRESS_MS = 500;
 const DECK_TAB_DOUBLE_TAP_MS = 320;
+const DECK_CARD_LONG_PRESS_MS = 420;
+const DECK_CARD_LONG_PRESS_MOVE_PX = 12;
 const MEMORY_ALBUM_ICON_URL = resolvePublicAssetUrl('album.png');
-const DECK_SORT_ICON_URL = resolvePublicAssetUrl('sort.png');
 
 export interface DeckScreenProps {
   deck: DeckLayout;
@@ -67,8 +68,6 @@ export interface DeckScreenProps {
   unlockedDeckCount: number;
   userLevel: number;
   deckNames?: string[];
-  reorderMode: boolean;
-  onReorderModeChange: (active: boolean) => void;
   detailCardId: string | null;
   onDetailCardIdChange: (id: string | null) => void;
   onSelectDeckIndex: (index: number) => void;
@@ -198,11 +197,11 @@ function TargetDeckDropPanel({
               <li
                 key={`drop-empty-${index}`}
                 data-deck-index={index}
-                className={`deck-card-row deck-card-row--empty deck-cross-drop-slot${isActive ? ' is-drop-slot-active' : ''}`}
+                className={`deck-card-row deck-card-row--empty deck-cross-drop-slot${isActive ? ' is-drop-slot-active is-drop-slot-move' : ''}`}
               >
                 <div className="deck-cross-drop-slot-inner">
                   <span className="deck-cross-drop-slot-label">
-                    スロット {index + 1}
+                    {isActive ? 'ここに移動' : `空きスロット ${index + 1}`}
                   </span>
                 </div>
               </li>
@@ -219,8 +218,9 @@ function TargetDeckDropPanel({
                 'deck-card-row',
                 `deck-card-row--${slotCard.rarity}`,
                 'deck-cross-drop-slot',
+                'deck-cross-drop-slot--occupied',
                 slotCardIsLost ? 'deck-card-row--lost' : '',
-                isActive ? 'is-drop-slot-active' : '',
+                isActive ? 'is-drop-slot-active is-drop-slot-swap' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -234,6 +234,11 @@ function TargetDeckDropPanel({
                   </span>
                 )}
               </div>
+              {isActive && (
+                <span className="deck-cross-drop-swap-badge" aria-hidden>
+                  入れ替え
+                </span>
+              )}
             </li>
           );
         })}
@@ -315,8 +320,6 @@ export function DeckScreen({
   unlockedDeckCount,
   userLevel,
   deckNames,
-  reorderMode,
-  onReorderModeChange,
   detailCardId,
   onDetailCardIdChange,
   onSelectDeckIndex,
@@ -377,6 +380,15 @@ export function DeckScreen({
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef(false);
   const lastTabTapRef = useRef<{ index: number; at: number } | null>(null);
+  const cardLongPressTimerRef = useRef<number | null>(null);
+  const cardLongPressPendingRef = useRef<{
+    index: number;
+    startX: number;
+    startY: number;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
+  const suppressCardClickRef = useRef(false);
   const listRef = useRef<HTMLUListElement>(null);
   const targetDropListRef = useRef<HTMLUListElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -384,9 +396,10 @@ export function DeckScreen({
 
   const deckLayout = normalizeDeckLayout(deck);
   const deckCardCount = countDeckCards(deckLayout);
+  const isDragging = dragState != null;
 
   useEffect(() => {
-    if (!reorderMode) return;
+    if (!isDragging) return;
     const el = listRef.current;
     if (!el) return;
     const prevent = (e: Event) => e.preventDefault();
@@ -396,7 +409,15 @@ export function DeckScreen({
       el.removeEventListener('selectstart', prevent);
       el.removeEventListener('contextmenu', prevent);
     };
-  }, [reorderMode]);
+  }, [isDragging]);
+
+  // 他デッキ表示でリストがアンマウントされると CSS 変数が消えるため、再マウント時に付け直す
+  useEffect(() => {
+    if (!dragState || dragState.targetDeckIndex != null) return;
+    const el = listRef.current;
+    if (!el) return;
+    el.style.setProperty('--deck-row-shift', `${dragState.rowHeight}px`);
+  }, [dragState]);
 
   const [prevActiveDeckIndex, setPrevActiveDeckIndex] = useState(activeDeckIndex);
   if (activeDeckIndex !== prevActiveDeckIndex) {
@@ -437,11 +458,19 @@ export function DeckScreen({
     [lostCardNoticePendingId, onDetailCardIdChange, onDismissLostCardDeckNoticeForToday],
   );
 
-  const exitReorderMode = useCallback(() => {
-    onReorderModeChange(false);
+  const clearCardLongPress = useCallback(() => {
+    if (cardLongPressTimerRef.current != null) {
+      window.clearTimeout(cardLongPressTimerRef.current);
+      cardLongPressTimerRef.current = null;
+    }
+    cardLongPressPendingRef.current = null;
+  }, []);
+
+  const exitDrag = useCallback(() => {
+    clearCardLongPress();
     dragSessionRef.current = null;
     setDragState(null);
-  }, [onReorderModeChange]);
+  }, [clearCardLongPress]);
 
   const moveCard = useCallback(
     (from: number, to: number) => {
@@ -474,12 +503,12 @@ export function DeckScreen({
       setDeleteResult(outcome);
     }
     if (deckCardCount <= 1) {
-      exitReorderMode();
+      exitDrag();
     }
   }, [
     deckCardCount,
     deleteConfirmFinal,
-    exitReorderMode,
+    exitDrag,
     jewels,
     onDeleteCard,
     pendingDelete,
@@ -669,19 +698,23 @@ export function DeckScreen({
     [decks, moveCard, onMoveCardBetweenDecks, unlockedDeckCount],
   );
 
-  const handleHandlePointerDown = useCallback(
-    (index: number, event: PointerEvent<HTMLSpanElement>) => {
-      if (!reorderMode || event.button !== 0 || dragSessionRef.current) return;
-      const row = event.currentTarget.closest<HTMLElement>('[data-deck-index]');
-      if (!row || !listRef.current) return;
+  const beginCardDrag = useCallback(
+    (index: number, clientX: number, clientY: number) => {
+      if (dragSessionRef.current) return;
+      const listEl = listRef.current;
+      const row = listEl?.querySelector<HTMLElement>(
+        `[data-deck-index="${index}"]`,
+      );
+      if (!listEl || !row) return;
 
-      event.preventDefault();
+      closeDetail();
+      suppressCardClickRef.current = true;
 
       const rect = row.getBoundingClientRect();
-      listRef.current.style.setProperty('--deck-row-shift', `${rect.height}px`);
+      listEl.style.setProperty('--deck-row-shift', `${rect.height}px`);
 
-      const rowPointerOffsetX = event.clientX - rect.left;
-      const rowPointerOffsetY = event.clientY - rect.top;
+      const rowPointerOffsetX = clientX - rect.left;
+      const rowPointerOffsetY = clientY - rect.top;
 
       const session: DeckDragState = {
         cardId: deckLayout[index]?.id ?? '',
@@ -690,8 +723,8 @@ export function DeckScreen({
         dropIndex: index,
         targetDeckIndex: null,
         targetDropIndex: null,
-        ghostLeft: event.clientX - rowPointerOffsetX,
-        ghostTop: event.clientY - rowPointerOffsetY,
+        ghostLeft: clientX - rowPointerOffsetX,
+        ghostTop: clientY - rowPointerOffsetY,
         ghostWidth: rect.width,
         rowHeight: rect.height,
         rowPointerOffsetX,
@@ -702,18 +735,18 @@ export function DeckScreen({
 
       const onPointerMove = (moveEvent: globalThis.PointerEvent) => {
         const prev = dragSessionRef.current;
-        const listEl = listRef.current;
+        const listElNow = listRef.current;
         const tabsEl = tabsRef.current;
         const targetListEl = targetDropListRef.current;
         if (!prev) return;
 
-        const { clientX, clientY } = moveEvent;
+        const { clientX: moveX, clientY: moveY } = moveEvent;
         let targetDeckIndex = prev.targetDeckIndex;
         let targetDropIndex = prev.targetDropIndex;
         let dropIndex = prev.dropIndex;
 
         if (tabsEl) {
-          const tabIndex = findDeckTabIndexAtPoint(clientX, clientY, tabsEl);
+          const tabIndex = findDeckTabIndexAtPoint(moveX, moveY, tabsEl);
           if (tabIndex != null && isDeckSlotUnlocked(tabIndex, unlockedDeckCount)) {
             if (tabIndex !== prev.sourceDeckIndex) {
               if (targetDeckIndex !== tabIndex) {
@@ -721,6 +754,7 @@ export function DeckScreen({
                 targetDropIndex = null;
               }
             } else {
+              // 元デッキタブに戻ったら同一デッキ並べ替えへ
               targetDeckIndex = null;
               targetDropIndex = null;
             }
@@ -730,31 +764,28 @@ export function DeckScreen({
         const crossDeckTarget =
           targetDeckIndex != null && targetDeckIndex !== prev.sourceDeckIndex;
 
-        if (
-          crossDeckTarget &&
-          targetListEl &&
-          isPointInRect(clientX, clientY, targetListEl.getBoundingClientRect())
-        ) {
-          targetDropIndex =
-            findDeckDropIndex(clientY, targetListEl) ?? targetDropIndex;
+        if (crossDeckTarget && targetListEl) {
+          // 他デッキ: 縮小チップのまま、指下のカードと入れ替え（5枚すべて残す）
+          if (isPointInRect(moveX, moveY, targetListEl.getBoundingClientRect())) {
+            targetDropIndex =
+              findDeckDropIndex(moveY, targetListEl) ?? targetDropIndex;
+          }
           dropIndex = prev.fromIndex;
         } else if (
           !crossDeckTarget &&
-          listEl &&
-          isPointInRect(clientX, clientY, listEl.getBoundingClientRect())
+          listElNow &&
+          isPointInRect(moveX, moveY, listElNow.getBoundingClientRect())
         ) {
-          dropIndex = findDeckDropIndex(clientY, listEl) ?? dropIndex;
+          dropIndex = findDeckDropIndex(moveY, listElNow) ?? dropIndex;
           targetDropIndex = null;
-        } else if (crossDeckTarget) {
-          dropIndex = prev.fromIndex;
         }
 
         const ghostLeft = crossDeckTarget
-          ? clientX - DECK_DRAG_CHIP_SIZE / 2
-          : clientX - prev.rowPointerOffsetX;
+          ? moveX - DECK_DRAG_CHIP_SIZE / 2
+          : moveX - prev.rowPointerOffsetX;
         const ghostTop = crossDeckTarget
-          ? clientY - DECK_DRAG_CHIP_SIZE / 2
-          : clientY - prev.rowPointerOffsetY;
+          ? moveY - DECK_DRAG_CHIP_SIZE / 2
+          : moveY - prev.rowPointerOffsetY;
 
         const next: DeckDragState = {
           ...prev,
@@ -780,18 +811,72 @@ export function DeckScreen({
       window.addEventListener('pointerup', onPointerEnd);
       window.addEventListener('pointercancel', onPointerEnd);
     },
-    [activeDeckIndex, deckLayout, finishDrag, reorderMode, unlockedDeckCount],
+    [activeDeckIndex, closeDetail, deckLayout, finishDrag, unlockedDeckCount],
   );
 
-  const toggleReorderMode = () => {
-    if (reorderMode) {
-      exitReorderMode();
-      return;
-    }
-    if (deckCardCount === 0) return;
-    closeDetail();
-    onReorderModeChange(true);
-  };
+  const handleCardPointerDown = useCallback(
+    (index: number, event: PointerEvent<HTMLButtonElement>) => {
+      if (event.button !== 0 || dragSessionRef.current) return;
+
+      clearCardLongPress();
+      cardLongPressPendingRef.current = {
+        index,
+        startX: event.clientX,
+        startY: event.clientY,
+        clientX: event.clientX,
+        clientY: event.clientY,
+      };
+
+      const onPointerMove = (moveEvent: globalThis.PointerEvent) => {
+        const pending = cardLongPressPendingRef.current;
+        if (!pending || pending.index !== index) return;
+        pending.clientX = moveEvent.clientX;
+        pending.clientY = moveEvent.clientY;
+        const dx = moveEvent.clientX - pending.startX;
+        const dy = moveEvent.clientY - pending.startY;
+        if (dx * dx + dy * dy > DECK_CARD_LONG_PRESS_MOVE_PX ** 2) {
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', onPointerUp);
+          window.removeEventListener('pointercancel', onPointerUp);
+          clearCardLongPress();
+        }
+      };
+
+      const onPointerUp = () => {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+        clearCardLongPress();
+      };
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+
+      cardLongPressTimerRef.current = window.setTimeout(() => {
+        cardLongPressTimerRef.current = null;
+        const pending = cardLongPressPendingRef.current;
+        cardLongPressPendingRef.current = null;
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+        if (!pending || pending.index !== index) return;
+        beginCardDrag(pending.index, pending.clientX, pending.clientY);
+      }, DECK_CARD_LONG_PRESS_MS);
+    },
+    [beginCardDrag, clearCardLongPress],
+  );
+
+  const handleCardClick = useCallback(
+    (card: Card) => {
+      if (suppressCardClickRef.current) {
+        suppressCardClickRef.current = false;
+        return;
+      }
+      handleCardPress(card);
+    },
+    [handleCardPress],
+  );
 
   const clearDeckTabLongPress = useCallback(() => {
     if (longPressTimerRef.current != null) {
@@ -802,7 +887,7 @@ export function DeckScreen({
 
   const openDeckRenameDialog = useCallback(
     (index: number) => {
-      if (!onRenameDeck || reorderMode || dragState) return;
+      if (!onRenameDeck || isDragging) return;
       if (!isDeckSlotUnlocked(index, unlockedDeckCount)) return;
       longPressTriggeredRef.current = true;
       if (!canRenameDeck) {
@@ -811,12 +896,12 @@ export function DeckScreen({
       }
       setRenameDeckIndex(index);
     },
-    [canRenameDeck, dragState, onRenameDeck, reorderMode, unlockedDeckCount],
+    [canRenameDeck, isDragging, onRenameDeck, unlockedDeckCount],
   );
 
   const handleDeckTabPointerDown = useCallback(
     (index: number) => {
-      if (!onRenameDeck || reorderMode || dragState) return;
+      if (!onRenameDeck || isDragging) return;
       if (!isDeckSlotUnlocked(index, unlockedDeckCount)) return;
       longPressTriggeredRef.current = false;
       clearDeckTabLongPress();
@@ -827,10 +912,9 @@ export function DeckScreen({
     },
     [
       clearDeckTabLongPress,
-      dragState,
+      isDragging,
       onRenameDeck,
       openDeckRenameDialog,
-      reorderMode,
       unlockedDeckCount,
     ],
   );
@@ -901,12 +985,12 @@ export function DeckScreen({
 
   return (
     <section
-      className={`screen screen-deck${reorderMode ? ' screen-deck-reordering' : ''}${dragState ? ' screen-deck-dragging' : ''}`}
+      className={`screen screen-deck${isDragging ? ' screen-deck-reordering screen-deck-dragging' : ''}`}
     >
       <div className="deck-screen-top">
         <div
           ref={tabsRef}
-          className={`deck-slot-tabs${reorderMode ? ' deck-slot-tabs-reordering' : ''}${dragState ? ' deck-slot-tabs-dragging' : ''}`}
+          className={`deck-slot-tabs${isDragging ? ' deck-slot-tabs-reordering deck-slot-tabs-dragging' : ''}`}
           role="tablist"
           aria-label="デッキ"
         >
@@ -921,7 +1005,7 @@ export function DeckScreen({
             crossDeckTargetIndex === index;
           const customTabName = deckNames?.[index]?.trim();
           const isDropEligible =
-            reorderMode && unlocked && index !== sourceDeckIndex;
+            isDragging && unlocked && index !== sourceDeckIndex;
           const displayName = getDeckDisplayName(index, deckNames);
           const tabLabel = unlocked
             ? isDropEligible
@@ -938,12 +1022,12 @@ export function DeckScreen({
               data-deck-tab-index={index}
               aria-selected={isActive}
               aria-label={
-                unlocked && onRenameDeck && !reorderMode
+                unlocked && onRenameDeck && !isDragging
                   ? `${tabLabel}。長押しまたは選択中にダブルタップで名前を変更`
                   : tabLabel
               }
               title={
-                unlocked && onRenameDeck && !reorderMode
+                unlocked && onRenameDeck && !isDragging
                   ? '長押しで名前を変更'
                   : undefined
               }
@@ -963,7 +1047,7 @@ export function DeckScreen({
               onPointerCancel={handleDeckTabPointerUp}
               onPointerLeave={handleDeckTabPointerUp}
               onContextMenu={(event) => {
-                if (!onRenameDeck || reorderMode || dragState) return;
+                if (!onRenameDeck || isDragging) return;
                 if (!isDeckSlotUnlocked(index, unlockedDeckCount)) return;
                 event.preventDefault();
                 openDeckRenameDialog(index);
@@ -996,9 +1080,9 @@ export function DeckScreen({
         <div className="deck-screen-header-main">
           {crossDeckTargetIndex != null ? (
             <p className="muted deck-cross-drop-hint">
-              スロットを選んでドロップ（カード同士は入れ替え）。タブ上でドロップすると空きスロットへ自動配置（満杯のときはキャンセル）
+              縮小カードを重ねて離すと入れ替え。空きスロットへは移動。タブ上で離すと空きへ自動配置（満杯ならキャンセル）
             </p>
-          ) : deckCardCount < DECK_MAX && !reorderMode ? (
+          ) : deckCardCount < DECK_MAX && !isDragging ? (
             <p className="deck-screen-progress-hint muted">
               {deckCardCount} / {DECK_MAX} 枚 — あと {DECK_MAX - deckCardCount}{' '}
               枚でバトル可能
@@ -1060,18 +1144,17 @@ export function DeckScreen({
           </div>
         )}
 
-      {crossDeckTargetIndex != null ? (
-        <TargetDeckDropPanel
-          deck={crossDeckTarget}
-          targetDropIndex={dragState?.targetDropIndex ?? null}
-          listRef={targetDropListRef}
-        />
-      ) : (
+      <div className="deck-list-stack">
       <ul
         ref={listRef}
-        className={`card-list${reorderMode ? ' card-list-reordering' : ''}${
-          dragState ? ' card-list-dragging' : ''
-        }`}
+        className={[
+          'card-list',
+          isDragging ? 'card-list-reordering card-list-dragging' : '',
+          crossDeckTargetIndex != null ? 'card-list--cross-deck-suppressed' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        aria-hidden={crossDeckTargetIndex != null}
       >
         {Array.from({ length: DECK_MAX }, (_, index) => {
           const card = deckLayout[index];
@@ -1079,12 +1162,12 @@ export function DeckScreen({
             return (
               <li
                 key={`empty-${index}`}
-                className={`deck-card-row deck-card-row--empty${reorderMode ? ' deck-card-row--empty-disabled' : ''}`}
+                className={`deck-card-row deck-card-row--empty${isDragging ? ' deck-card-row--empty-disabled' : ''}`}
               >
                 <button
                   type="button"
                   className="deck-card-empty-slot"
-                  disabled={reorderMode}
+                  disabled={isDragging}
                   onClick={onCreateCard}
                   aria-label="新規カードを作成"
                 >
@@ -1099,7 +1182,8 @@ export function DeckScreen({
 
           const rarityMeta = getRarityMeta(card.rarity);
           const cardIsLost = isCardLost(card);
-          const isDragSource = dragState?.fromIndex === index;
+          const isDragSource =
+            crossDeckTargetIndex == null && dragState?.fromIndex === index;
           const shift =
             dragState != null && dragState.targetDeckIndex == null
               ? getDeckRowShift(index, dragState.fromIndex, dragState.dropIndex)
@@ -1113,7 +1197,7 @@ export function DeckScreen({
                 'deck-card-row',
                 `deck-card-row--${card.rarity}`,
                 cardIsLost ? 'deck-card-row--lost' : '',
-                reorderMode ? 'deck-card-row-reordering' : '',
+                isDragging ? 'deck-card-row-reordering' : '',
                 isDragSource ? 'deck-card-row-drag-source' : '',
                 shift === -1 ? 'deck-card-row-shift-up' : '',
                 shift === 1 ? 'deck-card-row-shift-down' : '',
@@ -1123,51 +1207,40 @@ export function DeckScreen({
               style={deckRowStyle(rarityMeta)}
             >
               {isDragSource && dragState ? (
-                <>
-                  <div
-                    className="deck-card-slot"
-                    style={{ minHeight: dragState.rowHeight }}
-                    aria-hidden
-                  />
-                  <span
-                    className="deck-card-drag-handle deck-drag-ghost-spacer"
-                    aria-hidden
-                  >
-                    ≡
-                  </span>
-                </>
+                <div
+                  className="deck-card-slot"
+                  style={{ minHeight: dragState.rowHeight }}
+                  aria-hidden
+                />
               ) : (
-                <>
-                  <button
-                    type="button"
-                    className="deck-card-main"
-                    disabled={reorderMode}
-                    onClick={() => handleCardPress(card)}
-                  >
-                    <DeckCardRowBody card={card} />
-                    {cardIsLost && (
-                      <span className="card-lost-badge card-lost-badge--row" aria-hidden>
-                        ロスト中
-                      </span>
-                    )}
-                  </button>
-                  {reorderMode && (
-                    <span
-                      className="deck-card-drag-handle"
-                      aria-label="ドラッグで並べ替え、他デッキタブへ移動"
-                      title="ドラッグで並べ替え、他デッキタブへ移動"
-                      onPointerDown={(event) => handleHandlePointerDown(index, event)}
-                    >
-                      ≡
+                <button
+                  type="button"
+                  className="deck-card-main"
+                  disabled={isDragging}
+                  onPointerDown={(event) => handleCardPointerDown(index, event)}
+                  onClick={() => handleCardClick(card)}
+                  aria-label={`${card.name}。タップで詳細、長押しで並べ替え`}
+                >
+                  <DeckCardRowBody card={card} />
+                  {cardIsLost && (
+                    <span className="card-lost-badge card-lost-badge--row" aria-hidden>
+                      ロスト中
                     </span>
                   )}
-                </>
+                </button>
               )}
             </li>
           );
         })}
       </ul>
+      {crossDeckTargetIndex != null && (
+        <TargetDeckDropPanel
+          deck={crossDeckTarget}
+          targetDropIndex={dragState?.targetDropIndex ?? null}
+          listRef={targetDropListRef}
+        />
       )}
+      </div>
 
       <div className="deck-screen-footer">
         <button
@@ -1187,27 +1260,6 @@ export function DeckScreen({
             aria-hidden
           />
         </button>
-        {(reorderMode || deckCardCount > 0) && (
-          <button
-            type="button"
-            className={`deck-reorder-toggle${reorderMode ? ' active' : ''}`}
-            onClick={toggleReorderMode}
-            disabled={dragState != null || (!reorderMode && deckCardCount === 0)}
-            aria-label={reorderMode ? '並べ替えを完了' : '並べ替え'}
-            aria-pressed={reorderMode}
-            title={reorderMode ? '完了' : '並べ替え'}
-          >
-            <img
-              className="deck-footer-icon"
-              src={DECK_SORT_ICON_URL}
-              alt=""
-              width={40}
-              height={40}
-              draggable={false}
-              aria-hidden
-            />
-          </button>
-        )}
       </div>
 
       {dragState && draggedCard && (
@@ -1253,9 +1305,6 @@ export function DeckScreen({
                 </span>
               )}
             </div>
-            <span className="deck-card-drag-handle deck-drag-ghost-spacer" aria-hidden>
-              ≡
-            </span>
           </div>
         )
       )}

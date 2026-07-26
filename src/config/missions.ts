@@ -185,7 +185,7 @@ export const MISSION_DEFINITIONS: readonly MissionDefinition[] = [
     id: 'beginner_deck_reorder',
     category: 'beginner',
     title: 'デッキを並べ替え',
-    description: 'マイデッキでカードを1回並べ替える',
+    description: 'マイデッキでカードを長押しして1回並べ替える',
     eventType: 'deck_reordered',
     goal: 1,
     reward: { px: 80 },

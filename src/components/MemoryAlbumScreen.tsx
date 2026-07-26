@@ -9,8 +9,8 @@ import {
 import { getMemoryAlbumHelp } from '../config/helpContent';
 import { getRarityMeta } from '../config/rarity';
 import type { Card, MemoryAlbumState } from '../types';
+import { BattleModeHeader } from './BattleModeHeader';
 import { CardPreview } from './CardPreview';
-import { HelpInfoButton } from './HelpInfoButton';
 import { HelpPanelModal } from './HelpPanelModal';
 import { MemoryAlbumDetailOverlay } from './MemoryAlbumDetailOverlay';
 import {
@@ -135,6 +135,7 @@ export function MemoryAlbumScreen({
   const capacity = getMemoryAlbumCapacity(album.unlockedRows);
   const maxRows = getMemoryAlbumMaxRows();
   const canAffordUnlock = canAffordMemoryAlbumRowUnlock({ jewels });
+  const albumHelp = getMemoryAlbumHelp();
   const detailCard =
     detailCardId != null
       ? album.cards.find((card) => card.id === detailCardId) ?? null
@@ -155,17 +156,11 @@ export function MemoryAlbumScreen({
   return (
     <section className="screen memory-album-screen">
       <header className="memory-album-header">
-        <div className="memory-album-header-title-row">
-          <button type="button" className="memory-album-back" onClick={onBack}>
-            戻る
-          </button>
-          <h1>思い出アルバム</h1>
-          <HelpInfoButton
-            className="memory-album-help-btn"
-            ariaLabel="思い出アルバムのヘルプ"
-            onClick={() => setHelpOpen(true)}
-          />
-        </div>
+        <BattleModeHeader
+          mode="memoryAlbum"
+          onHelp={() => setHelpOpen(true)}
+          helpAriaLabel={`${albumHelp.title}のヘルプ`}
+        />
         <p className="memory-album-meta muted">
           {album.cards.length} / {capacity} 枚
         </p>
@@ -206,6 +201,12 @@ export function MemoryAlbumScreen({
         </p>
       )}
 
+      <div className="battle-mode-bottom-nav">
+        <button type="button" onClick={onBack}>
+          マイデッキに戻る
+        </button>
+      </div>
+
       <MemoryAlbumExpandOfferDialog
         open={expandOfferOpen && !expandConfirmOpen}
         jewelCost={JEWEL_COST_MEMORY_ALBUM_ROW}
@@ -226,7 +227,7 @@ export function MemoryAlbumScreen({
 
       {helpOpen && (
         <HelpPanelModal
-          topic={getMemoryAlbumHelp()}
+          topic={albumHelp}
           panelClassName="help-panel--categorized"
           onClose={() => setHelpOpen(false)}
         />

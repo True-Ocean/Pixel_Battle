@@ -449,7 +449,6 @@ function App() {
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [editorReturnToDetail, setEditorReturnToDetail] = useState(false);
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
-  const [deckReorderMode, setDeckReorderMode] = useState(false);
   const [battlePlayerDeck, setBattlePlayerDeck] = useState<Card[]>([]);
   const [pendingGraveyardOutcome, setPendingGraveyardOutcome] =
     useState<BattleOutcome | null>(null);
@@ -2461,7 +2460,6 @@ function App() {
     (deckIndex: number, cardId: string) => {
       setActiveDeckIndex(deckIndex);
       setDetailCardId(cardId);
-      setDeckReorderMode(false);
       setScreen('deck');
       persistSave({ activeDeckIndex: deckIndex });
     },
@@ -3768,9 +3766,6 @@ function App() {
       resetOfflinePvpFlow();
       clearOnlinePvp();
       setBattleHubModeScreenOpen(false);
-      if (tab !== 'deck') {
-        setDeckReorderMode(false);
-      }
       if (tab === 'shop') {
         setShopInitialTab('jewels');
       }
@@ -3894,7 +3889,6 @@ function App() {
       setBattleEndDock(false);
       clearHistoryRematch();
       resetHistoryRematchFlow();
-      setDeckReorderMode(false);
 
       if (target.kind === 'battleHub') {
         setScreen('battleHub');
@@ -3911,13 +3905,11 @@ function App() {
 
       if (target.kind === 'deckReorder') {
         setDetailCardId(null);
-        setDeckReorderMode(true);
         setScreen('deck');
         return;
       }
 
       if (target.kind === 'deckCardDetail') {
-        setDeckReorderMode(false);
         setScreen('deck');
         const deck = normalizeDeckLayout(
           decksRef.current[activeDeckIndexRef.current] ?? [],
@@ -4123,8 +4115,6 @@ function App() {
             unlockedDeckCount={unlockedDeckCount}
             userLevel={user?.level ?? 1}
             deckNames={deckNames}
-            reorderMode={deckReorderMode}
-            onReorderModeChange={setDeckReorderMode}
             detailCardId={detailCardId}
             onDetailCardIdChange={setDetailCardId}
             onSelectDeckIndex={handleSelectDeckIndex}
@@ -4132,7 +4122,6 @@ function App() {
               setEditingCard(null);
               setEditorReturnToDetail(false);
               setDetailCardId(null);
-              setDeckReorderMode(false);
               setScreen('editor');
             }}
             onEditCard={(card, options) => {
@@ -4140,7 +4129,6 @@ function App() {
                 if (skipsCreativeAd(subscriptionRef.current)) {
                   setEditingCard(card);
                   setEditorReturnToDetail(true);
-                  setDeckReorderMode(false);
                   setScreen('editor');
                   return;
                 }
@@ -4150,7 +4138,6 @@ function App() {
               setEditingCard(card);
               setEditorReturnToDetail(false);
               setDetailCardId(null);
-              setDeckReorderMode(false);
               setScreen('editor');
             }}
             onDeleteCard={deleteDeckCard}
@@ -4577,7 +4564,6 @@ function App() {
               if (card) {
                 setEditingCard(card);
                 setEditorReturnToDetail(true);
-                setDeckReorderMode(false);
                 setScreen('editor');
               }
               return null;
