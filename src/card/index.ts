@@ -58,6 +58,29 @@ export {
   retouchCardAttribute,
   selectCardAttribute,
 } from './attributeChange';
+export {
+  applyGachaPickToCard,
+  canAffordAttributeEventGacha,
+  canAffordAttributeGachaConfirm,
+  canAffordAttributeGachaPixels,
+  getAttributeEventGachaJewelCost,
+  getAttributeGachaJewelCost,
+  getAttributeGachaPixelCost,
+  getAttributeGachaPulls,
+  rollAttributeGachaResults,
+  tallyUnusedGachaShards,
+  type AttributeGachaMode,
+  type AttributeGachaPulls,
+} from './attributeGacha';
+export {
+  createInitialAttributeEventGachaState,
+  getEventGachaFeaturedAttribute,
+  isEventAttributeGachaAvailable,
+  normalizeAttributeEventGachaState,
+  rollEventAttributeGacha,
+  syncAttributeEventGachaState,
+  type AttributeEventGachaState,
+} from './eventAttributeGacha';
 export { rollAttribute, getAttributeRollWeights, ATTRIBUTE_ROLL_RECENT_BOOST } from './rollAttribute';
 export {
   computeCardPower,

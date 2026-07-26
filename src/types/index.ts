@@ -237,6 +237,11 @@ export interface SaveData {
   subscription?: UserSubscription;
   /** ミッション進捗 */
   missionState?: MissionState;
+  /** 期間限定属性ガチャの天井カウンタ */
+  attributeEventGacha?: {
+    pityMissCount: number;
+    featuredAttribute: Attribute | null;
+  };
   /** BGM などのサウンド（未設定時はオフ） */
   soundEnabled?: boolean;
   /** マイデッキ初回案内モーダルを表示済み */

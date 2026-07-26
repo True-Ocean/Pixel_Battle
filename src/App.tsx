@@ -21,8 +21,8 @@ import { DECK_SLOT_COUNT, MAX_USER_LEVEL, DECK_MAX, USER_INITIAL_LEVEL, BATTLE_O
 import { DEV_USER_LEVEL_OVERRIDE } from './config/devUserLevel';
 import { updateDeckAtIndex, clampUnlockedDeckCount, moveCardBetweenDeckSlotsSwap, countDeckCards, getDeckCards, normalizeDeckLayout, isDeckBattleReady, setDeckNameAt, deckHasLostCard, getDeckDisplayName, isDeckSlotUnlocked, isDeckNameTakenByOtherDeck, resolveDeckUnlockOnLevelUp, hasHistoryRematchDeck, canUnlockDeckSlotWithJewels } from './deckSlots';
 import type { DeckLayout } from './types';
-import { applyCardSurvivalRecords, applyCardRevive, computeDeckPower, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, retouchCardAttribute, selectCardAttribute, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, hasCardUserNote, applyUserNoteToCard, type LimitBreakShardSpendPlan } from './card';
-import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired } from './config/economy';
+import { applyCardSurvivalRecords, applyCardRevive, computeDeckPower, consumeTalismanFromCard, countEquippedTalismans, isCardLost, isTalismanEquipped, markCardLost, rescaleDeckBp, applyLimitBreakToCard, canLimitBreakCard, canReviveLostCard, describeLimitBreakRaritySuccessTitle, describeLimitBreakResult, getLimitBreakOutcomeKind, applyGachaPickToCard, getAttributeEventGachaJewelCost, getAttributeGachaPixelCost, getEventGachaFeaturedAttribute, isEventAttributeGachaAvailable, normalizeAttributeEventGachaState, rollAttributeGachaResults, rollEventAttributeGacha, selectCardAttribute, syncAttributeEventGachaState, tallyUnusedGachaShards, tryEquipTalismanInDeck, tryUnequipTalismanInDeck, hasCardUserNote, applyUserNoteToCard, type AttributeEventGachaState, type AttributeGachaPulls, type LimitBreakShardSpendPlan } from './card';
+import { getLimitBreakRarityJewelCost, getLimitBreakShardsRequired, JEWEL_COST_ATTRIBUTE_EVENT_GACHA } from './config/economy';
 import { buildBalancedCpuDeck, buildCpuCardsForDeckFill } from './game/cpuDeck';
 import { getBattleResult } from './game';
 import { resolveGraveyardLootCards } from './battle/graveyardLoot';
@@ -128,7 +128,6 @@ import {
   JEWEL_COST_ATTRIBUTE_SELECT,
   JEWEL_COST_DECK_UNLOCK,
   MEMORY_ALBUM_INITIAL_ROWS,
-  PIXEL_COST_ATTRIBUTE_RETOUCH,
   getCardRenameCount,
   getEditorSaveTotalPixelCost,
   type EditorSaveCharges,
@@ -352,6 +351,13 @@ function App() {
   const [missionState, setMissionState] = useState<MissionState>(() =>
     applyMissionResets(initialSave.missionState ?? createInitialMissionState()),
   );
+  const [attributeEventGacha, setAttributeEventGacha] =
+    useState<AttributeEventGachaState>(() =>
+      syncAttributeEventGachaState(
+        normalizeAttributeEventGachaState(initialSave.attributeEventGacha),
+        initialSave.user?.level ?? 1,
+      ),
+    );
   const [shopPurchaseMessage, setShopPurchaseMessage] = useState<ReactNode | null>(
     null,
   );
@@ -492,6 +498,7 @@ function App() {
   const shopPurchaseRef = useRef(shopPurchase);
   const subscriptionRef = useRef(subscription);
   const missionStateRef = useRef(missionState);
+  const attributeEventGachaRef = useRef(attributeEventGacha);
   const screenRef = useRef(screen);
   const isHistoryRematchRef = useRef(false);
   const isOfflinePvpRef = useRef(false);
@@ -534,6 +541,7 @@ function App() {
     shopPurchaseRef.current = shopPurchase;
     subscriptionRef.current = subscription;
     missionStateRef.current = missionState;
+    attributeEventGachaRef.current = attributeEventGacha;
     screenRef.current = screen;
     isOnlinePvpRef.current = isOnlinePvp;
     onlinePvpRoomRef.current = onlinePvpRoom;
@@ -586,6 +594,7 @@ function App() {
       shopPurchase?: ShopPurchaseState;
       subscription?: UserSubscription;
       missionState?: MissionState;
+      attributeEventGacha?: AttributeEventGachaState;
       devPreferSavedLevel?: boolean;
       devFileOverrideLevel?: number | null;
       soundEnabled?: boolean;
@@ -629,6 +638,8 @@ function App() {
         shopPurchase: next.shopPurchase ?? shopPurchaseRef.current,
         subscription: next.subscription ?? subscriptionRef.current,
         missionState: missionStateToSave,
+        attributeEventGacha:
+          next.attributeEventGacha ?? attributeEventGachaRef.current,
         soundEnabled: next.soundEnabled ?? soundEnabled,
         deckIntroSeen: next.deckIntroSeen ?? deckIntroSeen,
         publishedDeckSlots:
@@ -649,6 +660,21 @@ function App() {
     },
     [activeDeckIndex, deckIntroSeen, decks, lastBattleDeckIndex, soundEnabled, unlockedDeckCount, user],
   );
+
+  useEffect(() => {
+    const level = user?.level ?? 1;
+    const prev = attributeEventGachaRef.current;
+    const next = syncAttributeEventGachaState(prev, level);
+    if (
+      next.featuredAttribute === prev.featuredAttribute &&
+      next.pityMissCount === prev.pityMissCount
+    ) {
+      return;
+    }
+    attributeEventGachaRef.current = next;
+    setAttributeEventGacha(next);
+    persistSave({ attributeEventGacha: next });
+  }, [persistSave, user?.level]);
 
   const applyDownloadedCloudSave = useCallback(
     (save: SaveData, clientUpdatedAt: string) => {
@@ -675,6 +701,12 @@ function App() {
       setSubscription(normalizeUserSubscription(save.subscription));
       setMissionState(
         applyMissionResets(save.missionState ?? createInitialMissionState()),
+      );
+      setAttributeEventGacha(
+        syncAttributeEventGachaState(
+          normalizeAttributeEventGachaState(save.attributeEventGacha),
+          save.user?.level ?? 1,
+        ),
       );
       setSoundEnabled(normalizeSoundEnabled(save.soundEnabled));
       setDeckIntroSeen(save.deckIntroSeen === true);
@@ -768,6 +800,12 @@ function App() {
     setShopPurchase(createInitialShopPurchaseState());
     setSubscription(createInitialSubscription());
     setMissionState(createInitialMissionState());
+    setAttributeEventGacha(
+      syncAttributeEventGachaState(
+        normalizeAttributeEventGachaState(fresh.attributeEventGacha),
+        fresh.user?.level ?? 1,
+      ),
+    );
     setBattleHistory([]);
     setDeckIntroSeen(false);
     setSupabaseOwnerId(null);
@@ -1953,19 +1991,30 @@ function App() {
     [persistSave, reportAndPersistMissionEvents],
   );
 
-  const pendingRetouchCardRef = useRef<Card | null>(null);
+  const pendingAttributeGachaRef = useRef<{
+    cardId: string;
+    baseCard: Card;
+    rolls: Attribute[];
+    previousFreePixels: number;
+    nextFreePixels: number;
+    previousJewels?: number;
+    nextJewels?: number;
+    currency: 'px' | 'jewel';
+  } | null>(null);
 
-  const retouchCardAttributeInDeck = useCallback(
+  const startAttributeGachaInDeck = useCallback(
     (
       cardId: string,
+      pulls: AttributeGachaPulls,
     ):
       | {
-          attribute: Attribute;
+          pulls: AttributeGachaPulls;
+          rolls: Attribute[];
           previousAttribute: Attribute;
           previousBp: number;
-          newBp: number;
           previousFreePixels: number;
           nextFreePixels: number;
+          currency: 'px';
         }
       | { error: ReactNode } => {
       const deckIndex = activeDeckIndexRef.current;
@@ -1976,68 +2025,226 @@ function App() {
         return { error: 'カードが見つかりません。' };
       }
 
+      const cost = getAttributeGachaPixelCost(pulls);
       const previousFreePixels = economyRef.current.freePixels;
-      const spent = spendFreePixels(
-        economyRef.current,
-        PIXEL_COST_ATTRIBUTE_RETOUCH,
-      );
+      const spent = spendFreePixels(economyRef.current, cost);
       if (!spent) {
-        return {
-          error: inlinePxShortageError(PIXEL_COST_ATTRIBUTE_RETOUCH),
-        };
+        return { error: inlinePxShortageError(cost) };
       }
 
       const userLevel = userRef.current?.level ?? 1;
-      const previousAttribute = target.attribute;
-      const previousBp = target.bp;
-      const updated = retouchCardAttribute(
-        target,
-        userLevel,
-        paletteShopUnlocksRef.current,
-      );
-      pendingRetouchCardRef.current = updated;
+      const rolls = rollAttributeGachaResults(userLevel, pulls);
+      pendingAttributeGachaRef.current = {
+        cardId,
+        baseCard: target,
+        rolls,
+        previousFreePixels,
+        nextFreePixels: spent.freePixels,
+        currency: 'px',
+      };
 
       setEconomy(spent);
       economyRef.current = spent;
       persistSave({ economy: spent });
+      reportAndPersistMissionEvents([{ type: 'attribute_gacha', amount: pulls }]);
 
       return {
-        attribute: updated.attribute,
+        pulls,
+        rolls,
+        previousAttribute: target.attribute,
+        previousBp: target.bp,
+        previousFreePixels,
+        nextFreePixels: spent.freePixels,
+        currency: 'px',
+      };
+    },
+    [persistSave, reportAndPersistMissionEvents],
+  );
+
+  const startEventAttributeGachaInDeck = useCallback(
+    (
+      cardId: string,
+    ):
+      | {
+          pulls: 1;
+          rolls: Attribute[];
+          previousAttribute: Attribute;
+          previousBp: number;
+          previousFreePixels: number;
+          nextFreePixels: number;
+          previousJewels: number;
+          nextJewels: number;
+          currency: 'jewel';
+        }
+      | { error: ReactNode } => {
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const target = prevLayout.find((card) => card?.id === cardId);
+      if (!target || isCardLost(target)) {
+        return { error: 'カードが見つかりません。' };
+      }
+
+      const userLevel = userRef.current?.level ?? 1;
+      if (!isEventAttributeGachaAvailable(userLevel)) {
+        return { error: '期間限定ガチャは利用できません。' };
+      }
+
+      const previousJewels = economyRef.current.jewels;
+      const previousFreePixels = economyRef.current.freePixels;
+      const spent = spendJewels(economyRef.current, JEWEL_COST_ATTRIBUTE_EVENT_GACHA);
+      if (!spent) {
+        return {
+          error: `ジュエルが ${getAttributeEventGachaJewelCost()} 不足しています。`,
+        };
+      }
+
+      const syncedPity = syncAttributeEventGachaState(
+        attributeEventGachaRef.current,
+        userLevel,
+      );
+      const rolled = rollEventAttributeGacha(userLevel, syncedPity.pityMissCount);
+      const nextPity: AttributeEventGachaState = {
+        featuredAttribute: getEventGachaFeaturedAttribute(userLevel),
+        pityMissCount: rolled.nextPityMissCount,
+      };
+      const rolls = [rolled.attribute];
+
+      pendingAttributeGachaRef.current = {
+        cardId,
+        baseCard: target,
+        rolls,
+        previousFreePixels,
+        nextFreePixels: previousFreePixels,
+        previousJewels,
+        nextJewels: spent.jewels,
+        currency: 'jewel',
+      };
+
+      setEconomy(spent);
+      economyRef.current = spent;
+      setAttributeEventGacha(nextPity);
+      attributeEventGachaRef.current = nextPity;
+      persistSave({ economy: spent, attributeEventGacha: nextPity });
+      reportAndPersistMissionEvents([{ type: 'attribute_gacha', amount: 1 }]);
+
+      return {
+        pulls: 1,
+        rolls,
+        previousAttribute: target.attribute,
+        previousBp: target.bp,
+        previousFreePixels,
+        nextFreePixels: previousFreePixels,
+        previousJewels,
+        nextJewels: spent.jewels,
+        currency: 'jewel',
+      };
+    },
+    [persistSave, reportAndPersistMissionEvents],
+  );
+
+  const resolveAttributeGachaInDeck = useCallback(
+    (
+      keepIndex: number | null,
+    ):
+      | {
+          attribute: Attribute | null;
+          previousAttribute: Attribute;
+          previousBp: number;
+          newBp: number;
+          previousFreePixels: number;
+          nextFreePixels: number;
+          previousJewels?: number;
+          nextJewels?: number;
+          shardsGranted: Partial<Record<Attribute, number>>;
+        }
+      | { error: string } => {
+      const pending = pendingAttributeGachaRef.current;
+      if (!pending) {
+        return { error: 'ガチャ結果が見つかりません。' };
+      }
+      if (
+        keepIndex != null &&
+        (keepIndex < 0 || keepIndex >= pending.rolls.length)
+      ) {
+        return { error: '選択が無効です。' };
+      }
+
+      const userLevel = userRef.current?.level ?? 1;
+      const previousAttribute = pending.baseCard.attribute;
+      const previousBp = pending.baseCard.bp;
+      const shardsGranted = tallyUnusedGachaShards(
+        pending.rolls,
+        keepIndex,
+        pending.baseCard.attribute,
+      );
+
+      let updated = pending.baseCard;
+      if (keepIndex != null) {
+        const picked = pending.rolls[keepIndex];
+        if (!picked) {
+          return { error: '選択が無効です。' };
+        }
+        updated = applyGachaPickToCard(
+          pending.baseCard,
+          picked,
+          userLevel,
+          paletteShopUnlocksRef.current,
+        );
+      }
+
+      let nextInventory = inventoryRef.current;
+      for (const [attribute, amount] of Object.entries(shardsGranted)) {
+        if (!amount || amount <= 0) continue;
+        nextInventory = addLimitBreakShards(
+          nextInventory,
+          attribute as Attribute,
+          amount,
+        );
+      }
+
+      const deckIndex = activeDeckIndexRef.current;
+      const prevDecks = decksRef.current;
+      const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
+      const nextLayout = prevLayout.map((card) =>
+        card?.id === pending.cardId ? updated : card,
+      );
+      const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
+      pendingAttributeGachaRef.current = null;
+      setDecks(nextDecks);
+      decksRef.current = nextDecks;
+      setInventory(nextInventory);
+      inventoryRef.current = nextInventory;
+      persistSave({ decks: nextDecks, inventory: nextInventory });
+      syncAndPersistOwnershipAchievements();
+
+      return {
+        attribute: keepIndex == null ? null : updated.attribute,
         previousAttribute,
         previousBp,
         newBp: updated.bp,
-        previousFreePixels,
-        nextFreePixels: spent.freePixels,
+        previousFreePixels: pending.previousFreePixels,
+        nextFreePixels: pending.nextFreePixels,
+        previousJewels: pending.previousJewels,
+        nextJewels: pending.nextJewels,
+        shardsGranted,
       };
     },
-    [persistSave],
+    [persistSave, syncAndPersistOwnershipAchievements],
   );
 
-  const commitRetouchCardAttributeInDeck = useCallback(() => {
-    const updated = pendingRetouchCardRef.current;
-    if (!updated) return;
-
-    pendingRetouchCardRef.current = null;
-    const deckIndex = activeDeckIndexRef.current;
-    const prevDecks = decksRef.current;
-    const prevLayout = normalizeDeckLayout(prevDecks[deckIndex] ?? []);
-    const nextLayout = prevLayout.map((card) =>
-      card?.id === updated.id ? updated : card,
-    );
-    const nextDecks = updateDeckAtIndex(prevDecks, deckIndex, nextLayout);
-    setDecks(nextDecks);
-    decksRef.current = nextDecks;
-    persistSave({ decks: nextDecks });
-    reportAndPersistMissionEvents([{ type: 'attribute_retouch' }]);
-    syncAndPersistOwnershipAchievements();
-  }, [persistSave, reportAndPersistMissionEvents, syncAndPersistOwnershipAchievements]);
-
-  const selectCardAttributeInDeck = useCallback(
+  const confirmAttributeGachaInDeck = useCallback(
     (
       cardId: string,
       attribute: Attribute,
     ):
-      | { previousJewels: number; nextJewels: number; attribute: Attribute; previousBp: number; newBp: number }
+      | {
+          previousJewels: number;
+          nextJewels: number;
+          attribute: Attribute;
+          previousBp: number;
+          newBp: number;
+        }
       | string => {
       const deckIndex = activeDeckIndexRef.current;
       const prevDecks = decksRef.current;
@@ -2074,7 +2281,7 @@ function App() {
       setEconomy(spent);
       economyRef.current = spent;
       persistSave({ decks: nextDecks, economy: spent });
-      reportAndPersistMissionEvents([{ type: 'attribute_selected' }]);
+      reportAndPersistMissionEvents([{ type: 'attribute_gacha', amount: 1 }]);
       syncAndPersistOwnershipAchievements();
       return {
         attribute,
@@ -4195,9 +4402,11 @@ function App() {
             memoryAlbum={memoryAlbum}
             inventory={inventory}
             onLimitBreakCard={limitBreakCard}
-            onRetouchCardAttribute={retouchCardAttributeInDeck}
-            onCommitRetouchCardAttribute={commitRetouchCardAttributeInDeck}
-            onSelectCardAttribute={selectCardAttributeInDeck}
+            onStartAttributeGacha={startAttributeGachaInDeck}
+            onStartEventAttributeGacha={startEventAttributeGachaInDeck}
+            onResolveAttributeGacha={resolveAttributeGachaInDeck}
+            onConfirmAttributeGacha={confirmAttributeGachaInDeck}
+            attributeEventGacha={attributeEventGacha}
             paletteShopUnlocks={paletteShopUnlocks}
             freePixels={economy.freePixels}
             jewels={economy.jewels}

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   canLimitBreakCard,
@@ -6,13 +6,18 @@ import {
   getLimitBreakOutcomeKind,
   getUpgradedRarity,
   isLimitBreakCapReached,
+  type AttributeGachaPulls,
+  type AttributeEventGachaState,
   type LimitBreakShardSpendPlan,
 } from '../card';
 import { getLimitBreakRarityJewelCost, JEWEL_COST_DELETE } from '../config/economy';
 import type { Attribute, Card } from '../types';
-import { AttributeRetouchModal, type AttributeRetouchResult } from './AttributeRetouchModal';
-import { AttributeSelectModal } from './AttributeSelectModal';
-import type { AttributeSelectOutcome } from './attributeSelectTypes';
+import { AttributeGachaModal } from './AttributeGachaModal';
+import type {
+  AttributeGachaConfirmOutcome,
+  AttributeGachaResolveOutcome,
+  AttributeGachaStartOutcome,
+} from './attributeGachaTypes';
 import { PixelCoinIcon } from './PixelCoinIcon';
 import { JewelAmount } from './JewelIcon';
 import { DeckCardDetailCard } from './DeckCardDetailCard';
@@ -59,11 +64,17 @@ interface DeckCardDetailOverlayProps {
   onReviveLost: () => void;
   onAddToAlbum: () => void;
   onLimitBreak: (spend: LimitBreakShardSpendPlan) => void;
-  onRetouchCardAttribute: (
+  onStartAttributeGacha: (
     cardId: string,
-  ) => AttributeRetouchResult | { error: ReactNode };
-  onCommitRetouchCardAttribute: () => void;
-  onSelectCardAttribute: (cardId: string, attribute: Attribute) => AttributeSelectOutcome;
+    pulls: AttributeGachaPulls,
+  ) => AttributeGachaStartOutcome;
+  onStartEventAttributeGacha: (cardId: string) => AttributeGachaStartOutcome;
+  onResolveAttributeGacha: (keepIndex: number | null) => AttributeGachaResolveOutcome;
+  onConfirmAttributeGacha: (
+    cardId: string,
+    attribute: Attribute,
+  ) => AttributeGachaConfirmOutcome;
+  attributeEventGacha: AttributeEventGachaState;
   paletteShopUnlocks?: readonly number[];
   showTalismanUi?: boolean;
   unusedTalismanCount?: number;
@@ -92,9 +103,11 @@ export function DeckCardDetailOverlay({
   onReviveLost,
   onAddToAlbum,
   onLimitBreak,
-  onRetouchCardAttribute,
-  onCommitRetouchCardAttribute,
-  onSelectCardAttribute,
+  onStartAttributeGacha,
+  onStartEventAttributeGacha,
+  onResolveAttributeGacha,
+  onConfirmAttributeGacha,
+  attributeEventGacha,
   paletteShopUnlocks = [],
   showTalismanUi = false,
   unusedTalismanCount = 0,
@@ -116,9 +129,7 @@ export function DeckCardDetailOverlay({
     limitBreakKind === 'rarity' ? getUpgradedRarity(card.rarity) : null;
   const canAffordJewels = rarityJewelCost == null || jewels >= rarityJewelCost;
   const limitBreakCap = isLimitBreakCapReached(card);
-  const [attributeMenuOpen, setAttributeMenuOpen] = useState(false);
-  const [retouchModalOpen, setRetouchModalOpen] = useState(false);
-  const [selectModalOpen, setSelectModalOpen] = useState(false);
+  const [gachaModalOpen, setGachaModalOpen] = useState(false);
   const [limitBreakModalOpen, setLimitBreakModalOpen] = useState(false);
   const [noteEditOpen, setNoteEditOpen] = useState(false);
   const [noteUpsellOpen, setNoteUpsellOpen] = useState(false);
@@ -127,15 +138,6 @@ export function DeckCardDetailOverlay({
     : !canAffordRevive
       ? `復活 ${reviveCost.toLocaleString()} 必要・不足`
       : undefined;
-
-  const attributeMenuResetKey = `${card.id}\u0000${card.attribute}`;
-  const [prevAttributeMenuResetKey, setPrevAttributeMenuResetKey] = useState(
-    attributeMenuResetKey,
-  );
-  if (attributeMenuResetKey !== prevAttributeMenuResetKey) {
-    setPrevAttributeMenuResetKey(attributeMenuResetKey);
-    setAttributeMenuOpen(false);
-  }
 
   const noteResetKey = card.id;
   const [prevNoteResetKey, setPrevNoteResetKey] = useState(noteResetKey);
@@ -198,16 +200,7 @@ export function DeckCardDetailOverlay({
             unusedTalismanCount={unusedTalismanCount}
             onTalismanPress={onTalismanPress}
             showAttributeEdit={!isLost}
-            attributeMenuOpen={attributeMenuOpen}
-            onAttributeMenuToggle={() => setAttributeMenuOpen((open) => !open)}
-            onAttributeRetouch={() => {
-              setAttributeMenuOpen(false);
-              setRetouchModalOpen(true);
-            }}
-            onAttributeSelect={() => {
-              setAttributeMenuOpen(false);
-              setSelectModalOpen(true);
-            }}
+            onAttributeGacha={() => setGachaModalOpen(true)}
             onBattleGuideOpen={onBattleGuideOpen}
             canEditNote={canEditCardUserNote}
             onNoteIconPress={
@@ -358,22 +351,19 @@ export function DeckCardDetailOverlay({
         </div>
       </div>
 
-      <AttributeRetouchModal
-        open={retouchModalOpen}
-        userLevel={userLevel}
-        freePixels={freePixels}
-        onClose={() => setRetouchModalOpen(false)}
-        onRetouch={() => onRetouchCardAttribute(card.id)}
-        onCommitRetouch={onCommitRetouchCardAttribute}
-      />
-      <AttributeSelectModal
-        open={selectModalOpen}
+      <AttributeGachaModal
+        open={gachaModalOpen}
         card={card}
         userLevel={userLevel}
+        freePixels={freePixels}
         jewels={jewels}
+        attributeEventGacha={attributeEventGacha}
         paletteShopUnlocks={paletteShopUnlocks}
-        onClose={() => setSelectModalOpen(false)}
-        onSelect={(attribute) => onSelectCardAttribute(card.id, attribute)}
+        onClose={() => setGachaModalOpen(false)}
+        onStartPixelGacha={(pulls) => onStartAttributeGacha(card.id, pulls)}
+        onStartEventGacha={() => onStartEventAttributeGacha(card.id)}
+        onResolvePixelGacha={onResolveAttributeGacha}
+        onConfirmAttribute={(attribute) => onConfirmAttributeGacha(card.id, attribute)}
       />
       <LimitBreakModal
         open={limitBreakModalOpen}

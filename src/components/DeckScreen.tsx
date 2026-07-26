@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type RefObject } from 'react';
 import { canReviveLostCard, computeDeckPower, isCardLost, isTalismanEquipped, type LimitBreakShardSpendPlan } from '../card';
 import {
   calcReviveCost,
@@ -30,8 +30,12 @@ import { CardDeckDispositionDialog, MemoryAlbumFullDialog, MemoryAlbumExpandConf
 import { ConfirmDialog } from './ConfirmDialog';
 import { InlinePxCost } from './HelpInlineEconomy';
 import { DeckCardDetailOverlay } from './DeckCardDetailOverlay';
-import type { AttributeSelectOutcome } from './attributeSelectTypes';
-import type { AttributeRetouchResult } from './AttributeRetouchModal';
+import type { AttributeGachaPulls, AttributeEventGachaState } from '../card';
+import type {
+  AttributeGachaConfirmOutcome,
+  AttributeGachaResolveOutcome,
+  AttributeGachaStartOutcome,
+} from './attributeGachaTypes';
 import { DeckRenameDialog } from './DeckRenameDialog';
 import { DeckRenameUpsellModal } from './DeckRenameUpsellModal';
 import { DeckUnlockModal } from './DeckUnlockModal';
@@ -81,11 +85,17 @@ export interface DeckScreenProps {
   memoryAlbum: MemoryAlbumState;
   inventory: UserInventory;
   onLimitBreakCard: (id: string, spend: LimitBreakShardSpendPlan) => void;
-  onRetouchCardAttribute: (
+  onStartAttributeGacha: (
     cardId: string,
-  ) => AttributeRetouchResult | { error: ReactNode };
-  onCommitRetouchCardAttribute: () => void;
-  onSelectCardAttribute: (cardId: string, attribute: Attribute) => AttributeSelectOutcome;
+    pulls: AttributeGachaPulls,
+  ) => AttributeGachaStartOutcome;
+  onStartEventAttributeGacha: (cardId: string) => AttributeGachaStartOutcome;
+  onResolveAttributeGacha: (keepIndex: number | null) => AttributeGachaResolveOutcome;
+  onConfirmAttributeGacha: (
+    cardId: string,
+    attribute: Attribute,
+  ) => AttributeGachaConfirmOutcome;
+  attributeEventGacha: AttributeEventGachaState;
   paletteShopUnlocks?: readonly number[];
   freePixels: number;
   jewels: number;
@@ -333,9 +343,11 @@ export function DeckScreen({
   memoryAlbum,
   inventory,
   onLimitBreakCard,
-  onRetouchCardAttribute,
-  onCommitRetouchCardAttribute,
-  onSelectCardAttribute,
+  onStartAttributeGacha,
+  onStartEventAttributeGacha,
+  onResolveAttributeGacha,
+  onConfirmAttributeGacha,
+  attributeEventGacha,
   paletteShopUnlocks = [],
   freePixels,
   jewels,
@@ -1339,9 +1351,11 @@ export function DeckScreen({
           onReviveLost={handleReviveRequest}
           onAddToAlbum={handleAlbumAddRequest}
           onLimitBreak={(spend) => onLimitBreakCard(selectedCard.id, spend)}
-          onRetouchCardAttribute={onRetouchCardAttribute}
-          onCommitRetouchCardAttribute={onCommitRetouchCardAttribute}
-          onSelectCardAttribute={onSelectCardAttribute}
+          onStartAttributeGacha={onStartAttributeGacha}
+          onStartEventAttributeGacha={onStartEventAttributeGacha}
+          onResolveAttributeGacha={onResolveAttributeGacha}
+          onConfirmAttributeGacha={onConfirmAttributeGacha}
+          attributeEventGacha={attributeEventGacha}
           paletteShopUnlocks={paletteShopUnlocks}
           showTalismanUi={showTalismanUi}
           unusedTalismanCount={inventory.talisman}

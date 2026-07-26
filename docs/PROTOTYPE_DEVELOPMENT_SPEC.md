@@ -173,14 +173,14 @@ src/
 | 属性枠 | **アイコン → 説明文 → ▼**（1行・縦中央） |
 | 詳細説明 | 折りたたみ **battleGuide**（`ATTRIBUTE_META.battleGuide`）。用語（近接攻撃・盾・凍結・照射 等）はタップでモーダル（[ATTRIBUTE_SPEC §2.5](./ATTRIBUTE_SPEC.md#25-カード詳細の戦い方表示ui)） |
 | カードノート | 属性説明の下に常時表示（ノートあり時）。自分のカード詳細では右のアイコンから編集／追加（**プレミアムのみ**。非プレはアップセル）。閲覧モーダルは使わない |
-| ▼ メニュー | **属性リタッチ**（200px）/ **属性セレクト**（💎100）。ロスト中は非表示 |
-| 完了表示 | リタッチ: `BP {旧}→{新}` + 保有コイン。セレクト: `{ariaName}になりました！` + **BP** 大表示 + 保有ジュエル（[ECONOMY §16.17](./ECONOMY_SPEC.md#1617-通貨残高の結果表示)） |
+| 属性ガチャ | **属性ガチャ**（1回 200px / 5連 950 / 10連 1800 / 期間限定 💎10・Lv21+ / 確定 💎100）。ロスト中は非表示 |
+| 完了表示 | `BP {旧}→{新}` + 保有通貨（+ 余りかけら）。`もう一度` で同モード再実行（[ECONOMY §16.17](./ECONOMY_SPEC.md#1617-通貨残高の結果表示)） |
 | **active 時ボタン** | **編集**（全幅）→ **［アルバムアイコン］に移動｜削除**（2列）→ **閉じる**（全幅） |
 | **active 削除タップ** | 3択 — 思い出アルバムに移動 / 削除する / キャンセル |
 | **ロスト時ボタン** | 復活上限内: **復活｜［アルバムアイコン］に移動｜削除**。上限到達: **移動｜削除** ＋「復活上限に達しました」 |
 | **`reviveCount`** | **復活 n/3** 表示（[ECONOMY §6.3.1](./ECONOMY_SPEC.md#631-復活全レア)） |
-| 詳細 | [ECONOMY_SPEC §8.4](./ECONOMY_SPEC.md#84-属性変更属性リタッチ属性セレクト)、[ATTRIBUTE_SPEC §3.3](./ATTRIBUTE_SPEC.md#33-作成後の属性変更) |
-| 実装 | `DeckCardDetailCard` / `DeckCardDetailOverlay` / `AttributeRetouchModal` / `AttributeSelectModal` / `MemoryAlbumDialogs` / `GuideTextWithTerms` / `BattleTermGuideModal` / `CardNoteEditModal` |
+| 詳細 | [ECONOMY_SPEC §8.4](./ECONOMY_SPEC.md#84-属性変更属性ガチャ)、[ATTRIBUTE_SPEC §3.3](./ATTRIBUTE_SPEC.md#33-作成後の属性変更) |
+| 実装 | `DeckCardDetailCard` / `DeckCardDetailOverlay` / `AttributeGachaModal` / `MemoryAlbumDialogs` / `GuideTextWithTerms` / `BattleTermGuideModal` / `CardNoteEditModal` |
 
 #### 4.3.2 思い出アルバム画面
 
@@ -372,8 +372,7 @@ src/
 | `card_renamed` | 編集保存で **名前変更** | 200px 課金時 |
 | `card_note_saved` | カード **初回** ノート付与保存 | カードごと1回 |
 | `canvas_resized` | 編集保存で **キャンバスサイズ変更** | |
-| `attribute_retouch` | 属性リタッチ成功 | |
-| `attribute_selected` | 属性セレクト成功 | |
+| `attribute_gacha` | 属性ガチャ開始（支払い時） | amount: 1/5/10/期間限定=1/確定=1 |
 | `limit_break` | 限界突破成功 | |
 | `card_deleted` | デッキ / 思い出アルバムから削除 | |
 | `card_revived` | ロストカード復活 | 復活は **1種類のみ**（降格復活なし） |
@@ -429,7 +428,7 @@ src/
 | `permanent_cpu_battle_win` | 10 | CPU 戦累計勝利 |
 | `permanent_card_created` | 10 | 累計作成枚数 |
 | `permanent_card_edit_saved` | 10 | 累計編集保存 |
-| `permanent_attribute_retouch` | 10 | 累計属性リタッチ |
+| `permanent_attribute_gacha` | 10 | 累計属性ガチャ回数（連数込み） |
 | `permanent_limit_break` | **5** | 累計限界突破 |
 | `permanent_memory_album_saved` | **1** | 累計アルバム保存 |
 | `permanent_card_revived` | **3** | 累計復活 |
@@ -437,7 +436,6 @@ src/
 | `permanent_card_renamed` | **5** | 累計リネーム |
 | `permanent_card_note_saved` | **5** | 累計ノート付与 |
 | `permanent_canvas_resized` | **5** | 累計キャンバス変更保存 |
-| `permanent_attribute_selected` | **5** | 累計属性セレクト |
 | `permanent_own_rarity_r` | **1** | 現在所持 R 枚数（デッキ+アルバム）— 報酬 **px 10**/段 |
 | `permanent_win_with_rarity_r` | **1** | 再戦以外の勝利で R を N 枚含んだ最大 — 報酬 **px 20**/段 |
 | `permanent_own_rarity_sr` | **1** | 現在所持 SR 枚数 — 報酬 **💎 5**/段 |
@@ -590,7 +588,7 @@ B = 黒マス数 / 塗ったマス合計
 | 直近解放ブースト | スケジュール上 **最後に解放された属性** のみ **1.1**（`ATTRIBUTE_ROLL_RECENT_BOOST`） |
 | 色・hash | **属性決定には不使用**（BP 算出の hash + 密度は [§5.5](#55-bp-決定) のまま） |
 | 編集画面 | 属性は **変更不可**（表示のみ） |
-| 作成後の変更 | カード詳細の **属性リタッチ**（200px）/ **属性セレクト**（💎100）— [ATTRIBUTE_SPEC §3.3](./ATTRIBUTE_SPEC.md#33-作成後の属性変更) |
+| 作成後の変更 | カード詳細の **属性ガチャ**（1回/5連/10連/確定）— [ATTRIBUTE_SPEC §3.3](./ATTRIBUTE_SPEC.md#33-作成後の属性変更) |
 
 - **新規作成時のみ** 自動決定。編集保存では属性を変更しない（[§5.8](#58-新規作成と編集)）。
 
@@ -841,7 +839,7 @@ Lv1 は初期パック。Lv5 以降は **レベルの下一桁（L mod 5）** �
 
 - **編集**: レベルアップで増えた色で印象を変え、同じカードを育てる。名前も保存時に変更可。BP はレベルアップ後の保存で伸びる。
 - **新規作成**: 別の名前・**ランダム属性**・より大きいキャンバスなど、ゼロからの新カード向き。
-- **属性変更**: 詳細の **属性リタッチ**（px）で運試し、**属性セレクト**（💎）で確定狙い。
+- **属性変更**: 詳細の **属性ガチャ**（px 運試し / 💎 確定）で属性を付け替える。
 
 **実装**
 
@@ -1449,9 +1447,9 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | `LEVEL_UP_PIXEL_REWARD` | **100** | 毎レベルアップ |
 | `JEWELS_PER_LEVEL` | **10** | 毎レベルアップ |
 | `BATTLE_VICTORY_PX_MULTIPLIER` | **0.5** | バトル勝利 px（生存・墓地・削除返還） |
-| `PIXEL_COST_ATTRIBUTE_RETOUCH` | **200** | 属性リタッチ（属性ガチャ単発）1回 |
-| `PIXEL_COST_ATTRIBUTE_GACHA_5` | **950** | 属性ガチャ5連（UI は後続） |
-| `PIXEL_COST_ATTRIBUTE_GACHA_10` | **1800** | 属性ガチャ10連（UI は後続） |
+| `PIXEL_COST_ATTRIBUTE_RETOUCH` | **200** | 属性ガチャ単発1回 |
+| `PIXEL_COST_ATTRIBUTE_GACHA_5` | **950** | 属性ガチャ5連 |
+| `PIXEL_COST_ATTRIBUTE_GACHA_10` | **1800** | 属性ガチャ10連 |
 | `PIXEL_COST_RENAME` | **200** | リネーム（名前変更保存時・毎回） |
 | `CANVAS_MAX_MILESTONES` | 16…34 | キャンバス上限マイルストーン（§5.7） |
 | `CANVAS_MAX_AT_LEVEL` | 16+2×回数 | L≡3 解放ごと +2。Lv50 上限 **34** |
@@ -1505,7 +1503,7 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 ### 14.2 カード・作成
 
 - **AI 属性決定**（[§5.4.2](#542-将来方針ai-による漢字1文字属性)）
-- ~~属性セレクト~~ — **💎 版は実装済み**（[ECONOMY §8.4](./ECONOMY_SPEC.md#84-属性変更属性リタッチ属性セレクト)）。**属性選択チケットは不採用**
+- ~~属性ガチャ確定~~ — **💎 版は実装済み**（[ECONOMY §8.4](./ECONOMY_SPEC.md#84-属性変更属性ガチャ)）。**属性選択チケットは不採用**
 
 ### 14.3 バトル・対人
 
@@ -1573,10 +1571,10 @@ function updateCardFromDrawing(existing: Card, name: string, pixels: PixelGrid):
 | 40b | レベル報酬 L20+ | **護符×1**（L20,30,40,50） |
 | 41 | レベルアップ UI | px は数値→アイコン、💎 **10/Lv** 合計表示、L≡4 かけら・L20+ 護符を追加報酬リスト |
 | 42 | 追加色ショップ | 12色・各 **💎100**（px 廃止）。右2列は Lv50+、下段は上段解放後。`paletteShopUnlocks` 永続化 |
-| 43 | 属性ガチャ | 作成時 `rollAttribute`。詳細 ▼ でリタッチ/セレクト（完了時 BP・通貨残高表示）。編集リネームは **200px/回**・保存一括課金 |
+| 43 | 属性ガチャ | 作成時 `rollAttribute`。詳細 **属性ガチャ**（1/5/10/確定）。余りかけら・`attribute_gacha` ミッション。編集リネームは **200px/回** |
 | 44 | 思い出アルバム | デッキ外閲覧専用。保存無償・行解放💎1,000・削除💎5・復活上限3・降格復活廃止（ECONOMY §14.1） |
-| 45 | 経済バランス | **💎10/Lv・100px/Lv**（リバランス後）。無課金必須💎は主に削除（5💎）。属性セレクトが主な💎シンク |
-| 46 | px 創作コスト | レベルアップ100px・属性リタッチ200px・リネーム200px（プレミアムは無料） |
+| 45 | 経済バランス | **💎10/Lv・100px/Lv**（リバランス後）。無課金必須💎は主に削除（5💎）。属性ガチャ確定が主な💎シンク |
+| 46 | px 創作コスト | レベルアップ100px・属性ガチャ200px〜・リネーム200px（プレミアムは無料） |
 | 57 | ミッション経済 | デイリー5/10/15px、ウィークリー整理、バトル勝利px×0.5、Lv報酬100px+💎10 |
 | 58 | 常設ミッション | 16 カウンタートラック（刻み可変・10 デフォルト）+ 属性達成型 9×2。tier cap 200→+100。全属性コンプ廃止 |
 | 60 | 常設ミッション再設計 | 10 刻み・50 刻み💎・属性/レア度トラック・再戦除外デッキ勝利。説明文2行表示 |

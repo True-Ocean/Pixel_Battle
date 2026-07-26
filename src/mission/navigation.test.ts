@@ -19,7 +19,7 @@ describe('mission navigation', () => {
     expect(getMissionChallengeTarget('attribute_battle_guide_viewed')).toEqual({
       kind: 'deckCardDetail',
     });
-    expect(getMissionChallengeTarget('attribute_retouch')).toEqual({ kind: 'deckCardDetail' });
+    expect(getMissionChallengeTarget('attribute_gacha')).toEqual({ kind: 'deckCardDetail' });
     expect(getMissionChallengeTarget('limit_break')).toEqual({ kind: 'deckCardDetail' });
     expect(getMissionChallengeTarget('history_opponent_detail_viewed')).toEqual({
       kind: 'records',

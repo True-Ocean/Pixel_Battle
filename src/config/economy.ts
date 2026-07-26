@@ -31,17 +31,29 @@ export const JEWEL_COST_DELETE = 5;
 /** カード名変更（保存時・名前が変わった場合）の px コスト */
 export const PIXEL_COST_RENAME = 200;
 
-/** 属性リタッチ（属性ガチャ単発）1回の px コスト */
+/** 属性ガチャ単発（1回）の px コスト */
 export const PIXEL_COST_ATTRIBUTE_RETOUCH = 200;
 
-/** 属性ガチャ 5連の px コスト（UI は後続フェーズ） */
+/** 属性ガチャ 5連の px コスト */
 export const PIXEL_COST_ATTRIBUTE_GACHA_5 = 950;
 
-/** 属性ガチャ 10連の px コスト（UI は後続フェーズ） */
+/** 属性ガチャ 10連の px コスト */
 export const PIXEL_COST_ATTRIBUTE_GACHA_10 = 1800;
 
-/** 属性セレクト（属性ガチャ確定）1回の 💎 コスト */
+/** 属性ガチャ確定（旧セレクト）1回の 💎 コスト */
 export const JEWEL_COST_ATTRIBUTE_SELECT = 100;
+
+/** 期間限定ガチャ（直近解放属性アップ）1回の 💎 コスト */
+export const JEWEL_COST_ATTRIBUTE_EVENT_GACHA = 10;
+
+/** 期間限定ガチャを出せる最低ユーザーレベル（毒解放） */
+export const EVENT_ATTRIBUTE_GACHA_MIN_LEVEL = 21;
+
+/** 期間限定ガチャのフィーチャー属性的中率 */
+export const EVENT_ATTRIBUTE_GACHA_FEATURED_RATE = 0.2;
+
+/** 期間限定ガチャの天井（この回数目でフィーチャー確定） */
+export const EVENT_ATTRIBUTE_GACHA_PITY = 10;
 
 /** デッキ3〜5解放のジュエルコスト（各1回） */
 export const JEWEL_COST_DECK_UNLOCK = 1000;

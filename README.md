@@ -100,8 +100,9 @@ docs/               # 仕様書 / specifications
 | Battle victory px | Survivor & graveyard rewards **×0.5** |
 | レベルアップ | **100 px + 💎10** / level |
 | Level-up reward | **100 px + 10 jewels** / level |
-| 属性リタッチ | **200 px** / Attribute retouch **200 px** |
-| 属性セレクト | **💎100** / Attribute select **100 jewels** |
+| 属性ガチャ 1回 | **200 px** / Attribute gacha (single) **200 px** |
+| 属性ガチャ 5連 / 10連 | **950 / 1800 px** |
+| 属性ガチャ 確定 | **💎100** / Confirm **100 jewels** |
 | リネーム | **200 px/回**（プレミアムは無料） |
 | Rename | **200 px** per save（free for Premium） |
 | 復活 | 塗り×3×レア×★（`calcReviveCost`）、上限3回 |

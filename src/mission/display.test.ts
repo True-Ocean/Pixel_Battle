@@ -87,7 +87,7 @@ describe('sortMissionsForDisplay', () => {
       'weekly_login_5',
       'weekly_cpu_battle_win_10',
       'weekly_cpu_battle_win_20',
-      'weekly_attribute_retouch',
+      'weekly_attribute_gacha',
       'weekly_limit_break',
     ]);
   });

@@ -31,7 +31,7 @@ export function getMissionChallengeTarget(
     case 'deck_reordered':
       return { kind: 'deckReorder' };
     case 'attribute_battle_guide_viewed':
-    case 'attribute_retouch':
+    case 'attribute_gacha':
     case 'limit_break':
       return { kind: 'deckCardDetail' };
     case 'history_opponent_detail_viewed':
@@ -44,7 +44,6 @@ export function getMissionChallengeTarget(
     case 'card_renamed':
     case 'card_note_saved':
     case 'canvas_resized':
-    case 'attribute_selected':
       return { kind: 'deckCardDetail' };
     case 'app_open':
       return null;

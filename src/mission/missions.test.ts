@@ -31,7 +31,7 @@ const BEGINNER_MISSION_EVENTS: Array<[MissionEventType, number]> = [
   ['card_edit_saved', 1],
   ['deck_reordered', 1],
   ['attribute_battle_guide_viewed', 1],
-  ['attribute_retouch', 1],
+  ['attribute_gacha', 1],
   ['battle_play', 1],
   ['battle_log_viewed', 1],
   ['battle_win', 1],
@@ -394,7 +394,7 @@ describe('mission progress and claim', () => {
       ).state;
     }
     state = reportMissionEvent(state, 'cpu_battle_win', 10, monday).state;
-    state = reportMissionEvent(state, 'attribute_retouch', 1, monday).state;
+    state = reportMissionEvent(state, 'attribute_gacha', 1, monday).state;
     state = reportMissionEvent(state, 'limit_break', 1, monday).state;
 
     expect(isCompletionBonusClaimable(state, 'weekly')).toBe(true);

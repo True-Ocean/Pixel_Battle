@@ -54,10 +54,10 @@ export const PERMANENT_COUNTER_SPECS: readonly PermanentCounterSpec[] = [
     description: (goal) => `カードを累計${goal}回編集して保存する`,
   },
   {
-    eventType: 'attribute_retouch',
-    idPrefix: 'permanent_attribute_retouch',
-    title: (goal) => `属性リタッチ${goal}回`,
-    description: (goal) => `属性リタッチを累計${goal}回行う`,
+    eventType: 'attribute_gacha',
+    idPrefix: 'permanent_attribute_gacha',
+    title: (goal) => `属性ガチャ${goal}回`,
+    description: (goal) => `属性ガチャを累計${goal}回まわす`,
   },
   {
     eventType: 'limit_break',
@@ -106,13 +106,6 @@ export const PERMANENT_COUNTER_SPECS: readonly PermanentCounterSpec[] = [
     idPrefix: 'permanent_canvas_resized',
     title: (goal) => `リサイズ${goal}回`,
     description: (goal) => `キャンバスサイズを変更して累計${goal}回保存する`,
-    goalStep: 5,
-  },
-  {
-    eventType: 'attribute_selected',
-    idPrefix: 'permanent_attribute_selected',
-    title: (goal) => `属性セレクト${goal}回`,
-    description: (goal) => `属性セレクトを累計${goal}回行う`,
     goalStep: 5,
   },
 ];

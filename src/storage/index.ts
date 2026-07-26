@@ -6,6 +6,10 @@ import {
 } from '../offlinePvp/publishedSlots';
 import { applyLoadBpRecalc, BP_CALC_VERSION, rescaleDeckBp } from '../card';
 import {
+  normalizeAttributeEventGachaState,
+  syncAttributeEventGachaState,
+} from '../card/eventAttributeGacha';
+import {
   clampDeckSlotIndex,
   clampUnlockedDeckCount,
   createEmptyDeckSlots,
@@ -62,6 +66,16 @@ function parseStoredBpCalcVersion(raw: unknown): number {
 
 function needsBpRecalc(storedVersion: number): boolean {
   return storedVersion !== BP_CALC_VERSION;
+}
+
+function syncAttributeEventGachaOnLoad(
+  raw: SaveData['attributeEventGacha'],
+  userLevel: number,
+) {
+  return syncAttributeEventGachaState(
+    normalizeAttributeEventGachaState(raw),
+    userLevel,
+  );
 }
 
 function recalcSaveCardBp(save: SaveData): SaveData {
@@ -382,6 +396,10 @@ export function normalizeSaveData(save: SaveData): SaveData {
     shopPurchase: normalizeShopPurchaseState(save.shopPurchase),
     subscription: normalizeUserSubscription(save.subscription),
     missionState: applyMissionResets(normalizeMissionState(save.missionState)),
+    attributeEventGacha: syncAttributeEventGachaOnLoad(
+      save.attributeEventGacha,
+      save.user?.level ?? 1,
+    ),
   };
 
   const subscriptionSync = applyDueSubscriptionGrants(

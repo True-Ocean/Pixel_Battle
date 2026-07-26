@@ -24,10 +24,7 @@ interface DeckCardDetailCardProps {
   unusedTalismanCount?: number;
   onTalismanPress?: () => void;
   showAttributeEdit?: boolean;
-  attributeMenuOpen?: boolean;
-  onAttributeMenuToggle?: () => void;
-  onAttributeRetouch?: () => void;
-  onAttributeSelect?: () => void;
+  onAttributeGacha?: () => void;
   onBattleGuideOpen?: () => void;
   /** CPU デッキなど戦績を出さないとき */
   hideBattleRecord?: boolean;
@@ -47,10 +44,7 @@ export function DeckCardDetailCard({
   unusedTalismanCount = 0,
   onTalismanPress,
   showAttributeEdit = false,
-  attributeMenuOpen = false,
-  onAttributeMenuToggle,
-  onAttributeRetouch,
-  onAttributeSelect,
+  onAttributeGacha,
   onBattleGuideOpen,
   hideBattleRecord = false,
   onNoteIconPress,
@@ -151,37 +145,16 @@ export function DeckCardDetailCard({
             <AttributeBadge attribute={card.attribute} size="deck" />
           </div>
           <p className="deck-detail-card-attr-desc">{attrMeta.description}</p>
-          {showAttributeEdit && onAttributeMenuToggle && (
+          {showAttributeEdit && onAttributeGacha && (
             <div className="deck-detail-card-attr-menu-wrap">
               <button
                 type="button"
                 className="deck-detail-card-attr-menu-btn"
-                aria-label="属性変更"
-                aria-expanded={attributeMenuOpen}
-                onClick={onAttributeMenuToggle}
+                aria-label="属性ガチャ"
+                onClick={onAttributeGacha}
               >
-                属性変更
+                属性ガチャ
               </button>
-              {attributeMenuOpen && (
-                <div className="deck-detail-card-attr-menu" role="menu">
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="deck-detail-card-attr-menu-item"
-                    onClick={onAttributeRetouch}
-                  >
-                    属性リタッチ
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="deck-detail-card-attr-menu-item"
-                    onClick={onAttributeSelect}
-                  >
-                    属性セレクト
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </div>

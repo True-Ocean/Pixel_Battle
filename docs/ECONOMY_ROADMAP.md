@@ -160,7 +160,7 @@
 | **px 創作コスト** | ✅ レベルアップ **300** / リタッチ **200** / リネーム **200**（`economy.ts`） |
 | **削除（💎＋返還）** | ✅ `JEWEL_COST_DELETE=5`、`calcLostCardDeleteRewards`、二段階確認 UI |
 | **リネーム** | ✅ 編集画面で **名前常時編集**・**保存時一括課金**（**200px/回**）。**プレミアムは無料**（`canRenameCardForFree`） |
-| **属性リタッチ / セレクト** | ✅ 200px / 💎100。5連950・10連1800は定数予約。モーダル2種・完了時 BP + 通貨残高表示（`EconomyBalanceChange`） |
+| **属性ガチャ / セレクト** | ✅ 1回200px / 5連950 / 10連1800 / 期間限定💎10（Lv21+・天井10） / 確定💎100。`AttributeGachaModal`・余りかけら・ミッション `attribute_gacha` |
 | **作成時属性抽選** | ✅ `rollAttribute`（解放済み・直近解放 +10%）。色/hash 属性決定は **廃止** |
 | **編集時キャンバス拡大** | ✅ 拡大のみ・px 消費（`calcCanvasUpgradeCost` = 新²−旧²）。配置 **フィット / 左上 / 中央**（デフォルト中央） |
 | 勝利 px・墓地選択 UI・属性かけら付与 | ✅ `GraveyardPickModal`, `calcGraveyardShardReward`（N=1/R=2/SR=3） |
