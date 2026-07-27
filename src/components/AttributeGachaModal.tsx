@@ -644,7 +644,11 @@ export function AttributeGachaModal({
   return createPortal(
     <div
       className="attribute-edit-backdrop"
-      onClick={canClose ? handleClose : undefined}
+      onClick={(event) => {
+        // 親のカード詳細 backdrop へ泡立たせない（詳細まで閉じるのを防ぐ）
+        event.stopPropagation();
+        if (canClose) handleClose();
+      }}
     >
       <div
         className={[

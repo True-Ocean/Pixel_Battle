@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import { loadSave, saveSave, resetBattleRecords } from './storage'
+import { installPortraitOrientationLock } from './utils/lockPortraitOrientation'
 
 declare global {
   interface Window {
@@ -10,6 +11,7 @@ declare global {
 }
 
 function bootstrap() {
+  installPortraitOrientationLock()
   import('./App.tsx').then(({ default: App }) => {
     createRoot(document.getElementById('root')!).render(
       <StrictMode>

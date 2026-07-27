@@ -26,7 +26,7 @@ export default defineConfig({
         start_url: '/Pixel_Battle/',
         scope: '/Pixel_Battle/',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'portrait-primary',
         theme_color: '#ffffff',
         background_color: '#dfe3ec',
         icons: [

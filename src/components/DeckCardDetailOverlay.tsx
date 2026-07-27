@@ -181,7 +181,20 @@ export function DeckCardDetailOverlay({
   }, []);
 
   return createPortal(
-    <div className="deck-card-detail-backdrop" onClick={onClose}>
+    <div
+      className="deck-card-detail-backdrop"
+      onClick={() => {
+        if (
+          gachaModalOpen ||
+          limitBreakModalOpen ||
+          noteEditOpen ||
+          noteUpsellOpen
+        ) {
+          return;
+        }
+        onClose();
+      }}
+    >
       <div
         className="deck-card-detail-panel"
         role="dialog"

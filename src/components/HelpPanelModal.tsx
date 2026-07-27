@@ -15,7 +15,13 @@ export function HelpPanelModal({ topic, onClose, panelClassName }: HelpPanelModa
   const panelClassNames = ['help-panel', panelClassName].filter(Boolean).join(' ');
 
   return createPortal(
-    <div className="help-panel-backdrop" onClick={onClose}>
+    <div
+      className="help-panel-backdrop"
+      onClick={(event) => {
+        event.stopPropagation();
+        onClose();
+      }}
+    >
       <div
         className={panelClassNames}
         role="dialog"

@@ -36,6 +36,58 @@ body {
   justify-content: center;
 }
 
+/*
+ * 通常のモバイルブラウザでは横画面レイアウトを許容する。
+ * ホーム画面追加の Web アプリ（standalone）だけ、横持ちでも縦画面を維持する。
+ * iOS Safari の orientation.lock 非対応を CSS で補う。
+ */
+@media (display-mode: standalone) and (orientation: landscape),
+  (display-mode: fullscreen) and (orientation: landscape),
+  (display-mode: minimal-ui) and (orientation: landscape) {
+  html {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100vh;
+    height: 100vw;
+    max-height: 100vw;
+    overflow: hidden;
+    transform: rotate(-90deg);
+    transform-origin: left top;
+  }
+
+  body,
+  #root {
+    width: 100vh;
+    height: 100vw;
+    min-height: 100vw;
+    max-height: 100vw;
+    overflow: hidden;
+  }
+}
+
+/* iOS の navigator.standalone 用（display-mode と併用） */
+html.is-standalone-app.is-standalone-landscape {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100vh;
+  height: 100vw;
+  max-height: 100vw;
+  overflow: hidden;
+  transform: rotate(-90deg);
+  transform-origin: left top;
+}
+
+html.is-standalone-app.is-standalone-landscape body,
+html.is-standalone-app.is-standalone-landscape #root {
+  width: 100vh;
+  height: 100vw;
+  min-height: 100vw;
+  max-height: 100vw;
+  overflow: hidden;
+}
+
 button {
   font: inherit;
   touch-action: manipulation;

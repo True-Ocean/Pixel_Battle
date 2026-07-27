@@ -719,6 +719,7 @@ export function DeckScreen({
       );
       if (!listEl || !row) return;
 
+      window.getSelection()?.removeAllRanges();
       closeDetail();
       suppressCardClickRef.current = true;
 
@@ -829,6 +830,9 @@ export function DeckScreen({
   const handleCardPointerDown = useCallback(
     (index: number, event: PointerEvent<HTMLButtonElement>) => {
       if (event.button !== 0 || dragSessionRef.current) return;
+
+      // 長押し開始前に既存の選択を消す（モバイルのテキスト選択対策）
+      window.getSelection()?.removeAllRanges();
 
       clearCardLongPress();
       cardLongPressPendingRef.current = {
@@ -1230,6 +1234,7 @@ export function DeckScreen({
                   className="deck-card-main"
                   disabled={isDragging}
                   onPointerDown={(event) => handleCardPointerDown(index, event)}
+                  onContextMenu={(event) => event.preventDefault()}
                   onClick={() => handleCardClick(card)}
                   aria-label={`${card.name}。タップで詳細、長押しで並べ替え`}
                 >

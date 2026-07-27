@@ -54,7 +54,13 @@ export function LimitBreakModal({
   };
 
   return createPortal(
-    <div className="limit-break-modal-backdrop" onClick={onClose}>
+    <div
+      className="limit-break-modal-backdrop"
+      onClick={(event) => {
+        event.stopPropagation();
+        onClose();
+      }}
+    >
       <div
         className="limit-break-modal-panel"
         role="dialog"

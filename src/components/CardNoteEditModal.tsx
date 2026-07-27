@@ -60,7 +60,13 @@ export function CardNoteEditModal({
   };
 
   return createPortal(
-    <div className="card-note-backdrop" onClick={onClose}>
+    <div
+      className="card-note-backdrop"
+      onClick={(event) => {
+        event.stopPropagation();
+        onClose();
+      }}
+    >
       <div
         className="card-note-panel"
         role="dialog"

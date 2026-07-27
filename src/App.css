@@ -10063,6 +10063,19 @@ button.battle-hub-deck-icon.is-move-target {
   overscroll-behavior: contain;
   margin-bottom: 0;
   -webkit-overflow-scrolling: touch;
+  /* 長押し並べ替えの待ち時間中にテキスト選択／コールアウトが出ないようにする */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.screen-deck .deck-card-row,
+.screen-deck .deck-card-main,
+.screen-deck .deck-card-empty-slot {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
 
 .screen-deck .deck-card-row {
@@ -11666,7 +11679,7 @@ button.battle-hub-deck-icon.is-move-target {
   position: fixed;
   inset: 0;
   z-index: 1200;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.62);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -11933,6 +11946,9 @@ button.battle-hub-deck-icon.is-move-target {
   border: 2.5px solid transparent;
   border-radius: 16px;
   padding: 0.95rem 0.7rem 0.8rem;
+  /* iOS Safari でグラデだけのとき下地が透けることがあるので不透明な土台を置く */
+  background-color: #ffffff;
+  isolation: isolate;
   box-shadow:
     0 10px 28px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.65);
@@ -12069,38 +12085,43 @@ button.battle-hub-deck-icon.is-move-target {
 }
 
 .attribute-gacha-panel--single {
-  background: linear-gradient(155deg, #f0fffb 0%, #c8f7ec 42%, #7ed9c8 100%);
+  background-color: #7ed9c8;
+  background-image: linear-gradient(155deg, #f0fffb 0%, #c8f7ec 42%, #7ed9c8 100%);
   border-color: #5ec4b2;
   color: #134e4a;
 }
 
 .attribute-gacha-panel--multi5 {
-  background: linear-gradient(155deg, #fffaf3 0%, #ffe0b8 42%, #f5a96a 100%);
+  background-color: #f5a96a;
+  background-image: linear-gradient(155deg, #fffaf3 0%, #ffe0b8 42%, #f5a96a 100%);
   border-color: #f08a3a;
   color: #7c2d12;
 }
 
 .attribute-gacha-panel--multi10 {
-  background: linear-gradient(155deg, #f5f9ff 0%, #cfe0ff 42%, #7eb0f5 100%);
+  background-color: #7eb0f5;
+  background-image: linear-gradient(155deg, #f5f9ff 0%, #cfe0ff 42%, #7eb0f5 100%);
   border-color: #5b8fd9;
   color: #1e3a8a;
 }
 
 .attribute-gacha-panel--confirm {
-  background: linear-gradient(155deg, #fff7fb 0%, #f9c6df 42%, #ec7eb3 100%);
+  background-color: #ec7eb3;
+  background-image: linear-gradient(155deg, #fff7fb 0%, #f9c6df 42%, #ec7eb3 100%);
   border-color: #e0569f;
   color: #831843;
 }
 
 .attribute-gacha-panel--event {
-  background: linear-gradient(155deg, #f5fff8 0%, #c8f5d4 42%, #5dca7e 100%);
+  background-color: #5dca7e;
+  background-image: linear-gradient(155deg, #f5fff8 0%, #c8f5d4 42%, #5dca7e 100%);
   border-color: #2f9e57;
   color: #14532d;
 }
 
 .attribute-gacha-panel--pending {
-  opacity: 0.55;
-  filter: grayscale(0.25);
+  /* opacity だとパネル全体が透けて下の詳細が見えるため、彩度だけで不足を示す */
+  filter: grayscale(0.45) brightness(0.96);
 }
 
 .attribute-gacha-mode-label {

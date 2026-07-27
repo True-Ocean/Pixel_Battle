@@ -63,7 +63,13 @@ export function CardNotePremiumUpsellModal({
       : 'card-note-upsell-title';
 
   return createPortal(
-    <div className="card-note-backdrop" onClick={onClose}>
+    <div
+      className="card-note-backdrop"
+      onClick={(event) => {
+        event.stopPropagation();
+        onClose();
+      }}
+    >
       <div
         className="card-note-panel card-note-panel--upsell"
         role="dialog"
